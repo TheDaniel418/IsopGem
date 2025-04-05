@@ -5,6 +5,8 @@ This document provides a centralized overview of all files in the IsopGem projec
 ## Recently Changed
 | File | Description | Date | Change Type |
 |------|-------------|------|------------|
+| `shared/ui/window_management.py` | Fixed type error in indexOf method by adding explicit int cast | 2023-04-05 | Modified |
+| `shared/utils/app.py` | Fixed type error in start_application by adding explicit int cast to app.exec() | 2023-04-05 | Modified |
 | `gematria/ui/dialogs/import_word_list_dialog.py` | Fixed type errors and improved type safety with explicit type conversions for pandas integration | 2023-04-05 | Modified |
 | `gematria/ui/dialogs/import_word_list_dialog.py` | Added new dialog for importing word lists from CSV, Excel, and ODS files with column mapping and preview functionality | 2023-04-05 | Added |
 | `gematria/ui/panels/word_abacus_panel.py` | Enhanced to support importing word lists | 2023-04-05 | Modified |
