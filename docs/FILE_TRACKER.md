@@ -5,6 +5,7 @@ This document provides a centralized overview of all files in the IsopGem projec
 ## Recently Changed
 | File | Description | Date | Change Type |
 |------|-------------|------|------------|
+| `.pre-commit-config.yaml` | Modified to exclude test files from all pre-commit checks | 2023-04-05 | Modified |
 | `shared/ui/window_management.py` | Fixed type error in indexOf method by adding explicit int cast | 2023-04-05 | Modified |
 | `shared/utils/app.py` | Fixed type error in start_application by adding explicit int cast to app.exec() | 2023-04-05 | Modified |
 | `gematria/ui/dialogs/import_word_list_dialog.py` | Fixed type errors and improved type safety with explicit type conversions for pandas integration | 2023-04-05 | Modified |
