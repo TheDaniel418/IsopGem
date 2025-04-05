@@ -76,28 +76,32 @@ class SearchPanel(QWidget):
         Returns:
             The window manager if found, None otherwise
         """
-        # Start with the current parent
-        current = self.parent()
-
-        # Walk up the parent chain until we find a window manager or run out of parents
-        while current is not None:
-            # Check if parent has window_manager attribute
-            if hasattr(current, "window_manager"):
-                manager = getattr(current, "window_manager")
-                if isinstance(manager, WindowManager):
-                    return manager
-
-            # Check children of current widget
-            for child in current.children():
-                if isinstance(child, WindowManager):
-                    return child
-
-            # Move up to parent
-            current = current.parent()
-
-        # If we get here, no window manager was found
-        logger.warning("No window manager found in parent widget chain")
-        return None
+        result: Optional[WindowManager] = None
+        
+        try:
+            # Start with the current parent
+            parent = self.parent()
+            
+            # Check parent chain
+            while parent is not None and result is None:
+                # Check if parent has window_manager attribute
+                if hasattr(parent, "window_manager"):
+                    potential_manager = getattr(parent, "window_manager")
+                    if isinstance(potential_manager, WindowManager):
+                        result = potential_manager
+                
+                # Move up to parent if we haven't found a manager
+                if result is None:
+                    parent = parent.parent()
+            
+            # Log if we didn't find anything
+            if result is None:
+                logger.warning("No window manager found in parent widget chain")
+                
+        except Exception as e:
+            logger.error(f"Error while finding window manager: {e}")
+            
+        return result
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
