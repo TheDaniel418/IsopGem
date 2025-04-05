@@ -1,0 +1,335 @@
+"""
+Purpose: Provides unified access to calculation and tag data persistence
+
+This file is part of the gematria pillar and serves as a service component.
+It is responsible for coordinating operations between the calculation and tag 
+repositories, providing a higher-level API for managing gematria calculation 
+results and their associated tags.
+
+Key components:
+- CalculationDatabaseService: Service class that combines tag and calculation
+  repositories to provide a unified interface for data management
+
+Dependencies:
+- gematria.repositories.calculation_repository: For storing calculation results
+- gematria.repositories.tag_repository: For managing tags
+- gematria.models.calculation_result: For the data structure of calculations
+- gematria.models.tag: For the data structure of tags
+
+Related files:
+- gematria/services/gematria_service.py: Uses this service for data persistence
+- gematria/ui/panels/calculation_history_panel.py: UI for displaying stored data
+- gematria/ui/dialogs/save_calculation_dialog.py: UI for saving calculations
+"""
+
+from typing import Dict, List, Optional, Set, Any, Union
+from datetime import datetime
+
+from loguru import logger
+
+from gematria.models.calculation_result import CalculationResult
+from gematria.models.calculation_type import CalculationType
+from gematria.models.tag import Tag
+from gematria.repositories.calculation_repository import CalculationRepository
+from gematria.repositories.tag_repository import TagRepository
+
+
+class CalculationDatabaseService:
+    """Service for managing gematria calculation database operations."""
+    
+    def __init__(self, data_dir: Optional[str] = None) -> None:
+        """Initialize the calculation database service.
+        
+        Args:
+            data_dir: Optional base directory path for storing data
+        """
+        # Initialize repositories
+        self.calculation_repo = CalculationRepository(data_dir)
+        self.tag_repo = TagRepository(data_dir)
+        
+        # Ensure we have some default tags
+        if not self.tag_repo.get_all_tags():
+            self.tag_repo.create_default_tags()
+            
+        logger.debug("CalculationDatabaseService initialized")
+        
+    # ===== Tag Methods =====
+    
+    def get_all_tags(self) -> List[Tag]:
+        """Get all tags.
+        
+        Returns:
+            List of all tags
+        """
+        return self.tag_repo.get_all_tags()
+        
+    def get_tag(self, tag_id: str) -> Optional[Tag]:
+        """Get a specific tag by ID.
+        
+        Args:
+            tag_id: ID of the tag to retrieve
+            
+        Returns:
+            Tag instance or None if not found
+        """
+        return self.tag_repo.get_tag(tag_id)
+        
+    def create_tag(self, name: str, color: str = "#3498db", description: Optional[str] = None) -> Optional[Tag]:
+        """Create a new tag.
+        
+        Args:
+            name: Name of the tag
+            color: Color code for the tag (hex format)
+            description: Optional description of the tag
+            
+        Returns:
+            Created Tag instance or None if creation failed
+        """
+        tag = Tag(name=name, color=color, description=description)
+        if self.tag_repo.create_tag(tag):
+            return tag
+        return None
+        
+    def update_tag(self, tag: Tag) -> bool:
+        """Update an existing tag.
+        
+        Args:
+            tag: Tag instance to update
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.tag_repo.update_tag(tag)
+        
+    def delete_tag(self, tag_id: str) -> bool:
+        """Delete a tag.
+        
+        Args:
+            tag_id: ID of the tag to delete
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        # First, remove this tag from all calculations
+        calculations = self.calculation_repo.find_calculations_by_tag(tag_id)
+        for calc in calculations:
+            if tag_id in calc.tags:
+                calc.tags.remove(tag_id)
+                self.calculation_repo.save_calculation(calc)
+                
+        # Then delete the tag
+        return self.tag_repo.delete_tag(tag_id)
+        
+    # ===== Calculation Methods =====
+    
+    def get_all_calculations(self) -> List[CalculationResult]:
+        """Get all calculation results.
+        
+        Returns:
+            List of all calculation results
+        """
+        return self.calculation_repo.get_all_calculations()
+        
+    def get_calculation(self, calculation_id: str) -> Optional[CalculationResult]:
+        """Get a specific calculation result by ID.
+        
+        Args:
+            calculation_id: ID of the calculation result to retrieve
+            
+        Returns:
+            CalculationResult instance or None if not found
+        """
+        return self.calculation_repo.get_calculation(calculation_id)
+        
+    def save_calculation(self, calculation: CalculationResult) -> bool:
+        """Save a calculation result.
+        
+        Args:
+            calculation: CalculationResult instance to save
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.calculation_repo.save_calculation(calculation)
+        
+    def delete_calculation(self, calculation_id: str) -> bool:
+        """Delete a calculation result.
+        
+        Args:
+            calculation_id: ID of the calculation result to delete
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        return self.calculation_repo.delete_calculation(calculation_id)
+        
+    def add_tag_to_calculation(self, calculation_id: str, tag_id: str) -> bool:
+        """Add a tag to a calculation.
+        
+        Args:
+            calculation_id: ID of the calculation
+            tag_id: ID of the tag to add
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        calculation = self.get_calculation(calculation_id)
+        if not calculation:
+            logger.warning(f"Calculation not found: {calculation_id}")
+            return False
+            
+        tag = self.get_tag(tag_id)
+        if not tag:
+            logger.warning(f"Tag not found: {tag_id}")
+            return False
+            
+        if tag_id not in calculation.tags:
+            calculation.tags.append(tag_id)
+            return self.save_calculation(calculation)
+            
+        return True  # Tag already exists on the calculation
+        
+    def remove_tag_from_calculation(self, calculation_id: str, tag_id: str) -> bool:
+        """Remove a tag from a calculation.
+        
+        Args:
+            calculation_id: ID of the calculation
+            tag_id: ID of the tag to remove
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        calculation = self.get_calculation(calculation_id)
+        if not calculation:
+            logger.warning(f"Calculation not found: {calculation_id}")
+            return False
+            
+        if tag_id in calculation.tags:
+            calculation.tags.remove(tag_id)
+            return self.save_calculation(calculation)
+            
+        return True  # Tag was not on the calculation
+        
+    def toggle_favorite_calculation(self, calculation_id: str) -> bool:
+        """Toggle the favorite status of a calculation.
+        
+        Args:
+            calculation_id: ID of the calculation
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        calculation = self.get_calculation(calculation_id)
+        if not calculation:
+            logger.warning(f"Calculation not found: {calculation_id}")
+            return False
+            
+        calculation.favorite = not calculation.favorite
+        return self.save_calculation(calculation)
+        
+    def update_calculation_notes(self, calculation_id: str, notes: str) -> bool:
+        """Update the notes for a calculation.
+        
+        Args:
+            calculation_id: ID of the calculation
+            notes: New notes content
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        calculation = self.get_calculation(calculation_id)
+        if not calculation:
+            logger.warning(f"Calculation not found: {calculation_id}")
+            return False
+            
+        calculation.notes = notes
+        return self.save_calculation(calculation)
+    
+    # ===== Search Methods =====
+    
+    def find_calculations_by_tag(self, tag_id: str) -> List[CalculationResult]:
+        """Find all calculations with a specific tag.
+        
+        Args:
+            tag_id: ID of the tag to filter by
+            
+        Returns:
+            List of calculation results with the specified tag
+        """
+        return self.calculation_repo.find_calculations_by_tag(tag_id)
+        
+    def find_calculations_by_text(self, text: str) -> List[CalculationResult]:
+        """Find all calculations containing the specified text.
+        
+        Args:
+            text: Text to search for in input_text or notes
+            
+        Returns:
+            List of calculation results containing the specified text
+        """
+        return self.calculation_repo.find_calculations_by_text(text)
+        
+    def find_calculations_by_value(self, value: int) -> List[CalculationResult]:
+        """Find all calculations with the specified result value.
+        
+        Args:
+            value: Numeric result value to search for
+            
+        Returns:
+            List of calculation results with the specified value
+        """
+        return self.calculation_repo.find_calculations_by_value(value)
+        
+    def find_favorites(self) -> List[CalculationResult]:
+        """Find all calculations marked as favorites.
+        
+        Returns:
+            List of calculation results marked as favorites
+        """
+        return self.calculation_repo.find_favorites()
+        
+    def find_calculations_by_method(self, method: Union[CalculationType, str]) -> List[CalculationResult]:
+        """Find all calculations using a specific calculation method.
+        
+        Args:
+            method: Calculation method (enum or custom method name)
+            
+        Returns:
+            List of calculation results using the specified method
+        """
+        return self.calculation_repo.find_calculations_by_method(method)
+    
+    def find_recent_calculations(self, limit: int = 10) -> List[CalculationResult]:
+        """Find the most recent calculations.
+        
+        Args:
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of recent calculation results, sorted by timestamp (newest first)
+        """
+        return self.calculation_repo.find_recent_calculations(limit)
+        
+    def get_unique_values(self) -> Set[int]:
+        """Get a set of all unique calculation result values.
+        
+        Returns:
+            Set of unique calculation result values
+        """
+        return self.calculation_repo.get_unique_values()
+        
+    def get_calculation_tag_names(self, calculation: CalculationResult) -> List[str]:
+        """Get tag names for a calculation.
+        
+        Args:
+            calculation: CalculationResult instance
+            
+        Returns:
+            List of tag names
+        """
+        tag_names = []
+        for tag_id in calculation.tags:
+            tag = self.get_tag(tag_id)
+            if tag:
+                tag_names.append(tag.name)
+        return tag_names 

@@ -1,0 +1,199 @@
+---
+description: This rule defines the proper structure and best practices for importing PyQt6 components. It should be applied whenever (1) adding new PyQt6 imports, (2) refactoring existing import statements, (3) creating new UI components, or (4) troubleshooting import-related issues in PyQt6 code. Following these guidelines prevents common import errors, improves code organization, and ensures consistent import structure across the project.
+globs: 
+alwaysApply: false
+---
+
+# PyQt6 Import Standards
+
+## Critical Rules
+
+- Always import specific classes directly from their respective modules
+- Group PyQt6 imports together, separated from other imports
+- Import QtWidgets components from `PyQt6.QtWidgets`
+- Import QtCore components from `PyQt6.QtCore`
+- Import QtGui components from `PyQt6.QtGui`
+- Never use wildcard imports (`from PyQt6.QtWidgets import *`)
+- Always use explicit imports for clarity and to avoid namespace pollution
+- When importing multiple classes from the same module, use multi-line imports with one class per line
+- Order imports alphabetically within each PyQt6 module group
+- Import all signal classes from `PyQt6.QtCore` (e.g., `Signal`, `Slot`, `QTimer`)
+- For custom widgets, import the base widget class they extend
+- When using designer-generated UI files, import `uic` from `PyQt6`
+- Use parentheses for multi-line imports
+- Always import `QApplication` when creating a PyQt6 application
+- Use aliases only when necessary to avoid name conflicts
+- For OpenGL support, import from `PyQt6.QtOpenGL`
+- For SQL support, import from `PyQt6.QtSql`
+- For network functionality, import from `PyQt6.QtNetwork`
+- For SVG support, import from `PyQt6.QtSvg`
+- Use consistent capitalization (PyQt6, not pyqt6 or PyQT6)
+
+## Common PyQt6 Import Patterns
+
+### Main Module Imports
+- `PyQt6.QtWidgets`: UI elements (widgets, layouts, dialogs)
+- `PyQt6.QtCore`: Core non-UI functionality (signals, slots, threading)
+- `PyQt6.QtGui`: Graphics-related elements (colors, fonts, icons)
+- `PyQt6`: Direct imports like `uic` for loading UI files
+
+### Specialized Module Imports
+- `PyQt6.QtSql`: Database connectivity
+- `PyQt6.QtNetwork`: Network operations 
+- `PyQt6.QtPrintSupport`: Printing functionality
+- `PyQt6.QtOpenGL`: OpenGL integration
+- `PyQt6.QtSvg`: SVG handling
+- `PyQt6.QtChart`: Chart/graph display
+- `PyQt6.QtMultimedia`: Audio/video playback
+
+## Examples
+
+<example>
+# Good PyQt6 import example
+
+# Standard library imports
+import os
+import sys
+from pathlib import Path
+
+# Third-party imports (non-PyQt)
+import numpy as np
+
+# PyQt6 core imports
+from PyQt6.QtCore import (
+    QObject,
+    QPoint,
+    QRect,
+    QSize,
+    Qt,
+    QTimer,
+    Signal,
+    Slot,
+)
+
+# PyQt6 GUI imports
+from PyQt6.QtGui import (
+    QAction,
+    QColor,
+    QFont,
+    QIcon,
+    QPainter,
+    QPalette,
+    QPixmap,
+)
+
+# PyQt6 widget imports
+from PyQt6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+# For loading UI files
+from PyQt6 import uic
+
+# Specialized PyQt6 imports as needed
+from PyQt6.QtSql import QSqlDatabase, QSqlQuery
+from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
+
+
+class MainWindow(QMainWindow):
+    """Main application window."""
+    
+    data_changed = Signal(str)  # Custom signal
+    
+    def __init__(self):
+        super().__init__()
+        
+        # Load UI from designer file if using
+        uic.loadUi("main_window.ui", self)
+        
+        # or set up UI manually
+        self.setWindowTitle("PyQt6 Application")
+        self.resize(800, 600)
+        
+        # Create central widget and layout
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
+        
+        # Add widgets
+        self.label = QLabel("Hello PyQt6")
+        self.button = QPushButton("Click Me")
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.button)
+        
+        # Connect signals to slots
+        self.button.clicked.connect(self.on_button_click)
+    
+    @Slot()
+    def on_button_click(self):
+        """Handle button click event."""
+        QMessageBox.information(self, "Info", "Button clicked!")
+        self.data_changed.emit("Button was clicked")
+
+
+# Application entry point
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
+</example>
+
+<example type="invalid">
+# Bad PyQt6 import example
+
+import sys
+from PyQt6.QtWidgets import *  # Avoid wildcard imports
+import PyQt6.QtCore  # Don't import entire modules
+from PyQt6 import QtGui  # Inconsistent import style
+import PyQt6.uic as uic  # Incorrect import path
+
+# Missing separation between standard and PyQt imports
+import os
+from PyQt6.QtCore import QTimer
+import numpy as np
+from PyQt6.QtCore import QObject
+
+# Inconsistent capitalization
+from pyqt6.QtSql import QSqlDatabase  # Wrong capitalization
+
+# Mixing import styles
+from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QLabel
+
+# Application code with imported module references
+class MainWindow(QtWidgets.QMainWindow):  # Using module prefix unnecessarily
+    def __init__(self):
+        super().__init__()
+        
+        # Loading UI with incorrect module reference
+        PyQt6.uic.loadUi("main.ui", self)  # Wrong reference
+        
+        # Using wildcard imported classes
+        self.label = QLabel()  # No indication this comes from QtWidgets
+        self.button = QPushButton()  # From wildcard import
+        
+        # Inconsistent signal/slot connection syntax
+        self.button.clicked.connect(self.onClick)  # Non-conforming method name
+    
+    def onClick(self):  # Non-conforming method name
+        msgBox = QMessageBox()  # From wildcard import
+        msgBox.setText("Clicked")
+        msgBox.exec()
+
+# Missing QApplication instance
+window = MainWindow()
+window.show()
+sys.exit(app.exec())  # app not defined properly
+</example> 

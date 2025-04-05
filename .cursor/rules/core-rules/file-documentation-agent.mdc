@@ -1,0 +1,153 @@
+---
+description: `This rule enforces comprehensive documentation for all new files added to the IsopGem codebase. It requires adding clear file-level documentation that explains the file's purpose, functionality, and relationship to the broader application architecture. This documentation ensures maintainability as the application grows in size and complexity.`
+globs: 
+alwaysApply: true
+---
+
+# File Documentation Rule
+
+## Critical Guidelines
+
+1. Every new file MUST begin with clear documentation explaining:
+   - The file's primary purpose and responsibility
+   - Its role within the application architecture
+   - Key components/functions contained within
+   - Dependencies and relationships with other modules
+   - Any important implementation details or design decisions
+
+2. Documentation format should match the language-specific conventions:
+   - Python: Multi-line docstring comments at the top of the file
+   - TypeScript/JavaScript: JSDoc-style comments at the top of the file
+   - CSS/SCSS: Comment block at the top of the file
+   - Other file types: Appropriate comment syntax for the language
+
+3. Documentation must specifically mention which architectural pillar the file belongs to (gematria, geometry, document_manager, astrology, tq) and its component type (UI, service, model, repository, utility).
+
+4. When creating new files that implement common patterns (e.g., services, repositories, models), documentation should reference similar existing files to maintain consistency.
+
+5. When creating test files, documentation should clearly state what functionality is being tested and the testing approach.
+
+## Documentation Templates
+
+### Python Files
+
+```python
+"""
+Purpose: [Brief description of what this file does]
+
+This file is part of the [PILLAR_NAME] pillar and serves as a [COMPONENT_TYPE].
+It is responsible for [PRIMARY_RESPONSIBILITY] within the application.
+
+Key components:
+- [CLASS/FUNCTION_NAME]: [Brief description]
+- [CLASS/FUNCTION_NAME]: [Brief description]
+
+Dependencies:
+- [DEPENDENCY]: [Reason for dependency]
+
+Related files:
+- [RELATED_FILE]: [Relationship description]
+"""
+```
+
+### TypeScript/JavaScript Files
+
+```typescript
+/**
+ * Purpose: [Brief description of what this file does]
+ *
+ * This file is part of the [PILLAR_NAME] pillar and serves as a [COMPONENT_TYPE].
+ * It is responsible for [PRIMARY_RESPONSIBILITY] within the application.
+ *
+ * Key components:
+ * - [CLASS/FUNCTION_NAME]: [Brief description]
+ * - [CLASS/FUNCTION_NAME]: [Brief description]
+ *
+ * Dependencies:
+ * - [DEPENDENCY]: [Reason for dependency]
+ *
+ * Related files:
+ * - [RELATED_FILE]: [Relationship description]
+ */
+```
+
+### CSS/SCSS Files
+
+```css
+/*
+ * Purpose: [Brief description of what this file does]
+ *
+ * This file is part of the [PILLAR_NAME] pillar and serves as [COMPONENT_TYPE] styling.
+ * It is responsible for [PRIMARY_RESPONSIBILITY] within the application.
+ *
+ * Key selectors/components:
+ * - [SELECTOR_NAME]: [Brief description]
+ * - [SELECTOR_NAME]: [Brief description]
+ *
+ * Related files:
+ * - [RELATED_FILE]: [Relationship description]
+ */
+```
+
+## Examples
+
+### Example: Python Service Implementation
+
+```python
+"""
+Purpose: Provides Gematria calculation services for Hebrew text analysis
+
+This file is part of the gematria pillar and serves as a service component.
+It is responsible for performing various types of gematria calculations on
+Hebrew text and maintaining calculation history.
+
+Key components:
+- GematriaService: Main service class that handles calculation requests
+- calculate_value: Core calculation function supporting multiple methods
+- get_calculation_history: Retrieves history of calculations
+
+Dependencies:
+- gematria.models.calculation_type: Defines available calculation methods
+- shared.services.history_service: For storing calculation history
+
+Related files:
+- gematria/ui/panels/calculator_panel.py: UI that uses this service
+- gematria/models/calculation_result.py: Data model for calculation results
+"""
+```
+
+### Example: TypeScript Component
+
+```typescript
+/**
+ * Purpose: Renders the Gematria calculator interface
+ *
+ * This file is part of the gematria pillar and serves as a UI component.
+ * It provides the main user interface for performing gematria calculations,
+ * viewing results, and accessing calculation history.
+ *
+ * Key components:
+ * - GematriaCalculator: Main component with input fields and results display
+ * - MethodSelector: Dropdown for selecting calculation methods
+ * - ResultsTable: Displays calculation results in tabular format
+ *
+ * Dependencies:
+ * - gematria/services/GematriaService: For performing calculations
+ * - shared/components/HistoryPanel: For displaying calculation history
+ *
+ * Related files:
+ * - gematria/models/CalculationType.ts: Defines calculation method types
+ * - gematria/styles/calculator.scss: Styling for this component
+ */
+```
+
+## Implementation
+
+When implementing this rule:
+
+1. Add the appropriate documentation template at the beginning of each new file
+2. Fill in all placeholder sections with specific, relevant information
+3. Ensure the documentation accurately reflects the file's current and intended purpose
+4. Update documentation when file functionality changes significantly
+
+Following this rule consistently will create a self-documenting codebase that remains maintainable as it grows in size and complexity. 

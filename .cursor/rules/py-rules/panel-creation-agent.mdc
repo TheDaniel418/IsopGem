@@ -1,0 +1,183 @@
+---
+description: `This rule governs the creation of panels and windows in the IsopGem application. It should be applied whenever the user requests to create a panel by saying "Create Panel" followed by the panel's purpose or functionality. The rule provides the structure, naming conventions, and implementation patterns for creating new UI components that maintain separation between UI and business logic. Following this rule ensures consistency in the UI architecture, proper separation of concerns, and integration with the window management system. It's particularly important for maintaining a clean, maintainable, and consistent UI across the application.`
+globs: 
+alwaysApply: false
+---
+
+# Panel Creation System
+
+## Critical Rules
+
+- Create all new UI components as floating windows (QMainWindow) instead of embedded panels
+- Create a dedicated Window class in the appropriate pillar's ui/dialogs directory
+- Create a reusable Widget class in the ui/widgets directory that contains the actual UI implementation
+- Follow the naming pattern: ComponentNameWindow and ComponentNameWidget
+- Separate UI from business logic by injecting services into the UI components
+- Emit signals from widgets when state changes to notify parent components
+- Use the window_manager.open_window() method to display the component
+- Register all windows with appropriate string identifiers
+- Create buttons in the pillar's tab that open the windows
+- Remove mentions of "floating" or "panel" from button texts and tooltips
+- Use vertical layouts (QVBoxLayout) as the base layout for all windows
+- Set standardized window size (minimum 800x600) and appropriate window titles
+
+## Implementation Structure
+
+```
+pillar/
+  ├── ui/
+  │   ├── dialogs/
+  │   │   └── component_name_window.py  # QMainWindow implementation
+  │   ├── widgets/
+  │   │   └── component_name_widget.py  # Core widget implementation
+  │   └── __init__.py                  # Exports the window and widget
+  ├── services/
+  │   └── component_service.py         # Business logic
+  └── models/
+      └── component_models.py          # Data structures
+```
+
+## Examples
+
+<example>
+# Command: "Create Panel for Hebrew Dictionary lookup"
+
+# 1. Create the widget in gematria/ui/widgets/dictionary_widget.py:
+```python
+"""Hebrew Dictionary widget.
+
+This module provides a widget for looking up Hebrew words and their meanings.
+"""
+
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QLineEdit, QPushButton, QTableWidget
+from loguru import logger
+
+from gematria.models import DictionaryEntry
+from gematria.services import DictionaryService
+
+class DictionaryWidget(QWidget):
+    """Widget for Hebrew Dictionary lookups."""
+    
+    lookup_performed = pyqtSignal(DictionaryEntry)
+    
+    def __init__(self, parent=None):
+        """Initialize the Dictionary widget."""
+        super().__init__(parent)
+        self.dictionary_service = DictionaryService()
+        self._init_ui()
+        logger.debug("DictionaryWidget initialized")
+    
+    def _init_ui(self):
+        """Initialize the UI components."""
+        layout = QVBoxLayout(self)
+        # UI components here
+        # ...
+```
+
+# 2. Create the window in gematria/ui/dialogs/dictionary_window.py:
+```python
+"""Hebrew Dictionary window.
+
+This module provides a standalone window for the Hebrew Dictionary.
+"""
+
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from loguru import logger
+
+from gematria.ui.widgets.dictionary_widget import DictionaryWidget
+
+class DictionaryWindow(QMainWindow):
+    """Standalone window for Hebrew Dictionary lookups."""
+    
+    def __init__(self, parent=None):
+        """Initialize the Dictionary window."""
+        super().__init__(parent)
+        self.setWindowTitle("Hebrew Dictionary")
+        self.setMinimumSize(800, 600)
+        
+        # Set up central widget
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # Create layout
+        layout = QVBoxLayout(central_widget)
+        
+        # Create Dictionary widget
+        self.dictionary_widget = DictionaryWidget()
+        layout.addWidget(self.dictionary_widget)
+        
+        logger.debug("DictionaryWindow initialized")
+```
+
+# 3. Update gematria/ui/__init__.py:
+```python
+from gematria.ui.dialogs.word_abacus_window import WordAbacusWindow
+from gematria.ui.dialogs.dictionary_window import DictionaryWindow
+from gematria.ui.widgets.word_abacus_widget import WordAbacusWidget
+from gematria.ui.widgets.dictionary_widget import DictionaryWidget
+
+__all__ = ["WordAbacusWindow", "WordAbacusWidget", "DictionaryWindow", "DictionaryWidget"]
+```
+
+# 4. Add button to GematriaTab:
+```python
+# Dictionary button
+dict_btn = QPushButton("Dictionary")
+dict_btn.setToolTip("Open Hebrew Dictionary")
+dict_btn.clicked.connect(lambda: self.window_manager.open_window(
+    "gematria_dictionary",
+    DictionaryWindow(),
+    "Hebrew Dictionary"
+))
+button_layout.addWidget(dict_btn)
+```
+</example>
+
+<example type="invalid">
+# Command: "Create Panel for Hebrew Dictionary lookup"
+
+# 1. Creating a panel instead of a window:
+```python
+"""Hebrew Dictionary panel.
+
+This module provides a panel for the Hebrew Dictionary.
+"""
+
+from PyQt6.QtWidgets import QDockWidget
+from loguru import logger
+
+class DictionaryPanel(QDockWidget):
+    """Panel for Hebrew Dictionary lookups."""
+    
+    def __init__(self, parent=None):
+        """Initialize the Dictionary panel."""
+        super().__init__("Dictionary", parent)
+        # NO! We don't use QDockWidget or panels
+```
+
+# 2. Mixing business logic in the UI:
+```python
+class DictionaryWidget(QWidget):
+    def lookup_word(self, word):
+        # API request to dictionary service
+        response = requests.get(f"https://dictionary-api.com/?word={word}")
+        data = response.json()
+        # NO! Business logic should be in a service
+```
+
+# 3. Button with "floating" in the name:
+```python
+# Dictionary button
+dict_btn = QPushButton("Floating Dictionary")  # NO! Don't use "Floating" in button text
+```
+
+# 4. Using TabManager instead of WindowManager:
+```python
+dict_btn.clicked.connect(lambda: self.tab_manager.add_tab(
+    "dictionary",  # NO! Use window_manager.open_window instead
+    DictionaryWidget(),
+    "Dictionary"
+))
+```
+</example> 

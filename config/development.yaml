@@ -1,0 +1,25 @@
+# IsopGem Development Configuration
+# This config overrides values from default.yaml when in development mode
+
+# Application settings
+application:
+  debug: true
+  log_level: "DEBUG"
+
+# UI settings
+ui:
+  window:
+    maximize_on_start: true
+
+# Data storage
+storage:
+  data_dir: "./dev_data"
+  backup_dir: "./dev_backups"
+  autosave_interval_minutes: 5
+
+# Development-specific settings
+development:
+  enable_hot_reload: true
+  profile_performance: true
+  show_debug_panel: true
+  mock_external_services: true 

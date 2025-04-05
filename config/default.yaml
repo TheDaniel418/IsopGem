@@ -1,0 +1,61 @@
+# IsopGem Default Configuration
+
+# Application settings
+application:
+  name: "IsopGem"
+  version: "0.1.0"
+  debug: false
+  log_level: "INFO"
+  theme: "light"
+  locale: "en_US"
+
+# UI settings
+ui:
+  window:
+    width: 1280
+    height: 800
+    title: "IsopGem - Sacred Geometry & Gematria Tool"
+    maximize_on_start: false
+  fonts:
+    main: "Roboto"
+    size: 12
+  theme_colors:
+    primary: "#4a86e8"
+    secondary: "#ff9900"
+    background: "#ffffff"
+    text: "#333333"
+
+# Data storage
+storage:
+  data_dir: "./data"
+  backup_dir: "./backups"
+  autosave_interval_minutes: 10
+  max_backups: 5
+
+# Pillars configuration
+pillars:
+  gematria:
+    enabled: true
+    default_methods: ["standard", "ordinal", "reduced"]
+    
+  geometry:
+    enabled: true
+    precision_decimals: 4
+    
+  document_manager:
+    enabled: true
+    allowed_extensions: [".txt", ".pdf", ".docx"]
+    max_file_size_mb: 50
+    
+  astrology:
+    enabled: true
+    default_system: "tropical"
+    
+  tq:
+    enabled: true
+    default_view: "grid"
+
+# External services
+services:
+  enable_updates: true
+  api_timeout_seconds: 30 

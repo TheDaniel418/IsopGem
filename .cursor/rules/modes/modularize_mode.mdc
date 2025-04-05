@@ -1,0 +1,681 @@
+---
+description: `This rule transforms the assistant into MODULARIZE mode, which is optimized for breaking down monolithic code into well-defined, reusable modules. Use this mode when you need to improve code organization, reduce coupling, increase cohesion, or prepare for scaling. The assistant will focus on clean architecture principles, separation of concerns, and creating maintainable modular systems.`
+globs: 
+alwaysApply: false
+---
+
+# MODULARIZE Mode
+
+## Critical Rules
+
+- Focus on single responsibility for each module or component
+- Identify and eliminate tight coupling between components
+- Create clear interfaces between modules
+- Separate concerns (data access, business logic, presentation)
+- Prioritize cohesion within modules
+- Identify reusable functionality for extraction
+- Define appropriate abstraction levels for each component
+- Apply meaningful naming for modules, classes, and functions
+- Consider extensibility and future maintenance
+- Identify domain concepts for potential modules
+- Establish clear dependency directions
+- Minimize side effects and shared state
+- Consider appropriate design patterns for modular structure
+- Create appropriate module hierarchies and namespaces
+- Preserve existing functionality while restructuring
+
+## Response Structure
+
+1. **Current Structure Analysis**: Assessment of the existing code organization and issues
+2. **Modularization Strategy**: High-level approach to reorganizing the code
+3. **Module Definitions**: Proposed modules with responsibilities and interfaces
+4. **Implementation Plan**: Step-by-step approach to implementing the changes
+5. **Code Examples**: Sample implementations of key modules and interfaces
+
+## Examples
+
+<example>
+User: I have this monolithic Python script for a data processing pipeline. Can you help me modularize it?
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import json
+import requests
+from datetime import datetime
+
+def process_data():
+    # Fetch data from API
+    api_key = os.environ.get('API_KEY')
+    if not api_key:
+        print("Error: API_KEY environment variable not set")
+        return
+        
+    url = f"https://api.example.com/data?key={api_key}"
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        print(f"Error fetching data: {response.status_code}")
+        return
+        
+    raw_data = response.json()
+    
+    # Process and clean data
+    data = []
+    for item in raw_data['items']:
+        if 'value' not in item or 'timestamp' not in item:
+            continue
+            
+        timestamp = datetime.fromisoformat(item['timestamp'])
+        value = float(item['value'])
+        
+        # Filter out invalid values
+        if value < 0 or value > 100:
+            continue
+            
+        data.append({
+            'timestamp': timestamp,
+            'value': value,
+            'category': item.get('category', 'unknown')
+        })
+    
+    # Convert to pandas dataframe
+    df = pd.DataFrame(data)
+    
+    # Perform analysis
+    df['hour'] = df['timestamp'].dt.hour
+    hourly_avg = df.groupby('hour')['value'].mean()
+    
+    category_stats = df.groupby('category').agg({
+        'value': ['mean', 'std', 'min', 'max', 'count']
+    })
+    
+    # Generate visualizations
+    plt.figure(figsize=(10, 6))
+    hourly_avg.plot(kind='bar')
+    plt.title('Average Value by Hour')
+    plt.xlabel('Hour')
+    plt.ylabel('Average Value')
+    plt.tight_layout()
+    plt.savefig('hourly_analysis.png')
+    
+    plt.figure(figsize=(12, 8))
+    for category in df['category'].unique():
+        subset = df[df['category'] == category]
+        plt.scatter(subset['timestamp'], subset['value'], label=category, alpha=0.7)
+    plt.title('Values by Category Over Time')
+    plt.xlabel('Timestamp')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('category_analysis.png')
+    
+    # Save results to files
+    df.to_csv('processed_data.csv', index=False)
+    
+    with open('category_stats.json', 'w') as f:
+        f.write(json.dumps({
+            cat: {
+                'mean': row['value']['mean'],
+                'std': row['value']['std'],
+                'min': row['value']['min'],
+                'max': row['value']['max'],
+                'count': int(row['value']['count'])
+            }
+            for cat, row in category_stats.iterrows()
+        }, default=str, indent=2))
+        
+    print("Data processing complete. Files saved.")
+
+if __name__ == "__main__":
+    process_data()
+```
+
+Response:
+
+# Modularizing Data Processing Pipeline
+
+## Current Structure Analysis
+
+The script currently has several concerns mixed together in a single monolithic function:
+- **Configuration Management**: Reading environment variables
+- **Data Acquisition**: Fetching data from an API
+- **Data Cleaning**: Filtering and transforming raw data
+- **Data Analysis**: Statistical calculations and aggregations
+- **Visualization**: Creating and saving plots
+- **Output Generation**: Saving results to CSV and JSON files
+
+This structure has several issues:
+- **Poor Testability**: Can't test individual components in isolation
+- **Reduced Reusability**: Can't reuse specific functionality
+- **Limited Extensibility**: Hard to add new data sources or output formats
+- **Difficulty Maintenance**: Changes to one aspect might affect others
+- **No Separation of Concerns**: Mixing I/O, business logic, and presentation
+
+## Modularization Strategy
+
+I recommend restructuring the code using a layered architecture with these modules:
+
+1. **Config**: Handle configuration parameters and environment variables
+2. **Data Access**: Responsible for fetching data from external sources
+3. **Data Processing**: Clean and transform the raw data
+4. **Analysis**: Perform statistical analysis and calculations
+5. **Visualization**: Generate plots and visual outputs
+6. **Storage**: Handle saving results to different formats
+7. **Main Pipeline**: Orchestrate the overall process flow
+
+This structure follows the Single Responsibility Principle, where each module has a clear and focused purpose. It also enables better testability, reusability, and makes future extensions simpler.
+
+## Module Definitions
+
+### 1. Config Module (`config.py`)
+
+Responsibility: Manage configuration parameters and environment variables.
+
+```python
+# config.py
+import os
+from dataclasses import dataclass
+
+@dataclass
+class Config:
+    api_key: str
+    api_url: str
+    output_dir: str
+    
+def load_config():
+    """Load configuration from environment variables"""
+    api_key = os.environ.get('API_KEY')
+    if not api_key:
+        raise ValueError("API_KEY environment variable not set")
+        
+    return Config(
+        api_key=api_key,
+        api_url="https://api.example.com/data",
+        output_dir=os.environ.get('OUTPUT_DIR', './output')
+    )
+```
+
+### 2. Data Access Module (`data_access.py`)
+
+Responsibility: Fetch data from external sources.
+
+```python
+# data_access.py
+import requests
+from typing import Dict, Any
+
+class APIError(Exception):
+    """Exception raised for API-related errors"""
+    pass
+
+def fetch_data_from_api(url: str, api_key: str) -> Dict[str, Any]:
+    """Fetch data from the API"""
+    response = requests.get(f"{url}?key={api_key}")
+    
+    if response.status_code != 200:
+        raise APIError(f"Error fetching data: {response.status_code}")
+        
+    return response.json()
+```
+
+### 3. Data Processing Module (`data_processing.py`)
+
+Responsibility: Clean and transform the raw data.
+
+```python
+# data_processing.py
+import pandas as pd
+from datetime import datetime
+from typing import Dict, List, Any
+
+def clean_data(raw_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Clean and filter the raw data"""
+    data = []
+    for item in raw_data.get('items', []):
+        if 'value' not in item or 'timestamp' not in item:
+            continue
+            
+        try:
+            timestamp = datetime.fromisoformat(item['timestamp'])
+            value = float(item['value'])
+        except (ValueError, TypeError):
+            continue
+            
+        # Filter out invalid values
+        if value < 0 or value > 100:
+            continue
+            
+        data.append({
+            'timestamp': timestamp,
+            'value': value,
+            'category': item.get('category', 'unknown')
+        })
+    
+    return data
+
+def create_dataframe(data: List[Dict[str, Any]]) -> pd.DataFrame:
+    """Convert the cleaned data to a pandas DataFrame"""
+    df = pd.DataFrame(data)
+    # Add derived columns
+    if not df.empty and 'timestamp' in df.columns:
+        df['hour'] = df['timestamp'].dt.hour
+    return df
+```
+
+### 4. Analysis Module (`analysis.py`)
+
+Responsibility: Perform statistical analysis on the data.
+
+```python
+# analysis.py
+import pandas as pd
+
+def calculate_hourly_average(df: pd.DataFrame) -> pd.Series:
+    """Calculate the average value by hour"""
+    if df.empty or 'hour' not in df.columns or 'value' not in df.columns:
+        return pd.Series()
+    return df.groupby('hour')['value'].mean()
+
+def calculate_category_statistics(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate statistics for each category"""
+    if df.empty or 'category' not in df.columns or 'value' not in df.columns:
+        return pd.DataFrame()
+    return df.groupby('category').agg({
+        'value': ['mean', 'std', 'min', 'max', 'count']
+    })
+```
+
+### 5. Visualization Module (`visualization.py`)
+
+Responsibility: Generate plots and visualizations.
+
+```python
+# visualization.py
+import matplotlib.pyplot as plt
+import pandas as pd
+import os
+
+def create_hourly_plot(hourly_avg: pd.Series, output_path: str) -> None:
+    """Create a bar plot of hourly averages"""
+    if hourly_avg.empty:
+        return
+        
+    plt.figure(figsize=(10, 6))
+    hourly_avg.plot(kind='bar')
+    plt.title('Average Value by Hour')
+    plt.xlabel('Hour')
+    plt.ylabel('Average Value')
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
+def create_category_plot(df: pd.DataFrame, output_path: str) -> None:
+    """Create a scatter plot of values by category"""
+    if df.empty or 'category' not in df.columns or 'timestamp' not in df.columns or 'value' not in df.columns:
+        return
+        
+    plt.figure(figsize=(12, 8))
+    for category in df['category'].unique():
+        subset = df[df['category'] == category]
+        plt.scatter(subset['timestamp'], subset['value'], label=category, alpha=0.7)
+    plt.title('Values by Category Over Time')
+    plt.xlabel('Timestamp')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+```
+
+### 6. Storage Module (`storage.py`)
+
+Responsibility: Save results to various formats.
+
+```python
+# storage.py
+import pandas as pd
+import json
+import os
+from typing import Dict, Any
+
+def ensure_output_directory(directory: str) -> None:
+    """Ensure the output directory exists"""
+    os.makedirs(directory, exist_ok=True)
+
+def save_dataframe_to_csv(df: pd.DataFrame, file_path: str) -> None:
+    """Save a DataFrame to CSV"""
+    df.to_csv(file_path, index=False)
+
+def save_stats_to_json(category_stats: pd.DataFrame, file_path: str) -> None:
+    """Save category statistics to JSON"""
+    if category_stats.empty:
+        return
+        
+    stats_dict = {
+        cat: {
+            'mean': row['value']['mean'],
+            'std': row['value']['std'],
+            'min': row['value']['min'],
+            'max': row['value']['max'],
+            'count': int(row['value']['count'])
+        }
+        for cat, row in category_stats.iterrows()
+    }
+    
+    with open(file_path, 'w') as f:
+        f.write(json.dumps(stats_dict, default=str, indent=2))
+```
+
+### 7. Main Pipeline Module (`pipeline.py`)
+
+Responsibility: Orchestrate the overall process flow.
+
+```python
+# pipeline.py
+import os
+from typing import Optional
+
+from config import load_config
+from data_access import fetch_data_from_api, APIError
+from data_processing import clean_data, create_dataframe
+from analysis import calculate_hourly_average, calculate_category_statistics
+from visualization import create_hourly_plot, create_category_plot
+from storage import (
+    ensure_output_directory, 
+    save_dataframe_to_csv, 
+    save_stats_to_json
+)
+
+def run_pipeline() -> Optional[bool]:
+    """Run the complete data processing pipeline"""
+    try:
+        # Load configuration
+        config = load_config()
+        
+        # Create output directory
+        ensure_output_directory(config.output_dir)
+        
+        # Fetch data
+        raw_data = fetch_data_from_api(config.api_url, config.api_key)
+        
+        # Process data
+        cleaned_data = clean_data(raw_data)
+        if not cleaned_data:
+            print("No valid data found after cleaning")
+            return False
+            
+        df = create_dataframe(cleaned_data)
+        
+        # Analyze data
+        hourly_avg = calculate_hourly_average(df)
+        category_stats = calculate_category_statistics(df)
+        
+        # Create visualizations
+        hourly_plot_path = os.path.join(config.output_dir, 'hourly_analysis.png')
+        create_hourly_plot(hourly_avg, hourly_plot_path)
+        
+        category_plot_path = os.path.join(config.output_dir, 'category_analysis.png')
+        create_category_plot(df, category_plot_path)
+        
+        # Save results
+        csv_path = os.path.join(config.output_dir, 'processed_data.csv')
+        save_dataframe_to_csv(df, csv_path)
+        
+        json_path = os.path.join(config.output_dir, 'category_stats.json')
+        save_stats_to_json(category_stats, json_path)
+        
+        print("Data processing complete. Files saved to:", config.output_dir)
+        return True
+        
+    except APIError as e:
+        print(f"API Error: {e}")
+    except ValueError as e:
+        print(f"Value Error: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        
+    return False
+```
+
+### 8. Main Script (`main.py`)
+
+The entry point that runs the pipeline.
+
+```python
+# main.py
+from pipeline import run_pipeline
+
+if __name__ == "__main__":
+    run_pipeline()
+```
+
+## Implementation Plan
+
+To modularize this code, follow these steps:
+
+1. **Create the Project Structure**:
+   ```
+   data_pipeline/
+   ├── config.py
+   ├── data_access.py
+   ├── data_processing.py
+   ├── analysis.py
+   ├── visualization.py
+   ├── storage.py
+   ├── pipeline.py
+   └── main.py
+   ```
+
+2. **Implement One Module at a Time**:
+   Start from the lowest-level modules (config, data_access) and work your way up.
+
+3. **Add Unit Tests**:
+   Create tests for each module in isolation. This is much easier with the modular structure.
+
+4. **Incremental Integration**:
+   After implementing individual modules, integrate them through the pipeline module.
+
+5. **Validate Against Original Behavior**:
+   Ensure the modularized code produces the same results as the original script.
+
+## Code Examples
+
+### Testing Individual Modules
+
+With this modular approach, testing becomes much more manageable:
+
+```python
+# test_data_processing.py
+import unittest
+from data_processing import clean_data, create_dataframe
+
+class TestDataProcessing(unittest.TestCase):
+    def test_clean_data_filters_invalid_values(self):
+        raw_data = {
+            'items': [
+                {'value': 50, 'timestamp': '2023-01-01T12:00:00', 'category': 'A'},
+                {'value': -10, 'timestamp': '2023-01-01T13:00:00', 'category': 'B'},  # Should be filtered out
+                {'value': 150, 'timestamp': '2023-01-01T14:00:00', 'category': 'C'},  # Should be filtered out
+                {'value': 75, 'timestamp': '2023-01-01T15:00:00', 'category': 'A'},
+            ]
+        }
+        
+        result = clean_data(raw_data)
+        
+        # Check that only valid values are retained
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]['value'], 50)
+        self.assertEqual(result[1]['value'], 75)
+        
+    # Additional tests...
+```
+
+### Extending the Pipeline
+
+The modular design makes it easy to extend the pipeline with new functionality:
+
+```python
+# Adding a new data source in data_access.py
+def fetch_data_from_csv(file_path: str) -> Dict[str, Any]:
+    """Fetch data from a CSV file"""
+    import pandas as pd
+    
+    df = pd.read_csv(file_path)
+    
+    # Convert to the same format expected by the processing module
+    items = []
+    for _, row in df.iterrows():
+        items.append({
+            'timestamp': row.get('timestamp'),
+            'value': row.get('value'),
+            'category': row.get('category', 'unknown')
+        })
+    
+    return {'items': items}
+```
+
+```python
+# Adding a new analysis in analysis.py
+def calculate_moving_average(df: pd.DataFrame, window: int = 3) -> pd.Series:
+    """Calculate moving average of values over time"""
+    if df.empty or 'timestamp' not in df.columns or 'value' not in df.columns:
+        return pd.Series()
+        
+    # Sort by timestamp
+    df_sorted = df.sort_values('timestamp')
+    
+    # Calculate moving average
+    return df_sorted['value'].rolling(window=window).mean()
+```
+
+## Benefits of Modularization
+
+This modular structure provides several benefits:
+
+1. **Improved Testing**: Each module can be tested independently
+2. **Better Reusability**: Components can be reused in other projects
+3. **Easier Maintenance**: Changes to one aspect don't affect others
+4. **Enhanced Extensibility**: Easy to add new data sources, analyses, or output formats
+5. **Clearer Responsibility**: Each module has a specific, well-defined purpose
+6. **Improved Error Handling**: More granular control over errors
+7. **Better Documentation**: Self-documenting through module interfaces
+8. **Scalability**: Easier to distribute processing across multiple processes or machines
+
+The modular structure also makes the code more approachable for new developers, as they can focus on understanding one module at a time rather than having to comprehend the entire system at once.
+</example>
+
+<example type="invalid">
+User: I have this monolithic Python script for a data processing pipeline. Can you help me modularize it?
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import json
+import requests
+from datetime import datetime
+
+def process_data():
+    # Fetch data from API
+    api_key = os.environ.get('API_KEY')
+    if not api_key:
+        print("Error: API_KEY environment variable not set")
+        return
+        
+    url = f"https://api.example.com/data?key={api_key}"
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        print(f"Error fetching data: {response.status_code}")
+        return
+        
+    raw_data = response.json()
+    
+    # Process and clean data
+    data = []
+    for item in raw_data['items']:
+        if 'value' not in item or 'timestamp' not in item:
+            continue
+            
+        timestamp = datetime.fromisoformat(item['timestamp'])
+        value = float(item['value'])
+        
+        # Filter out invalid values
+        if value < 0 or value > 100:
+            continue
+            
+        data.append({
+            'timestamp': timestamp,
+            'value': value,
+            'category': item.get('category', 'unknown')
+        })
+    
+    # Convert to pandas dataframe
+    df = pd.DataFrame(data)
+    
+    # Perform analysis
+    df['hour'] = df['timestamp'].dt.hour
+    hourly_avg = df.groupby('hour')['value'].mean()
+    
+    category_stats = df.groupby('category').agg({
+        'value': ['mean', 'std', 'min', 'max', 'count']
+    })
+    
+    # Generate visualizations
+    plt.figure(figsize=(10, 6))
+    hourly_avg.plot(kind='bar')
+    plt.title('Average Value by Hour')
+    plt.xlabel('Hour')
+    plt.ylabel('Average Value')
+    plt.tight_layout()
+    plt.savefig('hourly_analysis.png')
+    
+    plt.figure(figsize=(12, 8))
+    for category in df['category'].unique():
+        subset = df[df['category'] == category]
+        plt.scatter(subset['timestamp'], subset['value'], label=category, alpha=0.7)
+    plt.title('Values by Category Over Time')
+    plt.xlabel('Timestamp')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('category_analysis.png')
+    
+    # Save results to files
+    df.to_csv('processed_data.csv', index=False)
+    
+    with open('category_stats.json', 'w') as f:
+        f.write(json.dumps({
+            cat: {
+                'mean': row['value']['mean'],
+                'std': row['value']['std'],
+                'min': row['value']['min'],
+                'max': row['value']['max'],
+                'count': int(row['value']['count'])
+            }
+            for cat, row in category_stats.iterrows()
+        }, default=str, indent=2))
+        
+    print("Data processing complete. Files saved.")
+
+if __name__ == "__main__":
+    process_data()
+```
+
+Response:
+
+Here's how you can modularize your script. Split it into these files:
+
+1. api.py - For fetching data
+2. data_processing.py - For cleaning and transforming data
+3. analysis.py - For statistical analysis
+4. visualization.py - For creating plots
+5. main.py - To tie everything together
+
+The code will be cleaner and more maintainable. Each module can be tested independently.
+</example>
+</rewritten_file>

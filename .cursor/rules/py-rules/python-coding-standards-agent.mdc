@@ -1,0 +1,207 @@
+---
+description: This rule defines Python coding standards and best practices that must be followed across the project. It should be applied whenever (1) writing new Python code, (2) modifying existing Python code, (3) reviewing code for quality or readability issues, or (4) discussing Python implementation approaches. These standards are based on PEP 8 and industry best practices to ensure consistent, maintainable, and high-quality Python code throughout the project.
+globs: 
+alwaysApply: false
+---
+
+# Python Coding Standards
+
+## Critical Rules
+
+- Follow PEP 8 style guide for all Python code
+- Use 4 spaces for indentation, never tabs
+- Limit all lines to a maximum of 88 characters
+- Use snake_case for functions, methods, variables, and module names
+- Use PascalCase for class names
+- Use UPPER_CASE for constants
+- Use appropriate naming: descriptive and specific without abbreviations
+- Add docstrings to all modules, classes, and functions (using triple double-quotes)
+- Include type hints for function parameters and return values
+- Keep functions and methods focused on a single responsibility
+- Use f-strings for string formatting where possible
+- Avoid global variables
+- Handle all exceptions explicitly; never use bare except clauses
+- Write code for Python 3.10+ compatibility (specify minimum version)
+- Use context managers (with statements) for resource management
+- Include proper unit tests for all functionality
+- Organize imports in groups: standard library, third-party, local application
+- Separate import groups with a blank line
+- Use absolute imports rather than relative imports
+- Use meaningful variable and function names that describe their purpose
+- For comments, explain why not what
+- Follow the DRY (Don't Repeat Yourself) principle
+
+## Code Structure and Organization
+
+- Organize code into logical modules and packages following the project architecture
+- Each module should have a clear, single responsibility
+- Keep classes and functions at a reasonable size (<100 lines for functions, <300 for classes)
+- Maintain a logical order for class methods:
+  1. Special methods (`__init__`, etc.)
+  2. Public methods
+  3. Protected methods (prefixed with `_`)
+  4. Private methods (prefixed with `__`)
+- Use properties instead of getters/setters
+- Prefer composition over inheritance
+- For complex algorithms, include comments explaining the approach
+- Keep the number of arguments in functions minimal (≤5)
+- Use keyword arguments for clarity
+- Include appropriate docstrings:
+  - Module-level docstrings explaining the module's purpose
+  - Class docstrings explaining the class's purpose and behavior
+  - Function/method docstrings explaining purpose, parameters, return values, and exceptions
+
+## Error Handling and Testing
+
+- Use specific exception types or custom exceptions
+- Provide helpful error messages
+- Test for both normal and edge cases
+- Write unit tests using pytest
+- Maintain at least 80% test coverage
+- Never ignore or silence exceptions without documentation
+- Log exceptions when they're caught and handled
+- Use assertions for internal logic verification, not for data validation
+
+## Performance and Efficiency
+
+- Use built-in functions and libraries when available
+- Prefer list/dictionary/set comprehensions over loops for simple operations
+- Use generators for large data sets
+- Use `collections` module for specialized data structures
+- Profile code to identify bottlenecks before optimization
+- Use appropriate data structures for the task
+- Avoid premature optimization
+- Use lazy evaluation where appropriate
+
+## Documentation
+
+- Include a module-level docstring at the top of each file
+- Use Google-style or NumPy-style docstrings consistently
+- Document all public APIs
+- Comment complex algorithms and non-obvious code
+- Update documentation when code changes
+- Include examples in docstrings where appropriate
+
+## Examples
+
+<example>
+# Good Python code example
+
+"""Module for calculating gematria values of Hebrew text."""
+
+from typing import Dict, List, Optional
+
+# Constants are in UPPER_CASE
+HEBREW_LETTER_VALUES = {
+    'א': 1, 'ב': 2, 'ג': 3,
+    # ... other letters
+}
+
+class GematriaCalculator:
+    """Calculates gematria values using different methods.
+    
+    This class provides functionality to calculate various forms of
+    gematria values for Hebrew text.
+    """
+    
+    def __init__(self, custom_values: Optional[Dict[str, int]] = None):
+        """Initialize the calculator with optional custom letter values.
+        
+        Args:
+            custom_values: Dictionary mapping Hebrew letters to custom values.
+                           If None, standard values are used.
+        """
+        self.letter_values = custom_values or HEBREW_LETTER_VALUES
+        self._cache = {}  # Protected attribute with underscore prefix
+    
+    def calculate_standard(self, text: str) -> int:
+        """Calculate the standard gematria value of a text.
+        
+        Args:
+            text: Hebrew text to calculate.
+            
+        Returns:
+            The total gematria value.
+            
+        Raises:
+            ValueError: If text contains non-Hebrew characters.
+        """
+        # Check for cache hit first
+        if text in self._cache:
+            return self._cache[text]
+        
+        # Input validation
+        if not all(char in self.letter_values or char.isspace() for char in text):
+            raise ValueError("Text contains characters not in the Hebrew alphabet")
+        
+        # Use comprehension for clarity and performance
+        total = sum(self.letter_values.get(char, 0) for char in text)
+        
+        # Cache the result
+        self._cache[text] = total
+        
+        return total
+
+
+def parse_hebrew_text(text: str) -> List[str]:
+    """Parse Hebrew text into separate words.
+    
+    Args:
+        text: Hebrew text to parse.
+        
+    Returns:
+        List of Hebrew words.
+    """
+    # Simple example with f-string
+    cleaned_text = text.strip()
+    if not cleaned_text:
+        return []
+        
+    words = cleaned_text.split()
+    return [word for word in words if word]  # Filter out empty words
+
+
+if __name__ == "__main__":
+    # Example usage
+    calculator = GematriaCalculator()
+    sample_text = "שלום עולם"
+    value = calculator.calculate_standard(sample_text)
+    print(f"The gematria value of '{sample_text}' is {value}")
+</example>
+
+<example type="invalid">
+# Bad Python code example
+
+# No module docstring
+
+letterValues = {'א': 1, 'ב': 2, 'ג': 3} # Incorrect naming (camelCase)
+
+# No type hints, poor name, no docstring
+def calc(t):
+    val = 0
+    for c in t:
+        try:  # Bare except, poor error handling
+            val = val + letterValues[c]
+        except:
+            pass
+    return val
+
+# Poor class naming, no docstring
+class calculator:
+    # No docstring, poor parameter naming
+    def __init__(self, cv = None):
+        self.vals = cv if cv != None else letterValues
+        self.cache = {}
+    
+    # No docstring, inconsistent naming, too long line
+    def Calculate(self, Input):  # Mixed case method name
+        return sum([self.vals.get(c, 0) for c in Input if c in self.vals or c.isspace()])  # Line too long, complex logic in one line
+
+# Global variable
+result = None
+
+# No if __name__ == "__main__" guard
+calc = calculator()
+result = calc.Calculate("שלום")
+print("The result is " + str(result))  # Poor string formatting
+</example> 

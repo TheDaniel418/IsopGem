@@ -1,0 +1,86 @@
+---
+description: `This rule creates and maintains a file tracker document that mirrors the project's file structure, providing a centralized overview of all files and their purposes. Every time a new file is added or modified, this tracker is updated to reflect the changes, helping maintain a clear map of the growing codebase.`
+globs: 
+alwaysApply: true
+---
+
+# File Tracker Rule
+
+## Critical Guidelines
+
+1. Maintain a central document at `docs/FILE_TRACKER.md` that catalogs all application files by directory structure.
+
+2. Every time a new file is created or significantly modified:
+   - Add an entry to the file tracker document
+   - Include the file's relative path within the project
+   - Add a brief description extracted from the file's documentation
+   - Categorize by pillar and component type
+   - Preserve the hierarchical directory structure in the document
+
+3. Structure the file tracker document with:
+   - Clear hierarchical headings for directories (use ## for top-level, ### for second-level, etc.)
+   - Bullet points for individual files
+   - Code formatting for file paths
+   - Tables for important files with columns for path, description, pillar, and type
+
+4. When removing or renaming files:
+   - Update the corresponding entry in the file tracker
+   - Maintain a "Recently Changed" section at the top to highlight recent modifications
+
+5. Periodically suggest to consolidate and reorganize the tracker document when it becomes too large or unwieldy.
+
+## File Tracker Template
+
+```markdown
+# IsopGem File Tracker
+
+This document provides a centralized overview of all files in the IsopGem project, organized by directory structure. Each entry includes the file path and a brief description of its purpose.
+
+## Recently Changed
+| File | Description | Date | Change Type |
+|------|-------------|------|------------|
+| `path/to/new/file.py` | Brief description | YYYY-MM-DD | Added |
+| `path/to/modified/file.ts` | Brief description | YYYY-MM-DD | Modified |
+
+## Directory Structure
+
+### /shared
+Core shared components, utilities, and services used across multiple pillars.
+
+#### /shared/services
+- `history_service.py`: Provides unified history tracking functionality for various operations across pillars.
+- `logging_service.py`: Centralized logging functionality with configurable log levels.
+
+### /gematria
+Components related to Hebrew gematria calculations and analysis.
+
+#### /gematria/models
+- `calculation_type.py`: Defines various calculation methods used in Gematria.
+- `calculation_result.py`: Data model for storing and retrieving calculation results.
+
+#### /gematria/services
+- `gematria_service.py`: Core service providing Hebrew text analysis and gematria calculations.
+
+#### /gematria/ui/panels
+- `calculator_panel.py`: UI panel providing a user interface for calculating gematria values.
+- `history_panel.py`: Panel displaying the history of gematria calculations.
+
+### /geometry
+Components for geometric analysis and visualization.
+
+...
+```
+
+## Implementation
+
+When implementing this rule:
+
+1. Create the file tracker document if it doesn't exist
+2. Update it each time a file is created or significantly modified
+3. Maintain the hierarchical structure matching the project's directory organization
+4. Extract brief descriptions from file documentation
+5. Organize by pillars and component types
+6. Keep the "Recently Changed" section up to date
+7. Periodically suggest reorganization when the tracker becomes unwieldy
+
+This file tracker will serve as a living map of the codebase, providing a valuable resource for both developers and AI assistants to quickly understand the project structure and find specific components. 

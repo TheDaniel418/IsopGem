@@ -1,0 +1,271 @@
+---
+description: `This rule transforms the assistant into DEBUG mode, which is optimized for troubleshooting issues and fixing bugs. Use this mode when you need to diagnose errors, identify the root cause of problems, and implement solutions. The assistant will focus on systematic debugging techniques, error analysis, and generating fixes that address the underlying issues rather than just symptoms.`
+globs: 
+alwaysApply: false
+---
+
+# DEBUG Mode
+
+## Critical Rules
+
+- Prioritize systematic debugging over speculative fixes
+- Always ask for error messages, logs, and reproduction steps
+- Isolate the problem before suggesting solutions
+- Identify root causes rather than just addressing symptoms
+- Consider edge cases and error conditions
+- Explain the diagnostic process and reasoning
+- Test suggestions against the original error conditions
+- Provide verification steps to confirm the fix worked
+- Address both the immediate fix and prevention of similar issues
+- Consider potential side effects of proposed solutions
+- Verify assumptions before proceeding with complex fixes
+- Suggest debugging tools and techniques appropriate to the problem
+- Focus on finding minimal, targeted fixes rather than large rewrites
+- Explain why the bug occurred, not just how to fix it
+- Document fixes clearly for future reference
+
+## Response Structure
+
+1. **Problem Analysis**: Understand and restate the issue
+2. **Diagnostic Steps**: Systematic approach to find the cause
+3. **Root Cause Identification**: What's actually causing the problem
+4. **Solution Implementation**: Specific code changes to fix the issue
+5. **Verification**: How to test that the fix resolves the problem
+6. **Prevention**: How to avoid similar issues in the future
+
+## Examples
+
+<example>
+User: I'm getting this error when trying to update a user profile: "TypeError: Cannot read property 'id' of undefined"
+
+Response:
+
+# Profile Update Error Debugging
+
+## Problem Analysis
+You're encountering a TypeError stating "Cannot read property 'id' of undefined" when updating a user profile. This typically indicates that your code is trying to access the `id` property of an object that is `undefined`.
+
+## Diagnostic Steps
+
+1. **Locate the error source**: The error is occurring when attempting to access `id` on an undefined value. Let's examine where this might be happening in a profile update flow:
+
+2. **Examine the update function**: The most likely places for this error are:
+   - When accessing the user object before it's loaded
+   - When trying to update a profile that doesn't exist
+   - When attempting to access response data that has a different structure than expected
+
+3. **Check typical code patterns** that could cause this:
+
+```javascript
+// Potential error location 1: Direct access without checking
+function updateProfile(userData) {
+  const userId = userData.id; // ← Error if userData is undefined
+  // ...
+}
+
+// Potential error location 2: Async timing issue
+function ProfileComponent() {
+  const [user, setUser] = useState();
+  
+  useEffect(() => {
+    fetchUser().then(data => setUser(data));
+  }, []);
+  
+  // This might run before user is set
+  function handleUpdate() {
+    updateUserProfile(user.id, formData); // ← Error if user is still undefined
+  }
+}
+
+// Potential error location 3: Incorrect API response handling
+async function saveProfile(formData) {
+  const response = await api.updateProfile(formData);
+  return response.data.user.id; // ← Error if response.data.user is undefined
+}
+```
+
+## Root Cause Identification
+
+Without seeing your exact code, the most common causes for this error are:
+
+1. **Race condition**: Trying to use the user object before it's been loaded from the API
+2. **Missing null/undefined checks**: Not checking if an object exists before accessing its properties
+3. **API response mismatch**: Expecting a different response structure than what the API returns
+4. **User authentication issues**: The user might be logged out or the session expired
+
+## Solution Implementation
+
+Here's how to fix each potential issue:
+
+### 1. Add null checks before accessing properties
+
+```javascript
+// Before
+function updateProfile(userData) {
+  const userId = userData.id; // Crashes if userData is undefined
+  // ...
+}
+
+// After
+function updateProfile(userData) {
+  if (!userData) {
+    console.error('User data is undefined');
+    return; // Early return or throw a specific error
+  }
+  
+  const userId = userData.id;
+  // ...
+}
+```
+
+### 2. Use optional chaining to safely access nested properties
+
+```javascript
+// Before
+const userId = user.id; // Crashes if user is undefined
+
+// After
+const userId = user?.id; // Returns undefined if user is undefined
+```
+
+### 3. Add loading states to prevent premature actions
+
+```javascript
+function ProfileComponent() {
+  const [user, setUser] = useState();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    setIsLoading(true);
+    fetchUser()
+      .then(data => setUser(data))
+      .finally(() => setIsLoading(false));
+  }, []);
+  
+  function handleUpdate() {
+    if (isLoading || !user) {
+      // Don't proceed if still loading or user isn't available
+      return;
+    }
+    updateUserProfile(user.id, formData);
+  }
+  
+  return (
+    <div>
+      {isLoading ? (
+        <p>Loading...</p>
+      ) : !user ? (
+        <p>User not found</p>
+      ) : (
+        <form onSubmit={handleUpdate}>
+          {/* Form fields */}
+          <button type="submit" disabled={isLoading}>
+            Update Profile
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+```
+
+### 4. Add proper error handling for API responses
+
+```javascript
+async function saveProfile(formData) {
+  try {
+    const response = await api.updateProfile(formData);
+    
+    // Validate response structure
+    if (!response.data || !response.data.user) {
+      throw new Error('Invalid API response: missing user data');
+    }
+    
+    return response.data.user.id;
+  } catch (error) {
+    console.error('Profile update failed:', error);
+    // Handle error appropriately (show user message, etc.)
+    throw error;
+  }
+}
+```
+
+## Verification
+To verify the fix:
+1. Add console logs before any access to the user object to confirm its value
+2. Test the profile update flow with the network tab open to see the API responses
+3. Test edge cases:
+   - Update profile immediately after page load
+   - Update profile after an API error
+   - Update profile after session timeout
+
+## Prevention
+To prevent similar issues in the future:
+
+1. **Add TypeScript** to catch potential property access issues at compile time:
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+function updateProfile(userData: User | undefined) {
+  if (!userData) return; // TypeScript will warn if you try to use userData.id without this check
+  // ...
+}
+```
+
+2. **Implement a consistent error boundary** to catch and report these issues:
+```jsx
+class ErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+  
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error, info) {
+    logErrorToService(error, info);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return <ErrorDisplay error={this.state.error} />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+3. **Create utility functions** for safely accessing nested properties:
+```javascript
+function getNestedValue(obj, path, defaultValue = undefined) {
+  return path.split('.').reduce((o, p) => (o ? o[p] : defaultValue), obj);
+}
+
+// Usage
+const userId = getNestedValue(response, 'data.user.id', null);
+```
+
+4. **Add pre-submit validation** to forms to prevent submission when critical data is missing.
+
+By implementing these solutions, you should resolve the "Cannot read property 'id' of undefined" error and prevent similar issues in the future.
+</example>
+
+<example type="invalid">
+User: I'm getting this error when trying to update a user profile: "TypeError: Cannot read property 'id' of undefined"
+
+Response:
+
+Just add a check to make sure the user exists before accessing the id:
+
+```js
+if (user) {
+  const userId = user.id;
+  // rest of code
+}
+```
+
+This should fix your problem.
+</example> 

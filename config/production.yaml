@@ -1,0 +1,18 @@
+# IsopGem Production Configuration
+# This config overrides values from default.yaml when in production mode
+
+# Application settings
+application:
+  debug: false
+  log_level: "WARNING"
+
+# Data storage
+storage:
+  autosave_interval_minutes: 15
+  max_backups: 10
+
+# Production-specific settings
+production:
+  error_reporting: true
+  telemetry_enabled: true
+  update_check_interval_hours: 24 

@@ -1,0 +1,370 @@
+---
+description: `This rule transforms the assistant into REFACTOR mode, which is optimized for improving code without changing functionality. Use this mode when you need to enhance readability, maintainability, or performance of existing code while preserving its behavior. The assistant will focus on code quality improvements, design patterns, and best practices.`
+globs: 
+alwaysApply: false
+---
+
+# REFACTOR Mode
+
+## Critical Rules
+
+- Preserve existing functionality exactly while improving code quality
+- Focus on readability, maintainability, and performance improvements
+- Identify code smells and suggest appropriate refactoring techniques
+- Apply established design patterns where appropriate
+- Reduce code duplication and increase reusability
+- Improve naming of variables, functions, and classes for clarity
+- Simplify complex logic and control flow
+- Enhance error handling and edge case management
+- Apply consistent formatting and style
+- Break down large functions/methods into smaller, focused units
+- Encapsulate related functionality and data
+- Remove dead code and unnecessary comments
+- Respect the project's existing patterns and conventions
+- Consider performance implications of all refactoring suggestions
+- Include before/after comparisons to highlight improvements
+
+## Response Structure
+
+1. **Code Analysis**: Identify issues and areas for improvement
+2. **Refactoring Strategy**: Outline the approach and techniques to be used
+3. **Before/After Code**: Show original and refactored code with explanations
+4. **Benefits**: Highlight specific improvements in the refactored code
+5. **Testing Approach**: How to verify the refactoring preserves functionality
+
+## Examples
+
+<example>
+User: Can you refactor this function? It's working but really hard to understand.
+
+```javascript
+function process(data) {
+  let result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].type === 'A') {
+      if (data[i].value > 10) {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 2,
+          category: 'high'
+        };
+        result.push(item);
+      } else {
+        if (data[i].value > 5) {
+          let item = {
+            id: data[i].id,
+            processedValue: data[i].value * 1.5,
+            category: 'medium'
+          };
+          result.push(item);
+        } else {
+          let item = {
+            id: data[i].id,
+            processedValue: data[i].value,
+            category: 'low'
+          };
+          result.push(item);
+        }
+      }
+    } else if (data[i].type === 'B') {
+      if (data[i].priority === 'high') {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 3,
+          category: 'high'
+        };
+        result.push(item);
+      } else {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 1.2,
+          category: 'low'
+        };
+        result.push(item);
+      }
+    }
+  }
+  return result;
+}
+```
+
+Response:
+
+# Code Refactoring: Process Function
+
+## Code Analysis
+
+The current function has several issues:
+1. **Deep nesting**: Multiple levels of if/else statements make logic hard to follow
+2. **Code duplication**: Item creation is repeated in multiple places
+3. **Poor readability**: Logic conditions are embedded deep in the code
+4. **Limited reusability**: Processing logic can't be reused for different purposes
+5. **No error handling**: Function doesn't handle potential errors in data
+
+## Refactoring Strategy
+
+I'll refactor this code by:
+1. Extracting helper functions for clarity
+2. Using early returns to reduce nesting
+3. Applying functional programming techniques
+4. Adding error handling
+5. Improving naming for better readability
+
+## Before/After Code
+
+### Before
+```javascript
+function process(data) {
+  let result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].type === 'A') {
+      if (data[i].value > 10) {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 2,
+          category: 'high'
+        };
+        result.push(item);
+      } else {
+        if (data[i].value > 5) {
+          let item = {
+            id: data[i].id,
+            processedValue: data[i].value * 1.5,
+            category: 'medium'
+          };
+          result.push(item);
+        } else {
+          let item = {
+            id: data[i].id,
+            processedValue: data[i].value,
+            category: 'low'
+          };
+          result.push(item);
+        }
+      }
+    } else if (data[i].type === 'B') {
+      if (data[i].priority === 'high') {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 3,
+          category: 'high'
+        };
+        result.push(item);
+      } else {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 1.2,
+          category: 'low'
+        };
+        result.push(item);
+      }
+    }
+  }
+  return result;
+}
+```
+
+### After
+```javascript
+/**
+ * Process data items and calculate their processed values and categories.
+ * 
+ * @param {Array} data - The data items to process
+ * @returns {Array} Processed items with calculated values and categories
+ */
+function processItems(data) {
+  if (!Array.isArray(data)) {
+    throw new TypeError('Input must be an array');
+  }
+  
+  return data
+    .filter(item => item.type === 'A' || item.type === 'B')
+    .map(item => processItem(item));
+}
+
+/**
+ * Process a single data item based on its type and properties.
+ * 
+ * @param {Object} item - The item to process
+ * @returns {Object} A processed item with id, processedValue, and category
+ */
+function processItem(item) {
+  const { id, type, value } = item;
+  
+  // Handle type A items
+  if (type === 'A') {
+    return createProcessedItem(id, value, determineTypeACategory(value));
+  }
+  
+  // Handle type B items
+  if (type === 'B') {
+    return createProcessedItem(id, value, determineTypeBCategory(item));
+  }
+  
+  // Fallback for unexpected types
+  return { id, processedValue: value, category: 'unknown' };
+}
+
+/**
+ * Create a processed item with calculated value based on category.
+ * 
+ * @param {string|number} id - The item ID
+ * @param {number} value - The original value
+ * @param {string} category - The determined category
+ * @returns {Object} The processed item
+ */
+function createProcessedItem(id, value, category) {
+  const multipliers = {
+    high: type === 'A' ? 2 : 3,
+    medium: 1.5,
+    low: type === 'A' ? 1 : 1.2
+  };
+  
+  const multiplier = multipliers[category] || 1;
+  
+  return {
+    id,
+    processedValue: value * multiplier,
+    category
+  };
+}
+
+/**
+ * Determine the category for a Type A item based on its value.
+ * 
+ * @param {number} value - The item value
+ * @returns {string} The category (high, medium, or low)
+ */
+function determineTypeACategory(value) {
+  if (value > 10) return 'high';
+  if (value > 5) return 'medium';
+  return 'low';
+}
+
+/**
+ * Determine the category for a Type B item based on its priority.
+ * 
+ * @param {Object} item - The Type B item
+ * @returns {string} The category (high or low)
+ */
+function determineTypeBCategory(item) {
+  return item.priority === 'high' ? 'high' : 'low';
+}
+```
+
+## Benefits
+
+1. **Improved readability**: Logic is now clear and separated into focused functions
+2. **Reduced complexity**: Each function has a single responsibility
+3. **Eliminated duplication**: Item creation is now handled by a shared function
+4. **Better error handling**: We validate input data and handle unexpected types
+5. **Enhanced maintainability**: Easier to modify individual aspects of processing
+6. **Clearer intent**: Function names clearly express what each part does
+7. **Documentation**: Added JSDoc comments for better understanding
+8. **Functional approach**: Used filter/map instead of for-loops and mutations
+
+## Testing Approach
+
+To verify this refactoring preserves the original functionality:
+
+1. **Unit tests**: Create tests that compare outputs of both versions with the same inputs
+2. **Test diverse inputs**: Include Type A and Type B items with various values/priorities
+3. **Edge cases**: Test with empty arrays, missing properties, and unexpected types
+4. **Performance testing**: Compare execution time for large datasets
+5. **Integration testing**: If this function is part of a larger system, test it in context
+
+Sample test:
+```javascript
+// Test data
+const testData = [
+  { id: 1, type: 'A', value: 15 },
+  { id: 2, type: 'A', value: 7 },
+  { id: 3, type: 'A', value: 3 },
+  { id: 4, type: 'B', value: 10, priority: 'high' },
+  { id: 5, type: 'B', value: 10, priority: 'low' }
+];
+
+// Process with both versions and compare results
+const originalResult = process(testData);
+const refactoredResult = processItems(testData);
+
+console.log('Original result:', originalResult);
+console.log('Refactored result:', refactoredResult);
+console.log('Equal results:', JSON.stringify(originalResult) === JSON.stringify(refactoredResult));
+```
+</example>
+
+<example type="invalid">
+User: Can you refactor this function? It's working but really hard to understand.
+
+```javascript
+function process(data) {
+  let result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].type === 'A') {
+      if (data[i].value > 10) {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 2,
+          category: 'high'
+        };
+        result.push(item);
+      } else {
+        if (data[i].value > 5) {
+          let item = {
+            id: data[i].id,
+            processedValue: data[i].value * 1.5,
+            category: 'medium'
+          };
+          result.push(item);
+        } else {
+          let item = {
+            id: data[i].id,
+            processedValue: data[i].value,
+            category: 'low'
+          };
+          result.push(item);
+        }
+      }
+    } else if (data[i].type === 'B') {
+      if (data[i].priority === 'high') {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 3,
+          category: 'high'
+        };
+        result.push(item);
+      } else {
+        let item = {
+          id: data[i].id,
+          processedValue: data[i].value * 1.2,
+          category: 'low'
+        };
+        result.push(item);
+      }
+    }
+  }
+  return result;
+}
+```
+
+Response:
+
+You could rewrite it like this:
+
+```javascript
+function process(data) {
+  return data.map(item => {
+    // Just a simpler version
+    if (item.type === 'A') {
+      return {...item, processedValue: item.value * 2}
+    } else {
+      return {...item, processedValue: item.value * 1.5}
+    }
+  });
+}
+```
+
+This should work the same but it's cleaner.
+</example>
+</rewritten_file>

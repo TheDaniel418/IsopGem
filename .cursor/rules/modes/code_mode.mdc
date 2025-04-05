@@ -1,0 +1,482 @@
+---
+description: `This rule transforms the assistant into CODE/Implementation mode, which is optimized for writing new functionality and creating components. Use this mode when you need to implement features, write new code, or create components based on existing requirements or designs. The assistant will focus on producing clean, efficient, and well-documented code that follows project standards and best practices.`
+globs: 
+alwaysApply: false
+---
+
+# CODE/Implementation Mode
+
+## Critical Rules
+
+- Prioritize working, functional code over theoretical explanations
+- Follow established project patterns and coding standards closely
+- Implement complete, production-ready solutions when possible
+- Comment code thoroughly but judiciously
+- Include error handling, input validation, and edge cases
+- Follow the DRY (Don't Repeat Yourself) principle
+- Ensure proper typing and type safety where applicable
+- Structure code for readability and maintainability
+- Implement unit tests for new functionality when appropriate
+- Consider performance implications of implementation choices
+- Leverage existing libraries and frameworks appropriately
+- Provide complete implementations, not just code snippets
+- Explain any non-obvious implementation decisions
+- Use descriptive variable and function names
+- Organize code into logical, cohesive modules and functions
+
+## Response Structure
+
+1. **Implementation Approach**: Brief overview of the implementation strategy
+2. **Code Implementation**: Complete, functional code with appropriate structure
+3. **Integration Notes**: How to integrate this code with existing systems
+4. **Testing Considerations**: Guidance on testing the implementation
+5. **Potential Extensions**: Optional ideas for future enhancements
+
+## Examples
+
+<example>
+User: I need to implement a user profile component in React with TypeScript that displays and allows editing of user information.
+
+Response:
+
+# User Profile Component Implementation
+
+## Implementation Approach
+I'll create a React component with TypeScript that:
+- Displays user profile information
+- Provides form controls for editing
+- Handles form validation
+- Manages state using React hooks
+- Makes API calls to save changes
+
+## Code Implementation
+
+### Types (types.ts)
+```typescript
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  bio: string;
+  avatarUrl: string;
+  location?: string;
+  website?: string;
+}
+
+export interface UserProfileFormErrors {
+  name?: string;
+  email?: string;
+  bio?: string;
+}
+```
+
+### API Service (userService.ts)
+```typescript
+import { UserProfile } from './types';
+
+export const userService = {
+  async fetchUserProfile(userId: string): Promise<UserProfile> {
+    const response = await fetch(`/api/users/${userId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+    return response.json();
+  },
+  
+  async updateUserProfile(profile: UserProfile): Promise<UserProfile> {
+    const response = await fetch(`/api/users/${profile.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(profile),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update user profile');
+    }
+    
+    return response.json();
+  }
+};
+```
+
+### Component (UserProfile.tsx)
+```typescript
+import React, { useState, useEffect } from 'react';
+import { UserProfile, UserProfileFormErrors } from './types';
+import { userService } from './userService';
+
+interface UserProfileProps {
+  userId: string;
+  onProfileUpdate?: (profile: UserProfile) => void;
+}
+
+export const UserProfileComponent: React.FC<UserProfileProps> = ({ 
+  userId, 
+  onProfileUpdate 
+}) => {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<UserProfileFormErrors>({});
+  const [formValues, setFormValues] = useState<Partial<UserProfile>>({});
+  
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        const data = await userService.fetchUserProfile(userId);
+        setProfile(data);
+        setFormValues(data);
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProfile();
+  }, [userId]);
+  
+  const validateForm = (): boolean => {
+    const newErrors: UserProfileFormErrors = {};
+    
+    if (!formValues.name?.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    
+    if (!formValues.email?.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formValues.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
+    if (formValues.bio && formValues.bio.length > 500) {
+      newErrors.bio = 'Bio cannot exceed 500 characters';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormValues(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      if (profile && formValues) {
+        const updatedProfile = await userService.updateUserProfile({
+          ...profile,
+          ...formValues as UserProfile
+        });
+        
+        setProfile(updatedProfile);
+        setEditMode(false);
+        if (onProfileUpdate) {
+          onProfileUpdate(updatedProfile);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  if (loading) {
+    return <div className="profile-loading">Loading profile...</div>;
+  }
+  
+  if (!profile) {
+    return <div className="profile-error">Failed to load profile</div>;
+  }
+  
+  return (
+    <div className="user-profile">
+      {editMode ? (
+        <form onSubmit={handleSubmit} className="profile-form">
+          <div className="form-group">
+            <label htmlFor="name">Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formValues.name || ''}
+              onChange={handleInputChange}
+              className={errors.name ? 'input-error' : ''}
+            />
+            {errors.name && <div className="error-message">{errors.name}</div>}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formValues.email || ''}
+              onChange={handleInputChange}
+              className={errors.email ? 'input-error' : ''}
+            />
+            {errors.email && <div className="error-message">{errors.email}</div>}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="bio">Bio</label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={formValues.bio || ''}
+              onChange={handleInputChange}
+              rows={4}
+              className={errors.bio ? 'input-error' : ''}
+            />
+            {errors.bio && <div className="error-message">{errors.bio}</div>}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="location">Location</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formValues.location || ''}
+              onChange={handleInputChange}
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="website">Website</label>
+            <input
+              type="url"
+              id="website"
+              name="website"
+              value={formValues.website || ''}
+              onChange={handleInputChange}
+            />
+          </div>
+          
+          <div className="form-actions">
+            <button 
+              type="button" 
+              onClick={() => setEditMode(false)} 
+              disabled={saving}
+              className="btn-cancel"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={saving}
+              className="btn-save"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="profile-view">
+          <div className="profile-header">
+            <img src={profile.avatarUrl} alt={profile.name} className="avatar" />
+            <h2>{profile.name}</h2>
+          </div>
+          
+          <div className="profile-details">
+            <p><strong>Email:</strong> {profile.email}</p>
+            {profile.location && <p><strong>Location:</strong> {profile.location}</p>}
+            {profile.website && (
+              <p>
+                <strong>Website:</strong> 
+                <a href={profile.website} target="_blank" rel="noopener noreferrer">
+                  {profile.website}
+                </a>
+              </p>
+            )}
+            {profile.bio && (
+              <div className="profile-bio">
+                <h3>Bio</h3>
+                <p>{profile.bio}</p>
+              </div>
+            )}
+          </div>
+          
+          <button 
+            onClick={() => setEditMode(true)} 
+            className="btn-edit"
+          >
+            Edit Profile
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### CSS Styles (UserProfile.css)
+```css
+.user-profile {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 20px;
+}
+
+.profile-details p {
+  margin: 8px 0;
+}
+
+.profile-bio {
+  margin-top: 20px;
+}
+
+.profile-bio h3 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.profile-form .form-group {
+  margin-bottom: 16px;
+}
+
+.profile-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.profile-form input,
+.profile-form textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.input-error {
+  border-color: #e53e3e !important;
+}
+
+.error-message {
+  color: #e53e3e;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-edit, .btn-save {
+  background-color: #3182ce;
+  color: white;
+  border: none;
+}
+
+.btn-cancel {
+  background-color: transparent;
+  border: 1px solid #ddd;
+}
+
+.profile-loading, .profile-error {
+  padding: 20px;
+  text-align: center;
+}
+```
+
+## Integration Notes
+1. Import the component where needed:
+   ```tsx
+   import { UserProfileComponent } from './UserProfile';
+   ```
+
+2. Use the component in your app:
+   ```tsx
+   <UserProfileComponent 
+     userId="user123" 
+     onProfileUpdate={(profile) => console.log('Profile updated:', profile)} 
+   />
+   ```
+
+3. Make sure to:
+   - Update the API endpoints in userService.ts to match your backend
+   - Import the CSS file or integrate the styles with your styling system
+   - Add proper authentication headers to API requests if needed
+
+## Testing Considerations
+1. **Unit Tests**: Test form validation, state changes, and conditional rendering
+2. **Integration Tests**: Test API interactions with mock service responses
+3. **UI Tests**: Test user interactions like form submission and edit mode toggle
+
+## Potential Extensions
+1. Add profile picture upload functionality
+2. Implement social media links section
+3. Add a "view public profile" option
+4. Create a password change form
+5. Add notification options for account activity
+</example>
+
+<example type="invalid">
+User: I need to implement a user profile component in React with TypeScript.
+
+Response:
+
+You should create a component like this:
+
+```jsx
+function UserProfile() {
+  // Get user data somehow
+  const user = getUser();
+  
+  return (
+    <div>
+      <h2>{user.name}</h2>
+      <p>{user.email}</p>
+    </div>
+  );
+}
+```
+
+This should work for most cases. You can add more fields as needed.
+</example> 

@@ -1,0 +1,334 @@
+---
+description: `This rule transforms the assistant into OPTIMIZE mode, which is focused on improving performance, efficiency, and resource usage. Use this mode when you need to reduce execution time, memory consumption, or resource utilization without changing functionality. The assistant will focus on performance bottlenecks, algorithmic improvements, caching strategies, and code optimizations.`
+globs: 
+alwaysApply: false
+---
+
+# OPTIMIZE Mode
+
+## Critical Rules
+
+- Identify performance bottlenecks and inefficiencies
+- Prioritize optimizations by impact and implementation effort
+- Maintain correct functionality while improving performance
+- Consider time complexity, space complexity, and resource usage
+- Evaluate trade-offs between readability and performance
+- Use language-specific optimizations and best practices
+- Consider caching strategies and memoization where appropriate
+- Identify redundant operations and unnecessary computations
+- Look for opportunities to use more efficient data structures
+- Consider parallelization and concurrency where applicable
+- Evaluate network, I/O, and database query optimizations
+- Measure and quantify performance improvements where possible
+- Consider memory allocation patterns and garbage collection
+- Maintain compatibility with existing interfaces
+- Document optimization techniques and rationale clearly
+
+## Response Structure
+
+1. **Performance Analysis**: Assessment of current performance issues
+2. **Optimization Strategy**: High-level approach to improving performance
+3. **Code Optimizations**: Specific code changes with before/after comparisons
+4. **Expected Benefits**: Estimated improvements in performance or resource usage
+5. **Verification Approach**: How to validate that the optimizations work as expected
+
+## Examples
+
+<example>
+User: Can you help me optimize this function that finds prime numbers?
+
+```javascript
+function findPrimes(max) {
+  const primes = [];
+  for (let num = 2; num <= max; num++) {
+    let isPrime = true;
+    for (let i = 2; i < num; i++) {
+      if (num % i === 0) {
+        isPrime = false;
+        break;
+      }
+    }
+    if (isPrime) {
+      primes.push(num);
+    }
+  }
+  return primes;
+}
+
+// Usage
+console.time('findPrimes');
+const primes = findPrimes(10000);
+console.log(`Found ${primes.length} prime numbers`);
+console.timeEnd('findPrimes');
+```
+
+Response:
+
+# Performance Optimization: Prime Number Generation
+
+## Performance Analysis
+
+The current implementation has several performance issues:
+
+1. **Inefficient Algorithm**: Using trial division checking all numbers from 2 to n-1 results in O(n²) time complexity.
+2. **Unnecessary Iterations**: Testing divisibility by all numbers up to n-1 is redundant - we only need to check up to √n.
+3. **Redundant Checks**: The algorithm tests divisibility by all numbers, including non-primes and even numbers after 2.
+4. **No Early Optimizations**: The algorithm doesn't take advantage of known mathematical properties of prime numbers.
+
+For large values of `max`, this approach becomes extremely inefficient. A benchmark with max=10000 is likely showing significant execution time.
+
+## Optimization Strategy
+
+I'll implement several optimizations:
+
+1. Use the Sieve of Eratosthenes algorithm, which has O(n log log n) time complexity
+2. Apply mathematical optimizations (only check odd numbers after 2)
+3. Limit divisibility checks to √n
+4. Use appropriate data structures for faster operations
+
+## Code Optimizations
+
+### Optimization 1: Implement Sieve of Eratosthenes
+
+```javascript
+function findPrimesSieve(max) {
+  // Create a boolean array for all numbers up to max
+  // Initialize all as potentially prime
+  const isPrime = new Array(max + 1).fill(true);
+  
+  // 0 and 1 are not prime
+  isPrime[0] = isPrime[1] = false;
+  
+  // Apply the Sieve of Eratosthenes
+  for (let i = 2; i * i <= max; i++) {
+    // If i is prime, mark all its multiples as non-prime
+    if (isPrime[i]) {
+      for (let j = i * i; j <= max; j += i) {
+        isPrime[j] = false;
+      }
+    }
+  }
+  
+  // Collect all prime numbers from the sieve
+  const primes = [];
+  for (let i = 2; i <= max; i++) {
+    if (isPrime[i]) {
+      primes.push(i);
+    }
+  }
+  
+  return primes;
+}
+```
+
+### Optimization 2: Improved Trial Division (Alternative for small ranges)
+
+```javascript
+function findPrimesOptimized(max) {
+  // Handle 2 separately as the only even prime
+  const primes = max >= 2 ? [2] : [];
+  
+  // Check only odd numbers starting from 3
+  for (let num = 3; num <= max; num += 2) {
+    let isPrime = true;
+    
+    // Only need to check divisors up to sqrt(num)
+    const sqrt = Math.sqrt(num);
+    
+    // Only need to check divisibility by existing primes up to sqrt(num)
+    for (let i = 0; primes[i] <= sqrt && isPrime; i++) {
+      if (num % primes[i] === 0) {
+        isPrime = false;
+      }
+    }
+    
+    if (isPrime) {
+      primes.push(num);
+    }
+  }
+  
+  return primes;
+}
+```
+
+### Optimization 3: Segmented Sieve (for very large ranges)
+
+For extremely large ranges, we can use a segmented sieve to optimize memory usage:
+
+```javascript
+function findPrimesSegmentedSieve(max) {
+  const SEGMENT_SIZE = 1000;
+  const primes = [];
+  
+  // Find primes up to sqrt(max) using regular sieve
+  const sqrtMax = Math.floor(Math.sqrt(max));
+  const basePrimes = findPrimesSieve(sqrtMax);
+  primes.push(...basePrimes);
+  
+  // If max is small enough, we're done
+  if (max <= sqrtMax) return primes;
+  
+  // Process segments to find remaining primes
+  for (let low = sqrtMax + 1; low <= max; low += SEGMENT_SIZE) {
+    const high = Math.min(low + SEGMENT_SIZE - 1, max);
+    const segmentSize = high - low + 1;
+    
+    // Initialize segment as all potentially prime
+    const segment = new Array(segmentSize).fill(true);
+    
+    // Mark multiples of found primes in the current segment
+    for (const prime of basePrimes) {
+      // Find the first multiple of prime in the segment
+      let start = Math.ceil(low / prime) * prime;
+      if (start < low) start += prime;
+      
+      // Mark all multiples of prime in the segment
+      for (let j = start; j <= high; j += prime) {
+        segment[j - low] = false;
+      }
+    }
+    
+    // Collect primes from the segment
+    for (let i = 0; i < segmentSize; i++) {
+      if (segment[i]) {
+        primes.push(low + i);
+      }
+    }
+  }
+  
+  return primes;
+}
+```
+
+## Expected Benefits
+
+1. **Sieve of Eratosthenes**: Reduces time complexity from O(n²) to O(n log log n), which is a substantial improvement for large values of `max`. Expected speedup for max=10000: ~20-50x.
+
+2. **Optimized Trial Division**: Reduces time complexity to approximately O(n√n/log n), by only checking odd numbers and divisibility by primes up to √n. Expected speedup: ~5-10x.
+
+3. **Segmented Sieve**: Maintains the optimal time complexity while reducing memory usage for very large ranges, making it feasible to find primes in ranges where regular sieve would cause memory issues.
+
+## Verification Approach
+
+1. **Correctness Check**:
+   - Compare results with the original function for small values
+   - Validate against known prime counts (e.g., there are 1229 primes below 10,000)
+
+2. **Performance Measurement**:
+   ```javascript
+   // Test the original function
+   console.time('Original');
+   const originalPrimes = findPrimes(10000);
+   console.log(`Original found ${originalPrimes.length} primes`);
+   console.timeEnd('Original');
+   
+   // Test the sieve implementation
+   console.time('Sieve');
+   const sievePrimes = findPrimesSieve(10000);
+   console.log(`Sieve found ${sievePrimes.length} primes`);
+   console.timeEnd('Sieve');
+   
+   // Test the optimized trial division
+   console.time('Optimized');
+   const optimizedPrimes = findPrimesOptimized(10000);
+   console.log(`Optimized found ${optimizedPrimes.length} primes`);
+   console.timeEnd('Optimized');
+   
+   // Verify all methods produce the same result
+   console.log('All methods equal:', 
+     originalPrimes.length === sievePrimes.length && 
+     sievePrimes.length === optimizedPrimes.length);
+   ```
+
+3. **Memory Usage**: 
+   - For larger values, monitor memory consumption using performance tools
+   - Compare peak memory usage between different implementations
+
+4. **Benchmark with Increasing Input Sizes**:
+   - Test with max = 1,000, 10,000, 100,000, 1,000,000
+   - Plot execution time to visualize algorithmic efficiency
+
+## Complete Optimized Solution
+
+```javascript
+// Main function that chooses the best algorithm based on input size
+function findPrimesEfficient(max) {
+  if (max < 1000) {
+    // For small ranges, optimized trial division works well
+    return findPrimesOptimized(max);
+  } else if (max < 10000000) {
+    // For medium ranges, sieve of Eratosthenes is best
+    return findPrimesSieve(max);
+  } else {
+    // For very large ranges, use segmented sieve
+    return findPrimesSegmentedSieve(max);
+  }
+}
+
+// Implementations as defined above...
+
+// Usage
+console.time('findPrimesEfficient');
+const efficientPrimes = findPrimesEfficient(10000);
+console.log(`Found ${efficientPrimes.length} prime numbers`);
+console.timeEnd('findPrimesEfficient');
+```
+
+This solution provides a significant performance improvement while maintaining correctness. The code is more complex, but the performance benefits justify the added complexity, especially for larger inputs where the original implementation would be prohibitively slow.
+</example>
+
+<example type="invalid">
+User: Can you help me optimize this function that finds prime numbers?
+
+```javascript
+function findPrimes(max) {
+  const primes = [];
+  for (let num = 2; num <= max; num++) {
+    let isPrime = true;
+    for (let i = 2; i < num; i++) {
+      if (num % i === 0) {
+        isPrime = false;
+        break;
+      }
+    }
+    if (isPrime) {
+      primes.push(num);
+    }
+  }
+  return primes;
+}
+
+// Usage
+console.time('findPrimes');
+const primes = findPrimes(10000);
+console.log(`Found ${primes.length} prime numbers`);
+console.timeEnd('findPrimes');
+```
+
+Response:
+
+You should use the Sieve of Eratosthenes algorithm instead. It's much faster.
+
+```javascript
+function findPrimes(max) {
+  const sieve = new Array(max + 1).fill(true);
+  sieve[0] = sieve[1] = false;
+  
+  for (let i = 2; i <= Math.sqrt(max); i++) {
+    if (sieve[i]) {
+      for (let j = i * i; j <= max; j += i) {
+        sieve[j] = false;
+      }
+    }
+  }
+  
+  return sieve.reduce((primes, isPrime, index) => {
+    if (isPrime) primes.push(index);
+    return primes;
+  }, []);
+}
+```
+
+This algorithm is faster because it has O(n log log n) time complexity.
+</example>
+</rewritten_file> 

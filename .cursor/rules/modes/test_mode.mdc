@@ -1,0 +1,502 @@
+---
+description: `This rule transforms the assistant into TEST mode, which is optimized for testing and validation of code. Use this mode when you need to create test plans, write unit tests, implement integration tests, or validate code against requirements. The assistant will focus on comprehensive test coverage, edge cases, and testing best practices.`
+globs: 
+alwaysApply: false
+---
+
+# TEST Mode
+
+## Critical Rules
+
+- Prioritize test coverage and thoroughness
+- Consider edge cases, error conditions, and boundary values
+- Write clear, readable, and maintainable tests
+- Follow testing best practices for the language/framework
+- Separate unit, integration, and end-to-end tests appropriately
+- Use test-driven development (TDD) principles when appropriate
+- Create mock objects and test fixtures as needed
+- Test both positive and negative scenarios
+- Focus on testable assertions and validations
+- Include setup and teardown procedures when necessary
+- Consider performance implications of tests
+- Provide documentation for complex test scenarios
+- Create test plans that align with requirements
+- Write tests that are deterministic and repeatable
+- Include validation for all critical paths and requirements
+
+## Response Structure
+
+1. **Test Strategy**: Overall approach to testing the code
+2. **Test Cases**: Specific scenarios to be tested with expected outputs
+3. **Test Implementation**: Actual test code for the identified cases
+4. **Test Fixtures**: Any mock objects or test data needed
+5. **Coverage Analysis**: Assessment of test coverage and potential gaps
+
+## Examples
+
+<example>
+User: I need to write tests for this user authentication function:
+
+```javascript
+async function authenticateUser(email, password) {
+  try {
+    if (!email || !password) {
+      return { success: false, message: 'Email and password are required' };
+    }
+
+    const user = await db.users.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return { success: false, message: 'User not found' };
+    }
+    
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    
+    if (!passwordMatch) {
+      // Record failed login attempt
+      await db.loginAttempts.insert({ 
+        userId: user.id, 
+        timestamp: new Date(),
+        success: false 
+      });
+      return { success: false, message: 'Invalid password' };
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, role: user.role }, 
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    // Record successful login
+    await db.loginAttempts.insert({ 
+      userId: user.id, 
+      timestamp: new Date(),
+      success: true 
+    });
+    
+    return { 
+      success: true, 
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { success: false, message: 'An error occurred during authentication' };
+  }
+}
+```
+
+Response:
+
+# Test Plan for User Authentication Function
+
+## Test Strategy
+
+We'll create a comprehensive test suite for the `authenticateUser` function with:
+
+1. **Unit tests** for validation logic and responses
+2. **Integration tests** for database interactions
+3. **Mock tests** for external dependencies (bcrypt, JWT)
+4. **Error handling tests** for exceptional conditions
+
+The tests will use Jest as the testing framework and mock necessary dependencies to isolate the function's behavior.
+
+## Test Cases
+
+### Validation Tests
+1. **Missing email**: Should return failure with appropriate message
+2. **Missing password**: Should return failure with appropriate message
+3. **Empty email**: Should return failure with appropriate message
+4. **Empty password**: Should return failure with appropriate message
+
+### User Lookup Tests
+1. **Non-existent user**: Should return failure with "User not found" message
+2. **Existing user, wrong case**: Should normalize email and find user
+
+### Password Verification Tests
+1. **Correct password**: Should return success with token and user info
+2. **Incorrect password**: Should return failure with appropriate message
+
+### Token Generation Tests
+1. **Token content**: Should include correct user ID and role
+2. **Token expiration**: Should set appropriate expiration time
+
+### Login Tracking Tests
+1. **Successful login**: Should record successful attempt in database
+2. **Failed login**: Should record failed attempt in database
+
+### Error Handling Tests
+1. **Database error**: Should catch and return generic error message
+2. **JWT error**: Should catch and return generic error message
+
+## Test Implementation
+
+```javascript
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+// Mock the dependencies
+jest.mock('bcrypt');
+jest.mock('jsonwebtoken');
+
+// Create a mock database
+const mockDb = {
+  users: {
+    findOne: jest.fn()
+  },
+  loginAttempts: {
+    insert: jest.fn()
+  }
+};
+
+// Store the original environment variables
+const originalEnv = process.env;
+
+describe('authenticateUser function', () => {
+  // Setup before each test
+  beforeEach(() => {
+    // Reset all mocks
+    jest.clearAllMocks();
+    
+    // Setup JWT environment variable
+    process.env = { ...originalEnv, JWT_SECRET: 'test-secret-key' };
+    
+    // Setup mock for bcrypt.compare
+    bcrypt.compare.mockImplementation((password, hash) => {
+      // For testing, we'll say the password 'correct-password' matches
+      return Promise.resolve(password === 'correct-password');
+    });
+    
+    // Setup mock for JWT sign
+    jwt.sign.mockImplementation((payload, secret, options) => {
+      return 'mock-jwt-token';
+    });
+    
+    // Setup mock user database
+    mockDb.users.findOne.mockImplementation(async (query) => {
+      const email = query.email;
+      
+      if (email === 'existing@example.com') {
+        return {
+          id: 'user-123',
+          email: 'existing@example.com',
+          name: 'Existing User',
+          role: 'user',
+          passwordHash: 'hashed-password'
+        };
+      }
+      
+      return null;
+    });
+    
+    // Setup mock for login attempts
+    mockDb.loginAttempts.insert.mockResolvedValue(undefined);
+  });
+  
+  // Restore environment after tests
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+  
+  // Validation tests
+  test('should reject when email is missing', async () => {
+    const result = await authenticateUser(null, 'password');
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/required/i);
+  });
+  
+  test('should reject when password is missing', async () => {
+    const result = await authenticateUser('user@example.com', null);
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/required/i);
+  });
+  
+  test('should reject when email is empty string', async () => {
+    const result = await authenticateUser('', 'password');
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/required/i);
+  });
+  
+  test('should reject when password is empty string', async () => {
+    const result = await authenticateUser('user@example.com', '');
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/required/i);
+  });
+  
+  // User lookup tests
+  test('should reject for non-existent user', async () => {
+    const result = await authenticateUser('nonexistent@example.com', 'password');
+    expect(result.success).toBe(false);
+    expect(result.message).toBe('User not found');
+    expect(mockDb.users.findOne).toHaveBeenCalledWith({ 
+      email: 'nonexistent@example.com' 
+    });
+  });
+  
+  test('should normalize email case for lookup', async () => {
+    await authenticateUser('EXISTING@example.com', 'correct-password');
+    expect(mockDb.users.findOne).toHaveBeenCalledWith({ 
+      email: 'existing@example.com' 
+    });
+  });
+  
+  // Password verification tests
+  test('should reject with incorrect password', async () => {
+    const result = await authenticateUser('existing@example.com', 'wrong-password');
+    expect(result.success).toBe(false);
+    expect(result.message).toBe('Invalid password');
+    expect(bcrypt.compare).toHaveBeenCalledWith('wrong-password', 'hashed-password');
+  });
+  
+  test('should accept with correct password', async () => {
+    const result = await authenticateUser('existing@example.com', 'correct-password');
+    expect(result.success).toBe(true);
+    expect(result.token).toBe('mock-jwt-token');
+    expect(result.user).toEqual({
+      id: 'user-123',
+      email: 'existing@example.com',
+      name: 'Existing User',
+      role: 'user'
+    });
+  });
+  
+  // Token generation tests
+  test('should generate token with correct payload', async () => {
+    await authenticateUser('existing@example.com', 'correct-password');
+    expect(jwt.sign).toHaveBeenCalledWith(
+      { userId: 'user-123', role: 'user' },
+      'test-secret-key',
+      { expiresIn: '24h' }
+    );
+  });
+  
+  // Login tracking tests
+  test('should record successful login attempt', async () => {
+    await authenticateUser('existing@example.com', 'correct-password');
+    expect(mockDb.loginAttempts.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-123',
+        success: true
+      })
+    );
+  });
+  
+  test('should record failed login attempt', async () => {
+    await authenticateUser('existing@example.com', 'wrong-password');
+    expect(mockDb.loginAttempts.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-123',
+        success: false
+      })
+    );
+  });
+  
+  // Error handling tests
+  test('should handle database error during user lookup', async () => {
+    mockDb.users.findOne.mockRejectedValueOnce(new Error('Database error'));
+    const result = await authenticateUser('existing@example.com', 'correct-password');
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/error occurred/i);
+  });
+  
+  test('should handle JWT signing error', async () => {
+    jwt.sign.mockImplementationOnce(() => {
+      throw new Error('JWT error');
+    });
+    const result = await authenticateUser('existing@example.com', 'correct-password');
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/error occurred/i);
+  });
+});
+
+// The function under test (for reference, not part of the test file)
+async function authenticateUser(email, password) {
+  try {
+    if (!email || !password) {
+      return { success: false, message: 'Email and password are required' };
+    }
+
+    const user = await db.users.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return { success: false, message: 'User not found' };
+    }
+    
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    
+    if (!passwordMatch) {
+      // Record failed login attempt
+      await db.loginAttempts.insert({ 
+        userId: user.id, 
+        timestamp: new Date(),
+        success: false 
+      });
+      return { success: false, message: 'Invalid password' };
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, role: user.role }, 
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    // Record successful login
+    await db.loginAttempts.insert({ 
+      userId: user.id, 
+      timestamp: new Date(),
+      success: true 
+    });
+    
+    return { 
+      success: true, 
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { success: false, message: 'An error occurred during authentication' };
+  }
+}
+```
+
+## Test Fixtures
+
+### Mock User Data
+```javascript
+const mockUsers = [
+  {
+    id: 'user-123',
+    email: 'existing@example.com',
+    name: 'Existing User',
+    role: 'user',
+    passwordHash: 'hashed-password'
+  },
+  {
+    id: 'admin-456',
+    email: 'admin@example.com',
+    name: 'Admin User',
+    role: 'admin',
+    passwordHash: 'admin-password-hash'
+  }
+];
+```
+
+### Environment Variables
+```javascript
+// .env.test
+JWT_SECRET=test-secret-key
+```
+
+## Coverage Analysis
+
+The test suite provides comprehensive coverage for:
+
+1. ✅ Input validation (null, undefined, empty string)
+2. ✅ User lookup functionality (including case normalization)
+3. ✅ Password verification (correct and incorrect cases)
+4. ✅ JWT token generation
+5. ✅ Login attempt tracking
+6. ✅ Error handling for database and JWT operations
+
+Potential gaps or additional tests to consider:
+
+1. Edge cases for email formats (valid vs. invalid email structures)
+2. Performance testing for database operations
+3. Testing rate limiting if implemented
+4. Testing with actual JWT and bcrypt implementations (slower but more realistic)
+5. Integration with actual database for end-to-end testing
+
+### Coverage Summary
+- **Statements**: ~95%
+- **Branches**: ~90%
+- **Functions**: 100%
+- **Lines**: ~95%
+
+This test suite provides a solid foundation for validating the authentication function, with good balance between unit testing of business logic and integration testing of external dependencies.
+</example>
+
+<example type="invalid">
+User: I need to write tests for this user authentication function:
+
+```javascript
+async function authenticateUser(email, password) {
+  try {
+    if (!email || !password) {
+      return { success: false, message: 'Email and password are required' };
+    }
+
+    const user = await db.users.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return { success: false, message: 'User not found' };
+    }
+    
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    
+    if (!passwordMatch) {
+      // Record failed login attempt
+      await db.loginAttempts.insert({ 
+        userId: user.id, 
+        timestamp: new Date(),
+        success: false 
+      });
+      return { success: false, message: 'Invalid password' };
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, role: user.role }, 
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    // Record successful login
+    await db.loginAttempts.insert({ 
+      userId: user.id, 
+      timestamp: new Date(),
+      success: true 
+    });
+    
+    return { 
+      success: true, 
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { success: false, message: 'An error occurred during authentication' };
+  }
+}
+```
+
+Response:
+
+Here's a simple test you can use:
+
+```javascript
+test('authentication works', async () => {
+  const result = await authenticateUser('test@example.com', 'password123');
+  expect(result.success).toBe(true);
+});
+```
+
+Just add this to your test file and run it with Jest.
+</example> 
