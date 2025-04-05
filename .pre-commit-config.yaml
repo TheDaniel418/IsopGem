@@ -3,32 +3,44 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: trailing-whitespace
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: end-of-file-fixer
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: check-yaml
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: check-added-large-files
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: check-ast
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: check-json
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: check-toml
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: debug-statements
+        exclude: ^(test_.*\.py|tests/.*\.py)$
     -   id: detect-private-key
+        exclude: ^(test_.*\.py|tests/.*\.py)$
 
 -   repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
     -   id: isort
         args: ["--profile", "black"]
+        exclude: ^(test_.*\.py|tests/.*\.py)$
 
 -   repo: https://github.com/psf/black
     rev: 23.11.0
     hooks:
     -   id: black
         language_version: python3.12
+        exclude: ^(test_.*\.py|tests/.*\.py)$
 
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: 'v0.1.5'
     hooks:
     -   id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^(test_.*\.py|tests/.*\.py)$
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.7.1
@@ -37,4 +49,5 @@ repos:
         additional_dependencies: [
             'types-PyYAML',
             'types-pytz',
-        ] 
+        ]
+        exclude: ^(test_.*\.py|tests/.*\.py)$
