@@ -340,7 +340,7 @@ def start_application(args: Optional[List[str]] = None) -> int:
         main_window.window_manager.restore_window_state()
 
         logger.info("Application started successfully")
-        return app.exec()
+        return int(app.exec())
     except Exception as e:
         logger.exception(f"Failed to start application: {e}")
         return 1

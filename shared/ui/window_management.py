@@ -263,7 +263,7 @@ class TabManager(QTabWidget):
         Returns:
             Index of the widget in the tab widget, or -1 if not found
         """
-        return super().indexOf(widget)
+        return int(super().indexOf(widget))
 
 
 class PanelWidget(QDockWidget):
