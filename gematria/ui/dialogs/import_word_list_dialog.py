@@ -75,12 +75,12 @@ class ImportWordListDialog(QDialog):
         
         # Header row selection
         self._header_spin = QSpinBox()
-        self._header_spin.setMinimum(0)
+        self._header_spin.setMinimum(1)
         self._header_spin.setMaximum(10)
-        self._header_spin.setValue(0)
+        self._header_spin.setValue(1)
         self._header_spin.valueChanged.connect(self._update_preview)
         
-        file_layout.addWidget(QLabel("Header Row:"), 1, 0)
+        file_layout.addWidget(QLabel("Header Row (1 = first row):"), 1, 0)
         file_layout.addWidget(self._header_spin, 1, 1)
         
         # Sheet selection for Excel files
@@ -239,16 +239,22 @@ class ImportWordListDialog(QDialog):
         try:
             # Read data based on file type
             if self._file_type == '.csv':
-                self._dataframe = pd.read_csv(self._file_path)
+                # For pandas, header=0 means use the first row as header
+                header_param = self._header_spin.value() - 1  # Convert from 1-indexed UI to 0-indexed pandas
+                self._dataframe = pd.read_csv(self._file_path, header=header_param)
             elif self._file_type in ['.xlsx', '.xls']:
+                header_param = self._header_spin.value() - 1
                 self._dataframe = pd.read_excel(
                     self._file_path, 
-                    sheet_name=self._selected_sheet
+                    sheet_name=self._selected_sheet,
+                    header=header_param
                 )
             elif self._file_type == '.ods':
+                header_param = self._header_spin.value() - 1
                 self._dataframe = pd.read_excel(
                     self._file_path, 
-                    engine="odf"
+                    engine="odf",
+                    header=header_param
                 )
             else:
                 raise ValueError(f"Unsupported file type: {self._file_type}")
@@ -316,38 +322,37 @@ class ImportWordListDialog(QDialog):
     
     def _update_preview(self) -> None:
         """Update the preview table with data from the file."""
-        if self._dataframe is None:
+        if self._dataframe is None or not self._file_path:
             return
             
-        # Get header row
-        self._header_row = self._header_spin.value()
+        # Get updated header row parameter (0-indexed for pandas)
+        header_param = self._header_spin.value() - 1
         
-        # If header row changed, reload data
-        if self._header_row > 0:
-            try:
-                if self._file_type == '.csv':
-                    self._dataframe = pd.read_csv(
-                        self._file_path, 
-                        header=self._header_row
-                    )
-                elif self._file_type in ['.xlsx', '.xls']:
-                    self._dataframe = pd.read_excel(
-                        self._file_path, 
-                        sheet_name=self._selected_sheet,
-                        header=self._header_row
-                    )
-                elif self._file_type == '.ods':
-                    self._dataframe = pd.read_excel(
-                        self._file_path, 
-                        engine="odf",
-                        header=self._header_row
-                    )
-                
-                # Update column mappings after reloading
-                self._update_column_combos()
-            except Exception as e:
-                logger.error(f"Error updating header row: {e}")
-                return
+        try:
+            # Reload data with the new header row
+            if self._file_type == '.csv':
+                self._dataframe = pd.read_csv(
+                    self._file_path, 
+                    header=header_param
+                )
+            elif self._file_type in ['.xlsx', '.xls']:
+                self._dataframe = pd.read_excel(
+                    self._file_path, 
+                    sheet_name=self._selected_sheet,
+                    header=header_param
+                )
+            elif self._file_type == '.ods':
+                self._dataframe = pd.read_excel(
+                    self._file_path, 
+                    engine="odf",
+                    header=header_param
+                )
+            
+            # Update column mappings after reloading
+            self._update_column_combos()
+        except Exception as e:
+            logger.error(f"Error updating header row: {e}")
+            return
         
         # Get data for preview
         preview_df = self._dataframe.head(self._preview_rows)
