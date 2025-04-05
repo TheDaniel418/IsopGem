@@ -7,7 +7,7 @@ various sources (default config, environment variables, etc).
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import yaml
 from loguru import logger
@@ -120,7 +120,9 @@ class PillarsConfig(BaseModel):
 
     gematria: GematriaConfig = Field(default_factory=GematriaConfig)
     geometry: GeometryConfig = Field(default_factory=GeometryConfig)
-    document_manager: DocumentManagerConfig = Field(default_factory=DocumentManagerConfig)
+    document_manager: DocumentManagerConfig = Field(
+        default_factory=DocumentManagerConfig
+    )
     astrology: AstrologyConfig = Field(default_factory=AstrologyConfig)
     tq: TQConfig = Field(default_factory=TQConfig)
 
@@ -176,17 +178,22 @@ class ConfigLoader:
         try:
             return Environment(env)
         except ValueError:
-            logger.warning(
-                f"Invalid environment: {env}. Using default: {DEFAULT_ENV}"
-            )
+            logger.warning(f"Invalid environment: {env}. Using default: {DEFAULT_ENV}")
             return Environment(DEFAULT_ENV)
 
     def _load_yaml_config(self, file_path: Path) -> Dict[str, Any]:
-        """Load configuration from a YAML file."""
+        """Load a YAML config file.
+
+        Args:
+            file_path: Path to the YAML config file
+
+        Returns:
+            Dictionary containing the config from the file or empty dict if file not found
+        """
         try:
             if file_path.exists():
-                with open(file_path, "r", encoding="utf-8") as file:
-                    return yaml.safe_load(file) or {}
+                with file_path.open("r", encoding="utf-8") as f:
+                    return yaml.safe_load(f) or {}
             else:
                 logger.warning(f"Config file not found: {file_path}")
                 return {}
@@ -208,8 +215,9 @@ class ConfigLoader:
         merged_config = self._merge_configs(default_config, env_config)
 
         # Create and validate config object
-        self.config = Config.model_validate(merged_config)
-        return self.config
+        config: Config = Config.model_validate(merged_config)
+        self.config = config
+        return config
 
     def _merge_configs(
         self, base_config: Dict[str, Any], override_config: Dict[str, Any]
@@ -218,8 +226,10 @@ class ConfigLoader:
         result = base_config.copy()
 
         for key, value in override_config.items():
-            if isinstance(value, dict) and key in result and isinstance(
-                result[key], dict
+            if (
+                isinstance(value, dict)
+                and key in result
+                and isinstance(result[key], dict)
             ):
                 # Recursively merge nested dictionaries
                 result[key] = self._merge_configs(result[key], value)
@@ -242,4 +252,4 @@ def get_config() -> Config:
     """
     if _config_loader.config is None:
         _config_loader.config = _config_loader.load()
-    return _config_loader.config 
+    return _config_loader.config

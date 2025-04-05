@@ -1,54 +1,21 @@
 # IsopGem File Tracker
 
-This document provides a centralized overview of all files in the IsopGem project, organized by directory structure. Each entry includes the file path and a brief description of its purpose.
+This document tracks all the files in the IsopGem project, their purpose, and their status.
 
-## Recently Changed
-| File | Description | Date | Change Type |
-|------|-------------|------|------------|
-| `.pre-commit-config.yaml` | Modified to exclude test files from all pre-commit checks | 2023-04-05 | Modified |
-| `shared/ui/window_management.py` | Fixed type error in indexOf method by adding explicit int cast | 2023-04-05 | Modified |
-| `shared/utils/app.py` | Fixed type error in start_application by adding explicit int cast to app.exec() | 2023-04-05 | Modified |
-| `gematria/ui/dialogs/import_word_list_dialog.py` | Fixed type errors and improved type safety with explicit type conversions for pandas integration | 2023-04-05 | Modified |
-| `gematria/ui/dialogs/import_word_list_dialog.py` | Added new dialog for importing word lists from CSV, Excel, and ODS files with column mapping and preview functionality | 2023-04-05 | Added |
-| `gematria/ui/panels/word_abacus_panel.py` | Enhanced to support importing word lists | 2023-04-05 | Modified |
-| `gematria/models/calculation_type.py` | Extended with new detection methods for determining calculation types | 2023-04-05 | Modified |
-| `gematria/ui/dialogs/__init__.py` | Updated to export the new ImportWordListDialog class | 2023-04-05 | Modified |
-| `gematria/models/tag.py` | Data model for categorizing and organizing gematria calculations | 2023-04-04 | Added |
-| `gematria/models/calculation_result.py` | Enhanced data model for storing and retrieving calculation results with tags, notes, and favorite status | 2023-04-04 | Modified |
-| `gematria/repositories/calculation_repository.py` | Repository for storing, retrieving, updating, and deleting calculation results | 2023-04-04 | Added |
-| `gematria/repositories/tag_repository.py` | Repository for storing, retrieving, updating, and deleting tags | 2023-04-04 | Added |
-| `gematria/services/calculation_database_service.py` | Unified service for managing gematria calculations and tags in the database | 2023-04-04 | Added |
-| `gematria/services/gematria_service.py` | Updated to support calculation database service integration | 2023-04-04 | Modified |
-| `gematria/ui/dialogs/save_calculation_dialog.py` | Dialog for saving calculations with tags, notes, and favorite status | 2023-04-04 | Added |
-| `gematria/ui/dialogs/create_tag_dialog.py` | Dialog for creating and editing tags with name, color, and description | 2023-04-04 | Added |
-| `gematria/ui/panels/calculation_history_panel.py` | UI panel for displaying and managing calculation history with filtering and sorting | 2023-04-04 | Added |
-| `gematria/models/calculation_type.py` | Added get_calculation_type_name function to convert enum values to display names | 2023-04-04 | Modified |
-| `gematria/ui/dialogs/tag_selection_dialog.py` | Dialog for selecting and managing tags for calculations | 2023-04-04 | Added |
-| `gematria/ui/dialogs/edit_tags_window.py` | Window for editing tags associated with a calculation | 2023-04-04 | Added |
-| `test_calculation_db.py` | Test script for checking the calculation database functionality | 2023-04-04 | Added |
-| `test_calculation_history.py` | Test script for checking the calculation history panel functionality | 2023-04-04 | Added |
-| `gematria/models/custom_cipher_config.py` | Data model for custom gematria cipher configurations with support for Hebrew, Greek, and English languages | 2023-11-09 | Added |
-| `gematria/services/custom_cipher_service.py` | Service for managing custom cipher configurations, including saving, loading, and templating | 2023-11-09 | Added |
-| `gematria/ui/dialogs/custom_cipher_dialog.py` | Dialog for creating and editing custom gematria ciphers with a comprehensive letter value editor | 2023-11-09 | Added |
-| `gematria/services/gematria_service.py` | Updated to support custom cipher calculations in addition to predefined calculation types | 2023-11-09 | Modified |
-| `gematria/models/calculation_result.py` | Enhanced to support custom cipher methods in calculation history | 2023-11-09 | Modified |
-| `gematria/ui/widgets/word_abacus_widget.py` | Added custom cipher integration to the Word Abacus widget, including custom method categories and management button | 2023-11-09 | Modified |
-| `gematria/ui/dialogs/gematria_help_dialog.py` | Updated to be non-modal and enhanced with detailed information about the Trigrammaton Qabalah system developed by R.L. Gillis | 2023-11-08 | Modified |
-| `gematria/ui/panels/word_abacus_panel.py` | Modified to handle non-modal help dialog persistence and management | 2023-11-08 | Modified |
-| `gematria/ui/dialogs/word_abacus_window.py` | Updated to use WordAbacusPanel instead of directly using WordAbacusWidget to include the help button | 2023-11-08 | Modified |
-| `gematria/ui/dialogs/gematria_help_dialog.py` | Comprehensive help dialog explaining Hebrew, Greek, and English calculation methods with detailed descriptions and examples | 2023-11-08 | Added |
-| `gematria/ui/widgets/word_abacus_widget.py` | Improved the UI with a nested dropdown structure to organize calculation methods by language (Hebrew, Greek, English) and category (Standard, Advanced, Substitution Ciphers). Enhanced styling and usability | 2023-11-07 | Modified |
-| `gematria/models/calculation_type.py` | Added additional Hebrew calculation methods and their Greek equivalents, including large values, building, triangular, hidden, full name, individual square, and additive | 2023-11-07 | Modified |
-| `gematria/services/gematria_service.py` | Implemented new Hebrew and Greek calculation methods with equivalent functionality across both systems | 2023-11-07 | Modified |
-| `gematria/models/calculation_type.py` | Added comprehensive Greek isopsophy calculation methods | 2023-11-05 | Modified |
-| `gematria/services/gematria_service.py` | Implemented Greek isopsophy methods with unique Greek terminology | 2023-11-05 | Modified |
-| `gematria/services/gematria_service.py` | Added functionality to strip diacritical marks from Hebrew and Greek text | 2023-11-05 | Modified |
-| `gematria/models/calculation_type.py` | Updated to include Greek Isopsophy and TQ English methods | 2023-11-05 | Modified |
-| `test_document.py` | Demonstrates file documentation and tracking rules | 2023-11-05 | Added |
-| `gematria/ui/gematria_tab.py` | UI tab for gematria functionality | 2023-11-05 | Added |
-| `gematria/ui/panels/word_abacus_panel.py` | Updated the Word Abacus panel to include a scroll area for better user experience and consistent styling with the widget improvements | 2023-11-07 | Modified |
-| `gematria/ui/widgets/word_abacus_widget.py` | Improved the UI with a nested dropdown structure to organize calculation methods by language (Hebrew, Greek, English) and category (Standard, Advanced, Substitution Ciphers). Enhanced styling and usability | 2023-11-07 | Modified |
-| `shared/ui/window_management.py` | Core window management functionality | 2023-11-05 | Added |
+## Recently Changed Files
+
+| Path | Description | Last Modified | Change Type |
+| ---- | ----------- | ------------ | ----------- |
+| gematria/ui/panels/search_panel.py | Fixed unreachable statement MyPy error in _find_window_manager method | 2023-10-28 | Fixed |
+| shared/ui/dialogs/database_maintenance_window.py | Fixed database stats by replacing get_favorites() with find_favorites() and other type safety improvements | 2023-10-28 | Fixed |
+| shared/repositories/database.py | Fixed cursor return type in Database class for better type checking with MyPy | 2023-10-28 | Fixed |
+| shared/repositories/sqlite_tag_repository.py | Improved created_at handling for Tag creation to fix type errors | 2023-10-28 | Fixed |
+| shared/repositories/sqlite_calculation_repository.py | Fixed timestamp vs created_at property usage in save_calculation method | 2023-10-28 | Fixed |
+| gematria/ui/dialogs/edit_tags_window.py | Improved tag editing with Apply button and better tag selection workflow | 2023-10-27 | Enhanced |
+| gematria/ui/dialogs/tag_selection_dialog.py | Enhanced for better communication of selected tags | 2023-10-27 | Enhanced |
+| shared/services/calculation_database_service.py | Updated to use SQLite repositories | 2023-10-26 | Modified |
+| docs/architecture/MODEL_CHANGES.md | Updated documentation on calculation and tag models | 2023-10-25 | Updated |
+| docs/architecture/DATABASE_DESIGN.md | Added documentation for SQLite database schema | 2023-10-25 | Added |
 
 ## Directory Structure
 
@@ -108,12 +75,20 @@ Components related to Hebrew gematria calculations and analysis.
 - `__init__.py`: Initialization and exports for gematria UI panels.
 - `word_abacus_panel.py`: UI panel providing visualization and interaction with the word abacus tool.
 - `calculation_history_panel.py`: UI panel for displaying and managing calculation history with filtering, sorting, and detailed view.
+- `search_panel.py`: Added new search panel that allows users to search for calculations in the database with multiple filter criteria
+- `main_panel.py`: Main panel for the Gematria tab providing central UI layout and organization.
+- `tag_management_panel.py`: Panel for managing gematria tags with creation, editing, and deletion capabilities.
 
 ##### /gematria/ui/widgets
 UI widgets specific to gematria functionality.
 
+- `__init__.py`: Initialization and exports for gematria UI widgets.
+- `word_abacus_widget.py`: UI widget providing gematria calculation functionality.
+- `calculation_detail_widget.py`: Widget for displaying detailed information about a selected calculation, including text, value, method, favorites, tags, and notes.
+
 ##### /gematria/ui/windows
-Custom windows for gematria-specific functionality.
+- `__init__.py`: Initialization and exports for gematria window components.
+- `gematria_window.py`: Standalone window implementation for gematria functionality with full UI capabilities.
 
 ##### /gematria/ui/dialogs
 - `__init__.py`: Initialization and exports for gematria dialog components.
@@ -134,17 +109,121 @@ Custom windows for gematria-specific functionality.
 #### /gematria/utils
 Utility functions and helpers specific to gematria calculations.
 
-### /geometry
-Components for geometric analysis and visualization.
+### /astrology
+Components for astrological calculations and analysis.
+
+- `__init__.py`: Initialization and exports for the astrology package.
+
+#### /astrology/models
+- `__init__.py`: Initialization and exports for astrology data models.
+
+#### /astrology/services
+- `__init__.py`: Initialization and exports for astrology services.
+
+#### /astrology/repositories
+- `__init__.py`: Initialization and exports for astrology data repositories.
+
+#### /astrology/ui
+- `__init__.py`: Initialization and exports for astrology UI components.
+
+##### /astrology/ui/panels
+- `__init__.py`: Initialization and exports for astrology UI panels.
+
+##### /astrology/ui/widgets
+- `__init__.py`: Initialization and exports for astrology UI widgets.
+
+##### /astrology/ui/dialogs
+- `__init__.py`: Initialization and exports for astrology dialog components.
+
+#### /astrology/utils
+- `__init__.py`: Initialization and exports for astrology utilities.
 
 ### /document_manager
 Components for document handling and management.
 
-### /astrology
-Components for astrological calculations and analysis.
+- `__init__.py`: Initialization and exports for the document manager package.
+
+#### /document_manager/models
+- `__init__.py`: Initialization and exports for document manager data models.
+
+#### /document_manager/services
+- `__init__.py`: Initialization and exports for document manager services.
+
+#### /document_manager/repositories
+- `__init__.py`: Initialization and exports for document manager data repositories.
+
+#### /document_manager/ui
+- `__init__.py`: Initialization and exports for document manager UI components.
+
+##### /document_manager/ui/panels
+- `__init__.py`: Initialization and exports for document manager UI panels.
+
+##### /document_manager/ui/widgets
+- `__init__.py`: Initialization and exports for document manager UI widgets.
+
+##### /document_manager/ui/dialogs
+- `__init__.py`: Initialization and exports for document manager dialog components.
+
+#### /document_manager/utils
+- `__init__.py`: Initialization and exports for document manager utilities.
+
+### /geometry
+Components for geometric analysis and visualization.
+
+- `__init__.py`: Initialization and exports for the geometry package.
+
+#### /geometry/models
+- `__init__.py`: Initialization and exports for geometry data models.
+
+#### /geometry/services
+- `__init__.py`: Initialization and exports for geometry services.
+
+#### /geometry/repositories
+- `__init__.py`: Initialization and exports for geometry data repositories.
+
+#### /geometry/ui
+- `__init__.py`: Initialization and exports for geometry UI components.
+
+##### /geometry/ui/panels
+- `__init__.py`: Initialization and exports for geometry UI panels.
+
+##### /geometry/ui/widgets
+- `__init__.py`: Initialization and exports for geometry UI widgets.
+
+##### /geometry/ui/dialogs
+- `__init__.py`: Initialization and exports for geometry dialog components.
+
+#### /geometry/utils
+- `__init__.py`: Initialization and exports for geometry utilities.
 
 ### /tq
-Components for additional specialized functionalities.
+Components for additional specialized functionalities related to Trigrammaton Qabalah.
+
+- `__init__.py`: Initialization and exports for the TQ package.
+
+#### /tq/models
+- `__init__.py`: Initialization and exports for TQ data models.
+
+#### /tq/services
+- `__init__.py`: Initialization and exports for TQ services.
+
+#### /tq/repositories
+- `__init__.py`: Initialization and exports for TQ data repositories.
+
+#### /tq/ui
+- `__init__.py`: Initialization and exports for TQ UI components.
+
+##### /tq/ui/panels
+- `__init__.py`: Initialization and exports for TQ UI panels.
+
+##### /tq/ui/widgets
+- `__init__.py`: Initialization and exports for TQ UI widgets.
+
+##### /tq/ui/dialogs
+- `__init__.py`: Initialization and exports for TQ dialog components.
+
+#### /tq/utils
+- `__init__.py`: Initialization and exports for TQ utilities.
 
 ### /shared
 Core shared components, utilities, and services used across multiple pillars.
@@ -154,19 +233,26 @@ Core shared components, utilities, and services used across multiple pillars.
 - `window_management.py`: Core functionality for window management across the application.
 
 ##### /shared/ui/widgets
-Shared UI widgets used across multiple pillars.
+- `__init__.py`: Initialization and exports for shared UI widgets.
+
+##### /shared/ui/dialogs
+- `__init__.py`: Initialization and exports for shared UI dialogs.
+- `database_maintenance_window.py`: Window for database maintenance operations including cleaning, finding duplicates, optimization, and backup/restore functionality.
 
 #### /shared/services
-Shared services used across multiple pillars.
+- `__init__.py`: Initialization and exports for shared services.
 
 #### /shared/repositories
-Shared data access repositories.
+- `__init__.py`: Initialization and exports for shared data repositories.
 
 #### /shared/models
-Shared data models and types.
+- `__init__.py`: Initialization and exports for shared data models.
 
 #### /shared/utils
-Shared utility functions and helpers.
+- `__init__.py`: Initialization file for shared utilities.
+- `app.py`: Core application utilities, including application startup and initialization.
+- `cli.py`: Command-line interface utilities for the application, providing command parsing and execution.
+- `config.py`: Configuration management utilities, handling application settings and preferences.
 
 ### /docs
 Documentation files for the project.
@@ -176,11 +262,31 @@ Documentation files for the project.
 ### /tests
 Test files for various components of the application.
 
+- `conftest.py`: Test configuration and fixtures for pytest.
+- `__init__.py`: Package initialization for tests.
+- `run_window_test.py`: Script for running window-related tests.
+- `window_verification_test.py`: Tests for verifying window functionality.
+- `test_calculation_db.py`: Test script for checking the calculation database functionality.
+- `test_calculation_history.py`: Test script for checking the calculation history panel functionality.
+- `test_basic_functionality.py`: Basic functionality tests for the application.
+- `test_document.py`: Demonstrates file documentation and tracking rule implementation.
+- `test_pyqt.py`: PyQt test utilities.
+
 #### /tests/unit
 Unit tests for individual components.
 
+- `__init__.py`: Package initialization for unit tests.
+
+##### /tests/unit/shared
+- `__init__.py`: Package initialization for shared component tests.
+
 ##### /tests/unit/shared/ui
+- `conftest.py`: Test configuration and fixtures specific to UI testing.
+- `__init__.py`: Package initialization for UI tests.
 - `test_window_mode.py`: Tests for window mode functionality.
+
+##### /tests/unit/shared/utils
+- `test_config.py`: Unit tests for configuration utilities and settings management.
 
 ### /config
 Configuration files and settings.
@@ -196,6 +302,8 @@ Application logs directory.
 
 ### /xnotes
 Additional development notes and documentation.
+
+- `__init__.py`: Initialization and exports for development notes.
 
 ### Root Files
 - `main.py`: Application entry point.
@@ -214,17 +322,3 @@ Additional development notes and documentation.
 - `test_basic_functionality.py`: Basic functionality tests.
 - `verify_window_mode.py`: Verification script for window mode functionality.
 - `__init__.py`: Root package initialization.
-
-##### /gematria/ui/dialogs
-- `__init__.py`: Initialization and exports for gematria dialog components.
-- `gematria_help_dialog.py`: Comprehensive help dialog with detailed explanations of all gematria calculation methods across Hebrew, Greek, and English systems, including original names, transliterations, meanings, and examples.
-- `word_abacus_window.py`: Standalone window implementation for the Word Abacus calculator, uses the WordAbacusPanel to provide access to the help system.
-- `custom_cipher_dialog.py`: Dialog for creating, editing, and managing custom gematria ciphers with a comprehensive letter value editor interface.
-- `save_calculation_dialog.py`: Dialog for saving calculation results with tags, notes, and favorite status.
-- `create_tag_dialog.py`: Dialog for creating and editing tags with name, color, and description.
-- `tag_selection_dialog.py`: Dialog for selecting and managing tags for calculations.
-- `edit_tags_window.py`: Window for editing tags associated with a calculation.
-- `import_word_list_dialog.py`: Dialog for importing word lists from CSV, ODS, or Excel spreadsheets with column mapping and language detection capabilities.
-
-### /gematria/models/calculation_type.py
-Added comprehensive Greek isopsophy calculation methods | 2023-11-05 | Modified

@@ -96,6 +96,12 @@ class MainWindow(QMainWindow):
         # Tools menu
         self.tools_menu = self.menubar.addMenu("&Tools")
 
+        # Add database maintenance action
+        database_maintenance_action = QAction("Database &Maintenance", self)
+        database_maintenance_action.setStatusTip("Maintain and optimize database")
+        database_maintenance_action.triggered.connect(self._show_database_maintenance)
+        self.tools_menu.addAction(database_maintenance_action)
+
         # Help menu
         self.help_menu = self.menubar.addMenu("&Help")
 
@@ -295,6 +301,19 @@ class MainWindow(QMainWindow):
     def _close_application(self) -> None:
         """Close the application."""
         self.close()
+
+    def _show_database_maintenance(self) -> None:
+        """Show the Database Maintenance window."""
+        from shared.ui.dialogs.database_maintenance_window import (
+            DatabaseMaintenanceWindow,
+        )
+
+        window = self.window_manager.create_auxiliary_window(
+            "database_maintenance", "Database Maintenance"
+        )
+        content = DatabaseMaintenanceWindow()
+        window.set_content(content)
+        logger.debug("Opened Database Maintenance window")
 
     def closeEvent(self, event):
         """Handle window close event.

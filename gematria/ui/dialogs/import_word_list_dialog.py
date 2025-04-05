@@ -29,10 +29,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from gematria.models.calculation_type import (
-    CalculationType,
-    language_from_text,
-)
+from gematria.models.calculation_type import CalculationType, language_from_text
 from gematria.services.calculation_database_service import CalculationDatabaseService
 from gematria.services.gematria_service import GematriaService
 

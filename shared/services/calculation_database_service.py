@@ -1,7 +1,7 @@
 """
 Purpose: Provides unified access to calculation and tag data persistence using SQLite
 
-This file is part of the gematria pillar and serves as a service component.
+This file is part of the shared services and serves as a service component.
 It is responsible for coordinating operations between the calculation and tag
 repositories, providing a higher-level API for managing gematria calculation
 results and their associated tags using an SQLite database.
@@ -11,8 +11,8 @@ Key components:
   repositories to provide a unified interface for data management
 
 Dependencies:
+- shared.repositories.sqlite_tag_repository: For storing tag data
 - shared.repositories.sqlite_calculation_repository: For storing calculation results
-- shared.repositories.sqlite_tag_repository: For managing tags
 - gematria.models.calculation_result: For the data structure of calculations
 - gematria.models.calculation_type: For the data structure of calculation types
 - gematria.models.tag: For the data structure of tags
@@ -350,7 +350,6 @@ class CalculationDatabaseService:
                 - result_value_max: Maximum value (inclusive)
                 - calculation_type: Specific calculation method (CalculationType)
                 - custom_method_name: Custom calculation method name
-                - language: Specific language (Language enum)
                 - favorite: True to find only favorites
                 - has_tags: True to find only results with tags
                 - has_notes: True to find only results with notes
