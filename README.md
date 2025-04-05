@@ -1,31 +1,65 @@
 # IsopGem
 
-A comprehensive tool for sacred geometry, gematria, and esoteric document analysis.
+<p align="center">
+  <h1 align="center">🔯✨ IsopGem ✨🔯</h1>
+</p>
 
-## Project Structure
+A comprehensive tool for sacred geometry, gematria, and esoteric document analysis. IsopGem provides scholars, researchers, and enthusiasts with a unified environment for exploring numerical patterns in ancient texts, geometric principles in sacred architecture, and interconnected symbolic systems.
+
+## 🔍 Features
+
+### Gematria Analysis
+- Support for Hebrew, Greek, and English gematria systems
+- Over 20 calculation methods across all language systems
+- Word/phrase analysis with extensive results
+- Custom cipher creation and management
+- Calculation history with search, filtering, and tagging 
+- Word abacus for rapid computations
+- Import word lists from spreadsheets with automatic language detection
+
+### Sacred Geometry Tools
+- Platonic solid visualizations and measurements
+- Golden ratio calculator and visualizer
+- Sacred geometric pattern generator
+- Measurement conversion between ancient and modern units
+
+### Document Analysis
+- Text pattern recognition across multiple languages
+- Concordance generator
+- Frequency analysis of words and phrases
+- Integration with gematria calculations
+
+### Astrological Calculations
+- Planetary position calculations
+- Astrological chart generation
+- Timing calculations for celestial events
+- Integration with document and gematria analysis
+
+## 🏗️ Architecture
 
 IsopGem follows a domain-pillar architecture with five main pillars:
 
-1. **Gematria** - Hebrew numerical analysis tools
+1. **Gematria** - Hebrew, Greek, and English numerical analysis tools
 2. **Geometry** - Sacred geometry visualization and calculation tools
 3. **Document Manager** - Analysis of texts and documents
 4. **Astrology** - Astrological calculations and visualizations
-5. **TQ** - (Placeholder for future features)
+5. **TQ** - Truth Quest integration and advanced pattern analysis
 
 Each pillar is organized into consistent components:
-- UI (User Interface) components
-- Services (Business logic)
-- Models (Data structures)
-- Repositories (Data access)
-- Utils (Helper functions)
+- **UI (User Interface)** - PyQt6-based interface components
+- **Services** - Business logic and core functionality
+- **Models** - Data structures and type definitions
+- **Repositories** - Data access and persistence
+- **Utils** - Helper functions and utilities
 
-## Development Setup
+## ⚙️ Development Setup
 
 ### Prerequisites
 
 - Python 3.12 or higher
 - PyQt6
 - pip
+- Git
 
 ### Installation
 
@@ -51,10 +85,15 @@ pip install -r requirements/dev.txt
 pip install -e .
 ```
 
+5. Set up pre-commit hooks:
+```bash
+pre-commit install
+```
+
 ### Running the Application
 
 ```bash
-python -m shared.utils.cli
+python main.py
 ```
 
 Or use the entry point script (after installation):
@@ -62,7 +101,7 @@ Or use the entry point script (after installation):
 isopgem
 ```
 
-## Testing
+## 🧪 Testing
 
 Run tests with pytest:
 ```bash
@@ -74,7 +113,13 @@ Run with coverage report:
 pytest --cov
 ```
 
-## Configuration
+Run specific tests:
+```bash
+pytest tests/unit/
+pytest tests/integration/
+```
+
+## ⚙️ Configuration
 
 Configuration files are located in the `config/` directory:
 
@@ -84,14 +129,49 @@ Configuration files are located in the `config/` directory:
 
 The active environment is determined by the `ISOPGEM_ENV` environment variable.
 
-## Type Checking
+Example configuration:
+```yaml
+application:
+  name: IsopGem
+  version: "0.1.0"
+  theme: "light"
+
+pillars:
+  gematria:
+    enabled: true
+  geometry:
+    enabled: true
+  document_manager:
+    enabled: false
+  astrology:
+    enabled: false
+  tq:
+    enabled: false
+
+ui:
+  window:
+    title: "IsopGem - Sacred Geometry & Gematria"
+    width: 1200
+    height: 800
+    maximize_on_start: false
+  theme_colors:
+    primary: "#4a6da7"
+    secondary: "#8daad9"
+    accent: "#fb8c00"
+    background: "#f5f5f5"
+    text: "#333333"
+```
+
+## 🔍 Code Quality
+
+### Type Checking
 
 Static type checking with mypy:
 ```bash
 mypy .
 ```
 
-## Code Quality Tools
+### Code Formatting
 
 - Format code with Black:
 ```bash
@@ -103,15 +183,83 @@ black .
 isort .
 ```
 
-- Check code with flake8:
+- Check code with ruff:
 ```bash
-flake8
+ruff check .
 ```
 
-## Contributing
+### Pre-commit Hooks
+
+We use pre-commit hooks to enforce code quality standards. Hooks include:
+- trailing-whitespace
+- end-of-file-fixer
+- check-yaml
+- black
+- isort
+- ruff
+- mypy
+
+Note: Test files are excluded from pre-commit checks.
+
+## 📁 Project Structure
+
+```
+isopgem/
+├── astrology/            # Astrology pillar
+├── config/               # Configuration files
+├── docs/                 # Documentation
+│   └── FILE_TRACKER.md   # File tracking and documentation
+├── document_manager/     # Document analysis pillar
+├── gematria/             # Gematria pillar
+│   ├── models/           # Data models
+│   ├── repositories/     # Data access
+│   ├── services/         # Business logic
+│   ├── ui/               # User interface
+│   │   ├── dialogs/      # Popup dialogs
+│   │   ├── panels/       # Main panels
+│   │   ├── widgets/      # Reusable UI components
+│   │   └── windows/      # Window components
+│   └── utils/            # Utilities
+├── geometry/             # Sacred geometry pillar
+├── shared/               # Shared components
+│   ├── models/           # Shared data models
+│   ├── services/         # Shared services
+│   ├── ui/               # Shared UI components
+│   │   └── window_management.py  # Window manager
+│   └── utils/            # Shared utilities
+│       ├── app.py        # Application initialization
+│       ├── cli.py        # Command-line interface
+│       └── config.py     # Configuration management
+├── tq/                   # Truth Quest pillar
+├── main.py               # Application entry point
+├── pyproject.toml        # Project metadata
+├── README.md             # Project documentation
+└── requirements/         # Dependency specifications
+    ├── base.txt          # Base dependencies
+    ├── dev.txt           # Development dependencies
+    └── test.txt          # Testing dependencies
+```
+
+## 🌐 Contributing
 
 Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on our code of conduct and the process for submitting pull requests.
 
-## License
+### Development Workflow
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+1. Create a new branch for your feature or bugfix
+2. Make your changes
+3. Run tests to ensure functionality
+4. Run pre-commit hooks to ensure code quality
+5. Submit a pull request
+
+## 📚 Documentation
+
+Additional documentation is available in the `docs/` directory.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📧 Contact
+
+For questions or support, please contact us at support@isopgem.com 
