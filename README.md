@@ -43,7 +43,7 @@ IsopGem follows a domain-pillar architecture with five main pillars:
 2. **Geometry** - Sacred geometry visualization and calculation tools
 3. **Document Manager** - Analysis of texts and documents
 4. **Astrology** - Astrological calculations and visualizations
-5. **TQ** - Truth Quest integration and advanced pattern analysis
+5. **TQ** - Trigrammaton QBLH integration and advanced pattern analysis
 
 Each pillar is organized into consistent components:
 - **UI (User Interface)** - PyQt6-based interface components
