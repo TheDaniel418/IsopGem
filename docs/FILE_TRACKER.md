@@ -39,6 +39,10 @@ This document tracks all the files in the IsopGem project, their purpose, and th
 | shared/ui/widgets/rtf_editor/rtf_editor_window.py | Removed placeholder text from RTF Editor | 2025-04-06 | Modified |
 | shared/ui/widgets/rtf_editor/rtf_editor_adapter.py | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
 | shared/ui/widgets/editor.py | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
+| document_manager/services/qgem_document_service.py | Improved error handling and type checking in service methods | 2025-04-07 | Modified |
+| document_manager/models/qgem_document.py | Fixed field mappings and type handling in document conversion | 2025-04-07 | Modified |
+| shared/ui/widgets/rtf_editor/models/* | Added models directory for RTF editor components | 2025-04-06 | Added |
+| shared/ui/widgets/qgem_editor/* | Removed in favor of RTFEditor implementation | 2025-04-06 | Removed |
 
 ## Directory Structure
 
