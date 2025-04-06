@@ -393,6 +393,14 @@ class RTFEditorWindow(QMainWindow):
 
     def open_image_editor_dialog(self, image_format, cursor_pos):
         """Open the advanced image editor dialog for the selected image."""
+        print(f"Opening image editor dialog for image at cursor position: {cursor_pos}")
+        
+        # Log original image format details
+        orig_path = image_format.name()
+        orig_width = image_format.width()
+        orig_height = image_format.height()
+        print(f"Original image format - Path: {orig_path[:30]}..., Size: {orig_width}x{orig_height}")
+        
         dialog = ImageEditorDialog(image_format, self)
         if dialog.exec():
             # Get the result path and dimensions
@@ -400,13 +408,26 @@ class RTFEditorWindow(QMainWindow):
             new_width, new_height = dialog.get_new_dimensions()
 
             print(
-                f"Dialog accepted. New path: {result_path}, dimensions: {new_width}x{new_height}"
+                f"Dialog accepted. New path: {result_path[:30]}..., dimensions: {new_width}x{new_height}"
             )
+            
+            # Log document state before update
+            doc_html_before = self.text_edit.document().toHtml()
+            image_count_before = doc_html_before.count('<img ')
+            print(f"Document before update - HTML length: {len(doc_html_before)}, Image count: {image_count_before}")
 
             # Update the image format with the new path and dimensions
             self.apply_image_update(
                 image_format, cursor_pos, result_path, new_width, new_height
             )
+            
+            # Log document state after update
+            doc_html_after = self.text_edit.document().toHtml()
+            image_count_after = doc_html_after.count('<img ')
+            print(f"Document after update - HTML length: {len(doc_html_after)}, Image count: {image_count_after}")
+            print(f"Image count change: {image_count_after - image_count_before}")
+        else:
+            print("Image editor dialog cancelled")
 
     def open_image_properties_dialog(self, image_format, cursor_pos):
         """Open the properties dialog for the selected image."""
@@ -485,6 +506,7 @@ class RTFEditorWindow(QMainWindow):
             print(
                 f"Applying image update: path={new_path[:50]}..., width={new_width}, height={new_height}"
             )
+            print(f"Cursor position when applying update: {cursor_pos}")
 
             # Check if new_path is a data URI or file path
             is_data_uri = new_path.startswith("data:")
@@ -526,6 +548,7 @@ class RTFEditorWindow(QMainWindow):
                     print(f"Error converting to data URI: {e}")
                     # If conversion fails, we'll continue with file path but it may not work well
 
+            print("Calling alternative method for image update")
             # Use the alternative method that replaces the image entirely rather than modifying in place
             self.apply_image_update_alternative(
                 cursor_pos, new_path, new_width, new_height
@@ -543,7 +566,8 @@ class RTFEditorWindow(QMainWindow):
         """Alternative method to update an image by replacing it completely."""
         try:
             print("Using alternative approach to update image...")
-
+            print(f"Starting cursor position: {cursor_pos}")
+            
             # Convert to data URI if it's a file path
             if not new_path.startswith("data:"):
                 try:
@@ -575,92 +599,173 @@ class RTFEditorWindow(QMainWindow):
                     print(f"Error converting to data URI in alternative method: {e}")
                     # Continue with file path if conversion fails
 
+            # Get the document content before we make changes (for debugging)
+            before_doc_html = self.text_edit.document().toHtml()
+            print(f"Document before change - HTML length: {len(before_doc_html)}")
+            before_img_count = before_doc_html.count('<img ')
+            print(f"Image count before change: {before_img_count}")
+            
+            # Try a different approach to locate and remove the image
+            image_found = False
+            
             # Create a cursor at the position
             cursor = QTextCursor(self.text_edit.document())
             cursor.setPosition(cursor_pos)
-
-            # Try both directions to find the image
-            found_image = False
-            image_selection = None
-
-            # Try moving forward first
-            cursor_forward = QTextCursor(cursor)
-            cursor_forward.movePosition(
-                QTextCursor.MoveOperation.NextCharacter, QTextCursor.MoveMode.KeepAnchor
-            )
-            forward_format = cursor_forward.charFormat()
-
-            # Try moving backward as alternative
-            cursor_backward = QTextCursor(cursor)
-            cursor_backward.movePosition(
-                QTextCursor.MoveOperation.PreviousCharacter,
-                QTextCursor.MoveMode.KeepAnchor,
-            )
-            backward_format = cursor_backward.charFormat()
-
-            # Check which direction has the image
-            if forward_format.isImageFormat():
-                print("Found image in forward direction")
-                image_selection = cursor_forward
-                found_image = True
-            elif backward_format.isImageFormat():
-                print("Found image in backward direction")
-                image_selection = cursor_backward
-                found_image = True
+            
+            # Check if we're already at an image position
+            cursor_format = cursor.charFormat()
+            if cursor_format.isImageFormat():
+                # We're already at an image position
+                print("Direct hit: Cursor is already at the image position")
+                
+                # Create a selection of just this character
+                selection_cursor = QTextCursor(cursor)
+                selection_cursor.movePosition(
+                    QTextCursor.MoveOperation.NextCharacter,
+                    QTextCursor.MoveMode.KeepAnchor
+                )
+                
+                # Get the old image info for logging
+                old_format = selection_cursor.charFormat().toImageFormat()
+                old_path = old_format.name()
+                old_width = old_format.width()
+                old_height = old_format.height()
+                
+                # Delete the selected character (which is the image)
+                print(f"Deleting image character at position {cursor_pos}")
+                selection_cursor.deleteChar()
+                image_found = True
+                
             else:
-                print("Warning: Could not find image at cursor position")
-                # Try expanding the search range for the image character
-                for offset in range(1, 4):
-                    # Check ahead by offset characters
-                    cursor_ahead = QTextCursor(self.text_edit.document())
-                    cursor_ahead.setPosition(cursor_pos + offset)
-                    cursor_ahead.movePosition(
+                # Search around the cursor for the image
+                # First try the next character
+                next_char_cursor = QTextCursor(cursor)
+                next_char_cursor.movePosition(
+                    QTextCursor.MoveOperation.NextCharacter,
+                    QTextCursor.MoveMode.KeepAnchor
+                )
+                
+                if next_char_cursor.charFormat().isImageFormat():
+                    # Get the old image info for logging
+                    old_format = next_char_cursor.charFormat().toImageFormat()
+                    old_path = old_format.name()
+                    old_width = old_format.width()
+                    old_height = old_format.height()
+                    
+                    print(f"Found image in next character position")
+                    # Delete the image character
+                    next_char_cursor.deleteChar()
+                    image_found = True
+                    # Reposition cursor back to the starting point
+                    cursor.setPosition(cursor_pos)
+                    
+                else:
+                    # Try the previous character
+                    prev_char_cursor = QTextCursor(cursor)
+                    prev_char_cursor.movePosition(
                         QTextCursor.MoveOperation.PreviousCharacter,
-                        QTextCursor.MoveMode.KeepAnchor,
+                        QTextCursor.MoveMode.KeepAnchor
                     )
-                    if cursor_ahead.charFormat().isImageFormat():
-                        image_selection = cursor_ahead
-                        found_image = True
-                        print(f"Found image at offset +{offset}")
-                        break
-
-                    # Check behind by offset characters
-                    cursor_behind = QTextCursor(self.text_edit.document())
-                    cursor_behind.setPosition(cursor_pos - offset)
-                    cursor_behind.movePosition(
-                        QTextCursor.MoveOperation.NextCharacter,
-                        QTextCursor.MoveMode.KeepAnchor,
-                    )
-                    if cursor_behind.charFormat().isImageFormat():
-                        image_selection = cursor_behind
-                        found_image = True
-                        print(f"Found image at offset -{offset}")
-                        break
-
-            if not found_image or image_selection is None:
+                    
+                    if prev_char_cursor.charFormat().isImageFormat():
+                        # Get the old image info for logging
+                        old_format = prev_char_cursor.charFormat().toImageFormat()
+                        old_path = old_format.name()
+                        old_width = old_format.width()
+                        old_height = old_format.height()
+                        
+                        print(f"Found image in previous character position")
+                        # Delete the image character
+                        prev_char_cursor.deleteChar()
+                        image_found = True
+                        # Use the previous position for insertion
+                        cursor.setPosition(cursor_pos - 1)
+                    
+                    else:
+                        # Try expanding the search range
+                        for offset in range(1, 4):
+                            # Check ahead
+                            ahead_cursor = QTextCursor(self.text_edit.document())
+                            ahead_cursor.setPosition(cursor_pos + offset)
+                            ahead_cursor.movePosition(
+                                QTextCursor.MoveOperation.NextCharacter,
+                                QTextCursor.MoveMode.KeepAnchor
+                            )
+                            
+                            if ahead_cursor.charFormat().isImageFormat():
+                                # Get the old image info for logging
+                                old_format = ahead_cursor.charFormat().toImageFormat()
+                                old_path = old_format.name()
+                                old_width = old_format.width()
+                                old_height = old_format.height()
+                                
+                                print(f"Found image at position {cursor_pos + offset}")
+                                ahead_cursor.deleteChar()
+                                image_found = True
+                                cursor.setPosition(cursor_pos + offset)
+                                break
+                                
+                            # Check behind
+                            behind_cursor = QTextCursor(self.text_edit.document())
+                            behind_cursor.setPosition(cursor_pos - offset)
+                            behind_cursor.movePosition(
+                                QTextCursor.MoveOperation.PreviousCharacter,
+                                QTextCursor.MoveMode.KeepAnchor
+                            )
+                            
+                            if behind_cursor.charFormat().isImageFormat():
+                                # Get the old image info for logging
+                                old_format = behind_cursor.charFormat().toImageFormat()
+                                old_path = old_format.name()
+                                old_width = old_format.width()
+                                old_height = old_format.height()
+                                
+                                print(f"Found image at position {cursor_pos - offset}")
+                                behind_cursor.deleteChar()
+                                image_found = True
+                                cursor.setPosition(cursor_pos - offset)
+                                break
+            
+            if not image_found:
                 print("Error: Could not locate the image to replace")
                 return
             
-            # Store the position where the image currently is
-            position = image_selection.position()
+            # Check document after removal
+            after_remove_html = self.text_edit.document().toHtml()
+            after_img_count = after_remove_html.count('<img ')
+            print(f"Document after removal - HTML length: {len(after_remove_html)}")
+            print(f"Image count after removal: {after_img_count}")
+            print(f"Removal changed HTML by: {len(before_doc_html) - len(after_remove_html)} characters")
+            print(f"Image count change: {after_img_count - before_img_count}")
             
-            # Ensure we have a clean selection containing only the image
-            # and completely remove the old image
-            image_selection.removeSelectedText()
+            # Get the current cursor position after all our operations
+            insert_position = cursor.position()
+            print(f"Final insertion position: {insert_position}")
 
-            # Set the cursor back to where the old image was
-            insertion_cursor = QTextCursor(self.text_edit.document())
-            insertion_cursor.setPosition(position)
-            
             # Create a fresh image format with no additional properties
             new_format = QTextImageFormat()
             new_format.setName(new_path)
             new_format.setWidth(new_width)
             new_format.setHeight(new_height)
+            print(f"New image format created: {new_path[:30]}..., size: {new_width}x{new_height}")
 
-            # Insert the new image at the same position where the old one was
-            insertion_cursor.insertImage(new_format)
-
+            # Insert the new image
+            print("Inserting new image")
+            cursor.insertImage(new_format)
+            
+            # Check document after insertion
+            after_insert_html = self.text_edit.document().toHtml()
+            after_insert_img_count = after_insert_html.count('<img ')
+            print(f"Document after insertion - HTML length: {len(after_insert_html)}")
+            print(f"Image count after insertion: {after_insert_img_count}")
+            print(f"Insertion added HTML by: {len(after_insert_html) - len(after_remove_html)} characters")
+            
+            # Compare with original to verify we didn't add duplicates
+            size_diff = len(after_insert_html) - len(before_doc_html)
+            img_count_diff = after_insert_img_count - before_img_count
+            print(f"Total HTML size change: {size_diff} characters")
+            print(f"Total image count change: {img_count_diff}")
+            
             print("Alternative image update applied successfully")
             self.on_text_changed()  # Mark modified
 
