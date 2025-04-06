@@ -77,11 +77,11 @@ class SearchPanel(QWidget):
             The window manager if found, None otherwise
         """
         result: Optional[WindowManager] = None
-        
+
         try:
             # Start with the current parent
             parent = self.parent()
-            
+
             # Check parent chain
             while parent is not None and result is None:
                 # Check if parent has window_manager attribute
@@ -89,18 +89,18 @@ class SearchPanel(QWidget):
                     potential_manager = getattr(parent, "window_manager")
                     if isinstance(potential_manager, WindowManager):
                         result = potential_manager
-                
+
                 # Move up to parent if we haven't found a manager
                 if result is None:
                     parent = parent.parent()
-            
+
             # Log if we didn't find anything
             if result is None:
                 logger.warning("No window manager found in parent widget chain")
-                
+
         except Exception as e:
             logger.error(f"Error while finding window manager: {e}")
-            
+
         return result
 
     def _setup_ui(self) -> None:
@@ -255,9 +255,11 @@ class SearchPanel(QWidget):
         else:
             methods = []
 
-        # Add standard methods to combo
+        # Add standard methods to combo - use our improved method for display
         for method in methods:
-            self.method_combo.addItem(method.display_name, method)
+            # Format display name consistently with our new method
+            display_name = method.name.replace("_", " ").title()
+            self.method_combo.addItem(display_name, method)
 
         # Add separator and custom methods if applicable
         if language_idx > 0:
@@ -401,19 +403,41 @@ class SearchPanel(QWidget):
         Returns:
             Display name for the calculation method
         """
-        if calculation.custom_method_name:
+        # Custom method name takes precedence
+        if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
             return f"Custom: {calculation.custom_method_name}"
 
-        if isinstance(calculation.calculation_type, CalculationType):
-            return calculation.calculation_type.display_name
-
+        # Handle the case when calculation_type is None
+        if calculation.calculation_type is None:
+            return "Unknown"
+            
+        # Handle the case when it's a CalculationType enum
+        if hasattr(calculation.calculation_type, "name"):
+            return calculation.calculation_type.name.replace("_", " ").title()
+            
+        # Handle the case when it's a custom method (string)
         if isinstance(calculation.calculation_type, str):
-            # Try to find a matching CalculationType
-            for calc_type in CalculationType.get_all_types():
-                if calc_type.name == calculation.calculation_type:
-                    return calc_type.display_name
-
-        # Fallback
+            # Try to convert number strings to readable method names
+            try:
+                # If it's a string that represents an integer, try to convert to enum
+                if calculation.calculation_type.isdigit():
+                    enum_value = int(calculation.calculation_type)
+                    for ct in CalculationType:
+                        if ct.value == enum_value:
+                            return ct.name.replace("_", " ").title()
+            except (ValueError, AttributeError):
+                pass
+                
+            # If we couldn't convert to enum, just format the string
+            return calculation.calculation_type.replace("_", " ").title()
+            
+        # Handle case when it's an integer
+        if isinstance(calculation.calculation_type, int):
+            for ct in CalculationType:
+                if ct.value == calculation.calculation_type:
+                    return ct.name.replace("_", " ").title()
+                    
+        # Fallback case - just convert to string
         return str(calculation.calculation_type)
 
     def _on_result_selected(self) -> None:
