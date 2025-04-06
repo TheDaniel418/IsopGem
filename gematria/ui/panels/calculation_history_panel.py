@@ -24,92 +24,39 @@ Related files:
 - gematria/ui/dialogs/create_tag_dialog.py: Dialog for creating new tags
 """
 
-import os
-from typing import List, Optional, Dict, Any, Union
-from datetime import datetime
-
-from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QListWidget,
-    QListWidgetItem,
-    QSplitter,
-    QComboBox,
-    QLineEdit,
-    QGroupBox,
-    QScrollArea,
-    QInputDialog,
-    QCheckBox,
-    QMenu,
-    QMessageBox,
-    QSpinBox,
-    QGridLayout,
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QTimer
-from PyQt6.QtGui import QColor, QIcon, QAction, QFont, QPixmap
+from typing import List, Optional
 
 from loguru import logger
-from gematria.models.calculation_result import CalculationResult
-from gematria.models.tag import Tag
-from gematria.models.calculation_type import CalculationType, get_calculation_type_name
-from gematria.services.calculation_database_service import CalculationDatabaseService
-from gematria.ui.dialogs.create_tag_dialog import CreateTagDialog
-from shared.services.service_locator import ServiceLocator
-from shared.services.tag_service import TagService
-from gematria.ui.dialogs.calculation_details_dialog import CalculationDetailsDialog
-from shared.ui.base_panel import BasePanel
-from shared.ui.widgets.common_widgets import CollapsibleBox
-
-from typing import Dict, List, Optional, Set
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGridLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
-    QPushButton,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
-    QComboBox,
-    QLineEdit,
+    QPushButton,
     QSplitter,
-    QFrame,
-    QCheckBox,
     QStackedWidget,
     QTextEdit,
-    QGridLayout,
-    QScrollArea,
-    QToolButton,
-    QDialog,
-    QInputDialog,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QIcon, QPixmap
-
-from loguru import logger
 
 from gematria.models.calculation_result import CalculationResult
 from gematria.models.tag import Tag
 from gematria.services.calculation_database_service import CalculationDatabaseService
-from gematria.ui.dialogs.tag_selection_dialog import TagSelectionDialog
-
-
-class ColorSquare(QLabel):
-    """Simple colored square for tag display."""
-
-    def __init__(self, color: str, size: int = 16):
-        """Initialize with a color.
-
-        Args:
-            color: Hex color code
-            size: Square size in pixels
-        """
-        super().__init__()
-        self.setFixedSize(size, size)
-        self.setStyleSheet(f"background-color: {color};")
+from gematria.ui.dialogs.calculation_details_dialog import CalculationDetailsDialog
+from shared.services.service_locator import ServiceLocator
+from shared.services.tag_service import TagService
+from shared.ui.widgets.panel import Panel
+from shared.ui.widgets.common_widgets import CollapsibleBox, ColorSquare
 
 
 class TagWidget(QWidget):
@@ -622,120 +569,120 @@ class CalculationDetailWidget(QWidget):
             self.set_calculation(calculation, tags)
 
 
-class CalculationHistoryPanel(BasePanel):
+class CalculationHistoryPanel(Panel):
     """Panel for viewing calculation history with pagination and filtering."""
 
     def __init__(self):
         """Initialize the panel."""
         super().__init__("Calculation History")
-        
+
         # Get services
         self.calculation_service = ServiceLocator.get(CalculationDatabaseService)
         self.tag_service = ServiceLocator.get(TagService)
-        
+
         # Pagination state
         self.current_page = 0
         self.page_size = 50
         self.total_calculations = 0
-        
+
         # Filter state
         self.search_text = ""
         self.filter_tag = None
         self.filter_method = None
         self.favorites_only = False
-        
+
         # UI state
         self.selected_calculation = None
-        
+
         # Configure search debounce timer
         self.search_timer = QTimer()
         self.search_timer.setSingleShot(True)
         self.search_timer.timeout.connect(self._on_search_debounced)
-        
+
         # Initialize UI
         self._init_ui()
-        
+
         # Load data
         self._load_tags_and_methods()
         self._load_calculations()
-        
+
     def _init_ui(self):
         """Initialize UI components with focus on performance and usability."""
-        # Main layout
-        main_layout = QVBoxLayout()
-        
+        # Use the content_layout from Panel parent class instead of creating a new layout
+        main_layout = self.content_layout
+
         # Search and filter section
         search_panel = QWidget()
         search_layout = QVBoxLayout(search_panel)
         search_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         # Search bar with refresh button
         search_control = QWidget()
         search_control_layout = QHBoxLayout(search_control)
         search_control_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Search by text, value, or notes...")
         self.search_box.textChanged.connect(self._on_search_changed)
-        
+
         self.refresh_button = QPushButton("🔄")
         self.refresh_button.setToolTip("Refresh calculations")
         self.refresh_button.clicked.connect(self._on_refresh)
         self.refresh_button.setFixedWidth(30)
-        
+
         search_control_layout.addWidget(self.search_box)
         search_control_layout.addWidget(self.refresh_button)
-        
+
         search_layout.addWidget(search_control)
-        
+
         # Filters in collapsible box
         filter_box = CollapsibleBox("Filters")
         filter_content = QWidget()
         filter_layout = QGridLayout(filter_content)
-        
+
         # Tag filter
         filter_layout.addWidget(QLabel("Tag:"), 0, 0)
         self.tag_combo = QComboBox()
         self.tag_combo.addItem("All Tags", None)
         self.tag_combo.currentIndexChanged.connect(self._on_filter_changed)
         filter_layout.addWidget(self.tag_combo, 0, 1)
-        
+
         # Method filter
         filter_layout.addWidget(QLabel("Method:"), 1, 0)
         self.method_combo = QComboBox()
         self.method_combo.addItem("All Methods", None)
         self.method_combo.currentIndexChanged.connect(self._on_filter_changed)
         filter_layout.addWidget(self.method_combo, 1, 1)
-        
+
         # Favorites only checkbox
         self.favorites_check = QCheckBox("Favorites Only")
         self.favorites_check.stateChanged.connect(self._on_filter_changed)
         filter_layout.addWidget(self.favorites_check, 2, 0, 1, 2)
-        
+
         filter_box.setContentLayout(filter_layout)
         search_layout.addWidget(filter_box)
-        
+
         main_layout.addWidget(search_panel)
-        
+
         # Pagination controls
         pagination_widget = QWidget()
         pagination_layout = QHBoxLayout(pagination_widget)
         pagination_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         self.prev_button = QPushButton("Previous")
         self.prev_button.clicked.connect(self._load_prev_page)
-        
+
         self.page_label = QLabel("Page 1")
         self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         self.next_button = QPushButton("Next")
         self.next_button.clicked.connect(self._load_next_page)
-        
+
         # Page size control
         page_size_widget = QWidget()
         page_size_layout = QHBoxLayout(page_size_widget)
         page_size_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         page_size_layout.addWidget(QLabel("Per page:"))
         self.page_size_combo = QComboBox()
         for size in [10, 25, 50, 100]:
@@ -743,117 +690,76 @@ class CalculationHistoryPanel(BasePanel):
         self.page_size_combo.setCurrentIndex(2)  # Default to 50
         self.page_size_combo.currentIndexChanged.connect(self._on_page_size_changed)
         page_size_layout.addWidget(self.page_size_combo)
-        
+
         pagination_layout.addWidget(self.prev_button)
         pagination_layout.addWidget(self.page_label, 1)
         pagination_layout.addWidget(self.next_button)
         pagination_layout.addWidget(page_size_widget)
-        
+
         main_layout.addWidget(pagination_widget)
-        
+
         # Splitter for list and details
         splitter = QSplitter(Qt.Orientation.Vertical)
-        
+
         # Calculation list
         self.calculation_list = QListWidget()
         self.calculation_list.setAlternatingRowColors(True)
         self.calculation_list.currentItemChanged.connect(self._on_calculation_selected)
         self.calculation_list.itemDoubleClicked.connect(self._on_calculation_details)
-        
+
         # Details panel
         self.details_panel = QWidget()
         details_layout = QVBoxLayout(self.details_panel)
-        
+
         self.details_title = QLabel("Select a calculation to view details")
         self.details_title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         details_layout.addWidget(self.details_title)
-        
+
         self.details_value = QLabel("")
         details_layout.addWidget(self.details_value)
-        
+
         self.details_method = QLabel("")
         details_layout.addWidget(self.details_method)
-        
+
         self.details_tags = QLabel("")
         details_layout.addWidget(self.details_tags)
-        
+
         self.details_notes = QLabel("")
         self.details_notes.setWordWrap(True)
         details_layout.addWidget(self.details_notes)
-        
+
         details_layout.addStretch()
-        
+
         # Action buttons
         button_layout = QHBoxLayout()
         self.view_details_button = QPushButton("View Full Details")
         self.view_details_button.clicked.connect(self._on_calculation_details)
         self.view_details_button.setEnabled(False)
         button_layout.addWidget(self.view_details_button)
-        
+
         self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self._on_delete_calculation)
         self.delete_button.setEnabled(False)
         button_layout.addWidget(self.delete_button)
-        
+
         details_layout.addLayout(button_layout)
-        
+
         splitter.addWidget(self.calculation_list)
         splitter.addWidget(self.details_panel)
         splitter.setSizes([300, 200])
-        
+
         main_layout.addWidget(splitter, 1)
-        
-        self.setLayout(main_layout)
-        
+
     def _on_search_changed(self, text):
         """Handle search text changes with debouncing."""
         self.search_text = text
         # Reset to 500ms wait before executing search
-        self.search_timer.start(500)  
-        
+        self.search_timer.start(500)
+
     def _on_search_debounced(self):
         """Perform the actual search after debounce delay."""
         self.current_page = 0
         self._load_calculations()
-        
-    def _on_filter_changed(self):
-        """Handle filter changes."""
-        self.filter_tag = self.tag_combo.currentData()
-        self.filter_method = self.method_combo.currentData()
-        self.favorites_only = self.favorites_check.isChecked()
-        self.current_page = 0  # Reset to first page when filters change
-        self._load_calculations()
-        
-    def _on_page_size_changed(self):
-        """Handle page size changes."""
-        self.page_size = self.page_size_combo.currentData()
-        self.current_page = 0  # Reset to first page when page size changes
-        self._load_calculations()
-        
-    def _load_prev_page(self):
-        """Load the previous page of results."""
-        if self.current_page > 0:
-            self.current_page -= 1
-            self._load_calculations()
-            
-    def _load_next_page(self):
-        """Load the next page of results."""
-        max_page = (self.total_calculations - 1) // self.page_size
-        if self.current_page < max_page:
-            self.current_page += 1
-            self._load_calculations()
-            
-    def _update_pagination_controls(self):
-        """Update pagination controls based on current state."""
-        self.prev_button.setEnabled(self.current_page > 0)
-        
-        max_page = (self.total_calculations - 1) // self.page_size if self.total_calculations > 0 else 0
-        self.next_button.setEnabled(self.current_page < max_page)
-        
-        start_item = self.current_page * self.page_size + 1 if self.total_calculations > 0 else 0
-        end_item = min((self.current_page + 1) * self.page_size, self.total_calculations)
-        
-        self.page_label.setText(f"Page {self.current_page + 1} of {max_page + 1} ({start_item}-{end_item} of {self.total_calculations})")
         
     def _on_refresh(self):
         """Refresh the calculation list and reset filters."""
@@ -865,101 +771,33 @@ class CalculationHistoryPanel(BasePanel):
         self._load_tags_and_methods()
         self._load_calculations()
         
-    def _load_calculations(self):
-        """Load calculations with current pagination and filtering."""
-        # Get total count for pagination
-        self.total_calculations = self.calculation_service.count_calculations()
+    def _on_filter_changed(self):
+        """Handle filter changes."""
+        self.filter_tag = self.tag_combo.currentData()
+        self.filter_method = self.method_combo.currentData()
+        self.favorites_only = self.favorites_check.isChecked()
+        self.current_page = 0  # Reset to first page when filters change
+        self._load_calculations()
         
-        # Calculate offset based on current page and page size
-        offset = self.current_page * self.page_size
-        
-        # Get calculations for current page
-        calculations = self.calculation_service.get_calculations_page(
-            offset=offset,
-            limit=self.page_size,
-            sort_by="timestamp",
-            sort_order="DESC"
-        )
-        
-        # Apply additional filtering if needed
-        if self.search_text or self.filter_tag or self.filter_method or self.favorites_only:
-            calculations = self._apply_filters(calculations)
-        
-        # Update UI
-        self._populate_calculation_list(calculations)
-        self._update_pagination_controls()
-        
-    def _apply_filters(self, calculations: List[CalculationResult]) -> List[CalculationResult]:
-        """Apply filters to the calculation list.
-        
-        Args:
-            calculations: List of calculations to filter
+    def _load_prev_page(self):
+        """Load the previous page of results."""
+        if self.current_page > 0:
+            self.current_page -= 1
+            self._load_calculations()
+
+    def _load_next_page(self):
+        """Load the next page of results."""
+        max_page = (self.total_calculations - 1) // self.page_size
+        if self.current_page < max_page:
+            self.current_page += 1
+            self._load_calculations()
             
-        Returns:
-            Filtered list of calculations
-        """
-        filtered = calculations.copy()
+    def _on_page_size_changed(self):
+        """Handle page size changes."""
+        self.page_size = self.page_size_combo.currentData()
+        self.current_page = 0  # Reset to first page when page size changes
+        self._load_calculations()
         
-        # Filter by search text
-        if self.search_text:
-            text = self.search_text.lower()
-            filtered = [
-                calc for calc in filtered 
-                if (text in calc.input_text.lower() or 
-                    (calc.notes and text in calc.notes.lower()) or
-                    (str(calc.result_value) == text))
-            ]
-            
-        # Filter by tag
-        if self.filter_tag:
-            filtered = [calc for calc in filtered if self.filter_tag in calc.tags]
-            
-        # Filter by method
-        if self.filter_method:
-            filtered = [calc for calc in filtered if calc.calculation_type == self.filter_method]
-            
-        # Filter by favorites
-        if self.favorites_only:
-            filtered = [calc for calc in filtered if calc.favorite]
-            
-        return filtered
-        
-    def _populate_calculation_list(self, calculations: List[CalculationResult]):
-        """Populate the list widget with calculations.
-        
-        Args:
-            calculations: List of calculations to display
-        """
-        self.calculation_list.clear()
-        
-        for calc in calculations:
-            item = QListWidgetItem()
-            
-            # Format the display text
-            input_text = calc.input_text
-            # Truncate if too long
-            if len(input_text) > 30:
-                input_text = input_text[:27] + "..."
-                
-            display_text = f"{input_text} = {calc.result_value}"
-            if calc.tags:
-                tag_text = ", ".join(calc.tags[:2])
-                if len(calc.tags) > 2:
-                    tag_text += "..."
-                display_text += f" [{tag_text}]"
-                
-            item.setText(display_text)
-            
-            # Store the calculation ID in the item's data
-            item.setData(Qt.ItemDataRole.UserRole, calc.id)
-            
-            # Highlight favorites
-            if calc.favorite:
-                item.setForeground(QColor("#0066cc"))
-                item.setText("★ " + item.text())
-                
-            self.calculation_list.addItem(item)
-            
     def _on_calculation_selected(self, current, previous):
         """Handle calculation selection change."""
         if not current:
@@ -972,77 +810,146 @@ class CalculationHistoryPanel(BasePanel):
             self.details_tags.setText("")
             self.details_notes.setText("")
             return
-            
+
         calc_id = current.data(Qt.ItemDataRole.UserRole)
         calculation = self.calculation_service.get_calculation(calc_id)
-        
+
         if calculation:
             self.selected_calculation = calculation
             self.view_details_button.setEnabled(True)
             self.delete_button.setEnabled(True)
-            
+
             self.details_title.setText(f"Calculation: {calculation.input_text}")
             self.details_value.setText(f"Result: {calculation.result_value}")
             self.details_method.setText(f"Method: {calculation.calculation_type}")
-            
-            if calculation.tags:
+
+            if hasattr(calculation, 'tags') and calculation.tags:
                 self.details_tags.setText(f"Tags: {', '.join(calculation.tags)}")
             else:
                 self.details_tags.setText("Tags: None")
-                
-            if calculation.notes:
+
+            if hasattr(calculation, 'notes') and calculation.notes:
                 self.details_notes.setText(f"Notes: {calculation.notes}")
             else:
                 self.details_notes.setText("Notes: None")
                 
-    def _on_calculation_details(self):
-        """Open calculation details dialog."""
-        if self.selected_calculation:
-            dialog = CalculationDetailsDialog(self.selected_calculation, self)
-            dialog.calculationUpdated.connect(self._load_calculations)
-            dialog.exec()
+    def _on_calculation_details(self, item):
+        """Open the details dialog for the selected calculation."""
+        if not item:
+            return
             
+        calc_id = item.data(Qt.ItemDataRole.UserRole)
+        calculation = self.calculation_service.get_calculation(calc_id)
+        
+        if calculation:
+            try:
+                from gematria.ui.dialogs.calculation_details_dialog import CalculationDetailsDialog
+                
+                # Ensure calculation has all required attributes
+                if not hasattr(calculation, 'notes'):
+                    calculation.notes = ""
+                    
+                if not hasattr(calculation, 'tags'):
+                    calculation.tags = []
+                
+                dialog = CalculationDetailsDialog(calculation, self.calculation_service, self)
+                dialog.calculation_updated.connect(self._on_refresh)
+                dialog.exec()
+            except Exception as e:
+                logger.error(f"Error opening calculation details: {e}")
+                
     def _on_delete_calculation(self):
         """Delete the selected calculation."""
-        if self.selected_calculation:
-            # Confirm deletion
-            confirm = QMessageBox.question(
-                self,
-                "Confirm Deletion",
-                f"Are you sure you want to delete this calculation?\n\n{self.selected_calculation.input_text} = {self.selected_calculation.result_value}",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
+        if not self.selected_calculation:
+            return
             
-            if confirm == QMessageBox.StandardButton.Yes:
-                # Delete and refresh
-                success = self.calculation_service.delete_calculation(self.selected_calculation.id)
-                if success:
-                    self._load_calculations()
-                    self.selected_calculation = None
-                    
-    def _load_tags_and_methods(self):
-        """Load tags and calculation methods for filters."""
-        self._load_tag_filter()
-        self._load_method_filter_optimized()
+        from PyQt6.QtWidgets import QMessageBox
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete this calculation?\n\n{self.selected_calculation.input_text}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if confirm == QMessageBox.StandardButton.Yes:
+            try:
+                self.calculation_service.delete_calculation(self.selected_calculation.id)
+                self._on_refresh()  # Reload the list after deletion
+            except Exception as e:
+                logger.error(f"Error deleting calculation: {e}")
                 
-    def _load_tag_filter(self):
-        """Load tags for the tag filter."""
+    def _load_tags_and_methods(self):
+        """Load tags and calculation methods for filtering."""
+        # Load tags for filtering
         self.tag_combo.clear()
         self.tag_combo.addItem("All Tags", None)
         
-        tags = self.tag_service.get_all_tags()
-        for tag in sorted(tags, key=lambda t: t.name):
-            self.tag_combo.addItem(tag.name, tag.id)
+        try:
+            tags = self.calculation_service.get_all_tags()
+            for tag in tags:
+                self.tag_combo.addItem(tag.name, tag.id)
+        except Exception as e:
+            logger.error(f"Error loading tags: {e}")
             
-    def _load_method_filter_optimized(self):
-        """Load calculation methods for the method filter by querying unique methods."""
+        # Load calculation methods for filtering
         self.method_combo.clear()
         self.method_combo.addItem("All Methods", None)
         
-        # Get unique calculation methods directly from the database
-        methods = self.calculation_service.get_unique_calculation_methods()
+        # Get unique calculation methods from the database
+        try:
+            methods = self.calculation_service.get_distinct_calculation_types()
+            for method in methods:
+                self.method_combo.addItem(str(method), method)
+        except Exception as e:
+            logger.error(f"Error loading calculation methods: {e}")
+            
+    def _load_calculations(self):
+        """Load calculations based on current filters and pagination."""
+        self.calculation_list.clear()
+        self.selected_calculation = None
+        self.view_details_button.setEnabled(False)
+        self.delete_button.setEnabled(False)
         
-        # Add each unique method to the combo box
-        for method_name in sorted(methods):
-            self.method_combo.addItem(method_name, method_name)
+        try:
+            # Get the search term
+            search_term = self.search_box.text().strip() if self.search_box.text() else None
+            
+            # Calculate offset for pagination
+            offset = self.current_page * self.page_size
+            
+            # Get calculations with filters
+            calculations, self.total_calculations = self.calculation_service.get_filtered_calculations(
+                search_term=search_term,
+                tag_id=self.filter_tag,
+                calculation_type=self.filter_method,
+                favorites_only=self.favorites_only,
+                limit=self.page_size,
+                offset=offset
+            )
+            
+            # Update the pagination information
+            total_pages = (self.total_calculations + self.page_size - 1) // self.page_size
+            if total_pages == 0:
+                total_pages = 1
+                
+            self.page_label.setText(f"Page {self.current_page + 1} of {total_pages}")
+            self.prev_button.setEnabled(self.current_page > 0)
+            self.next_button.setEnabled(self.current_page < total_pages - 1)
+            
+            # Display the results count
+            if self.total_calculations == 0:
+                self.details_title.setText("No calculations found")
+            elif self.total_calculations == 1:
+                self.details_title.setText("1 calculation found")
+            else:
+                self.details_title.setText(f"{self.total_calculations} calculations found")
+            
+            # Populate the list
+            for calc in calculations:
+                item = QListWidgetItem(f"{calc.input_text} = {calc.result_value}")
+                item.setData(Qt.ItemDataRole.UserRole, calc.id)
+                self.calculation_list.addItem(item)
+                
+        except Exception as e:
+            logger.error(f"Error loading calculations: {e}")

@@ -131,40 +131,37 @@ class CalculationDatabaseService:
 
     def count_calculations(self) -> int:
         """Count the total number of calculations in the database.
-        
+
         Returns:
             Total number of calculations
         """
         return self.calculation_repo.count_calculations()
 
     def get_calculations_page(
-        self, 
-        offset: int = 0, 
+        self,
+        offset: int = 0,
         limit: int = 50,
         sort_by: str = "timestamp",
-        sort_order: str = "DESC"
+        sort_order: str = "DESC",
     ) -> List[CalculationResult]:
         """Get a page of calculations with sorting.
-        
+
         Args:
             offset: Starting index for pagination
             limit: Maximum number of items to return
             sort_by: Column to sort by (timestamp, input_text, result_value)
             sort_order: Sort direction (ASC or DESC)
-            
+
         Returns:
             List of calculations for the requested page
         """
         return self.calculation_repo.get_calculations_page(
-            offset=offset,
-            limit=limit,
-            sort_by=sort_by,
-            sort_order=sort_order
+            offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order
         )
 
     def get_unique_calculation_methods(self) -> List[str]:
         """Get a list of all unique calculation methods used in the database.
-        
+
         Returns:
             List of method names/identifiers
         """
@@ -377,30 +374,112 @@ class CalculationDatabaseService:
         return tag_names
 
     def search_calculations(self, criteria: Dict[str, Any]) -> List[CalculationResult]:
-        """Search for calculations based on multiple criteria.
-
-        This method uses the SQLite repository's search_calculations method
-        which builds and executes a single optimized SQL query based on the criteria.
+        """Search for calculations that match specific criteria.
 
         Args:
-            criteria: Dictionary of search criteria, which can include:
-                - input_text: Exact text match
-                - input_text_like: Text pattern match (use % as wildcards)
-                - result_value: Exact value match
-                - result_value_min: Minimum value (inclusive)
-                - result_value_max: Maximum value (inclusive)
-                - calculation_type: Specific calculation method (CalculationType)
-                - custom_method_name: Custom calculation method name
-                - language: Specific language (Language enum)
-                - favorite: True to find only favorites
-                - has_tags: True to find only results with tags
-                - has_notes: True to find only results with notes
-                - tag_id: Specific tag ID to match
-                - created_after: datetime for results created after this date
-                - created_before: datetime for results created before this date
-                - limit: Maximum number of results to return
+            criteria: Dictionary of search criteria, such as:
+                - input_text: Text to search for in the input
+                - result_value: Value to search for
+                - tags: List of tag IDs to require
+                - method: Calculation method to filter by
+                - favorites_only: True to only return favorites
 
         Returns:
-            List of calculation results matching the criteria
+            List of matching calculations
         """
-        return self.calculation_repo.search_calculations(criteria)
+        # Build a complex query by combining different search functions
+        results = self.get_all_calculations()
+
+        # Apply filters one by one
+        if "input_text" in criteria and criteria["input_text"]:
+            results = [
+                calc
+                for calc in results
+                if criteria["input_text"].lower() in calc.input_text.lower()
+            ]
+
+        if "result_value" in criteria and criteria["result_value"] is not None:
+            results = [
+                calc for calc in results if calc.result_value == criteria["result_value"]
+            ]
+
+        if "tags" in criteria and criteria["tags"]:
+            results = [
+                calc
+                for calc in results
+                if any(tag_id in calc.tags for tag_id in criteria["tags"])
+            ]
+
+        if "method" in criteria and criteria["method"]:
+            results = [
+                calc
+                for calc in results
+                if str(calc.calculation_type) == str(criteria["method"])
+            ]
+
+        if "favorites_only" in criteria and criteria["favorites_only"]:
+            results = [calc for calc in results if calc.favorite]
+
+        return results
+        
+    def get_filtered_calculations(
+        self,
+        search_term: Optional[str] = None,
+        tag_id: Optional[str] = None,
+        calculation_type: Optional[Union[CalculationType, str]] = None,
+        favorites_only: bool = False,
+        limit: int = 50,
+        offset: int = 0
+    ) -> tuple[List[CalculationResult], int]:
+        """Get calculations filtered by various criteria with pagination.
+        
+        Args:
+            search_term: Optional text to search for in input text, notes, or result
+            tag_id: Optional tag ID to filter by
+            calculation_type: Optional calculation method to filter by
+            favorites_only: Whether to only include favorites
+            limit: Maximum number of results to return
+            offset: Number of results to skip
+            
+        Returns:
+            Tuple of (list of filtered calculations, total count of matching calculations)
+        """
+        # Build criteria dictionary
+        criteria = {}
+        if search_term:
+            criteria["input_text"] = search_term
+        if tag_id:
+            criteria["tags"] = [tag_id]
+        if calculation_type:
+            criteria["method"] = calculation_type
+        if favorites_only:
+            criteria["favorites_only"] = True
+            
+        # First get all matching calculations to count them
+        all_matching = self.search_calculations(criteria)
+        total_count = len(all_matching)
+        
+        # Then get the paginated subset
+        end_idx = min(offset + limit, total_count)
+        if offset >= total_count:
+            return [], total_count
+            
+        paginated_results = all_matching[offset:end_idx]
+        return paginated_results, total_count
+        
+    def get_distinct_calculation_types(self) -> List[Union[CalculationType, str]]:
+        """Get a list of all distinct calculation types used in saved calculations.
+        
+        Returns:
+            List of unique calculation types
+        """
+        # Get all calculations and extract unique calculation types
+        calculations = self.get_all_calculations()
+        
+        # Use a set to track unique types
+        unique_types = set()
+        
+        for calc in calculations:
+            unique_types.add(calc.calculation_type)
+            
+        return list(unique_types)
