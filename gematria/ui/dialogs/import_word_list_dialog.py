@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from gematria.models.calculation_result import CalculationResult
 from gematria.models.calculation_type import CalculationType, language_from_text
 from gematria.services.calculation_database_service import CalculationDatabaseService
 from gematria.services.gematria_service import GematriaService
@@ -443,31 +444,63 @@ class ImportWordListDialog(QDialog):
                 language = language_from_text(word)
 
             if language:
-                # Get all calculation methods for the detected language
-                if calc_all_methods:
-                    # Get all calculation types for the language
-                    calc_types = CalculationType.get_types_for_language(language)
+                try:
+                    # Get all calculation methods for the detected language
+                    if calc_all_methods:
+                        # Get all calculation types for the language
+                        calc_types = CalculationType.get_types_for_language(language)
 
-                    # Calculate and save for each type
-                    for calc_type in calc_types:
-                        self._gematria_service.calculate_and_save(
-                            text=word,
-                            calculation_type=calc_type,
-                            notes=notes,
-                            tags=tags,
-                        )
-                        import_count += 1
-                else:
-                    # Use default method for the language
-                    default_type = CalculationType.get_default_for_language(language)
-                    if default_type:
-                        self._gematria_service.calculate_and_save(
-                            text=word,
-                            calculation_type=default_type,
-                            notes=notes,
-                            tags=tags,
-                        )
-                        import_count += 1
+                        # Calculate and save for each type
+                        for calc_type in calc_types:
+                            value = self._gematria_service.calculate(
+                                text=word,
+                                calculation_type=calc_type,
+                            )
+                            
+                            # Convert enum to string representation to avoid FK constraint issues
+                            calc_type_str = str(calc_type.value)
+                            
+                            # Create result manually to use string value
+                            result = CalculationResult(
+                                input_text=word,
+                                calculation_type=calc_type_str,  # Store as string
+                                result_value=value,
+                                notes=notes,
+                                tags=tags or [],
+                                favorite=False,
+                            )
+                            
+                            # Save to database
+                            self._db_service.save_calculation(result)
+                            import_count += 1
+                    else:
+                        # Use default method for the language
+                        default_type = CalculationType.get_default_for_language(language)
+                        if default_type:
+                            value = self._gematria_service.calculate(
+                                text=word,
+                                calculation_type=default_type,
+                            )
+                            
+                            # Convert enum to string representation
+                            calc_type_str = str(default_type.value)
+                            
+                            # Create result manually
+                            result = CalculationResult(
+                                input_text=word,
+                                calculation_type=calc_type_str,  # Store as string
+                                result_value=value,
+                                notes=notes,
+                                tags=tags or [],
+                                favorite=False,
+                            )
+                            
+                            # Save to database
+                            self._db_service.save_calculation(result)
+                            import_count += 1
+                except Exception as e:
+                    logger.error(f"Error importing word '{word}': {e}")
+                    continue
 
         # Show completion message
         QMessageBox.information(
