@@ -28,7 +28,7 @@ from typing import List, Optional
 
 from loguru import logger
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -52,11 +52,10 @@ from PyQt6.QtWidgets import (
 from gematria.models.calculation_result import CalculationResult
 from gematria.models.tag import Tag
 from gematria.services.calculation_database_service import CalculationDatabaseService
-from gematria.ui.dialogs.calculation_details_dialog import CalculationDetailsDialog
 from shared.services.service_locator import ServiceLocator
 from shared.services.tag_service import TagService
-from shared.ui.widgets.panel import Panel
 from shared.ui.widgets.common_widgets import CollapsibleBox, ColorSquare
+from shared.ui.widgets.panel import Panel
 
 
 class TagWidget(QWidget):
@@ -172,17 +171,18 @@ class CalculationListItem(QWidget):
         # Bottom row: method
         bottom_row = QHBoxLayout()
 
-        # Determine method name
+        # Get the formatted method name using the parent panel's helper method
         method_name = "Unknown"
-        if (
-            hasattr(calculation, "custom_method_name")
-            and calculation.custom_method_name
-        ):
-            method_name = calculation.custom_method_name
-        elif hasattr(calculation.calculation_type, "name"):
-            method_name = calculation.calculation_type.name.replace("_", " ").title()
-        elif isinstance(calculation.calculation_type, str):
-            method_name = calculation.calculation_type.replace("_", " ").title()
+        if hasattr(parent, "format_calculation_type") and parent.format_calculation_type:
+            method_name = parent.format_calculation_type(calculation.calculation_type)
+        else:
+            # Fallback method formatting if parent doesn't have the helper method
+            if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
+                method_name = calculation.custom_method_name
+            elif hasattr(calculation.calculation_type, "name"):
+                method_name = calculation.calculation_type.name.replace("_", " ").title()
+            elif isinstance(calculation.calculation_type, str):
+                method_name = calculation.calculation_type.replace("_", " ").title()
 
         method = QLabel(f"<b>Method:</b> {method_name}")
         bottom_row.addWidget(method)
@@ -381,16 +381,21 @@ class CalculationDetailWidget(QWidget):
         Returns:
             A formatted string representation of the calculation method name.
         """
+        # Try to use the parent panel's formatting method if available
+        if hasattr(self.parent(), "format_calculation_type"):
+            try:
+                return self.parent().format_calculation_type(calculation.calculation_type)
+            except Exception:
+                # Fallback in case of any errors with the parent's method
+                pass
+                
         # Default fallback value
         method_name = "Unknown"
 
         # Use defensive programming to avoid crashes and unreachable code
         try:
             # Custom method name takes precedence if it exists
-            if (
-                hasattr(calculation, "custom_method_name")
-                and calculation.custom_method_name
-            ):
+            if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
                 return calculation.custom_method_name
 
             # Next, check calculation_type
@@ -760,7 +765,7 @@ class CalculationHistoryPanel(Panel):
         """Perform the actual search after debounce delay."""
         self.current_page = 0
         self._load_calculations()
-        
+
     def _on_refresh(self):
         """Refresh the calculation list and reset filters."""
         self.search_box.clear()
@@ -770,7 +775,7 @@ class CalculationHistoryPanel(Panel):
         self.current_page = 0
         self._load_tags_and_methods()
         self._load_calculations()
-        
+
     def _on_filter_changed(self):
         """Handle filter changes."""
         self.filter_tag = self.tag_combo.currentData()
@@ -778,7 +783,7 @@ class CalculationHistoryPanel(Panel):
         self.favorites_only = self.favorites_check.isChecked()
         self.current_page = 0  # Reset to first page when filters change
         self._load_calculations()
-        
+
     def _load_prev_page(self):
         """Load the previous page of results."""
         if self.current_page > 0:
@@ -791,13 +796,13 @@ class CalculationHistoryPanel(Panel):
         if self.current_page < max_page:
             self.current_page += 1
             self._load_calculations()
-            
+
     def _on_page_size_changed(self):
         """Handle page size changes."""
         self.page_size = self.page_size_combo.currentData()
         self.current_page = 0  # Reset to first page when page size changes
         self._load_calculations()
-        
+
     def _on_calculation_selected(self, current, previous):
         """Handle calculation selection change."""
         if not current:
@@ -821,7 +826,7 @@ class CalculationHistoryPanel(Panel):
 
             self.details_title.setText(f"Calculation: {calculation.input_text}")
             self.details_value.setText(f"Result: {calculation.result_value}")
-            self.details_method.setText(f"Method: {calculation.calculation_type}")
+            self.details_method.setText(f"Method: {self.format_calculation_type(calculation.calculation_type)}")
 
             if hasattr(calculation, 'tags') and calculation.tags:
                 self.details_tags.setText(f"Tags: {', '.join(calculation.tags)}")
@@ -833,52 +838,103 @@ class CalculationHistoryPanel(Panel):
             else:
                 self.details_notes.setText("Notes: None")
                 
+    def format_calculation_type(self, calculation_type):
+        """Format calculation type for display.
+        
+        Args:
+            calculation_type: The calculation type to format
+            
+        Returns:
+            A human-readable string representation of the calculation type
+        """
+        # Handle the case when calculation_type is None
+        if calculation_type is None:
+            return "Unknown"
+            
+        # Handle the case when it's a CalculationType enum
+        if hasattr(calculation_type, "name"):
+            return calculation_type.name.replace("_", " ").title()
+            
+        # Handle the case when it's a custom method (string)
+        if isinstance(calculation_type, str):
+            # Try to convert number strings to readable method names
+            from gematria.models.calculation_type import CalculationType
+            try:
+                # If it's a string that represents an integer, try to convert to enum
+                if calculation_type.isdigit():
+                    enum_value = int(calculation_type)
+                    for ct in CalculationType:
+                        if ct.value == enum_value:
+                            return ct.name.replace("_", " ").title()
+            except (ValueError, AttributeError):
+                pass
+                
+            # If we couldn't convert to enum, just format the string
+            return calculation_type.replace("_", " ").title()
+            
+        # Handle case when it's an integer
+        if isinstance(calculation_type, int):
+            from gematria.models.calculation_type import CalculationType
+            for ct in CalculationType:
+                if ct.value == calculation_type:
+                    return ct.name.replace("_", " ").title()
+                    
+        # Fallback case - just convert to string
+        return str(calculation_type)
+        
     def _on_calculation_details(self, item):
         """Open the details dialog for the selected calculation."""
         if not item:
             return
-            
+
         calc_id = item.data(Qt.ItemDataRole.UserRole)
         calculation = self.calculation_service.get_calculation(calc_id)
-        
+
         if calculation:
             try:
-                from gematria.ui.dialogs.calculation_details_dialog import CalculationDetailsDialog
-                
+                from gematria.ui.dialogs.calculation_details_dialog import (
+                    CalculationDetailsDialog,
+                )
+
                 # Ensure calculation has all required attributes
-                if not hasattr(calculation, 'notes'):
+                if not hasattr(calculation, "notes"):
                     calculation.notes = ""
-                    
-                if not hasattr(calculation, 'tags'):
+
+                if not hasattr(calculation, "tags"):
                     calculation.tags = []
-                
-                dialog = CalculationDetailsDialog(calculation, self.calculation_service, self)
+
+                dialog = CalculationDetailsDialog(
+                    calculation, self.calculation_service, self
+                )
                 dialog.calculation_updated.connect(self._on_refresh)
                 dialog.exec()
             except Exception as e:
                 logger.error(f"Error opening calculation details: {e}")
-                
+
     def _on_delete_calculation(self):
         """Delete the selected calculation."""
         if not self.selected_calculation:
             return
-            
+
         from PyQt6.QtWidgets import QMessageBox
+
         confirm = QMessageBox.question(
             self,
             "Confirm Deletion",
             f"Are you sure you want to delete this calculation?\n\n{self.selected_calculation.input_text}",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.No,
         )
-        
+
         if confirm == QMessageBox.StandardButton.Yes:
             try:
-                self.calculation_service.delete_calculation(self.selected_calculation.id)
+                self.calculation_service.delete_calculation(
+                    self.selected_calculation.id
+                )
                 self._on_refresh()  # Reload the list after deletion
             except Exception as e:
                 logger.error(f"Error deleting calculation: {e}")
-                
+
     def _load_tags_and_methods(self):
         """Load tags and calculation methods for filtering."""
         # Load tags for filtering
@@ -900,10 +956,12 @@ class CalculationHistoryPanel(Panel):
         try:
             methods = self.calculation_service.get_distinct_calculation_types()
             for method in methods:
-                self.method_combo.addItem(str(method), method)
+                # Format the method name for display, but keep the original value as data
+                formatted_name = self.format_calculation_type(method)
+                self.method_combo.addItem(formatted_name, method)
         except Exception as e:
             logger.error(f"Error loading calculation methods: {e}")
-            
+
     def _load_calculations(self):
         """Load calculations based on current filters and pagination."""
         self.calculation_list.clear()
@@ -947,7 +1005,9 @@ class CalculationHistoryPanel(Panel):
             
             # Populate the list
             for calc in calculations:
-                item = QListWidgetItem(f"{calc.input_text} = {calc.result_value}")
+                # Format the display text to include the proper method name
+                formatted_method = self.format_calculation_type(calc.calculation_type)
+                item = QListWidgetItem(f"{calc.input_text} = {calc.result_value} ({formatted_method})")
                 item.setData(Qt.ItemDataRole.UserRole, calc.id)
                 self.calculation_list.addItem(item)
                 
