@@ -122,12 +122,53 @@ class CalculationDatabaseService:
     # ===== Calculation Methods =====
 
     def get_all_calculations(self) -> List[CalculationResult]:
-        """Get all calculation results.
+        """Get all saved calculations.
 
         Returns:
-            List of all calculation results
+            List of all saved calculations
         """
         return self.calculation_repo.get_all_calculations()
+
+    def count_calculations(self) -> int:
+        """Count the total number of calculations in the database.
+        
+        Returns:
+            Total number of calculations
+        """
+        return self.calculation_repo.count_calculations()
+
+    def get_calculations_page(
+        self, 
+        offset: int = 0, 
+        limit: int = 50,
+        sort_by: str = "timestamp",
+        sort_order: str = "DESC"
+    ) -> List[CalculationResult]:
+        """Get a page of calculations with sorting.
+        
+        Args:
+            offset: Starting index for pagination
+            limit: Maximum number of items to return
+            sort_by: Column to sort by (timestamp, input_text, result_value)
+            sort_order: Sort direction (ASC or DESC)
+            
+        Returns:
+            List of calculations for the requested page
+        """
+        return self.calculation_repo.get_calculations_page(
+            offset=offset,
+            limit=limit,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
+
+    def get_unique_calculation_methods(self) -> List[str]:
+        """Get a list of all unique calculation methods used in the database.
+        
+        Returns:
+            List of method names/identifiers
+        """
+        return self.calculation_repo.get_unique_calculation_methods()
 
     def get_calculation(self, calculation_id: str) -> Optional[CalculationResult]:
         """Get a specific calculation result by ID.

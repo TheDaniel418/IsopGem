@@ -47,27 +47,161 @@ class SQLiteCalculationRepository:
         logger.debug("SQLiteCalculationRepository initialized")
 
     def get_all_calculations(self) -> List[CalculationResult]:
-        """Get all saved calculation results.
+        """
+        Get all calculations from the database.
 
         Returns:
-            List of calculation results
+            List[CalculationResult]: All calculations
         """
         query = """
-        SELECT c.*, GROUP_CONCAT(ct.tag_id) as tag_ids
-        FROM calculations c
-        LEFT JOIN calculation_tags ct ON c.id = ct.calculation_id
-        GROUP BY c.id
-        ORDER BY c.created_at DESC
+            SELECT calculation_id, input_text, result_value, calculation_method, date, notes, reference 
+            FROM calculations
+            ORDER BY date DESC
         """
+        
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            calculations = []
+            
+            for row in rows:
+                calculation_id = row[0]
+                
+                # Get tags for this calculation
+                tags = self._get_tags_for_calculation(cursor, calculation_id)
+                
+                # Create CalculationResult object
+                calculation = CalculationResult(
+                    id=calculation_id,
+                    input_text=row[1],
+                    result_value=row[2],
+                    calculation_type=row[3],
+                    timestamp=row[4],
+                    notes=row[5],
+                    reference=row[6],
+                    tags=tags
+                )
+                
+                calculations.append(calculation)
+            
+            return calculations
+            
+        finally:
+            conn.close()
 
-        rows = self.db.query_all(query)
-        calculations = []
+    def count_calculations(self) -> int:
+        """
+        Count the total number of calculations in the database.
+        
+        Returns:
+            int: Total number of calculations
+        """
+        query = "SELECT COUNT(*) FROM calculations"
+        
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(query)
+            count = cursor.fetchone()[0]
+            return count
+        finally:
+            conn.close()
 
-        for row in rows:
-            calculations.append(self._row_to_calculation(row))
+    def get_calculations_page(
+        self, 
+        offset: int = 0, 
+        limit: int = 50,
+        sort_by: str = "date",
+        sort_order: str = "DESC"
+    ) -> List[CalculationResult]:
+        """
+        Get a paginated list of calculations with sorting.
+        
+        Args:
+            offset: Starting index for pagination
+            limit: Maximum number of items to return
+            sort_by: Column to sort by (date, input_text, result_value)
+            sort_order: Sort direction (ASC or DESC)
+            
+        Returns:
+            List[CalculationResult]: Paginated calculation results
+        """
+        # Validate sort column to prevent SQL injection
+        valid_sort_columns = {"date", "input_text", "result_value", "calculation_method"}
+        if sort_by not in valid_sort_columns:
+            sort_by = "date"  # Default to date if invalid
+            
+        # Validate sort order
+        if sort_order.upper() not in {"ASC", "DESC"}:
+            sort_order = "DESC"  # Default to DESC if invalid
+        
+        query = f"""
+            SELECT calculation_id, input_text, result_value, calculation_method, date, notes, reference 
+            FROM calculations
+            ORDER BY {sort_by} {sort_order}
+            LIMIT ? OFFSET ?
+        """
+        
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(query, (limit, offset))
+            rows = cursor.fetchall()
+            calculations = []
+            
+            for row in rows:
+                calculation_id = row[0]
+                
+                # Get tags for this calculation
+                tags = self._get_tags_for_calculation(cursor, calculation_id)
+                
+                # Create CalculationResult object
+                calculation = CalculationResult(
+                    id=calculation_id,
+                    input_text=row[1],
+                    result_value=row[2],
+                    calculation_type=row[3],
+                    timestamp=row[4],
+                    notes=row[5],
+                    reference=row[6],
+                    tags=tags
+                )
+                
+                calculations.append(calculation)
+            
+            return calculations
+            
+        finally:
+            conn.close()
 
-        logger.debug(f"Retrieved {len(calculations)} calculations")
-        return calculations
+    def get_unique_calculation_methods(self) -> List[str]:
+        """
+        Get a list of all unique calculation methods used in the database.
+        
+        Returns:
+            List[str]: List of calculation method names
+        """
+        query = """
+            SELECT DISTINCT calculation_method 
+            FROM calculations
+            ORDER BY calculation_method
+        """
+        
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            methods = [row[0] for row in rows]
+            return methods
+        finally:
+            conn.close()
 
     def get_calculation(self, calculation_id: str) -> Optional[CalculationResult]:
         """Get a specific calculation result by ID.
@@ -535,3 +669,24 @@ class SQLiteCalculationRepository:
         except (ValueError, TypeError):
             # If not a valid enum value, return as-is
             return type_str
+
+    def _get_tags_for_calculation(self, cursor, calculation_id: str) -> List[str]:
+        """
+        Get all tags associated with a calculation.
+        
+        Args:
+            cursor: Database cursor to use
+            calculation_id: ID of the calculation
+            
+        Returns:
+            List[str]: List of tag IDs
+        """
+        query = """
+            SELECT tag_id 
+            FROM calculation_tags 
+            WHERE calculation_id = ?
+        """
+        
+        cursor.execute(query, (calculation_id,))
+        rows = cursor.fetchall()
+        return [row[0] for row in rows] if rows else []
