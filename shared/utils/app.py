@@ -7,7 +7,6 @@ import sys
 from typing import List, Optional
 
 from loguru import logger
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
@@ -142,7 +141,7 @@ class MainWindow(QMainWindow):
             self._init_geometry_pillar()
 
         if config.pillars.document_manager.enabled:
-            self._init_document_manager_pillar()
+            self._init_document_pillar()
 
         if config.pillars.astrology.enabled:
             self._init_astrology_pillar()
@@ -178,64 +177,12 @@ class MainWindow(QMainWindow):
 
         logger.info("Initializing Geometry pillar")
 
-        # Add the tab
-        geometry_tab = self.tab_manager.add_tab("Geometry")
+        # Add the tab without any buttons
+        _ = self.tab_manager.add_tab("Geometry")
 
-        # Add shapes window button (placeholder for now)
-        self.tab_manager.add_window_button(
-            geometry_tab,
-            "Shapes",
-            "Open Sacred Geometry Shapes",
-            lambda: self._show_geometry_shapes(),
-        )
+        logger.debug("Geometry pillar initialized with empty tab")
 
-        # Add calculator window button (placeholder for now)
-        self.tab_manager.add_window_button(
-            geometry_tab,
-            "Calculator",
-            "Open Geometry Calculator",
-            lambda: self._show_geometry_calculator(),
-        )
-
-        logger.debug("Geometry pillar initialized with placeholders")
-
-    def _show_geometry_shapes(self) -> None:
-        """Show the Geometry Shapes window."""
-        # Create a placeholder window
-        window = self.window_manager.create_auxiliary_window(
-            "geometry_shapes", "Sacred Geometry Shapes"
-        )
-
-        # Create placeholder content
-        content = QWidget()
-        layout = QVBoxLayout(content)
-        label = QLabel("Sacred Geometry Shapes will be implemented soon")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
-
-        # Set the content
-        window.set_content(content)
-        logger.debug("Using placeholder for Geometry Shapes window")
-
-    def _show_geometry_calculator(self) -> None:
-        """Show the Geometry Calculator window."""
-        # Create a placeholder window
-        window = self.window_manager.create_auxiliary_window(
-            "geometry_calculator", "Geometry Calculator"
-        )
-
-        # Create placeholder content
-        content = QWidget()
-        layout = QVBoxLayout(content)
-        label = QLabel("Geometry Calculator will be implemented soon")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
-
-        # Set the content
-        window.set_content(content)
-        logger.debug("Using placeholder for Geometry Calculator window")
-
-    def _init_document_manager_pillar(self) -> None:
+    def _init_document_pillar(self) -> None:
         """Initialize the Document Manager pillar components."""
         if "document_manager" not in self.enabled_pillars:
             logger.debug("Document Manager pillar is disabled")
@@ -243,18 +190,16 @@ class MainWindow(QMainWindow):
 
         logger.info("Initializing Document Manager pillar")
 
-        # Add the tab
-        doc_tab = self.tab_manager.add_tab("Documents")
+        # Import the DocumentTab class
+        from document_manager.ui.document_tab import DocumentTab
 
-        # Add placeholder button
-        self.tab_manager.add_window_button(
-            doc_tab,
-            "Documents",
-            "Open Document Manager",
-            lambda: logger.info("Document Manager not yet implemented"),
-        )
+        # Create the Document tab content
+        document_tab = DocumentTab(self.tab_manager, self.window_manager)
 
-        logger.debug("Document Manager pillar initialized with placeholders")
+        # Add the Document Manager tab with the content
+        self.tab_manager.addTab(document_tab, "Documents")
+
+        logger.debug("Document Manager pillar initialized")
 
     def _init_astrology_pillar(self) -> None:
         """Initialize the Astrology pillar components."""
@@ -264,18 +209,10 @@ class MainWindow(QMainWindow):
 
         logger.info("Initializing Astrology pillar")
 
-        # Add the tab
-        astro_tab = self.tab_manager.add_tab("Astrology")
+        # Add the tab without any buttons
+        _ = self.tab_manager.add_tab("Astrology")
 
-        # Add placeholder button
-        self.tab_manager.add_window_button(
-            astro_tab,
-            "Chart",
-            "Open Astrology Chart",
-            lambda: logger.info("Astrology Chart not yet implemented"),
-        )
-
-        logger.debug("Astrology pillar initialized with placeholders")
+        logger.debug("Astrology pillar initialized with empty tab")
 
     def _init_tq_pillar(self) -> None:
         """Initialize the TQ pillar components."""
@@ -285,18 +222,10 @@ class MainWindow(QMainWindow):
 
         logger.info("Initializing TQ pillar")
 
-        # Add the tab
-        tq_tab = self.tab_manager.add_tab("TQ")
+        # Add the tab without any buttons
+        _ = self.tab_manager.add_tab("TQ")
 
-        # Add placeholder button
-        self.tab_manager.add_window_button(
-            tq_tab,
-            "Analyzer",
-            "Open TQ Analyzer",
-            lambda: logger.info("TQ Analyzer not yet implemented"),
-        )
-
-        logger.debug("TQ pillar initialized with placeholders")
+        logger.debug("TQ pillar initialized with empty tab")
 
     def _close_application(self) -> None:
         """Close the application."""
@@ -308,11 +237,12 @@ class MainWindow(QMainWindow):
             DatabaseMaintenanceWindow,
         )
 
-        window = self.window_manager.create_auxiliary_window(
-            "database_maintenance", "Database Maintenance"
-        )
+        # Create the content and open the window
         content = DatabaseMaintenanceWindow()
-        window.set_content(content)
+        self.window_manager.open_window(
+            "database_maintenance", content, "Database Maintenance"
+        )
+
         logger.debug("Opened Database Maintenance window")
 
     def closeEvent(self, event):

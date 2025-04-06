@@ -6,6 +6,26 @@ This document tracks all the files in the IsopGem project, their purpose, and th
 
 | Path | Description | Last Modified | Change Type |
 | ---- | ----------- | ------------ | ----------- |
+| shared/utils/app.py | Simplified Astrology and TQ pillars - kept tabs but removed buttons | 2025-04-06 | Modified |
+| shared/utils/app.py | Simplified Geometry pillar - kept tab but removed buttons | 2025-04-06 | Modified |
+| shared/ui/widgets/rtf_editor/rtf_editor_adapter.py | Removed adapter layer for direct RTFEditorWindow usage | 2025-04-06 | Removed |
+| shared/ui/widgets/editor.py | Removed abstraction layer in favor of direct RTFEditorWindow usage | 2025-04-06 | Removed |
+| shared/ui/widgets/rtf_editor/test_rtf_editor_adapter.py | Removed test for adapter class | 2025-04-06 | Removed |
+| shared/ui/widgets/rtf_editor/__init__.py | Updated to remove references to deleted adapter | 2025-04-06 | Modified |
+| test_editor.py | Updated to use RTFEditorWindow directly | 2025-04-06 | Modified |
+| document_manager/ui/document_tab.py | Updated to use RTFEditorWindow directly | 2025-04-06 | Modified |
+| shared/ui/widgets/rtf_editor/models/* | Moved and standardized document format models to RTF editor | 2023-11-02 | Added |
+| shared/ui/widgets/qgem_editor/* | Removed in favor of RTFEditor implementation | 2023-11-02 | Removed |
+| document_manager/models/qgem_document.py | Updated import for DocumentFormat | 2023-11-02 | Modified |
+| document_manager/services/qgem_document_service.py | Updated import for DocumentFormat | 2023-11-02 | Modified |
+| shared/utils/app.py | Removed old document window methods now handled by DocumentTab | 2023-11-01 | Modified |
+| document_manager/ui/panels/document_manager_panel.py | Standardized window opening methods using open_window | 2023-11-01 | Modified |
+| shared/utils/app.py | Updated to use DocumentTab class instead of tab_manager.add_window_button | 2023-10-31 | Modified |
+| document_manager/ui/__init__.py | Updated to export DocumentTab class | 2023-10-31 | Modified |
+| document_manager/__init__.py | Added DocumentTab to exports | 2023-10-31 | Modified |
+| document_manager/ui/panels/document_manager_panel.py | Moved from ui/ to ui/panels/ to follow proper directory structure | 2023-10-30 | Moved |
+| shared/ui/widgets/rtf_editor/* | Added stable rich text editor with table and image handling | 2023-10-29 | Added |
+| test_rtf_editor.py | Added test script for the RTF editor | 2023-10-29 | Added |
 | gematria/ui/panels/search_panel.py | Fixed unreachable statement MyPy error in _find_window_manager method | 2023-10-28 | Fixed |
 | shared/ui/dialogs/database_maintenance_window.py | Fixed database stats by replacing get_favorites() with find_favorites() and other type safety improvements | 2023-10-28 | Fixed |
 | shared/repositories/database.py | Fixed cursor return type in Database class for better type checking with MyPy | 2023-10-28 | Fixed |
@@ -16,6 +36,9 @@ This document tracks all the files in the IsopGem project, their purpose, and th
 | shared/services/calculation_database_service.py | Updated to use SQLite repositories | 2023-10-26 | Modified |
 | docs/architecture/MODEL_CHANGES.md | Updated documentation on calculation and tag models | 2023-10-25 | Updated |
 | docs/architecture/DATABASE_DESIGN.md | Added documentation for SQLite database schema | 2023-10-25 | Added |
+| shared/ui/widgets/rtf_editor/rtf_editor_window.py | Removed placeholder text from RTF Editor | 2025-04-06 | Modified |
+| shared/ui/widgets/rtf_editor/rtf_editor_adapter.py | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
+| shared/ui/widgets/editor.py | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
 
 ## Directory Structure
 
@@ -234,6 +257,24 @@ Core shared components, utilities, and services used across multiple pillars.
 
 ##### /shared/ui/widgets
 - `__init__.py`: Initialization and exports for shared UI widgets.
+
+###### /shared/ui/widgets/rtf_editor
+- `__init__.py`: Initialization and exports for the RTF editor package.
+- `rtf_editor_window.py`: Main RTF editor window class with comprehensive rich text editing functionality.
+- `rtf_editor_adapter.py`: Adapter class that integrates the RTF editor with IsopGem providing a consistent API.
+- `format_toolbar.py`: Toolbar implementation for text formatting controls.
+- `document_manager.py`: Manages document operations like save, open, and new document.
+- `table_manager.py`: Manages table operations including creating, editing, and formatting tables.
+- `image_manager.py`: Manages image operations including inserting, editing, and formatting images.
+- `zoom_manager.py`: Manages zoom functionality for the editor.
+- `image_properties_dialog.py`: Dialog for editing image properties.
+- `image_editor_dialog.py`: Dialog for editing image content.
+- `table_properties_dialog.py`: Dialog for editing table properties.
+- `test_rtf_editor_adapter.py`: Test script for the RTF editor adapter.
+
+####### /shared/ui/widgets/rtf_editor/models
+- `__init__.py`: Initialization and exports for RTF editor models.
+- `document_format.py`: Document format model defining the structure for rich text documents, including support for annotations, images, and tables.
 
 ##### /shared/ui/dialogs
 - `__init__.py`: Initialization and exports for shared UI dialogs.
