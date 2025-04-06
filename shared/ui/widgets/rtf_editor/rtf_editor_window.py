@@ -470,136 +470,72 @@ class RTFEditorWindow(QMainWindow):
 
     def apply_image_resize(self, image_format, cursor_pos, new_width, new_height):
         """Applies resizing by modifying the image format at the given cursor position."""
-        image_path = image_format.name() # Original path stored in the format
+        image_path = image_format.name()  # Original path stored in the format
 
         # Use the more reliable complete replacement approach for resizing
-        self.apply_image_update_alternative(cursor_pos, image_path, new_width, new_height)
+        self.apply_image_update_alternative(
+            cursor_pos, image_path, new_width, new_height
+        )
 
-        # --- Old approach below, less reliable - keeping as commented code for reference ---
-        # try:
-        #     # --- Modify the FORMAT, do not re-insert image data ---
-        #     cursor = QTextCursor(self.text_edit.document())
-        #     cursor.setPosition(cursor_pos)
-
-        #     # Select the image character
-        #     cursor.movePosition(QTextCursor.MoveOperation.NextCharacter, QTextCursor.MoveMode.KeepAnchor)
-
-        #     # Get the current format of the selection
-        #     selected_format = cursor.charFormat()
-        #     if not selected_format.isImageFormat():
-        #          # Try previous character as fallback
-        #          cursor.setPosition(cursor_pos)
-        #          cursor.movePosition(QTextCursor.MoveOperation.PreviousCharacter, QTextCursor.MoveMode.KeepAnchor)
-        #          selected_format = cursor.charFormat()
-        #          if not selected_format.isImageFormat():
-        #               print("Error: Could not re-select image format at cursor position for resizing.")
-        #               return
-
-        #     # Create the new format based on the existing one, just changing W/H
-        #     new_image_format = selected_format.toImageFormat() # Start with existing format
-        #     if not new_image_format.isValid(): # Should be valid, but check
-        #          new_image_format = QTextImageFormat() 
-        #          new_image_format.setName(image_path) # Ensure name is set if creating new
-
-        #     new_image_format.setWidth(new_width)
-        #     new_image_format.setHeight(new_height)
-
-        #     # Apply the modified format to the selection
-        #     cursor.setCharFormat(new_image_format)
-        #     # ---------------------------------------------------------
-
-        #     self.on_text_changed() # Mark modified
-
-        # except Exception as e:
-        #     print(f"Error applying image resize format: {e}")
-        #     QMessageBox.critical(self, "Error", f"Could not apply resize format: {str(e)}")
-
-    def apply_image_update(self, image_format, cursor_pos, new_path, new_width, new_height):
+    def apply_image_update(
+        self, image_format, cursor_pos, new_path, new_width, new_height
+    ):
         """Applies changes to an image, including path and dimensions."""
         try:
-            print(f"Applying image update: path={new_path[:50]}..., width={new_width}, height={new_height}")
-            
+            print(
+                f"Applying image update: path={new_path[:50]}..., width={new_width}, height={new_height}"
+            )
+
             # Check if new_path is a data URI or file path
-            is_data_uri = new_path.startswith('data:')
+            is_data_uri = new_path.startswith("data:")
             if not is_data_uri and not os.path.exists(new_path):
                 print(f"Warning: Image file not found at {new_path}")
                 return
-            
+
             # Convert regular file path to data URI for embedding
             if not is_data_uri:
                 try:
                     import base64
                     import mimetypes
-                    
+
                     # Determine MIME type
                     mime_type, _ = mimetypes.guess_type(new_path)
                     if not mime_type:
-                        if new_path.lower().endswith('.jpg') or new_path.lower().endswith('.jpeg'):
-                            mime_type = 'image/jpeg'
-                        elif new_path.lower().endswith('.png'):
-                            mime_type = 'image/png'
-                        elif new_path.lower().endswith('.gif'):
-                            mime_type = 'image/gif'
+                        if new_path.lower().endswith(
+                            ".jpg"
+                        ) or new_path.lower().endswith(".jpeg"):
+                            mime_type = "image/jpeg"
+                        elif new_path.lower().endswith(".png"):
+                            mime_type = "image/png"
+                        elif new_path.lower().endswith(".gif"):
+                            mime_type = "image/gif"
                         else:
-                            mime_type = 'image/png'  # Default
-                    
+                            mime_type = "image/png"  # Default
+
                     # Read image file and convert to base64
-                    with open(new_path, 'rb') as img_file:
+                    with open(new_path, "rb") as img_file:
                         img_data = img_file.read()
-                    
-                    img_base64 = base64.b64encode(img_data).decode('utf-8')
+
+                    img_base64 = base64.b64encode(img_data).decode("utf-8")
                     data_uri = f"data:{mime_type};base64,{img_base64}"
-                    
+
                     # Use data URI instead of file path
                     new_path = data_uri
                     print("Converted file path to data URI")
                 except Exception as e:
                     print(f"Error converting to data URI: {e}")
                     # If conversion fails, we'll continue with file path but it may not work well
-            
+
             # Use the alternative method that replaces the image entirely rather than modifying in place
-            self.apply_image_update_alternative(cursor_pos, new_path, new_width, new_height)
-            
-            # --- Below is the original approach, keeping as commented code for reference ---
-            # cursor = QTextCursor(self.text_edit.document())
-            # cursor.setPosition(cursor_pos)
-
-            # # Select the image character
-            # cursor.movePosition(QTextCursor.MoveOperation.NextCharacter, QTextCursor.MoveMode.KeepAnchor)
-
-            # # Get the current format of the selection
-            # selected_format = cursor.charFormat()
-            # if not selected_format.isImageFormat():
-            #     # Try previous character as fallback
-            #     cursor.setPosition(cursor_pos)
-            #     cursor.movePosition(QTextCursor.MoveOperation.PreviousCharacter, QTextCursor.MoveMode.KeepAnchor)
-            #     selected_format = cursor.charFormat()
-            #     if not selected_format.isImageFormat():
-            #         print("Error: Could not re-select image format, trying alternative approach...")
-            #         # If we can't find the image format at the cursor position, try an alternative approach
-            #         self.apply_image_update_alternative(cursor_pos, new_path, new_width, new_height)
-            #         return
-
-            # # Create the new format based on the existing one
-            # new_image_format = selected_format.toImageFormat()
-            # if not new_image_format.isValid(): # Should be valid, but check
-            #     new_image_format = QTextImageFormat() 
-
-            # # Update the format properties
-            # new_image_format.setName(new_path)
-            # new_image_format.setWidth(new_width)
-            # new_image_format.setHeight(new_height)
-
-            # # Apply the modified format to the selection
-            # cursor.setCharFormat(new_image_format)
-            # # ---------------------------------------------------------
-
-            # print(f"Image update applied successfully")
-            # self.on_text_changed() # Mark modified
+            self.apply_image_update_alternative(
+                cursor_pos, new_path, new_width, new_height
+            )
 
         except Exception as e:
             print(f"Error applying image update: {e}")
-            QMessageBox.critical(self, "Error", f"Could not apply image update: {str(e)}")
+            QMessageBox.critical(
+                self, "Error", f"Could not apply image update: {str(e)}"
+            )
 
     def apply_image_update_alternative(
         self, cursor_pos, new_path, new_width, new_height
@@ -645,6 +581,7 @@ class RTFEditorWindow(QMainWindow):
 
             # Try both directions to find the image
             found_image = False
+            image_selection = None
 
             # Try moving forward first
             cursor_forward = QTextCursor(cursor)
@@ -664,11 +601,11 @@ class RTFEditorWindow(QMainWindow):
             # Check which direction has the image
             if forward_format.isImageFormat():
                 print("Found image in forward direction")
-                cursor = cursor_forward
+                image_selection = cursor_forward
                 found_image = True
             elif backward_format.isImageFormat():
                 print("Found image in backward direction")
-                cursor = cursor_backward
+                image_selection = cursor_backward
                 found_image = True
             else:
                 print("Warning: Could not find image at cursor position")
@@ -682,7 +619,7 @@ class RTFEditorWindow(QMainWindow):
                         QTextCursor.MoveMode.KeepAnchor,
                     )
                     if cursor_ahead.charFormat().isImageFormat():
-                        cursor = cursor_ahead
+                        image_selection = cursor_ahead
                         found_image = True
                         print(f"Found image at offset +{offset}")
                         break
@@ -695,26 +632,34 @@ class RTFEditorWindow(QMainWindow):
                         QTextCursor.MoveMode.KeepAnchor,
                     )
                     if cursor_behind.charFormat().isImageFormat():
-                        cursor = cursor_behind
+                        image_selection = cursor_behind
                         found_image = True
                         print(f"Found image at offset -{offset}")
                         break
 
-            if not found_image:
+            if not found_image or image_selection is None:
                 print("Error: Could not locate the image to replace")
                 return
-
+            
+            # Store the position where the image currently is
+            position = image_selection.position()
+            
             # Ensure we have a clean selection containing only the image
-            cursor.removeSelectedText()
+            # and completely remove the old image
+            image_selection.removeSelectedText()
 
+            # Set the cursor back to where the old image was
+            insertion_cursor = QTextCursor(self.text_edit.document())
+            insertion_cursor.setPosition(position)
+            
             # Create a fresh image format with no additional properties
             new_format = QTextImageFormat()
             new_format.setName(new_path)
             new_format.setWidth(new_width)
             new_format.setHeight(new_height)
 
-            # Insert the new image
-            cursor.insertImage(new_format)
+            # Insert the new image at the same position where the old one was
+            insertion_cursor.insertImage(new_format)
 
             print("Alternative image update applied successfully")
             self.on_text_changed()  # Mark modified
