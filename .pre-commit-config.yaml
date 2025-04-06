@@ -51,3 +51,8 @@ repos:
             'types-pytz',
         ]
         exclude: ^(test_.*\.py|tests/.*\.py)$
+        args: [
+            "--config-file=mypy.ini",
+            "--no-incremental",
+            "--show-error-codes"
+        ]
