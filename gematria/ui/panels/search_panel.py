@@ -7,8 +7,8 @@ for calculations based on various criteria.
 from typing import Any, Dict, List, Optional, cast
 
 from loguru import logger
-from PyQt6.QtCore import QRegularExpression, Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon, QRegularExpressionValidator
+from PyQt6.QtCore import QRegularExpression, Qt, pyqtSignal, QRect, QSize
+from PyQt6.QtGui import QFont, QIcon, QRegularExpressionValidator, QTextDocument, QPainter, QColor, QBrush, QPen
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -24,6 +24,8 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
 )
 
 from gematria.models.calculation_result import CalculationResult
@@ -33,6 +35,105 @@ from gematria.services.calculation_database_service import CalculationDatabaseSe
 from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.ui.widgets.calculation_detail_widget import CalculationDetailWidget
 from shared.ui.window_management import WindowManager
+
+
+class TagItemDelegate(QStyledItemDelegate):
+    """Custom delegate for rendering tags in a table cell."""
+    
+    def __init__(self, parent=None):
+        """Initialize the delegate.
+        
+        Args:
+            parent: The parent widget
+        """
+        super().__init__(parent)
+        
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: Any) -> None:
+        """Paint the tags with custom styling.
+        
+        Args:
+            painter: The painter to use
+            option: The style options
+            index: The model index
+        """
+        # Get the tag data from the model
+        tag_data = index.data(Qt.ItemDataRole.UserRole)
+        
+        if not tag_data or not isinstance(tag_data, list) or len(tag_data) == 0:
+            # Fall back to standard rendering if there are no tags
+            super().paint(painter, option, index)
+            return
+            
+        # Draw the background
+        painter.save()
+        painter.fillRect(option.rect, option.palette.base())
+        
+        # Start from the left side of the cell with a small margin
+        x_pos = option.rect.left() + 4
+        y_pos = option.rect.top() + 2
+        
+        # Draw each tag as a colored rectangle with text
+        for tag in tag_data:
+            if not tag or not isinstance(tag, dict):
+                continue
+                
+            tag_name = tag.get('name', '')
+            tag_color = tag.get('color', '#cccccc')
+            
+            if not tag_name:
+                continue
+            
+            # Calculate the width of the tag text
+            text_width = painter.fontMetrics().horizontalAdvance(tag_name) + 8
+            
+            # Create a rounded rectangle for the tag
+            tag_rect = QRect(x_pos, y_pos, text_width, option.rect.height() - 4)
+            
+            # Don't draw if it won't fit in the visible area
+            if tag_rect.right() > option.rect.right() - 4:
+                # Draw ellipsis if more tags exist but don't fit
+                painter.drawText(option.rect.right() - 12, y_pos + painter.fontMetrics().height(), "...")
+                break
+            
+            # Draw the tag background
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(tag_color)))
+            painter.drawRoundedRect(tag_rect, 3, 3)
+            
+            # Draw the tag text in white or black depending on the background color
+            color = QColor(tag_color)
+            # Use white text for dark backgrounds, black for light backgrounds
+            if color.lightness() < 128:
+                painter.setPen(QPen(QColor("white")))
+            else:
+                painter.setPen(QPen(QColor("black")))
+                
+            painter.drawText(
+                tag_rect, 
+                Qt.AlignmentFlag.AlignCenter, 
+                tag_name
+            )
+            
+            # Move x position for the next tag
+            x_pos += text_width + 4
+        
+        painter.restore()
+        
+    def sizeHint(self, option: QStyleOptionViewItem, index: Any) -> QSize:
+        """Calculate the size hint for the cell.
+        
+        Args:
+            option: The style options
+            index: The model index
+            
+        Returns:
+            The suggested size for the cell
+        """
+        # Get the standard size hint
+        size = super().sizeHint(option, index)
+        
+        # Make it a bit taller to accommodate the tags
+        return QSize(size.width(), size.height() + 4)
 
 
 class SearchPanel(QWidget):
@@ -206,7 +307,7 @@ class SearchPanel(QWidget):
         # Results table
         self.results_table = QTableWidget(0, 5)
         self.results_table.setHorizontalHeaderLabels(
-            ["Text", "Value", "Method", "Date", "★"]
+            ["Text", "Value", "Method", "Tags", "★"]
         )
         self.results_table.horizontalHeader().setSectionResizeMode(
             0, QHeaderView.ResizeMode.Stretch
@@ -230,6 +331,13 @@ class SearchPanel(QWidget):
         self.results_table.itemSelectionChanged.connect(self._on_result_selected)
         # Connect double-click to view details in a separate window
         self.results_table.itemDoubleClicked.connect(self._open_detail_window)
+        
+        # Set the tag item delegate for the Tags column
+        self.tag_delegate = TagItemDelegate(self.results_table)
+        self.results_table.setItemDelegateForColumn(3, self.tag_delegate)
+        
+        # Make the rows a bit taller to accommodate the tags
+        self.results_table.verticalHeader().setDefaultSectionSize(30)
 
         layout.addWidget(self.results_table)
 
@@ -380,14 +488,35 @@ class SearchPanel(QWidget):
             method_item = QTableWidgetItem(method_name)
             self.results_table.setItem(i, 2, method_item)
 
-            # Date column
-            date_str = (
-                result.created_at.strftime("%Y-%m-%d %H:%M")
-                if result.created_at
-                else ""
-            )
-            date_item = QTableWidgetItem(date_str)
-            self.results_table.setItem(i, 3, date_item)
+            # Tags column
+            tags_item = QTableWidgetItem()
+            tag_display_list = []  # List for the delegate to use for drawing
+            
+            if hasattr(result, 'tags') and result.tags:
+                try:
+                    # Get full tag objects so we can display tag names
+                    for tag_id in result.tags:
+                        tag = self.calculation_db_service.get_tag(tag_id)
+                        if tag:
+                            # Store tag data for the delegate
+                            tag_display_list.append({
+                                'name': tag.name,
+                                'color': tag.color,
+                                'id': tag.id
+                            })
+                            
+                    # Create a plain text representation for fallback and tooltip
+                    tag_names = [tag['name'] for tag in tag_display_list]
+                    plain_text = ", ".join(tag_names) if tag_names else ""
+                    tags_item.setText(plain_text)
+                    tags_item.setToolTip(plain_text)
+                    
+                except Exception as e:
+                    logger.error(f"Error getting tag data: {e}")
+            
+            # Store the tag data for the delegate to use
+            tags_item.setData(Qt.ItemDataRole.UserRole, tag_display_list)
+            self.results_table.setItem(i, 3, tags_item)
 
             # Favorite column
             favorite_item = QTableWidgetItem("★" if result.favorite else "")
