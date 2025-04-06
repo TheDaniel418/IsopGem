@@ -411,6 +411,14 @@ class ImportWordListDialog(QDialog):
 
         # Disable import button
         self._import_button.setEnabled(False)
+        
+        # Pre-fetch all existing tags to validate against
+        existing_tags = {}
+        all_tags = self._db_service.get_all_tags()
+        for tag in all_tags:
+            existing_tags[tag.name.lower()] = tag.id
+        
+        logger.debug(f"Found {len(existing_tags)} existing tags for validation")
 
         # Import each word
         import_count = 0
@@ -430,13 +438,23 @@ class ImportWordListDialog(QDialog):
                 if notes.lower() == "nan":
                     notes = ""
 
-            tags = []
+            valid_tag_ids = []
             if tags_column and tags_column in row:
                 tags_str = str(row[tags_column])
                 if tags_str and tags_str.lower() != "nan":
                     # Split tags by comma or semicolon
-                    tags = [t.strip() for t in tags_str.replace(";", ",").split(",")]
-                    tags = [t for t in tags if t]  # Filter out empty tags
+                    tag_names = [t.strip() for t in tags_str.replace(";", ",").split(",")]
+                    tag_names = [t for t in tag_names if t]  # Filter out empty tags
+                    
+                    # Validate tags exist in database
+                    for tag_name in tag_names:
+                        # Look up tag ID by name (case-insensitive)
+                        tag_id = existing_tags.get(tag_name.lower())
+                        if tag_id:
+                            valid_tag_ids.append(tag_id)
+                        else:
+                            # Optional: Could create missing tags here
+                            logger.warning(f"Tag '{tag_name}' not found, skipping")
 
             # Auto-detect language if enabled
             language = None
@@ -466,7 +484,7 @@ class ImportWordListDialog(QDialog):
                                 calculation_type=calc_type_str,  # Store as string
                                 result_value=value,
                                 notes=notes,
-                                tags=tags or [],
+                                tags=valid_tag_ids,  # Use validated tag IDs
                                 favorite=False,
                             )
                             
@@ -491,7 +509,7 @@ class ImportWordListDialog(QDialog):
                                 calculation_type=calc_type_str,  # Store as string
                                 result_value=value,
                                 notes=notes,
-                                tags=tags or [],
+                                tags=valid_tag_ids,  # Use validated tag IDs
                                 favorite=False,
                             )
                             
