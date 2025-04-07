@@ -384,39 +384,219 @@ class PlanarExpansionVisualizer(QWidget):
             
             vertices.append((i, coords))
         
-        # Project vertices to 2D using a specialized algorithm
+        # Project vertices to 2D using dimension-specific methods
+        if dimension == 4:
+            self._generate_tesseract(vertices, center_x, center_y, size)
+        elif dimension == 5:
+            self._generate_5cube(vertices, center_x, center_y, size)
+        elif dimension == 6:
+            self._generate_6cube(vertices, center_x, center_y, size)
+        else:
+            # Fallback generic projection for other dimensions
+            self._generate_generic_projection(vertices, dimension, center_x, center_y, size)
+    
+    def _generate_tesseract(self, vertices, center_x: float, center_y: float, size: float) -> None:
+        """
+        Generate a tesseract (4D hypercube) visualization using the "cube within cube" projection.
+        
+        This is a standard way to visualize a tesseract in 2D, representing it as
+        a small cube inside a larger cube, with corresponding vertices connected.
+        """
+        # Size adjustments for inner and outer cubes
+        inner_scale = 0.4
+        
         for decimal, coords in vertices:
-            # Store multi-dimensional point
-            if dimension <= 4:  # Only store up to 4D for memory reasons
+            # Store 4D point
+            self._3d_points[decimal] = tuple(coords[:3])
+            
+            # Get 4D coordinates
+            x4d, y4d, z4d, w4d = coords
+            
+            # Use the 4th dimension (w) to control the scale of the inner/outer cube
+            # This creates a "cube within cube" effect
+            scale_factor = inner_scale + (1.0 - inner_scale) * ((w4d + 1) / 2)
+            
+            # Apply a 4D-to-3D projection that preserves the cube-within-cube structure
+            # Use perspective projection with the 4th dimension controlling depth
+            x = x4d * scale_factor
+            y = y4d * scale_factor
+            z = z4d * scale_factor
+            
+            # Apply 3D rotations to the resulting points to make it more dynamic
+            sin_x = math.sin(math.radians(self.x_rotation))
+            cos_x = math.cos(math.radians(self.x_rotation))
+            sin_y = math.sin(math.radians(self.y_rotation))
+            cos_y = math.cos(math.radians(self.y_rotation))
+            sin_z = math.sin(math.radians(self.z_rotation))
+            cos_z = math.cos(math.radians(self.z_rotation))
+            
+            # Apply rotations
+            # Rotate around X axis
+            y2 = y * cos_x - z * sin_x
+            z2 = y * sin_x + z * cos_x
+            
+            # Rotate around Y axis
+            x3 = x * cos_y + z2 * sin_y
+            z3 = -x * sin_y + z2 * cos_y
+            
+            # Rotate around Z axis
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Scale and add perspective effect
+            perspective = 1.0 + z3 * 0.2
+            
+            widget_x = center_x + x4 * size * perspective
+            widget_y = center_y + y4 * size * perspective
+            
+            # Convert binary to ternary mapping
+            binary = bin(decimal)[2:].zfill(4)
+            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
+            ternary_decimal = int(ternary, 3)
+            
+            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+    
+    def _generate_5cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
+        """
+        Generate a 5D hypercube visualization using a tesseract-pair projection.
+        
+        A 5D hypercube can be visualized as a pair of tesseracts (4D hypercubes)
+        with corresponding vertices connected.
+        """
+        # Size adjustments
+        inner_scale = 0.35
+        pair_separation = 0.3  # Controls separation between the two tesseract projections
+        
+        for decimal, coords in vertices:
+            # Get 5D coordinates
+            x5d, y5d, z5d, w5d, v5d = coords
+            
+            # Use the 5th dimension (v) to control pair separation
+            # This creates two connected tesseracts, shifted apart
+            pair_offset = v5d * pair_separation
+            
+            # Use 4th dimension (w) for the cube-within-cube effect
+            scale_factor = inner_scale + (1.0 - inner_scale) * ((w5d + 1) / 2)
+            
+            # Apply 5D-to-3D projection that preserves the structure
+            x = x5d * scale_factor + pair_offset
+            y = y5d * scale_factor
+            z = z5d * scale_factor
+            
+            # Apply 3D rotations
+            sin_x = math.sin(math.radians(self.x_rotation))
+            cos_x = math.cos(math.radians(self.x_rotation))
+            sin_y = math.sin(math.radians(self.y_rotation))
+            cos_y = math.cos(math.radians(self.y_rotation))
+            sin_z = math.sin(math.radians(self.z_rotation))
+            cos_z = math.cos(math.radians(self.z_rotation))
+            
+            # Apply rotations as in the tesseract case
+            y2 = y * cos_x - z * sin_x
+            z2 = y * sin_x + z * cos_x
+            x3 = x * cos_y + z2 * sin_y
+            z3 = -x * sin_y + z2 * cos_y
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Scale and add perspective effect
+            perspective = 1.0 + z3 * 0.15  # Slightly reduced perspective for 5D
+            
+            widget_x = center_x + x4 * size * perspective
+            widget_y = center_y + y4 * size * perspective
+            
+            # Convert binary to ternary mapping
+            binary = bin(decimal)[2:].zfill(5)
+            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
+            ternary_decimal = int(ternary, 3)
+            
+            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+    
+    def _generate_6cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
+        """
+        Generate a 6D hypercube visualization using a three-layer projection.
+        
+        A 6D hypercube can be visualized as multiple 4D projections (tesseracts)
+        arranged in a triangular pattern to show the additional dimensions.
+        """
+        # Size adjustments
+        inner_scale = 0.3
+        layer_offset = 0.4  # Controls separation between the layers
+        
+        for decimal, coords in vertices:
+            # Get 6D coordinates
+            x6d, y6d, z6d, w6d, v6d, u6d = coords
+            
+            # Use the 5th and 6th dimensions for layer positioning
+            # This creates a triangular arrangement of tesseract projections
+            layer_x_offset = v6d * layer_offset
+            layer_y_offset = u6d * layer_offset
+            
+            # Use 4th dimension for the cube-within-cube effect
+            scale_factor = inner_scale + (1.0 - inner_scale) * ((w6d + 1) / 2)
+            
+            # Apply 6D-to-3D projection
+            x = x6d * scale_factor + layer_x_offset
+            y = y6d * scale_factor + layer_y_offset
+            z = z6d * scale_factor
+            
+            # Apply 3D rotations
+            sin_x = math.sin(math.radians(self.x_rotation))
+            cos_x = math.cos(math.radians(self.x_rotation))
+            sin_y = math.sin(math.radians(self.y_rotation))
+            cos_y = math.cos(math.radians(self.y_rotation))
+            sin_z = math.sin(math.radians(self.z_rotation))
+            cos_z = math.cos(math.radians(self.z_rotation))
+            
+            # Apply rotations as in previous cases
+            y2 = y * cos_x - z * sin_x
+            z2 = y * sin_x + z * cos_x
+            x3 = x * cos_y + z2 * sin_y
+            z3 = -x * sin_y + z2 * cos_y
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Scale and add perspective effect
+            perspective = 1.0 + z3 * 0.1  # Further reduced perspective for 6D
+            
+            widget_x = center_x + x4 * size * perspective
+            widget_y = center_y + y4 * size * perspective
+            
+            # Convert binary to ternary mapping
+            binary = bin(decimal)[2:].zfill(6)
+            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
+            ternary_decimal = int(ternary, 3)
+            
+            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+    
+    def _generate_generic_projection(self, vertices, dimension: int, center_x: float, center_y: float, size: float) -> None:
+        """
+        Generate a generic projection for dimensions not specifically handled.
+        
+        This is a fallback method that projects higher dimensional coordinates to 2D.
+        """
+        for decimal, coords in vertices:
+            # Store multi-dimensional point if dimension <= 4
+            if dimension <= 4:
                 self._3d_points[decimal] = tuple(coords[:3]) if len(coords) >= 3 else tuple(coords + [0] * (3 - len(coords)))
             
-            # Project to 2D
-            # Use coordinate pairs for projection to get a clearer layout
-            if dimension == 4:
-                # 4D -> 2D: use two coordinate pairs
-                x = coords[0] * 0.8 + coords[2] * 0.6
-                y = coords[1] * 0.8 + coords[3] * 0.6
-            elif dimension == 5:
-                # 5D -> 2D: balanced projection
-                x = coords[0] * 0.7 + coords[2] * 0.5 + coords[4] * 0.3
-                y = coords[1] * 0.7 + coords[3] * 0.5
-            elif dimension == 6:
-                # 6D -> 2D: balanced projection
-                x = coords[0] * 0.6 + coords[2] * 0.4 + coords[4] * 0.3
-                y = coords[1] * 0.6 + coords[3] * 0.4 + coords[5] * 0.3
-            else:
-                # 2D -> 2D or 3D -> 2D with linear combination
-                x = sum(c * (1.0/(i+2)) for i, c in enumerate(coords[:dimension//2]))
-                y = sum(c * (1.0/(i+2)) for i, c in enumerate(coords[dimension//2:]))
+            # Project to 2D using a balanced linear combination of coordinates
+            # Split dimensions into two groups for X and Y projection
+            half_dim = dimension // 2
+            
+            # Weight the dimensions with decreasing importance
+            weights = [1.0 / (i + 2) for i in range(dimension)]
+            
+            # Calculate weighted averages for x and y
+            x = sum(c * weights[i] for i, c in enumerate(coords[:half_dim]))
+            y = sum(c * weights[i + half_dim] for i, c in enumerate(coords[half_dim:]))
             
             # Scale and center
             widget_x = center_x + x * size
             widget_y = center_y + y * size
             
             # Convert binary to ternary mapping
-            # We need to map each binary vertex to a corresponding ternary representation
             binary_str = bin(decimal)[2:].zfill(dimension)
-            # Use a consistent mapping: 0->0, 1->1
             ternary = "".join("1" if bit == "1" else "0" for bit in binary_str)
             ternary_decimal = int(ternary, 3)
             
@@ -973,8 +1153,8 @@ class PlanarExpansionPanel(QFrame):
         
         # Create description
         description = QLabel(
-            "This visualizer shows how ternary digits map to different dimensional planes in the "
-            "TQ system, with the number of Tao lines (0s) determining geometric roles."
+            "This visualizer shows hypercubes in different dimensions (2D-6D), "
+            "displaying the correct geometric structure with proper vertex mapping."
         )
         description.setWordWrap(True)
         description.setStyleSheet("font-size: 12px;")
