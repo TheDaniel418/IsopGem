@@ -22,6 +22,7 @@ Related files:
 
 from typing import List, Dict, Tuple, Optional
 import math
+import time
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
@@ -290,6 +291,8 @@ class PlanarExpansionVisualizer(QWidget):
         size = self.cell_size * 3.0
         
         # Generate binary vertices (00, 01, 10, 11)
+        # Note: Binary 00 (decimal 0) will be our "origin" point at the center
+        # and maps other vertices relative to this central point
         vertices = []
         for i in range(2):
             for j in range(2):
@@ -297,22 +300,21 @@ class PlanarExpansionVisualizer(QWidget):
                 binary = f"{i}{j}"
                 decimal = int(binary, 2)
                 
-                # Map to x,y coordinates (-1 or 1 for each dimension)
-                x = -1 + 2 * i
-                y = -1 + 2 * j
+                # Instead of mapping to (-1,1) range, we'll use (0,1) range
+                # This places the origin (0,0) at the center
+                # and maps other vertices relative to this central point
+                x = -0.5 + i
+                y = -0.5 + j
                 
                 vertices.append((decimal, (x, y)))
         
         # Place vertices in the widget
         for decimal, (x, y) in vertices:
             # Scale and center
-            widget_x = center_x + x * size / 2
-            widget_y = center_y + y * size / 2
+            widget_x = center_x + x * size
+            widget_y = center_y + y * size
             
-            # Convert decimal to ternary
-            # For mapping binary vertices to ternary space, we'll use a specific mapping
-            # This ensures compatibility with the existing ternary system
-            # Simple approach: use binary digits and convert to ternary
+            # Convert decimal to ternary for mapping
             binary = bin(decimal)[2:].zfill(2)
             ternary = "".join("1" if bit == "1" else "0" for bit in binary)
             ternary_decimal = int(ternary, 3)
@@ -321,9 +323,8 @@ class PlanarExpansionVisualizer(QWidget):
     
     def _generate_cube(self, center_x: float, center_y: float) -> None:
         """Generate grid positions for a proper 3D cube with rotation."""
-        # A cube has 8 vertices, with coordinates:
-        # (-1,-1,-1), (1,-1,-1), (1,1,-1), (-1,1,-1),
-        # (-1,-1,1), (1,-1,1), (1,1,1), (-1,1,1)
+        # A cube has 8 vertices, with coordinates in the range (-0.5,0.5) for each axis
+        # This centers the origin (0,0,0) at the center of the cube
         
         # Calculate size
         size = self.cell_size * 3.0
@@ -337,10 +338,10 @@ class PlanarExpansionVisualizer(QWidget):
                     binary = f"{i}{j}{k}"
                     decimal = int(binary, 2)
                     
-                    # Map to x,y,z coordinates (-1 or 1 for each dimension)
-                    x = -1 + 2 * i
-                    y = -1 + 2 * j
-                    z = -1 + 2 * k
+                    # Map to x,y,z coordinates centered around the origin
+                    x = -0.5 + i
+                    y = -0.5 + j
+                    z = -0.5 + k
                     
                     vertices.append((decimal, (x, y, z)))
         
@@ -371,7 +372,7 @@ class PlanarExpansionVisualizer(QWidget):
             y4 = x3 * sin_z + y2 * cos_z
             
             # Scale, apply perspective, and center
-            scale = size / 3
+            scale = size
             perspective = 1 + z3 * 0.2  # Perspective effect
             
             widget_x = center_x + x4 * scale * perspective
@@ -397,10 +398,11 @@ class PlanarExpansionVisualizer(QWidget):
             # Get binary representation of i
             binary = bin(i)[2:].zfill(dimension)
             
-            # Calculate coordinates in n-dimensional space (-1 or 1 for each dimension)
+            # Calculate coordinates in n-dimensional space 
+            # Map from 0/1 to -0.5/0.5 to center the origin
             coords = []
             for bit in binary:
-                coords.append(-1 + 2 * int(bit))
+                coords.append(-0.5 + int(bit))
             
             vertices.append((i, coords))
         
@@ -421,134 +423,182 @@ class PlanarExpansionVisualizer(QWidget):
     
     def _generate_tesseract(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
-        Generate a tesseract (4D hypercube) visualization using the "cube within cube" projection.
-        
-        This is a standard way to visualize a tesseract in 2D, representing it as
-        a small cube inside a larger cube, with corresponding vertices connected.
+        Generate 4D tesseract (hypercube) using the correct mathematical projection.
+        This uses a specialized projection that creates a "cube inside cube" visualization.
         """
-        # Size adjustments for inner and outer cubes
-        inner_scale = 0.4
-        
-        # Store all 3D points for each vertex before rotation
-        unrotated_points = {}
-        
         for decimal, coords in vertices:
-            # Get 4D coordinates
-            x4d, y4d, z4d, w4d = coords
+            # For 4D, we'll use a specialized projection that shows the tesseract structure
+            # Approach: project 4D coordinates to 3D, then project 3D to 2D
             
-            # Use the 4th dimension (w) to control the scale of the inner/outer cube
-            # This creates a "cube within cube" effect
-            scale_factor = inner_scale + (1.0 - inner_scale) * ((w4d + 1) / 2)
+            # Extract 4D coordinates
+            x, y, z, w = coords
             
-            # Project to 3D first - this is the essential step for tesseract visualization
-            x = x4d * scale_factor
-            y = y4d * scale_factor
-            z = z4d * scale_factor
+            # Project 4D to 3D (using w as the 4th dimension)
+            # Using standard 4D to 3D projection with w influencing the scale
+            scale_factor = 1.0 / (2.0 - w)  # Simplified perspective projection
+            x3d = x * scale_factor
+            y3d = y * scale_factor
+            z3d = z * scale_factor
             
-            # Store the unrotated 3D point
-            unrotated_points[decimal] = (x, y, z)
-        
-        # Apply the 3D rotation to all points
-        self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
+            # Store the 3D point
+            self._3d_points[decimal] = (x3d, y3d, z3d)
+            
+            # Project 3D to 2D using the standard rotation matrices
+            sin_x = math.sin(math.radians(self.x_rotation))
+            cos_x = math.cos(math.radians(self.x_rotation))
+            sin_y = math.sin(math.radians(self.y_rotation))
+            cos_y = math.cos(math.radians(self.y_rotation))
+            sin_z = math.sin(math.radians(self.z_rotation))
+            cos_z = math.cos(math.radians(self.z_rotation))
+            
+            # Apply rotations as in the cube case
+            # Rotate around X axis
+            y2 = y3d * cos_x - z3d * sin_x
+            z2 = y3d * sin_x + z3d * cos_x
+            
+            # Rotate around Y axis
+            x3 = x3d * cos_y + z2 * sin_y
+            z3 = -x3d * sin_y + z2 * cos_y
+            
+            # Rotate around Z axis
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Apply final projection to widget coordinates
+            widget_x = center_x + x4 * size
+            widget_y = center_y + y4 * size
+            
+            # Store the projected position
+            self._grid_positions[decimal] = (widget_x, widget_y)
     
     def _generate_5cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
-        Generate a 5D hypercube visualization using a tesseract-pair projection.
-        
-        A 5D hypercube can be visualized as a pair of tesseracts (4D hypercubes)
-        with corresponding vertices connected.
+        Generate 5D hypercube (5-cube) projection.
+        Using a specialized projection technique for 5D visualization.
         """
-        # Size adjustments
-        inner_scale = 0.35
-        pair_separation = 0.3  # Controls separation between the two tesseract projections
-        
-        # Store all 3D points for each vertex before rotation
-        unrotated_points = {}
-        
         for decimal, coords in vertices:
-            # Get 5D coordinates
-            x5d, y5d, z5d, w5d, v5d = coords
+            # For 5D, we'll project to 3D first, then to 2D
+            # Extract 5D coordinates
+            x, y, z, w, v = coords
             
-            # Use the 5th dimension (v) to control pair separation
-            # This creates two connected tesseracts, shifted apart
-            pair_offset = v5d * pair_separation
+            # Project 5D to 3D (using w and v as the extra dimensions)
+            # We'll use a radial projection that maintains symmetry
+            scale_w = 1.0 / (2.2 - w)
+            scale_v = 1.0 / (2.2 - v)
             
-            # Use 4th dimension (w) for the cube-within-cube effect
-            scale_factor = inner_scale + (1.0 - inner_scale) * ((w5d + 1) / 2)
+            # Combined scale factor affected by both w and v
+            scale_factor = (scale_w + scale_v) / 2.0
             
-            # Project 5D to 3D space first
-            x = x5d * scale_factor + pair_offset
-            y = y5d * scale_factor 
-            z = z5d * scale_factor
+            x3d = x * scale_factor
+            y3d = y * scale_factor
+            z3d = z * scale_factor
             
-            # Store the unrotated 3D point
-            unrotated_points[decimal] = (x, y, z)
-        
-        # Apply the 3D rotation to all points
-        self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
+            # Store the 3D point
+            self._3d_points[decimal] = (x3d, y3d, z3d)
+            
+            # Project 3D to 2D using standard rotation matrices
+            sin_x = math.sin(math.radians(self.x_rotation))
+            cos_x = math.cos(math.radians(self.x_rotation))
+            sin_y = math.sin(math.radians(self.y_rotation))
+            cos_y = math.cos(math.radians(self.y_rotation))
+            sin_z = math.sin(math.radians(self.z_rotation))
+            cos_z = math.cos(math.radians(self.z_rotation))
+            
+            # Apply rotations as in the cube case
+            # Rotate around X axis
+            y2 = y3d * cos_x - z3d * sin_x
+            z2 = y3d * sin_x + z3d * cos_x
+            
+            # Rotate around Y axis
+            x3 = x3d * cos_y + z2 * sin_y
+            z3 = -x3d * sin_y + z2 * cos_y
+            
+            # Rotate around Z axis
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Apply final projection to widget coordinates
+            widget_x = center_x + x4 * size
+            widget_y = center_y + y4 * size
+            
+            # Store the projected position
+            self._grid_positions[decimal] = (widget_x, widget_y)
     
     def _generate_6cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
-        Generate a 6D hypercube visualization using a three-layer projection.
-        
-        A 6D hypercube can be visualized as multiple 4D projections (tesseracts)
-        arranged in a triangular pattern to show the additional dimensions.
+        Generate 6D hypercube (6-cube) projection.
+        Using a specialized projection technique for 6D visualization.
         """
-        # Size adjustments
-        inner_scale = 0.3
-        layer_offset = 0.4  # Controls separation between the layers
-        
-        # Store all 3D points for each vertex before rotation
-        unrotated_points = {}
-        
         for decimal, coords in vertices:
-            # Get 6D coordinates
-            x6d, y6d, z6d, w6d, v5d, u6d = coords
+            # For 6D, we'll project to 3D first, then to 2D
+            # Extract 6D coordinates
+            x, y, z, w, v, u = coords
             
-            # Use the 5th and 6th dimensions for layer positioning
-            # This creates a triangular arrangement of tesseract projections
-            layer_x_offset = v5d * layer_offset
-            layer_y_offset = u6d * layer_offset * 0.8  # Slightly reduce vertical spread
+            # Project 6D to 3D (using w, v, and u as the extra dimensions)
+            # We'll use a composite projection that maintains symmetry
+            scale_w = 1.0 / (2.4 - w)
+            scale_v = 1.0 / (2.4 - v)
+            scale_u = 1.0 / (2.4 - u)
             
-            # Use 4th dimension for the cube-within-cube effect
-            scale_factor = inner_scale + (1.0 - inner_scale) * ((w6d + 1) / 2)
+            # Combined scale factor affected by w, v, and u
+            scale_factor = (scale_w + scale_v + scale_u) / 3.0
             
-            # Project 6D to 3D space first 
-            x = x6d * scale_factor + layer_x_offset
-            y = y6d * scale_factor + layer_y_offset
-            z = z6d * scale_factor
+            x3d = x * scale_factor
+            y3d = y * scale_factor
+            z3d = z * scale_factor
             
-            # Store the unrotated 3D point
-            unrotated_points[decimal] = (x, y, z)
-        
-        # Apply the 3D rotation to all points
-        self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
+            # Store the 3D point
+            self._3d_points[decimal] = (x3d, y3d, z3d)
+            
+            # Project 3D to 2D using standard rotation matrices
+            sin_x = math.sin(math.radians(self.x_rotation))
+            cos_x = math.cos(math.radians(self.x_rotation))
+            sin_y = math.sin(math.radians(self.y_rotation))
+            cos_y = math.cos(math.radians(self.y_rotation))
+            sin_z = math.sin(math.radians(self.z_rotation))
+            cos_z = math.cos(math.radians(self.z_rotation))
+            
+            # Apply rotations as in the cube case
+            # Rotate around X axis
+            y2 = y3d * cos_x - z3d * sin_x
+            z2 = y3d * sin_x + z3d * cos_x
+            
+            # Rotate around Y axis
+            x3 = x3d * cos_y + z2 * sin_y
+            z3 = -x3d * sin_y + z2 * cos_y
+            
+            # Rotate around Z axis
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Apply final projection to widget coordinates
+            widget_x = center_x + x4 * size
+            widget_y = center_y + y4 * size
+            
+            # Store the projected position
+            self._grid_positions[decimal] = (widget_x, widget_y)
     
     def _generate_generic_projection(self, vertices, dimension: int, center_x: float, center_y: float, size: float) -> None:
         """
-        Generate a generic projection for dimensions not specifically handled.
-        
-        This is a fallback method that projects higher dimensional coordinates to 2D.
+        Generate a generic projection for an n-dimensional hypercube.
         """
         for decimal, coords in vertices:
-            # Store multi-dimensional point if dimension <= 4
-            if dimension <= 4:
-                self._3d_points[decimal] = tuple(coords[:3]) if len(coords) >= 3 else tuple(coords + [0] * (3 - len(coords)))
+            # For n-dimensional space, project down to 2D using a simple approach
+            # First, normalize all coordinates to have mean 0 and variance 1
             
-            # Project to 2D using a balanced linear combination of coordinates
-            # Split dimensions into two groups for X and Y projection
-            half_dim = dimension // 2
+            # For 2D projection, we'll use the first two dimensions directly
+            # and blend the rest into a perspective factor
+            x2d = coords[0] 
+            y2d = coords[1]
             
-            # Weight the dimensions with decreasing importance
-            weights = [1.0 / (i + 2) for i in range(dimension)]
+            # Add some influence from higher dimensions for perspective
+            perspective = 1.0
+            for i in range(2, dimension):
+                perspective += coords[i] * 0.1  # Small influence
             
-            # Calculate weighted averages for x and y
-            x = sum(c * weights[i] for i, c in enumerate(coords[:half_dim]))
-            y = sum(c * weights[i + half_dim] for i, c in enumerate(coords[half_dim:]))
-            
-            # Scale and center
-            widget_x = center_x + x * size
-            widget_y = center_y + y * size
+            # Apply scaling and perspective
+            widget_x = center_x + x2d * size * perspective
+            widget_y = center_y + y2d * size * perspective
             
             # Store the projected position
             self._grid_positions[decimal] = (widget_x, widget_y)
@@ -918,60 +968,56 @@ class PlanarExpansionVisualizer(QWidget):
     
     def _highlight_current_ternary(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
         """
-        Highlight the position corresponding to the current ternary value.
+        Highlight the current ternary number in the visualization.
         
         Args:
             painter: The QPainter to use
-            positions: The positions to use for drawing
+            positions: The positions dictionary
         """
-        try:
-            decimal_value = ternary_to_decimal(self.ternary_value)
-            
-            # Skip if the value is not in our positions
-            if decimal_value not in positions:
-                return
-            
-            x, y = positions[decimal_value]
-            
-            # Get the vertex radius
-            radius = self._grid_radii.get(decimal_value, self.cell_size * 0.25)
-            
-            # Create a pulsing glow effect
-            glow_size = radius * 2.0
-            pulse_factor = 0.5 + 0.5 * math.sin(self.animation_step * 0.1)
-            self.animation_step += 1
-            
-            # Create a gradient for the glow
-            gradient = QRadialGradient(x, y, glow_size)
-            
-            # Convert float to int for alpha values - fix the conversion issue
-            alpha1 = int(120 * pulse_factor)
-            alpha2 = int(80 * pulse_factor)
-            
-            gradient.setColorAt(0, QColor(255, 255, 0, alpha1))
-            gradient.setColorAt(0.6, QColor(255, 215, 0, alpha2))
-            gradient.setColorAt(1, QColor(255, 180, 0, 0))
-            
-            # Draw the glow
-            painter.setBrush(QBrush(gradient))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawEllipse(QPointF(x, y), glow_size, glow_size)
-            
-            # Draw a golden ring around the vertex
-            ring_width = 2.0 + pulse_factor * 1.0
-            
-            # Convert float to int for pen width
-            painter.setPen(QPen(QColor(255, 215, 0), int(ring_width)))
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawEllipse(QPointF(x, y), radius + 2, radius + 2)
-            
-            # Start the animation timer if not already running
-            if not self._animation_timer.isActive():
-                self._animation_timer.start()
+        # Skip if no ternary value is set
+        if not self.ternary_value or self.ternary_value == "0":
+            return
         
-        except (ValueError, KeyError):
-            # Invalid ternary value or not in our grid
-            pass
+        # Convert ternary to decimal
+        decimal = ternary_to_decimal(self.ternary_value)
+        
+        # Skip if the value doesn't exist in our positions
+        if decimal not in positions:
+            return
+        
+        # Get the position
+        pos_x, pos_y = positions[decimal]
+        
+        # Create a pulse effect based on time
+        pulse_time = time.time() % 2  # 2-second cycle
+        pulse_factor = 0.5 + 0.5 * math.sin(pulse_time * math.pi)  # Range from 0.5 to 1.0
+        
+        # Highlight size based on vertex size and pulse
+        size = self._grid_radii.get(decimal, 15) * (1.5 + 0.5 * pulse_factor)
+        
+        # Create a radial gradient for the glow effect
+        center = QPointF(pos_x, pos_y)
+        radius = size * 2
+        gradient = QRadialGradient(center, radius)
+        
+        # Convert the pulse_factor to integer alpha value
+        alpha = int(120 * pulse_factor)
+        
+        # Ensure the alpha is within valid range (0-255)
+        alpha = max(0, min(255, alpha))
+        
+        gradient.setColorAt(0, QColor(255, 255, 0, alpha))
+        gradient.setColorAt(1, QColor(255, 255, 0, 0))
+        
+        # Draw the highlight
+        painter.setBrush(QBrush(gradient))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(center, radius, radius)
+        
+        # Add a ring around the vertex
+        painter.setPen(QPen(QColor(255, 255, 0, min(255, int(200 * pulse_factor))), 2))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(center, size + 5, size + 5)
     
     def resizeEvent(self, event):
         """
