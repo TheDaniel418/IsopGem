@@ -62,6 +62,7 @@ class PlanarExpansionVisualizer(QWidget):
         self.show_labels = True
         self.show_tao_lines = True
         self.show_grid = True
+        self.debug_mode = False  # Debug mode toggle
         
         # Zoom and pan parameters
         self.zoom_factor = 1.0
@@ -197,6 +198,16 @@ class PlanarExpansionVisualizer(QWidget):
         self.show_grid = show
         self.update()
     
+    def toggle_debug_mode(self, enabled: bool) -> None:
+        """
+        Toggle debug mode to show vertex count information.
+        
+        Args:
+            enabled: Whether to enable debug mode
+        """
+        self.debug_mode = enabled
+        self.update()
+    
     def _animate_transition(self):
         """Animate the transition between dimensions."""
         if not self._transitioning:
@@ -260,6 +271,14 @@ class PlanarExpansionVisualizer(QWidget):
         
         # Generate colors and sizes for vertices
         self._generate_vertex_properties()
+        
+        # For debugging - ensure we have the right number of vertices
+        expected_count = 2**self.dimension
+        actual_count = len(self._grid_positions)
+        
+        if actual_count != expected_count:
+            print(f"WARNING: Mismatch in vertex count for {self.dimension}D. "
+                  f"Expected {expected_count}, got {actual_count}")
     
     def _generate_square(self, center_x: float, center_y: float) -> None:
         """Generate grid positions for a proper 2D square."""
@@ -369,10 +388,10 @@ class PlanarExpansionVisualizer(QWidget):
         # Calculate size
         size = self.cell_size * (4 - dimension * 0.4)  # Shrink for higher dimensions
         
-        # Generate binary vertices (2^dimension vertices)
+        # Generate all possible binary vertices (2^dimension vertices)
         vertices = []
         
-        # Calculate projections for all possible binary vertices
+        # Calculate projections for all vertices (0 to 2^dimension-1)
         for i in range(2**dimension):
             # Get binary representation of i
             binary = bin(i)[2:].zfill(dimension)
@@ -394,6 +413,10 @@ class PlanarExpansionVisualizer(QWidget):
         else:
             # Fallback generic projection for other dimensions
             self._generate_generic_projection(vertices, dimension, center_x, center_y, size)
+        
+        # For TQ system - we need to maintain a method to map between binary and ternary
+        # We do this separately to ensure all vertices are created first
+        self._map_ternary_values()
     
     def _generate_tesseract(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
@@ -426,16 +449,6 @@ class PlanarExpansionVisualizer(QWidget):
         
         # Apply the 3D rotation to all points
         self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
-        
-        # Convert binary to ternary mapping for each point
-        for decimal, _ in vertices:
-            if decimal not in self._grid_positions:
-                continue
-            binary = bin(decimal)[2:].zfill(4)
-            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
-            ternary_decimal = int(ternary, 3)
-            self._grid_positions[ternary_decimal] = self._grid_positions.pop(decimal)
-            self._3d_points[ternary_decimal] = self._3d_points.pop(decimal, (0, 0, 0))
     
     def _generate_5cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
@@ -472,16 +485,6 @@ class PlanarExpansionVisualizer(QWidget):
         
         # Apply the 3D rotation to all points
         self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
-        
-        # Convert binary to ternary mapping for each point
-        for decimal, _ in vertices:
-            if decimal not in self._grid_positions:
-                continue
-            binary = bin(decimal)[2:].zfill(5)
-            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
-            ternary_decimal = int(ternary, 3)
-            self._grid_positions[ternary_decimal] = self._grid_positions.pop(decimal)
-            self._3d_points[ternary_decimal] = self._3d_points.pop(decimal, (0, 0, 0))
     
     def _generate_6cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
@@ -519,16 +522,6 @@ class PlanarExpansionVisualizer(QWidget):
         
         # Apply the 3D rotation to all points
         self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
-        
-        # Convert binary to ternary mapping for each point
-        for decimal, _ in vertices:
-            if decimal not in self._grid_positions:
-                continue
-            binary = bin(decimal)[2:].zfill(6)
-            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
-            ternary_decimal = int(ternary, 3)
-            self._grid_positions[ternary_decimal] = self._grid_positions.pop(decimal)
-            self._3d_points[ternary_decimal] = self._3d_points.pop(decimal, (0, 0, 0))
     
     def _generate_generic_projection(self, vertices, dimension: int, center_x: float, center_y: float, size: float) -> None:
         """
@@ -556,12 +549,8 @@ class PlanarExpansionVisualizer(QWidget):
             widget_x = center_x + x * size
             widget_y = center_y + y * size
             
-            # Convert binary to ternary mapping
-            binary_str = bin(decimal)[2:].zfill(dimension)
-            ternary = "".join("1" if bit == "1" else "0" for bit in binary_str)
-            ternary_decimal = int(ternary, 3)
-            
-            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+            # Store the projected position
+            self._grid_positions[decimal] = (widget_x, widget_y)
     
     def _generate_vertex_properties(self) -> None:
         """Generate colors and sizes for vertices based on their Tao count."""
@@ -637,6 +626,10 @@ class PlanarExpansionVisualizer(QWidget):
         zoom_text = f"Zoom: {self.zoom_factor:.1f}x"
         painter.setPen(Qt.GlobalColor.darkGray)
         painter.drawText(10, 20, zoom_text)
+        
+        # Draw debug information if debug mode is enabled
+        if self.debug_mode:
+            self._draw_debug_info(painter, positions)
     
     def _get_interpolated_positions(self) -> Dict[int, Tuple[float, float]]:
         """Get interpolated positions during a dimension transition."""
@@ -1141,6 +1134,126 @@ class PlanarExpansionVisualizer(QWidget):
             # Store the projected 2D position
             self._grid_positions[decimal] = (widget_x, widget_y)
 
+    def _draw_debug_info(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
+        """
+        Draw debug information about vertex counts.
+        
+        Args:
+            painter: The QPainter to use
+            positions: The positions dictionary
+        """
+        # Set up text formatting
+        painter.setFont(QFont("Monospace", 10))
+        painter.setPen(QPen(Qt.GlobalColor.black))
+        
+        # Calculate the mathematically correct number of vertices for each dimension
+        correct_counts = {
+            2: 4,    # Square: 2^2
+            3: 8,    # Cube: 2^3
+            4: 16,   # Tesseract: 2^4
+            5: 32,   # 5-cube: 2^5
+            6: 64    # 6-cube: 2^6
+        }
+        
+        # Get the actual count
+        actual_count = len(positions)
+        correct_count = correct_counts.get(self.dimension, 2**self.dimension)
+        
+        # Prepare debug text
+        debug_info = [
+            f"DEBUG INFO:",
+            f"Dimension: {self.dimension}D",
+            f"Actual vertices: {actual_count}",
+            f"Expected vertices: {correct_count}",
+        ]
+        
+        if actual_count != correct_count:
+            debug_info.append(f"MISMATCH! Difference: {correct_count - actual_count}")
+        
+        # Draw a semi-transparent background for the debug panel
+        panel_width = 250
+        panel_height = (len(debug_info) + 1) * 20
+        panel_rect = QRectF(10, 40, panel_width, panel_height)
+        
+        painter.fillRect(panel_rect, QColor(255, 255, 200, 200))
+        painter.setPen(QPen(QColor(100, 100, 100), 1))
+        painter.drawRect(panel_rect)
+        
+        # Draw each line of debug info
+        for i, line in enumerate(debug_info):
+            y_pos = 60 + i * 20
+            painter.setPen(QPen(Qt.GlobalColor.black))
+            if "MISMATCH" in line:
+                painter.setPen(QPen(Qt.GlobalColor.red))
+            painter.drawText(20, y_pos, line)
+        
+        # Add vertex details if there's a mismatch
+        if actual_count != correct_count and self.dimension <= 6:
+            y_pos = 60 + len(debug_info) * 20
+            painter.setPen(QPen(Qt.GlobalColor.black))
+            painter.drawText(20, y_pos, "Checking vertex indexes...")
+            
+            # Create an array of all expected vertices for this dimension
+            expected_vertices = set(range(2**self.dimension))
+            actual_vertices = set(positions.keys())
+            
+            # Find missing vertices
+            missing = expected_vertices - actual_vertices
+            if missing:
+                missing_list = sorted(list(missing))
+                missing_text = f"Missing {len(missing)} vertices: "
+                if len(missing_list) > 5:
+                    missing_text += ", ".join(str(v) for v in missing_list[:5]) + f", ... (+{len(missing_list)-5} more)"
+                else:
+                    missing_text += ", ".join(str(v) for v in missing_list)
+                    
+                y_pos += 20
+                painter.setPen(QPen(Qt.GlobalColor.red))
+                painter.drawText(20, y_pos, missing_text)
+                
+            # Find extra vertices
+            extra = actual_vertices - expected_vertices
+            if extra:
+                extra_list = sorted(list(extra))
+                extra_text = f"Extra {len(extra)} vertices: "
+                if len(extra_list) > 5:
+                    extra_text += ", ".join(str(v) for v in extra_list[:5]) + f", ... (+{len(extra_list)-5} more)"
+                else:
+                    extra_text += ", ".join(str(v) for v in extra_list)
+                    
+                y_pos += 20
+                painter.setPen(QPen(Qt.GlobalColor.blue))
+                painter.drawText(20, y_pos, extra_text)
+
+    def _map_ternary_values(self):
+        """Map between binary and ternary space for TQ functionality."""
+        if not self._grid_positions:
+            return
+        
+        # Create a new positions dict to hold the ternary mappings
+        ternary_positions = {}
+        ternary_3d_points = {}
+        
+        # For each binary vertex, create a ternary equivalent
+        for binary_decimal, (x, y) in self._grid_positions.items():
+            # Get binary representation
+            binary = bin(binary_decimal)[2:].zfill(self.dimension)
+            
+            # Create corresponding ternary string (0->0, 1->1)
+            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
+            ternary_decimal = int(ternary, 3)
+            
+            # Store positions under ternary decimal key
+            ternary_positions[ternary_decimal] = (x, y)
+            
+            # Also map 3D points
+            if binary_decimal in self._3d_points:
+                ternary_3d_points[ternary_decimal] = self._3d_points[binary_decimal]
+        
+        # Switch to ternary mapping for TQ compatibility
+        self._grid_positions = ternary_positions
+        self._3d_points = ternary_3d_points
+
 
 class PlanarExpansionPanel(QFrame):
     """
@@ -1287,9 +1400,16 @@ class PlanarExpansionPanel(QFrame):
         self.show_grid_checkbox.setChecked(True)
         self.show_grid_checkbox.clicked.connect(self._toggle_grid)
         
+        self.debug_mode_checkbox = QPushButton("Debug Mode")
+        self.debug_mode_checkbox.setCheckable(True)
+        self.debug_mode_checkbox.setChecked(False)
+        self.debug_mode_checkbox.clicked.connect(self._toggle_debug)
+        self.debug_mode_checkbox.setStyleSheet("QPushButton:checked { background-color: #ffcc66; }")
+        
         options_layout.addWidget(self.show_labels_checkbox)
         options_layout.addWidget(self.show_tao_lines_checkbox)
         options_layout.addWidget(self.show_grid_checkbox)
+        options_layout.addWidget(self.debug_mode_checkbox)
         
         main_layout.addLayout(options_layout)
         
@@ -1405,6 +1525,17 @@ class PlanarExpansionPanel(QFrame):
         """Toggle the display of the grid."""
         show = self.show_grid_checkbox.isChecked()
         self.visualizer.toggle_grid(show)
+    
+    def _toggle_debug(self) -> None:
+        """Toggle the debug information display."""
+        enabled = self.debug_mode_checkbox.isChecked()
+        self.visualizer.toggle_debug_mode(enabled)
+        
+        # Update button appearance
+        if enabled:
+            self.debug_mode_checkbox.setText("Debug Mode (ON)")
+        else:
+            self.debug_mode_checkbox.setText("Debug Mode")
     
     # Add methods to handle zoom and pan buttons
     def _zoom_in(self) -> None:
