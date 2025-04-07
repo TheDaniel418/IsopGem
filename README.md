@@ -230,7 +230,7 @@ isopgem/
 │       ├── app.py        # Application initialization
 │       ├── cli.py        # Command-line interface
 │       └── config.py     # Configuration management
-├── tq/                   # Truth Quest pillar
+├── tq/                   # Trigammaton Qabalah pillar
 ├── main.py               # Application entry point
 ├── pyproject.toml        # Project metadata
 ├── README.md             # Project documentation
@@ -239,6 +239,69 @@ isopgem/
     ├── dev.txt           # Development dependencies
     └── test.txt          # Testing dependencies
 ```
+
+## 🌌 Pillars Overview
+
+### Trigammaton Qabalah (TQ)
+
+The TQ pillar implements an innovative metaphysical-mathematical system based on ternary (base-3) numbers. Key features include:
+
+- **Ternary Number System**: Uses 0, 1, and 2 digits to represent Tao/Void, Yang/Active, and Yin/Receptive forces
+- **Geometric Mapping**: Maps ternary numbers to geometric elements (vertices, edges, faces) in multi-dimensional hypercubes
+- **Quadset Analysis**: Tools for analyzing relationships between sets of four related ternary numbers
+- **Ternary Transitions**: Implementation of the Ternary Transition System for transformational operations
+- **Conrune Visualization**: Visual representation system for ternary numbers
+- **Metaphysical Framework**: Combines mathematical precision with philosophical depth
+
+The TQ system creates a bridge between number, form, and metaphysical principles, offering a unique approach to pattern analysis and transformation.
+
+### Gematria
+
+The Gematria pillar provides tools for analyzing and working with Hebrew, Greek, and other alphanumeric systems. Key features include:
+
+- **Multiple Calculation Methods**: Support for traditional and modern gematria calculation methods
+- **Cross-Reference Analysis**: Find words and phrases with matching gematria values
+- **Semantic Insights**: Discover meaningful connections between terms with equivalent numeric values
+- **Historical Context**: Access to traditional and historical gematria interpretations
+- **Export and Sharing**: Save and share gematria analysis results
+
+This pillar facilitates deep exploration of the numerical relationships within sacred texts and other written works.
+
+### Geometry
+
+The Geometry pillar focuses on sacred geometry principles and visualization. Key features include:
+
+- **Sacred Shape Generation**: Create and manipulate traditional sacred geometry forms
+- **Geometric Analysis**: Analyze proportions and relationships within geometric constructions
+- **Measurement Tools**: Precise tools for working with sacred measurements and ratios
+- **Dynamic Visualization**: Interactive visualization of geometric transformations
+- **Overlay System**: Compare and align different geometric systems
+
+This pillar helps users explore the mathematical beauty and significance of sacred geometry patterns.
+
+### Document Manager
+
+The Document Manager pillar provides capabilities for importing, organizing, and analyzing documents. Key features include:
+
+- **Multi-format Support**: Import and work with PDF, DOCX, TXT and other document formats
+- **Text Extraction**: Automatically extract text content for analysis
+- **Organization System**: Categorize and tag documents for easy retrieval
+- **Search Capabilities**: Powerful full-text search across document collections
+- **Cross-pillar Integration**: Connect document content with other pillars for comprehensive analysis
+
+This pillar serves as a research foundation, helping users organize and extract insights from their document collections.
+
+### Astrology
+
+The Astrology pillar offers tools for astrological calculations and chart analysis. Key features include:
+
+- **Chart Generation**: Create natal, transit, and other astrological charts
+- **Multiple Traditions**: Support for Western, Vedic, and other astrological systems
+- **Aspect Analysis**: Identify and analyze planetary aspects and configurations
+- **Timing Tools**: Determine auspicious times using astrological principles
+- **Visual Representation**: Clear visual presentation of astrological data
+
+This pillar provides precise astrological calculations and interpretations for personal and research purposes.
 
 ## 🌐 Contributing
 
