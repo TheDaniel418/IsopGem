@@ -72,6 +72,11 @@ class PlanarExpansionVisualizer(QWidget):
         self.min_zoom = 0.2
         self.max_zoom = 5.0
         
+        # 3D rotation parameters
+        self.x_rotation = 30  # Degrees
+        self.y_rotation = 30  # Degrees
+        self.z_rotation = 0   # Degrees
+        
         # Visual styling
         self.background_color = QColor(240, 240, 255)
         self.grid_color = QColor(200, 200, 220)
@@ -97,6 +102,9 @@ class PlanarExpansionVisualizer(QWidget):
         self._grid_positions = {}
         self._grid_colors = {}    # Cache for vertex colors
         self._grid_radii = {}     # Cache for vertex radii
+        
+        # Cache for 3D points before projection
+        self._3d_points = {}
         
         # Timer for smooth transitions
         self._animation_timer = QTimer(self)
@@ -215,6 +223,7 @@ class PlanarExpansionVisualizer(QWidget):
         self._grid_positions = {}
         self._grid_colors = {}
         self._grid_radii = {}
+        self._3d_points = {}
         
         # Get available space
         width = self.width()
@@ -243,107 +252,175 @@ class PlanarExpansionVisualizer(QWidget):
         
         # Generate positions based on dimension
         if self.dimension == 2:
-            self._generate_2d_grid(center_x, center_y)
+            self._generate_square(center_x, center_y)
         elif self.dimension == 3:
-            self._generate_3d_grid(center_x, center_y)
+            self._generate_cube(center_x, center_y)
         else:
-            self._generate_higher_dimension_grid(self.dimension, center_x, center_y)
+            self._generate_hypercube(self.dimension, center_x, center_y)
         
         # Generate colors and sizes for vertices
         self._generate_vertex_properties()
     
-    def _generate_2d_grid(self, center_x: float, center_y: float) -> None:
-        """Generate grid positions for 2D visualization (square)."""
-        # Calculate grid size
-        spacing = self.cell_size * 2.0
-        grid_width = 2 * spacing
-        grid_height = 2 * spacing
+    def _generate_square(self, center_x: float, center_y: float) -> None:
+        """Generate grid positions for a proper 2D square."""
+        # A square has 4 vertices, with coordinates:
+        # (-1,-1), (1,-1), (1,1), (-1,1)
         
-        # Calculate the top-left corner to center the grid
-        start_x = center_x - grid_width / 2
-        start_y = center_y - grid_height / 2
+        # Calculate size
+        size = self.cell_size * 3.0
         
-        for i in range(3):
-            for j in range(3):
-                # Position key is the ternary representation
-                pos_key = f"{i}{j}"
-                decimal_value = ternary_to_decimal(pos_key)
+        # Generate binary vertices (00, 01, 10, 11)
+        vertices = []
+        for i in range(2):
+            for j in range(2):
+                # Binary encoding of vertices
+                binary = f"{i}{j}"
+                decimal = int(binary, 2)
                 
-                # Calculate grid coordinates with better spacing
-                x = start_x + j * spacing
-                y = start_y + i * spacing
+                # Map to x,y coordinates (-1 or 1 for each dimension)
+                x = -1 + 2 * i
+                y = -1 + 2 * j
                 
-                self._grid_positions[decimal_value] = (x, y)
+                vertices.append((decimal, (x, y)))
+        
+        # Place vertices in the widget
+        for decimal, (x, y) in vertices:
+            # Scale and center
+            widget_x = center_x + x * size / 2
+            widget_y = center_y + y * size / 2
+            
+            # Convert decimal to ternary
+            # For mapping binary vertices to ternary space, we'll use a specific mapping
+            # This ensures compatibility with the existing ternary system
+            # Simple approach: use binary digits and convert to ternary
+            binary = bin(decimal)[2:].zfill(2)
+            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
+            ternary_decimal = int(ternary, 3)
+            
+            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
     
-    def _generate_3d_grid(self, center_x: float, center_y: float) -> None:
-        """Generate grid positions for 3D visualization (cube)."""
-        # Calculate isometric projection parameters
-        # Use these to control the cube's appearance
-        horizontal_spacing = self.cell_size * 1.5
-        vertical_spacing = self.cell_size * 0.9
-        depth_spacing = self.cell_size * 0.7
+    def _generate_cube(self, center_x: float, center_y: float) -> None:
+        """Generate grid positions for a proper 3D cube with rotation."""
+        # A cube has 8 vertices, with coordinates:
+        # (-1,-1,-1), (1,-1,-1), (1,1,-1), (-1,1,-1),
+        # (-1,-1,1), (1,-1,1), (1,1,1), (-1,1,1)
         
-        # Calculate the center of the cube in widget coordinates
-        start_x = center_x
-        start_y = center_y - vertical_spacing  # Shift up slightly
+        # Calculate size
+        size = self.cell_size * 3.0
         
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    # Position key is the ternary representation
-                    pos_key = f"{i}{j}{k}"
-                    decimal_value = ternary_to_decimal(pos_key)
+        # Generate binary vertices (000, 001, 010, ..., 111)
+        vertices = []
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    # Binary encoding of vertices
+                    binary = f"{i}{j}{k}"
+                    decimal = int(binary, 2)
                     
-                    # Calculate isometric projection coordinates with better spacing
-                    # This creates a more spread out and visually clear 3D cube
-                    x = start_x + (j - i) * horizontal_spacing
-                    y = start_y + (i + j) * vertical_spacing - k * depth_spacing
+                    # Map to x,y,z coordinates (-1 or 1 for each dimension)
+                    x = -1 + 2 * i
+                    y = -1 + 2 * j
+                    z = -1 + 2 * k
                     
-                    self._grid_positions[decimal_value] = (x, y)
+                    vertices.append((decimal, (x, y, z)))
+        
+        # Calculate rotation matrices
+        sin_x = math.sin(math.radians(self.x_rotation))
+        cos_x = math.cos(math.radians(self.x_rotation))
+        sin_y = math.sin(math.radians(self.y_rotation))
+        cos_y = math.cos(math.radians(self.y_rotation))
+        sin_z = math.sin(math.radians(self.z_rotation))
+        cos_z = math.cos(math.radians(self.z_rotation))
+        
+        # Place vertices in the widget with rotation
+        for decimal, (x, y, z) in vertices:
+            # Store the 3D point
+            self._3d_points[decimal] = (x, y, z)
+            
+            # Apply rotations
+            # Rotate around X axis
+            y2 = y * cos_x - z * sin_x
+            z2 = y * sin_x + z * cos_x
+            
+            # Rotate around Y axis
+            x3 = x * cos_y + z2 * sin_y
+            z3 = -x * sin_y + z2 * cos_y
+            
+            # Rotate around Z axis
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Scale, apply perspective, and center
+            scale = size / 3
+            perspective = 1 + z3 * 0.2  # Perspective effect
+            
+            widget_x = center_x + x4 * scale * perspective
+            widget_y = center_y + y4 * scale * perspective
+            
+            # Convert binary to ternary mapping
+            binary = bin(decimal)[2:].zfill(3)
+            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
+            ternary_decimal = int(ternary, 3)
+            
+            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
     
-    def _generate_higher_dimension_grid(self, dimension: int, center_x: float, center_y: float) -> None:
-        """
-        Generate grid positions for dimensions 4 and above using a specialized layout.
-        """
-        # For higher dimensions, we'll use a circular layout with layers
-        # Each layer represents a different Tao count (number of zeros)
+    def _generate_hypercube(self, dimension: int, center_x: float, center_y: float) -> None:
+        """Generate grid positions for higher dimensional hypercubes."""
+        # Calculate size
+        size = self.cell_size * (4 - dimension * 0.4)  # Shrink for higher dimensions
         
-        # First, group positions by Tao count
-        tao_groups = {}
-        max_positions = 3 ** dimension
+        # Generate binary vertices (2^dimension vertices)
+        vertices = []
         
-        for decimal_value in range(max_positions):
-            ternary = decimal_to_ternary(decimal_value).zfill(dimension)
-            tao_count = ternary.count('0')
+        # Calculate projections for all possible binary vertices
+        for i in range(2**dimension):
+            # Get binary representation of i
+            binary = bin(i)[2:].zfill(dimension)
             
-            if tao_count not in tao_groups:
-                tao_groups[tao_count] = []
+            # Calculate coordinates in n-dimensional space (-1 or 1 for each dimension)
+            coords = []
+            for bit in binary:
+                coords.append(-1 + 2 * int(bit))
             
-            tao_groups[tao_count].append(decimal_value)
+            vertices.append((i, coords))
         
-        # Calculate radius of the main circle
-        main_radius = min(self.width(), self.height()) * 0.4
-        
-        # Position each Tao group in a circle, with different radius per group
-        for tao_count, positions in tao_groups.items():
-            # Calculate this group's circle radius
-            # Largest radius for vertices (0 Tao), smallest for center (all Tao)
-            group_radius_ratio = 1.0 - (tao_count / dimension)
-            group_radius = main_radius * (0.2 + 0.8 * group_radius_ratio)
+        # Project vertices to 2D using a specialized algorithm
+        for decimal, coords in vertices:
+            # Store multi-dimensional point
+            if dimension <= 4:  # Only store up to 4D for memory reasons
+                self._3d_points[decimal] = tuple(coords[:3]) if len(coords) >= 3 else tuple(coords + [0] * (3 - len(coords)))
             
-            # Distribute positions evenly around a circle
-            position_count = len(positions)
-            for i, decimal_value in enumerate(positions):
-                if position_count > 1:
-                    # Multiple positions - distribute around circle
-                    angle = 2 * math.pi * i / position_count
-                    x = center_x + group_radius * math.cos(angle)
-                    y = center_y + group_radius * math.sin(angle)
-                else:
-                    # Single position (likely the center) - place at center
-                    x, y = center_x, center_y
-                
-                self._grid_positions[decimal_value] = (x, y)
+            # Project to 2D
+            # Use coordinate pairs for projection to get a clearer layout
+            if dimension == 4:
+                # 4D -> 2D: use two coordinate pairs
+                x = coords[0] * 0.8 + coords[2] * 0.6
+                y = coords[1] * 0.8 + coords[3] * 0.6
+            elif dimension == 5:
+                # 5D -> 2D: balanced projection
+                x = coords[0] * 0.7 + coords[2] * 0.5 + coords[4] * 0.3
+                y = coords[1] * 0.7 + coords[3] * 0.5
+            elif dimension == 6:
+                # 6D -> 2D: balanced projection
+                x = coords[0] * 0.6 + coords[2] * 0.4 + coords[4] * 0.3
+                y = coords[1] * 0.6 + coords[3] * 0.4 + coords[5] * 0.3
+            else:
+                # 2D -> 2D or 3D -> 2D with linear combination
+                x = sum(c * (1.0/(i+2)) for i, c in enumerate(coords[:dimension//2]))
+                y = sum(c * (1.0/(i+2)) for i, c in enumerate(coords[dimension//2:]))
+            
+            # Scale and center
+            widget_x = center_x + x * size
+            widget_y = center_y + y * size
+            
+            # Convert binary to ternary mapping
+            # We need to map each binary vertex to a corresponding ternary representation
+            binary_str = bin(decimal)[2:].zfill(dimension)
+            # Use a consistent mapping: 0->0, 1->1
+            ternary = "".join("1" if bit == "1" else "0" for bit in binary_str)
+            ternary_decimal = int(ternary, 3)
+            
+            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
     
     def _generate_vertex_properties(self) -> None:
         """Generate colors and sizes for vertices based on their Tao count."""
@@ -354,21 +431,17 @@ class PlanarExpansionVisualizer(QWidget):
             # Determine radius based on Tao count and dimension
             base_radius = self.cell_size * 0.25
             
-            # Vertices (0 Tao) are larger
+            # Hypercube vertices all have the same size
+            radius = base_radius * 1.2
+            
+            # But color can be based on Tao count
             if tao_count == 0:
-                radius = base_radius * 1.5
                 color = self.vertex_colors[1]  # Yang/Red
-            # Center (all Tao) is largest
             elif tao_count == self.dimension:
-                radius = base_radius * 2.0
                 color = self.vertex_colors[0]  # Tao/Green
-            # Edges, faces, etc. are in between
             else:
-                # Size and color based on Tao count relative to dimension
+                # Blend between colors based on Tao count
                 tao_ratio = tao_count / self.dimension
-                radius = base_radius * (1.0 + tao_ratio * 1.0)
-                
-                # Blend between colors
                 red = int(max(0, (1 - tao_ratio) * 200))
                 green = int(max(0, tao_ratio * 150))
                 blue = int(max(0, 100 + tao_ratio * 100))
@@ -455,65 +528,31 @@ class PlanarExpansionVisualizer(QWidget):
         """
         painter.setPen(QPen(self.grid_color, 1.0))
         
-        # For 2D or 3D, draw dimension-specific grid lines
-        if self.dimension <= 3:
-            self._draw_dimension_specific_grid(painter)
+        # For all dimensions, draw connecting lines between adjacent vertices
+        # Two vertices are adjacent if their binary representations differ by exactly one bit
+        position_keys = list(positions.keys())
         
-        # For all dimensions, draw connecting lines between nearby points
-        # This creates a network visualization of the dimensional structure
-        for key1, (x1, y1) in positions.items():
-            ternary1 = decimal_to_ternary(key1).zfill(self.dimension)
+        for i, key1 in enumerate(position_keys):
+            # Convert to binary to check connectivity
+            binary1 = bin(int("".join("1" if d == "1" else "0" for d in decimal_to_ternary(key1).zfill(self.dimension)), 3))[2:].zfill(self.dimension)
             
-            for key2, (x2, y2) in positions.items():
-                if key1 >= key2:  # Skip already processed pairs
-                    continue
-                    
-                ternary2 = decimal_to_ternary(key2).zfill(self.dimension)
+            for j, key2 in enumerate(position_keys[i+1:], i+1):
+                binary2 = bin(int("".join("1" if d == "1" else "0" for d in decimal_to_ternary(key2).zfill(self.dimension)), 3))[2:].zfill(self.dimension)
                 
-                # Check if they differ by exactly one digit
-                diff_count = sum(a != b for a, b in zip(ternary1, ternary2))
+                # Count bit differences
+                diff_count = sum(a != b for a, b in zip(binary1, binary2))
                 
+                # Vertices are connected if they differ by exactly one bit
                 if diff_count == 1:
-                    # Determine line thickness based on the positions' Tao counts
-                    tao_count1 = ternary1.count('0')
-                    tao_count2 = ternary2.count('0')
-                    avg_tao = (tao_count1 + tao_count2) / 2
+                    x1, y1 = positions[key1]
+                    x2, y2 = positions[key2]
                     
                     # Thinner lines for higher dimensions
-                    thickness = max(0.5, 1.0 - avg_tao / self.dimension)
+                    thickness = max(0.5, 1.5 - self.dimension * 0.2)
                     
                     # Draw connecting grid line
                     painter.setPen(QPen(self.grid_color, thickness))
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
-    
-    def _draw_dimension_specific_grid(self, painter: QPainter) -> None:
-        """Draw grid lines specific to 2D/3D visualizations."""
-        if self.dimension == 2:
-            # Get grid bounds from positions
-            min_x = min(x for x, _ in self._grid_positions.values())
-            max_x = max(x for x, _ in self._grid_positions.values())
-            min_y = min(y for _, y in self._grid_positions.values())
-            max_y = max(y for _, y in self._grid_positions.values())
-            
-            # Draw 2D grid lines
-            painter.setPen(QPen(self.grid_color, 0.5))
-            
-            # Horizontal and vertical lines through each position
-            for i in range(3):
-                x_positions = [pos[0] for key, pos in self._grid_positions.items() 
-                            if decimal_to_ternary(key).zfill(2)[1] == str(i)]
-                y_positions = [pos[1] for key, pos in self._grid_positions.items() 
-                            if decimal_to_ternary(key).zfill(2)[0] == str(i)]
-                
-                if x_positions:
-                    avg_x = sum(x_positions) / len(x_positions)
-                    painter.drawLine(QPointF(avg_x, min_y - self.margin/2), 
-                                    QPointF(avg_x, max_y + self.margin/2))
-                
-                if y_positions:
-                    avg_y = sum(y_positions) / len(y_positions)
-                    painter.drawLine(QPointF(min_x - self.margin/2, avg_y), 
-                                    QPointF(max_x + self.margin/2, avg_y))
     
     def _draw_tao_lines(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
         """
@@ -892,6 +931,24 @@ class PlanarExpansionVisualizer(QWidget):
         
         super().wheelEvent(event)
 
+    def set_x_rotation(self, angle: int) -> None:
+        """Set the X rotation angle."""
+        self.x_rotation = angle
+        self._update_grid_positions()
+        self.update()
+        
+    def set_y_rotation(self, angle: int) -> None:
+        """Set the Y rotation angle."""
+        self.y_rotation = angle
+        self._update_grid_positions()
+        self.update()
+        
+    def set_z_rotation(self, angle: int) -> None:
+        """Set the Z rotation angle."""
+        self.z_rotation = angle
+        self._update_grid_positions()
+        self.update()
+
 
 class PlanarExpansionPanel(QFrame):
     """
@@ -916,7 +973,7 @@ class PlanarExpansionPanel(QFrame):
         
         # Create description
         description = QLabel(
-            "This visualizer shows how ternary digits expand across dimensional planes in the "
+            "This visualizer shows how ternary digits map to different dimensional planes in the "
             "TQ system, with the number of Tao lines (0s) determining geometric roles."
         )
         description.setWordWrap(True)
@@ -956,6 +1013,68 @@ class PlanarExpansionPanel(QFrame):
         
         dimension_layout.addWidget(self.dimension_selector)
         main_layout.addLayout(dimension_layout)
+        
+        # 3D Rotation controls (only visible for 3D)
+        self.rotation_group = QFrame()
+        self.rotation_group.setFrameStyle(QFrame.Shape.StyledPanel)
+        self.rotation_group.setStyleSheet("background-color: #f0f0f8; border-radius: 5px; padding: 5px;")
+        rotation_layout = QVBoxLayout(self.rotation_group)
+        
+        rotation_title = QLabel("3D Rotation Controls")
+        rotation_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        rotation_title.setStyleSheet("font-weight: bold;")
+        rotation_layout.addWidget(rotation_title)
+        
+        # X rotation
+        x_rotation_layout = QHBoxLayout()
+        x_rotation_layout.addWidget(QLabel("X:"))
+        self.x_rotation_slider = QSlider(Qt.Orientation.Horizontal)
+        self.x_rotation_slider.setRange(0, 360)
+        self.x_rotation_slider.setValue(30)
+        self.x_rotation_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.x_rotation_slider.setTickInterval(45)
+        self.x_rotation_slider.valueChanged.connect(self._x_rotation_changed)
+        x_rotation_layout.addWidget(self.x_rotation_slider)
+        self.x_rotation_value = QLabel("30°")
+        x_rotation_layout.addWidget(self.x_rotation_value, 0, Qt.AlignmentFlag.AlignRight)
+        rotation_layout.addLayout(x_rotation_layout)
+        
+        # Y rotation
+        y_rotation_layout = QHBoxLayout()
+        y_rotation_layout.addWidget(QLabel("Y:"))
+        self.y_rotation_slider = QSlider(Qt.Orientation.Horizontal)
+        self.y_rotation_slider.setRange(0, 360)
+        self.y_rotation_slider.setValue(30)
+        self.y_rotation_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.y_rotation_slider.setTickInterval(45)
+        self.y_rotation_slider.valueChanged.connect(self._y_rotation_changed)
+        y_rotation_layout.addWidget(self.y_rotation_slider)
+        self.y_rotation_value = QLabel("30°")
+        y_rotation_layout.addWidget(self.y_rotation_value, 0, Qt.AlignmentFlag.AlignRight)
+        rotation_layout.addLayout(y_rotation_layout)
+        
+        # Z rotation
+        z_rotation_layout = QHBoxLayout()
+        z_rotation_layout.addWidget(QLabel("Z:"))
+        self.z_rotation_slider = QSlider(Qt.Orientation.Horizontal)
+        self.z_rotation_slider.setRange(0, 360)
+        self.z_rotation_slider.setValue(0)
+        self.z_rotation_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.z_rotation_slider.setTickInterval(45)
+        self.z_rotation_slider.valueChanged.connect(self._z_rotation_changed)
+        z_rotation_layout.addWidget(self.z_rotation_slider)
+        self.z_rotation_value = QLabel("0°")
+        z_rotation_layout.addWidget(self.z_rotation_value, 0, Qt.AlignmentFlag.AlignRight)
+        rotation_layout.addLayout(z_rotation_layout)
+        
+        # Reset rotation button
+        reset_rotation_btn = QPushButton("Reset Rotation")
+        reset_rotation_btn.clicked.connect(self._reset_rotation)
+        rotation_layout.addWidget(reset_rotation_btn, 0, Qt.AlignmentFlag.AlignCenter)
+        
+        main_layout.addWidget(self.rotation_group)
+        # Hide rotation controls initially if not in 3D
+        self.rotation_group.setVisible(self.dimension_selector.currentData() == 3)
         
         # Display options
         options_layout = QHBoxLayout()
@@ -1057,9 +1176,22 @@ class PlanarExpansionPanel(QFrame):
         if text and all(digit in '012' for digit in text):
             self.visualizer.set_ternary(text)
     
-    def _change_dimension(self) -> None:
-        """Change the visualizer dimension."""
+    def _change_dimension(self, index):
+        """Change the dimension of the visualization."""
         dimension = self.dimension_selector.currentData()
+        
+        # Show/hide rotation controls
+        self.rotation_group.setVisible(dimension == 3)
+        
+        # Update ternary input length hint
+        self.ternary_input.setPlaceholderText(f"Enter ternary number (e.g. {'0' * dimension})")
+        
+        # Ensure ternary input has the right length
+        current_text = self.ternary_input.text()
+        if len(current_text) > dimension:
+            self.ternary_input.setText(current_text[:dimension])
+        
+        # Update visualizer
         self.visualizer.set_dimension(dimension)
     
     def _toggle_labels(self) -> None:
@@ -1089,6 +1221,31 @@ class PlanarExpansionPanel(QFrame):
     def _reset_view(self) -> None:
         """Reset the view to default zoom and pan."""
         self.visualizer.reset_view()
+    
+    def _x_rotation_changed(self, value):
+        """Handle X rotation slider change."""
+        self.x_rotation_value.setText(f"{value}°")
+        self.visualizer.set_x_rotation(value)
+    
+    def _y_rotation_changed(self, value):
+        """Handle Y rotation slider change."""
+        self.y_rotation_value.setText(f"{value}°")
+        self.visualizer.set_y_rotation(value)
+    
+    def _z_rotation_changed(self, value):
+        """Handle Z rotation slider change."""
+        self.z_rotation_value.setText(f"{value}°")
+        self.visualizer.set_z_rotation(value)
+    
+    def _reset_rotation(self):
+        """Reset all rotation angles to default values."""
+        self.x_rotation_slider.setValue(30)
+        self.y_rotation_slider.setValue(30)
+        self.z_rotation_slider.setValue(0)
+        
+        self.visualizer.set_x_rotation(30)
+        self.visualizer.set_y_rotation(30)
+        self.visualizer.set_z_rotation(0)
 
 
 # Testing code
