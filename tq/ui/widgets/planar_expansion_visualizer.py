@@ -30,7 +30,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import (
     QPainter, QColor, QPen, QBrush, QPixmap, QFont, 
-    QPainterPath, QLinearGradient, QRadialGradient
+    QPainterPath, QLinearGradient, QRadialGradient, QTransform
 )
 from PyQt6.QtCore import Qt, QRectF, QPointF, QSize, pyqtSignal, QTimer
 
@@ -62,6 +62,15 @@ class PlanarExpansionVisualizer(QWidget):
         self.show_labels = True
         self.show_tao_lines = True
         self.show_grid = True
+        
+        # Zoom and pan parameters
+        self.zoom_factor = 1.0
+        self.pan_offset_x = 0
+        self.pan_offset_y = 0
+        self.panning = False
+        self.last_mouse_pos = None
+        self.min_zoom = 0.2
+        self.max_zoom = 5.0
         
         # Visual styling
         self.background_color = QColor(240, 240, 255)
@@ -97,6 +106,12 @@ class PlanarExpansionVisualizer(QWidget):
         self._transitioning = False
         self._old_positions = {}
         self._transition_progress = 0.0
+        
+        # Enable mouse tracking for pan operations
+        self.setMouseTracking(True)
+        
+        # Enable focus to capture key events
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
         # Initialize the grid
         self._update_grid_positions()
@@ -375,6 +390,11 @@ class PlanarExpansionVisualizer(QWidget):
         # Draw background
         painter.fillRect(self.rect(), self.background_color)
         
+        # Apply zoom and pan transformation
+        painter.save()
+        painter.translate(self.pan_offset_x, self.pan_offset_y)
+        painter.scale(self.zoom_factor, self.zoom_factor)
+        
         # If transitioning, interpolate positions
         positions = self._get_interpolated_positions() if self._transitioning else self._grid_positions
         
@@ -395,6 +415,14 @@ class PlanarExpansionVisualizer(QWidget):
         
         # Draw the current ternary number highlight
         self._highlight_current_ternary(painter, positions)
+        
+        # Restore original transform
+        painter.restore()
+        
+        # Draw zoom level indicator
+        zoom_text = f"Zoom: {self.zoom_factor:.1f}x"
+        painter.setPen(Qt.GlobalColor.darkGray)
+        painter.drawText(10, 20, zoom_text)
     
     def _get_interpolated_positions(self) -> Dict[int, Tuple[float, float]]:
         """Get interpolated positions during a dimension transition."""
@@ -741,8 +769,8 @@ class PlanarExpansionVisualizer(QWidget):
             
             # Create a gradient for the glow
             gradient = QRadialGradient(x, y, glow_size)
-            gradient.setColorAt(0, QColor(255, 255, 0, int(120 * pulse_factor)))
-            gradient.setColorAt(0.6, QColor(255, 215, 0, int(80 * pulse_factor)))
+            gradient.setColorAt(0, QColor(255, 255, 0, 120 * pulse_factor))
+            gradient.setColorAt(0.6, QColor(255, 215, 0, 80 * pulse_factor))
             gradient.setColorAt(1, QColor(255, 180, 0, 0))
             
             # Draw the glow
@@ -752,7 +780,7 @@ class PlanarExpansionVisualizer(QWidget):
             
             # Draw a golden ring around the vertex
             ring_width = 2.0 + pulse_factor * 1.0
-            painter.setPen(QPen(QColor(255, 215, 0), int(ring_width)))
+            painter.setPen(QPen(QColor(255, 215, 0), ring_width))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(QPointF(x, y), radius + 2, radius + 2)
             
@@ -792,6 +820,75 @@ class PlanarExpansionVisualizer(QWidget):
             The recommended size for the widget
         """
         return QSize(600, 600)
+
+    # Add new methods for zoom and pan
+    def reset_view(self) -> None:
+        """Reset zoom and pan to default values."""
+        self.zoom_factor = 1.0
+        self.pan_offset_x = 0
+        self.pan_offset_y = 0
+        self.update()
+    
+    def zoom_in(self) -> None:
+        """Zoom in by a fixed amount."""
+        self.zoom_factor = min(self.max_zoom, self.zoom_factor * 1.2)
+        self.update()
+    
+    def zoom_out(self) -> None:
+        """Zoom out by a fixed amount."""
+        self.zoom_factor = max(self.min_zoom, self.zoom_factor / 1.2)
+        self.update()
+    
+    # Mouse event handlers for pan and zoom
+    def mousePressEvent(self, event) -> None:
+        """Handle mouse press event for panning."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.panning = True
+            self.last_mouse_pos = event.position()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        super().mousePressEvent(event)
+    
+    def mouseReleaseEvent(self, event) -> None:
+        """Handle mouse release event for panning."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.panning = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        super().mouseReleaseEvent(event)
+    
+    def mouseMoveEvent(self, event) -> None:
+        """Handle mouse move event for panning."""
+        if self.panning and self.last_mouse_pos is not None:
+            delta = event.position() - self.last_mouse_pos
+            self.pan_offset_x += delta.x()
+            self.pan_offset_y += delta.y()
+            self.last_mouse_pos = event.position()
+            self.update()
+        super().mouseMoveEvent(event)
+    
+    def wheelEvent(self, event) -> None:
+        """Handle wheel event for zooming."""
+        # Get mouse position for zoom origin
+        mouse_pos = event.position()
+        
+        # Calculate mouse position relative to current pan offset
+        mouse_x = (mouse_pos.x() - self.pan_offset_x) / self.zoom_factor
+        mouse_y = (mouse_pos.y() - self.pan_offset_y) / self.zoom_factor
+        
+        # Calculate zoom factor change
+        delta = event.angleDelta().y()
+        zoom_change = 1.1 if delta > 0 else 0.9
+        
+        old_zoom = self.zoom_factor
+        self.zoom_factor *= zoom_change
+        self.zoom_factor = max(self.min_zoom, min(self.max_zoom, self.zoom_factor))
+        
+        # Adjust pan offset to keep point under mouse stable
+        if old_zoom != self.zoom_factor:
+            self.pan_offset_x = mouse_pos.x() - mouse_x * self.zoom_factor
+            self.pan_offset_y = mouse_pos.y() - mouse_y * self.zoom_factor
+            self.update()
+        
+        super().wheelEvent(event)
 
 
 class PlanarExpansionPanel(QFrame):
@@ -883,6 +980,34 @@ class PlanarExpansionPanel(QFrame):
         
         main_layout.addLayout(options_layout)
         
+        # Add zoom and pan controls
+        zoom_layout = QHBoxLayout()
+        
+        # Zoom buttons
+        self.zoom_in_btn = QPushButton("Zoom +")
+        self.zoom_in_btn.setToolTip("Zoom in (or use mouse wheel)")
+        self.zoom_in_btn.clicked.connect(self._zoom_in)
+        
+        self.zoom_out_btn = QPushButton("Zoom -")
+        self.zoom_out_btn.setToolTip("Zoom out (or use mouse wheel)")
+        self.zoom_out_btn.clicked.connect(self._zoom_out)
+        
+        self.reset_view_btn = QPushButton("Reset View")
+        self.reset_view_btn.setToolTip("Reset zoom and pan to default")
+        self.reset_view_btn.clicked.connect(self._reset_view)
+        
+        zoom_layout.addWidget(self.zoom_in_btn)
+        zoom_layout.addWidget(self.zoom_out_btn)
+        zoom_layout.addWidget(self.reset_view_btn)
+        
+        # Add navigation help text
+        nav_label = QLabel("Drag to pan, mouse wheel to zoom")
+        nav_label.setStyleSheet("font-size: 10px; color: #666;")
+        
+        # Add to main layout
+        main_layout.addLayout(zoom_layout)
+        main_layout.addWidget(nav_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        
         # Create visualizer in a scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -949,6 +1074,19 @@ class PlanarExpansionPanel(QFrame):
         """Toggle the display of the grid."""
         show = self.show_grid_checkbox.isChecked()
         self.visualizer.toggle_grid(show)
+    
+    # Add methods to handle zoom and pan buttons
+    def _zoom_in(self) -> None:
+        """Zoom in on the visualization."""
+        self.visualizer.zoom_in()
+    
+    def _zoom_out(self) -> None:
+        """Zoom out of the visualization."""
+        self.visualizer.zoom_out()
+    
+    def _reset_view(self) -> None:
+        """Reset the view to default zoom and pan."""
+        self.visualizer.reset_view()
 
 
 # Testing code
