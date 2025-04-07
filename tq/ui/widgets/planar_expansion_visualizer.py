@@ -405,10 +405,10 @@ class PlanarExpansionVisualizer(QWidget):
         # Size adjustments for inner and outer cubes
         inner_scale = 0.4
         
+        # Store all 3D points for each vertex before rotation
+        unrotated_points = {}
+        
         for decimal, coords in vertices:
-            # Store 4D point
-            self._3d_points[decimal] = tuple(coords[:3])
-            
             # Get 4D coordinates
             x4d, y4d, z4d, w4d = coords
             
@@ -416,45 +416,26 @@ class PlanarExpansionVisualizer(QWidget):
             # This creates a "cube within cube" effect
             scale_factor = inner_scale + (1.0 - inner_scale) * ((w4d + 1) / 2)
             
-            # Apply a 4D-to-3D projection that preserves the cube-within-cube structure
-            # Use perspective projection with the 4th dimension controlling depth
+            # Project to 3D first - this is the essential step for tesseract visualization
             x = x4d * scale_factor
             y = y4d * scale_factor
             z = z4d * scale_factor
             
-            # Apply 3D rotations to the resulting points to make it more dynamic
-            sin_x = math.sin(math.radians(self.x_rotation))
-            cos_x = math.cos(math.radians(self.x_rotation))
-            sin_y = math.sin(math.radians(self.y_rotation))
-            cos_y = math.cos(math.radians(self.y_rotation))
-            sin_z = math.sin(math.radians(self.z_rotation))
-            cos_z = math.cos(math.radians(self.z_rotation))
-            
-            # Apply rotations
-            # Rotate around X axis
-            y2 = y * cos_x - z * sin_x
-            z2 = y * sin_x + z * cos_x
-            
-            # Rotate around Y axis
-            x3 = x * cos_y + z2 * sin_y
-            z3 = -x * sin_y + z2 * cos_y
-            
-            # Rotate around Z axis
-            x4 = x3 * cos_z - y2 * sin_z
-            y4 = x3 * sin_z + y2 * cos_z
-            
-            # Scale and add perspective effect
-            perspective = 1.0 + z3 * 0.2
-            
-            widget_x = center_x + x4 * size * perspective
-            widget_y = center_y + y4 * size * perspective
-            
-            # Convert binary to ternary mapping
+            # Store the unrotated 3D point
+            unrotated_points[decimal] = (x, y, z)
+        
+        # Apply the 3D rotation to all points
+        self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
+        
+        # Convert binary to ternary mapping for each point
+        for decimal, _ in vertices:
+            if decimal not in self._grid_positions:
+                continue
             binary = bin(decimal)[2:].zfill(4)
             ternary = "".join("1" if bit == "1" else "0" for bit in binary)
             ternary_decimal = int(ternary, 3)
-            
-            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+            self._grid_positions[ternary_decimal] = self._grid_positions.pop(decimal)
+            self._3d_points[ternary_decimal] = self._3d_points.pop(decimal, (0, 0, 0))
     
     def _generate_5cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
@@ -467,6 +448,9 @@ class PlanarExpansionVisualizer(QWidget):
         inner_scale = 0.35
         pair_separation = 0.3  # Controls separation between the two tesseract projections
         
+        # Store all 3D points for each vertex before rotation
+        unrotated_points = {}
+        
         for decimal, coords in vertices:
             # Get 5D coordinates
             x5d, y5d, z5d, w5d, v5d = coords
@@ -478,39 +462,26 @@ class PlanarExpansionVisualizer(QWidget):
             # Use 4th dimension (w) for the cube-within-cube effect
             scale_factor = inner_scale + (1.0 - inner_scale) * ((w5d + 1) / 2)
             
-            # Apply 5D-to-3D projection that preserves the structure
+            # Project 5D to 3D space first
             x = x5d * scale_factor + pair_offset
-            y = y5d * scale_factor
+            y = y5d * scale_factor 
             z = z5d * scale_factor
             
-            # Apply 3D rotations
-            sin_x = math.sin(math.radians(self.x_rotation))
-            cos_x = math.cos(math.radians(self.x_rotation))
-            sin_y = math.sin(math.radians(self.y_rotation))
-            cos_y = math.cos(math.radians(self.y_rotation))
-            sin_z = math.sin(math.radians(self.z_rotation))
-            cos_z = math.cos(math.radians(self.z_rotation))
-            
-            # Apply rotations as in the tesseract case
-            y2 = y * cos_x - z * sin_x
-            z2 = y * sin_x + z * cos_x
-            x3 = x * cos_y + z2 * sin_y
-            z3 = -x * sin_y + z2 * cos_y
-            x4 = x3 * cos_z - y2 * sin_z
-            y4 = x3 * sin_z + y2 * cos_z
-            
-            # Scale and add perspective effect
-            perspective = 1.0 + z3 * 0.15  # Slightly reduced perspective for 5D
-            
-            widget_x = center_x + x4 * size * perspective
-            widget_y = center_y + y4 * size * perspective
-            
-            # Convert binary to ternary mapping
+            # Store the unrotated 3D point
+            unrotated_points[decimal] = (x, y, z)
+        
+        # Apply the 3D rotation to all points
+        self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
+        
+        # Convert binary to ternary mapping for each point
+        for decimal, _ in vertices:
+            if decimal not in self._grid_positions:
+                continue
             binary = bin(decimal)[2:].zfill(5)
             ternary = "".join("1" if bit == "1" else "0" for bit in binary)
             ternary_decimal = int(ternary, 3)
-            
-            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+            self._grid_positions[ternary_decimal] = self._grid_positions.pop(decimal)
+            self._3d_points[ternary_decimal] = self._3d_points.pop(decimal, (0, 0, 0))
     
     def _generate_6cube(self, vertices, center_x: float, center_y: float, size: float) -> None:
         """
@@ -523,51 +494,41 @@ class PlanarExpansionVisualizer(QWidget):
         inner_scale = 0.3
         layer_offset = 0.4  # Controls separation between the layers
         
+        # Store all 3D points for each vertex before rotation
+        unrotated_points = {}
+        
         for decimal, coords in vertices:
             # Get 6D coordinates
-            x6d, y6d, z6d, w6d, v6d, u6d = coords
+            x6d, y6d, z6d, w6d, v5d, u6d = coords
             
             # Use the 5th and 6th dimensions for layer positioning
             # This creates a triangular arrangement of tesseract projections
-            layer_x_offset = v6d * layer_offset
-            layer_y_offset = u6d * layer_offset
+            layer_x_offset = v5d * layer_offset
+            layer_y_offset = u6d * layer_offset * 0.8  # Slightly reduce vertical spread
             
             # Use 4th dimension for the cube-within-cube effect
             scale_factor = inner_scale + (1.0 - inner_scale) * ((w6d + 1) / 2)
             
-            # Apply 6D-to-3D projection
+            # Project 6D to 3D space first 
             x = x6d * scale_factor + layer_x_offset
             y = y6d * scale_factor + layer_y_offset
             z = z6d * scale_factor
             
-            # Apply 3D rotations
-            sin_x = math.sin(math.radians(self.x_rotation))
-            cos_x = math.cos(math.radians(self.x_rotation))
-            sin_y = math.sin(math.radians(self.y_rotation))
-            cos_y = math.cos(math.radians(self.y_rotation))
-            sin_z = math.sin(math.radians(self.z_rotation))
-            cos_z = math.cos(math.radians(self.z_rotation))
-            
-            # Apply rotations as in previous cases
-            y2 = y * cos_x - z * sin_x
-            z2 = y * sin_x + z * cos_x
-            x3 = x * cos_y + z2 * sin_y
-            z3 = -x * sin_y + z2 * cos_y
-            x4 = x3 * cos_z - y2 * sin_z
-            y4 = x3 * sin_z + y2 * cos_z
-            
-            # Scale and add perspective effect
-            perspective = 1.0 + z3 * 0.1  # Further reduced perspective for 6D
-            
-            widget_x = center_x + x4 * size * perspective
-            widget_y = center_y + y4 * size * perspective
-            
-            # Convert binary to ternary mapping
+            # Store the unrotated 3D point
+            unrotated_points[decimal] = (x, y, z)
+        
+        # Apply the 3D rotation to all points
+        self._apply_3d_rotation_to_points(unrotated_points, center_x, center_y, size)
+        
+        # Convert binary to ternary mapping for each point
+        for decimal, _ in vertices:
+            if decimal not in self._grid_positions:
+                continue
             binary = bin(decimal)[2:].zfill(6)
             ternary = "".join("1" if bit == "1" else "0" for bit in binary)
             ternary_decimal = int(ternary, 3)
-            
-            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+            self._grid_positions[ternary_decimal] = self._grid_positions.pop(decimal)
+            self._3d_points[ternary_decimal] = self._3d_points.pop(decimal, (0, 0, 0))
     
     def _generate_generic_projection(self, vertices, dimension: int, center_x: float, center_y: float, size: float) -> None:
         """
@@ -988,9 +949,13 @@ class PlanarExpansionVisualizer(QWidget):
             
             # Create a gradient for the glow
             gradient = QRadialGradient(x, y, glow_size)
-            # Convert float to int for alpha values
-            gradient.setColorAt(0, QColor(255, 255, 0, int(120 * pulse_factor)))
-            gradient.setColorAt(0.6, QColor(255, 215, 0, int(80 * pulse_factor)))
+            
+            # Convert float to int for alpha values - fix the conversion issue
+            alpha1 = int(120 * pulse_factor)
+            alpha2 = int(80 * pulse_factor)
+            
+            gradient.setColorAt(0, QColor(255, 255, 0, alpha1))
+            gradient.setColorAt(0.6, QColor(255, 215, 0, alpha2))
             gradient.setColorAt(1, QColor(255, 180, 0, 0))
             
             # Draw the glow
@@ -1000,6 +965,7 @@ class PlanarExpansionVisualizer(QWidget):
             
             # Draw a golden ring around the vertex
             ring_width = 2.0 + pulse_factor * 1.0
+            
             # Convert float to int for pen width
             painter.setPen(QPen(QColor(255, 215, 0), int(ring_width)))
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -1128,6 +1094,52 @@ class PlanarExpansionVisualizer(QWidget):
         self.z_rotation = angle
         self._update_grid_positions()
         self.update()
+
+    def _apply_3d_rotation_to_points(self, point_dict: Dict[int, Tuple[float, float, float]], 
+                                    center_x: float, center_y: float, size: float) -> None:
+        """
+        Apply 3D rotation to a dictionary of points and store the results in _grid_positions and _3d_points.
+        
+        Args:
+            point_dict: Dictionary mapping decimal values to 3D coordinates before rotation
+            center_x: X center of the display area
+            center_y: Y center of the display area
+            size: Size scaling factor for display
+        """
+        # Calculate rotation matrices
+        sin_x = math.sin(math.radians(self.x_rotation))
+        cos_x = math.cos(math.radians(self.x_rotation))
+        sin_y = math.sin(math.radians(self.y_rotation))
+        cos_y = math.cos(math.radians(self.y_rotation))
+        sin_z = math.sin(math.radians(self.z_rotation))
+        cos_z = math.cos(math.radians(self.z_rotation))
+        
+        # Apply rotations to all points
+        for decimal, (x, y, z) in point_dict.items():
+            # Store the unrotated 3D point
+            self._3d_points[decimal] = (x, y, z)
+            
+            # Apply rotations
+            # Rotate around X axis
+            y2 = y * cos_x - z * sin_x
+            z2 = y * sin_x + z * cos_x
+            
+            # Rotate around Y axis
+            x3 = x * cos_y + z2 * sin_y
+            z3 = -x * sin_y + z2 * cos_y
+            
+            # Rotate around Z axis
+            x4 = x3 * cos_z - y2 * sin_z
+            y4 = x3 * sin_z + y2 * cos_z
+            
+            # Scale, apply perspective, and center
+            perspective = 1.0 + z3 * 0.2  # Perspective effect
+            
+            widget_x = center_x + x4 * size * perspective
+            widget_y = center_y + y4 * size * perspective
+            
+            # Store the projected 2D position
+            self._grid_positions[decimal] = (widget_x, widget_y)
 
 
 class PlanarExpansionPanel(QFrame):
@@ -1360,8 +1372,13 @@ class PlanarExpansionPanel(QFrame):
         """Change the dimension of the visualization."""
         dimension = self.dimension_selector.currentData()
         
-        # Show/hide rotation controls
-        self.rotation_group.setVisible(dimension == 3)
+        # Show rotation controls for all dimensions, not just 3D
+        self.rotation_group.setVisible(True)
+        
+        # Update title of rotation group based on dimension
+        rotation_title = self.rotation_group.findChild(QLabel)
+        if rotation_title:
+            rotation_title.setText(f"{dimension}D Rotation Controls")
         
         # Update ternary input length hint
         self.ternary_input.setPlaceholderText(f"Enter ternary number (e.g. {'0' * dimension})")
