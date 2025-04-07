@@ -741,8 +741,8 @@ class PlanarExpansionVisualizer(QWidget):
             
             # Create a gradient for the glow
             gradient = QRadialGradient(x, y, glow_size)
-            gradient.setColorAt(0, QColor(255, 255, 0, 120 * pulse_factor))
-            gradient.setColorAt(0.6, QColor(255, 215, 0, 80 * pulse_factor))
+            gradient.setColorAt(0, QColor(255, 255, 0, int(120 * pulse_factor)))
+            gradient.setColorAt(0.6, QColor(255, 215, 0, int(80 * pulse_factor)))
             gradient.setColorAt(1, QColor(255, 180, 0, 0))
             
             # Draw the glow
@@ -752,7 +752,7 @@ class PlanarExpansionVisualizer(QWidget):
             
             # Draw a golden ring around the vertex
             ring_width = 2.0 + pulse_factor * 1.0
-            painter.setPen(QPen(QColor(255, 215, 0), ring_width))
+            painter.setPen(QPen(QColor(255, 215, 0), int(ring_width)))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(QPointF(x, y), radius + 2, radius + 2)
             
