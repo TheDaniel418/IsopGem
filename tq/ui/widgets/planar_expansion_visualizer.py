@@ -273,10 +273,11 @@ class PlanarExpansionVisualizer(QWidget):
         self._generate_vertex_properties()
         
         # For debugging - ensure we have the right number of vertices
+        # Only show warning when not in a transition animation
         expected_count = 2**self.dimension
         actual_count = len(self._grid_positions)
         
-        if actual_count != expected_count:
+        if actual_count != expected_count and not self._transitioning:
             print(f"WARNING: Mismatch in vertex count for {self.dimension}D. "
                   f"Expected {expected_count}, got {actual_count}")
     
@@ -1187,8 +1188,8 @@ class PlanarExpansionVisualizer(QWidget):
                 painter.setPen(QPen(Qt.GlobalColor.red))
             painter.drawText(20, y_pos, line)
         
-        # Add vertex details if there's a mismatch
-        if actual_count != correct_count and self.dimension <= 6:
+        # Skip detailed mismatch analysis during transitions
+        if actual_count != correct_count and self.dimension <= 6 and not self._transitioning:
             y_pos = 60 + len(debug_info) * 20
             painter.setPen(QPen(Qt.GlobalColor.black))
             painter.drawText(20, y_pos, "Checking vertex indexes...")
@@ -1224,6 +1225,11 @@ class PlanarExpansionVisualizer(QWidget):
                 y_pos += 20
                 painter.setPen(QPen(Qt.GlobalColor.blue))
                 painter.drawText(20, y_pos, extra_text)
+        # Add a note during transitions
+        elif self._transitioning:
+            y_pos = 60 + len(debug_info) * 20
+            painter.setPen(QPen(Qt.GlobalColor.darkGreen))
+            painter.drawText(20, y_pos, "Transition in progress - detailed debug paused")
 
     def _map_ternary_values(self):
         """Map between binary and ternary space for TQ functionality."""
