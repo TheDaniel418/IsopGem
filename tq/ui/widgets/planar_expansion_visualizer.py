@@ -32,7 +32,7 @@ from PyQt6.QtGui import (
     QPainter, QColor, QPen, QBrush, QPixmap, QFont, 
     QPainterPath, QLinearGradient, QRadialGradient
 )
-from PyQt6.QtCore import Qt, QRectF, QPointF, QSize, pyqtSignal
+from PyQt6.QtCore import Qt, QRectF, QPointF, QSize, pyqtSignal, QTimer
 
 from tq.utils.ternary_converter import (
     decimal_to_ternary, ternary_to_decimal, 
@@ -56,8 +56,8 @@ class PlanarExpansionVisualizer(QWidget):
         # Configuration
         self.ternary_value = "0"
         self.dimension = 3  # 3D cube by default
-        self.cell_size = 40
-        self.margin = 20
+        self.cell_size = 60  # Increased from 40 to 60
+        self.margin = 40  # Increased from 20 to 40
         self.animation_step = 0
         self.show_labels = True
         self.show_tao_lines = True
@@ -147,9 +147,46 @@ class PlanarExpansionVisualizer(QWidget):
         # Clear the existing positions
         self._grid_positions = {}
         
+        # Get available space
+        width = self.width()
+        height = self.height()
+        
+        # Skip if the widget doesn't have a valid size yet
+        if width <= 1 or height <= 1:
+            return
+        
+        # Adjust cell size based on available space
+        if self.dimension == 2:
+            # For 2D, we can fit a 3x3 grid
+            available_width = width - 2 * self.margin
+            available_height = height - 2 * self.margin
+            grid_size = min(available_width / 4.5, available_height / 4.5)  # 3 cells + spacing
+            self.cell_size = max(40, grid_size)  # Ensure minimum size
+        elif self.dimension == 3:
+            # For 3D, we need to account for the isometric projection
+            available_width = width - 2 * self.margin
+            available_height = height - 2 * self.margin
+            grid_size = min(available_width / 5, available_height / 5)  # Account for projection
+            self.cell_size = max(40, grid_size)  # Ensure minimum size
+        else:
+            # For higher dimensions, we'll use a different approach
+            available_size = min(width, height) - 2 * self.margin
+            self.cell_size = max(40, available_size / (3 ** (self.dimension / 4)))  # Scale down for higher dimensions
+        
+        # Calculate center points for proper centering
+        center_x = width / 2
+        center_y = height / 2
+        
         # Generate positions for each cell in the grid
         if self.dimension == 2:
             # 2D grid (square)
+            grid_width = 3 * self.cell_size * 1.5
+            grid_height = 3 * self.cell_size * 1.5
+            
+            # Calculate the top-left corner to center the grid
+            start_x = center_x - grid_width / 2
+            start_y = center_y - grid_height / 2
+            
             for i in range(3):
                 for j in range(3):
                     # Position key is the ternary representation
@@ -157,13 +194,21 @@ class PlanarExpansionVisualizer(QWidget):
                     decimal_value = ternary_to_decimal(pos_key)
                     
                     # Calculate grid coordinates
-                    x = self.margin + j * self.cell_size * 1.5
-                    y = self.margin + i * self.cell_size * 1.5
+                    x = start_x + j * self.cell_size * 1.5
+                    y = start_y + i * self.cell_size * 1.5
                     
                     self._grid_positions[decimal_value] = (x, y)
         
         elif self.dimension == 3:
             # 3D grid (cube)
+            # Calculate the size of the projected cube
+            cube_width = 3 * self.cell_size
+            cube_height = 3 * self.cell_size * 0.8 + 3 * self.cell_size * 0.5
+            
+            # Calculate the center of the cube in widget coordinates
+            start_x = center_x
+            start_y = center_y - cube_height * 0.1  # Slight adjustment to center vertically
+            
             for i in range(3):
                 for j in range(3):
                     for k in range(3):
@@ -172,15 +217,14 @@ class PlanarExpansionVisualizer(QWidget):
                         decimal_value = ternary_to_decimal(pos_key)
                         
                         # Calculate isometric projection coordinates
-                        # This creates a simple 3D cube projection
-                        x = self.margin + (j - i) * self.cell_size
-                        y = self.margin + (i + j) * self.cell_size * 0.5 + (2 - k) * self.cell_size * 0.8
+                        # Center the 3D projection in the widget
+                        x = start_x + (j - i) * self.cell_size
+                        y = start_y + (i + j) * self.cell_size * 0.5 + (2 - k) * self.cell_size * 0.8
                         
                         self._grid_positions[decimal_value] = (x, y)
         
         else:
-            # Higher dimensions - use a dimensional mapping approach
-            # For dimensions > 3, we'll use a recursive subdivision approach
+            # Higher dimensions - use the recursive subdivision approach
             # This creates a fractal-like representation of higher dimensions
             self._generate_higher_dimension_grid(self.dimension)
     
@@ -194,7 +238,11 @@ class PlanarExpansionVisualizer(QWidget):
         # Base case position and size
         base_x = self.width() / 2
         base_y = self.height() / 2
-        base_size = min(self.width(), self.height()) - 2 * self.margin
+        
+        # Calculate size that scales appropriately for the dimension
+        # Higher dimensions need to fit more points, so scale the size
+        scale_factor = 0.85  # Reduce slightly from maximum to leave margin
+        base_size = scale_factor * min(self.width(), self.height()) - 2 * self.margin
         
         # Generate all ternary numbers of length=dimension
         self._recursive_generate_positions(dimension, "", base_x, base_y, base_size)
@@ -413,7 +461,10 @@ class PlanarExpansionVisualizer(QWidget):
             painter: The QPainter to use
         """
         painter.setPen(QPen(Qt.GlobalColor.black))
-        painter.setFont(QFont("Arial", 8))
+        
+        # Adjust font size based on cell size
+        font_size = max(6, min(10, int(self.cell_size / 8)))
+        painter.setFont(QFont("Arial", font_size, QFont.Weight.Bold))
         
         for key, (x, y) in self._grid_positions.items():
             ternary = decimal_to_ternary(key).zfill(self.dimension)
@@ -422,17 +473,28 @@ class PlanarExpansionVisualizer(QWidget):
             # Create label text
             label = f"{key} ({ternary})"
             
+            # Adjust label size based on cell size
+            label_width = self.cell_size * 0.9
+            label_height = self.cell_size * 0.25
+            
             # Position the label
             text_rect = QRectF(
-                x - self.cell_size * 0.4,
+                x - label_width / 2,
                 y + self.cell_size * 0.3,
-                self.cell_size * 0.8,
-                self.cell_size * 0.3
+                label_width,
+                label_height
             )
             
             # Draw with a white background for readability
-            painter.fillRect(text_rect, QColor(255, 255, 255, 180))
+            painter.fillRect(text_rect, QColor(255, 255, 255, 200))  # More opaque
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, label)
+            
+            # Add a thin border around the label
+            painter.setPen(QPen(QColor(100, 100, 100, 150), 0.5))
+            painter.drawRect(text_rect)
+            
+            # Reset pen color for next label
+            painter.setPen(QPen(Qt.GlobalColor.black))
     
     def _highlight_current_ternary(self, painter: QPainter) -> None:
         """
@@ -479,7 +541,26 @@ class PlanarExpansionVisualizer(QWidget):
             event: The resize event
         """
         super().resizeEvent(event)
-        self._update_grid_positions()
+        
+        # Cache old size
+        old_size = getattr(self, "_old_size", QSize(0, 0))
+        new_size = self.size()
+        
+        # Only update if size changed significantly (more than 10 pixels in either dimension)
+        if (abs(old_size.width() - new_size.width()) > 10 or 
+                abs(old_size.height() - new_size.height()) > 10):
+            self._old_size = new_size
+            self._update_grid_positions()
+            self.update()  # Trigger repaint
+    
+    def sizeHint(self) -> QSize:
+        """
+        Suggest an appropriate size for the widget.
+        
+        Returns:
+            The recommended size for the widget
+        """
+        return QSize(600, 600)
 
 
 class PlanarExpansionPanel(QFrame):
@@ -494,6 +575,8 @@ class PlanarExpansionPanel(QFrame):
         # Set up the main layout
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
         
         # Create title
         title_label = QLabel("Planar Expansion Visualizer")
@@ -572,16 +655,31 @@ class PlanarExpansionPanel(QFrame):
         # Create visualizer in a scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
+        scroll_area.setMinimumHeight(500)  # Increased from default
+        scroll_area.setMinimumWidth(600)   # Set minimum width
+        
+        # Create container widget with layout to center the visualizer
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Create the visualizer widget
         self.visualizer = PlanarExpansionVisualizer()
-        scroll_area.setWidget(self.visualizer)
+        self.visualizer.setMinimumSize(500, 500)  # Set minimum size
+        container_layout.addWidget(self.visualizer)
+        
+        # Set the container as the scroll area widget
+        scroll_area.setWidget(container)
         
         main_layout.addWidget(scroll_area, 1)  # Give it a stretch factor of 1
         
         # Set frame style
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
         self.setStyleSheet("QFrame { background-color: #f5f5f5; border-radius: 5px; }")
+        
+        # Force initial visualization update after a short delay to ensure proper sizing
+        QTimer.singleShot(100, self._update_visualization)
     
     def _validate_input(self) -> None:
         """Validate the ternary input and update UI accordingly."""
