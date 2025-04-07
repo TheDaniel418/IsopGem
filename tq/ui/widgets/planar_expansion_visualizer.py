@@ -56,8 +56,8 @@ class PlanarExpansionVisualizer(QWidget):
         # Configuration
         self.ternary_value = "0"
         self.dimension = 3  # 3D cube by default
-        self.cell_size = 60  # Increased from 40 to 60
-        self.margin = 40  # Increased from 20 to 40
+        self.cell_size = 80  # Increased from 60 to 80
+        self.margin = 50    # Increased for better spacing
         self.animation_step = 0
         self.show_labels = True
         self.show_tao_lines = True
@@ -72,15 +72,33 @@ class PlanarExpansionVisualizer(QWidget):
             QColor(0, 0, 200)     # Yin/2: Blue
         ]
         
+        # Label styling
+        self.label_bg_color = QColor(255, 255, 255, 230)  # More opaque background
+        self.label_border_color = QColor(80, 80, 80, 200) # Darker border
+        self.label_offset_y = 0.35  # Distance below the vertex
+        
         # Set size policy
         self.setSizePolicy(
             QSizePolicy.Policy.Expanding, 
             QSizePolicy.Policy.Expanding
         )
-        self.setMinimumSize(400, 400)
+        self.setMinimumSize(600, 600)  # Larger minimum size
         
         # Initialize the cached grid positions
         self._grid_positions = {}
+        self._grid_colors = {}    # Cache for vertex colors
+        self._grid_radii = {}     # Cache for vertex radii
+        
+        # Timer for smooth transitions
+        self._animation_timer = QTimer(self)
+        self._animation_timer.timeout.connect(self._animate_transition)
+        self._animation_timer.setInterval(30)  # 30ms for smooth animation
+        
+        self._transitioning = False
+        self._old_positions = {}
+        self._transition_progress = 0.0
+        
+        # Initialize the grid
         self._update_grid_positions()
     
     def set_ternary(self, value: str) -> None:
@@ -106,8 +124,24 @@ class PlanarExpansionVisualizer(QWidget):
         if dimension < 2 or dimension > 6:
             raise ValueError(f"Dimension must be between 2 and 6, got {dimension}")
         
+        if dimension == self.dimension:
+            return  # No change needed
+        
+        # Save old positions for animation
+        self._old_positions = self._grid_positions.copy()
+        self._transitioning = True
+        self._transition_progress = 0.0
+        
+        # Update dimension
         self.dimension = dimension
+        
+        # Update grid positions
         self._update_grid_positions()
+        
+        # Start animation
+        if not self._animation_timer.isActive():
+            self._animation_timer.start()
+        
         self.update()
     
     def toggle_labels(self, show: bool) -> None:
@@ -140,12 +174,32 @@ class PlanarExpansionVisualizer(QWidget):
         self.show_grid = show
         self.update()
     
+    def _animate_transition(self):
+        """Animate the transition between dimensions."""
+        if not self._transitioning:
+            self._animation_timer.stop()
+            return
+        
+        # Update transition progress
+        self._transition_progress += 0.05
+        if self._transition_progress >= 1.0:
+            self._transition_progress = 1.0
+            self._transitioning = False
+            self._animation_timer.stop()
+        
+        self.update()  # Trigger repaint
+    
     def _update_grid_positions(self) -> None:
         """
         Update the cached grid positions based on the current dimension.
         """
+        # Store old positions if transitioning
+        old_positions = self._grid_positions.copy() if self._transitioning else {}
+        
         # Clear the existing positions
         self._grid_positions = {}
+        self._grid_colors = {}
+        self._grid_radii = {}
         
         # Get available space
         width = self.width()
@@ -155,131 +209,158 @@ class PlanarExpansionVisualizer(QWidget):
         if width <= 1 or height <= 1:
             return
         
-        # Adjust cell size based on available space
-        if self.dimension == 2:
-            # For 2D, we can fit a 3x3 grid
-            available_width = width - 2 * self.margin
-            available_height = height - 2 * self.margin
-            grid_size = min(available_width / 4.5, available_height / 4.5)  # 3 cells + spacing
-            self.cell_size = max(40, grid_size)  # Ensure minimum size
-        elif self.dimension == 3:
-            # For 3D, we need to account for the isometric projection
-            available_width = width - 2 * self.margin
-            available_height = height - 2 * self.margin
-            grid_size = min(available_width / 5, available_height / 5)  # Account for projection
-            self.cell_size = max(40, grid_size)  # Ensure minimum size
-        else:
-            # For higher dimensions, we'll use a different approach
-            available_size = min(width, height) - 2 * self.margin
-            self.cell_size = max(40, available_size / (3 ** (self.dimension / 4)))  # Scale down for higher dimensions
+        # Adjust cell size based on available space and dimension
+        cell_size_multiplier = {
+            2: 1.0,  # 2D needs less space
+            3: 0.9,  # 3D needs moderate space
+            4: 0.8,  # 4D+ need progressively more space
+            5: 0.7,
+            6: 0.5
+        }
+        
+        available_size = min(width, height) - 2 * self.margin
+        base_cell_size = available_size / (3.5 + self.dimension * 0.5)
+        self.cell_size = max(50, base_cell_size * cell_size_multiplier.get(self.dimension, 0.5))
         
         # Calculate center points for proper centering
         center_x = width / 2
         center_y = height / 2
         
-        # Generate positions for each cell in the grid
+        # Generate positions based on dimension
         if self.dimension == 2:
-            # 2D grid (square)
-            grid_width = 3 * self.cell_size * 1.5
-            grid_height = 3 * self.cell_size * 1.5
-            
-            # Calculate the top-left corner to center the grid
-            start_x = center_x - grid_width / 2
-            start_y = center_y - grid_height / 2
-            
-            for i in range(3):
-                for j in range(3):
+            self._generate_2d_grid(center_x, center_y)
+        elif self.dimension == 3:
+            self._generate_3d_grid(center_x, center_y)
+        else:
+            self._generate_higher_dimension_grid(self.dimension, center_x, center_y)
+        
+        # Generate colors and sizes for vertices
+        self._generate_vertex_properties()
+    
+    def _generate_2d_grid(self, center_x: float, center_y: float) -> None:
+        """Generate grid positions for 2D visualization (square)."""
+        # Calculate grid size
+        spacing = self.cell_size * 2.0
+        grid_width = 2 * spacing
+        grid_height = 2 * spacing
+        
+        # Calculate the top-left corner to center the grid
+        start_x = center_x - grid_width / 2
+        start_y = center_y - grid_height / 2
+        
+        for i in range(3):
+            for j in range(3):
+                # Position key is the ternary representation
+                pos_key = f"{i}{j}"
+                decimal_value = ternary_to_decimal(pos_key)
+                
+                # Calculate grid coordinates with better spacing
+                x = start_x + j * spacing
+                y = start_y + i * spacing
+                
+                self._grid_positions[decimal_value] = (x, y)
+    
+    def _generate_3d_grid(self, center_x: float, center_y: float) -> None:
+        """Generate grid positions for 3D visualization (cube)."""
+        # Calculate isometric projection parameters
+        # Use these to control the cube's appearance
+        horizontal_spacing = self.cell_size * 1.5
+        vertical_spacing = self.cell_size * 0.9
+        depth_spacing = self.cell_size * 0.7
+        
+        # Calculate the center of the cube in widget coordinates
+        start_x = center_x
+        start_y = center_y - vertical_spacing  # Shift up slightly
+        
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
                     # Position key is the ternary representation
-                    pos_key = f"{i}{j}"
+                    pos_key = f"{i}{j}{k}"
                     decimal_value = ternary_to_decimal(pos_key)
                     
-                    # Calculate grid coordinates
-                    x = start_x + j * self.cell_size * 1.5
-                    y = start_y + i * self.cell_size * 1.5
+                    # Calculate isometric projection coordinates with better spacing
+                    # This creates a more spread out and visually clear 3D cube
+                    x = start_x + (j - i) * horizontal_spacing
+                    y = start_y + (i + j) * vertical_spacing - k * depth_spacing
                     
                     self._grid_positions[decimal_value] = (x, y)
-        
-        elif self.dimension == 3:
-            # 3D grid (cube)
-            # Calculate the size of the projected cube
-            cube_width = 3 * self.cell_size
-            cube_height = 3 * self.cell_size * 0.8 + 3 * self.cell_size * 0.5
-            
-            # Calculate the center of the cube in widget coordinates
-            start_x = center_x
-            start_y = center_y - cube_height * 0.1  # Slight adjustment to center vertically
-            
-            for i in range(3):
-                for j in range(3):
-                    for k in range(3):
-                        # Position key is the ternary representation
-                        pos_key = f"{i}{j}{k}"
-                        decimal_value = ternary_to_decimal(pos_key)
-                        
-                        # Calculate isometric projection coordinates
-                        # Center the 3D projection in the widget
-                        x = start_x + (j - i) * self.cell_size
-                        y = start_y + (i + j) * self.cell_size * 0.5 + (2 - k) * self.cell_size * 0.8
-                        
-                        self._grid_positions[decimal_value] = (x, y)
-        
-        else:
-            # Higher dimensions - use the recursive subdivision approach
-            # This creates a fractal-like representation of higher dimensions
-            self._generate_higher_dimension_grid(self.dimension)
     
-    def _generate_higher_dimension_grid(self, dimension: int) -> None:
+    def _generate_higher_dimension_grid(self, dimension: int, center_x: float, center_y: float) -> None:
         """
-        Generate grid positions for higher dimensions using recursive subdivision.
-        
-        Args:
-            dimension: The dimension to generate (4+)
+        Generate grid positions for dimensions 4 and above using a specialized layout.
         """
-        # Base case position and size
-        base_x = self.width() / 2
-        base_y = self.height() / 2
+        # For higher dimensions, we'll use a circular layout with layers
+        # Each layer represents a different Tao count (number of zeros)
         
-        # Calculate size that scales appropriately for the dimension
-        # Higher dimensions need to fit more points, so scale the size
-        scale_factor = 0.85  # Reduce slightly from maximum to leave margin
-        base_size = scale_factor * min(self.width(), self.height()) - 2 * self.margin
+        # First, group positions by Tao count
+        tao_groups = {}
+        max_positions = 3 ** dimension
         
-        # Generate all ternary numbers of length=dimension
-        self._recursive_generate_positions(dimension, "", base_x, base_y, base_size)
+        for decimal_value in range(max_positions):
+            ternary = decimal_to_ternary(decimal_value).zfill(dimension)
+            tao_count = ternary.count('0')
+            
+            if tao_count not in tao_groups:
+                tao_groups[tao_count] = []
+            
+            tao_groups[tao_count].append(decimal_value)
+        
+        # Calculate radius of the main circle
+        main_radius = min(self.width(), self.height()) * 0.4
+        
+        # Position each Tao group in a circle, with different radius per group
+        for tao_count, positions in tao_groups.items():
+            # Calculate this group's circle radius
+            # Largest radius for vertices (0 Tao), smallest for center (all Tao)
+            group_radius_ratio = 1.0 - (tao_count / dimension)
+            group_radius = main_radius * (0.2 + 0.8 * group_radius_ratio)
+            
+            # Distribute positions evenly around a circle
+            position_count = len(positions)
+            for i, decimal_value in enumerate(positions):
+                if position_count > 1:
+                    # Multiple positions - distribute around circle
+                    angle = 2 * math.pi * i / position_count
+                    x = center_x + group_radius * math.cos(angle)
+                    y = center_y + group_radius * math.sin(angle)
+                else:
+                    # Single position (likely the center) - place at center
+                    x, y = center_x, center_y
+                
+                self._grid_positions[decimal_value] = (x, y)
     
-    def _recursive_generate_positions(self, remaining_dims: int, prefix: str, 
-                                     center_x: float, center_y: float, size: float) -> None:
-        """
-        Recursively generate positions for higher dimensions.
-        
-        Args:
-            remaining_dims: Number of dimensions left to process
-            prefix: Current ternary digit prefix
-            center_x: X-coordinate of the current subdivision center
-            center_y: Y-coordinate of the current subdivision center
-            size: Size of the current subdivision
-        """
-        if remaining_dims == 0:
-            # Base case: store the position
-            decimal_value = ternary_to_decimal(prefix)
-            self._grid_positions[decimal_value] = (center_x, center_y)
-            return
-        
-        # Recursive case: subdivide the space into 3x3 grid
-        new_size = size / 3
-        offsets = [-new_size, 0, new_size]
-        
-        for i, x_offset in enumerate(offsets):
-            for j, y_offset in enumerate(offsets):
-                new_digit = str((i + j) % 3)  # Simple mapping of position to ternary digit
-                new_prefix = prefix + new_digit
+    def _generate_vertex_properties(self) -> None:
+        """Generate colors and sizes for vertices based on their Tao count."""
+        for decimal_value in self._grid_positions:
+            ternary = decimal_to_ternary(decimal_value).zfill(self.dimension)
+            tao_count = ternary.count('0')
+            
+            # Determine radius based on Tao count and dimension
+            base_radius = self.cell_size * 0.25
+            
+            # Vertices (0 Tao) are larger
+            if tao_count == 0:
+                radius = base_radius * 1.5
+                color = self.vertex_colors[1]  # Yang/Red
+            # Center (all Tao) is largest
+            elif tao_count == self.dimension:
+                radius = base_radius * 2.0
+                color = self.vertex_colors[0]  # Tao/Green
+            # Edges, faces, etc. are in between
+            else:
+                # Size and color based on Tao count relative to dimension
+                tao_ratio = tao_count / self.dimension
+                radius = base_radius * (1.0 + tao_ratio * 1.0)
                 
-                new_x = center_x + x_offset
-                new_y = center_y + y_offset
-                
-                self._recursive_generate_positions(
-                    remaining_dims - 1, new_prefix, new_x, new_y, new_size
-                )
+                # Blend between colors
+                red = int(max(0, (1 - tao_ratio) * 200))
+                green = int(max(0, tao_ratio * 150))
+                blue = int(max(0, 100 + tao_ratio * 100))
+                color = QColor(red, green, blue)
+            
+            self._grid_radii[decimal_value] = radius
+            self._grid_colors[decimal_value] = color
     
     def paintEvent(self, event):
         """
@@ -294,84 +375,130 @@ class PlanarExpansionVisualizer(QWidget):
         # Draw background
         painter.fillRect(self.rect(), self.background_color)
         
+        # If transitioning, interpolate positions
+        positions = self._get_interpolated_positions() if self._transitioning else self._grid_positions
+        
         # Draw grid if enabled
         if self.show_grid:
-            self._draw_grid(painter)
+            self._draw_grid(painter, positions)
         
         # Draw connections (Tao lines) if enabled
         if self.show_tao_lines:
-            self._draw_tao_lines(painter)
+            self._draw_tao_lines(painter, positions)
         
         # Draw vertices
-        self._draw_vertices(painter)
+        self._draw_vertices(painter, positions)
         
         # Draw labels if enabled
         if self.show_labels:
-            self._draw_labels(painter)
+            self._draw_labels(painter, positions)
         
         # Draw the current ternary number highlight
-        self._highlight_current_ternary(painter)
+        self._highlight_current_ternary(painter, positions)
     
-    def _draw_grid(self, painter: QPainter) -> None:
+    def _get_interpolated_positions(self) -> Dict[int, Tuple[float, float]]:
+        """Get interpolated positions during a dimension transition."""
+        positions = {}
+        
+        # For each position, interpolate between old and new
+        for decimal_value, (new_x, new_y) in self._grid_positions.items():
+            # If this position exists in old positions, interpolate
+            if decimal_value in self._old_positions:
+                old_x, old_y = self._old_positions[decimal_value]
+                
+                # Linear interpolation
+                x = old_x + (new_x - old_x) * self._transition_progress
+                y = old_y + (new_y - old_y) * self._transition_progress
+                
+                positions[decimal_value] = (x, y)
+            else:
+                # New position that didn't exist before, just use the new position
+                positions[decimal_value] = (new_x, new_y)
+        
+        return positions
+    
+    def _draw_grid(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
         """
         Draw the dimensional grid.
         
         Args:
             painter: The QPainter to use
+            positions: The positions to use for drawing
         """
-        painter.setPen(QPen(self.grid_color, 0.5))
+        painter.setPen(QPen(self.grid_color, 1.0))
         
-        # For 2D or 3D, draw explicit grid lines
+        # For 2D or 3D, draw dimension-specific grid lines
         if self.dimension <= 3:
-            if self.dimension == 2:
-                # Draw 2D grid
-                for i in range(4):
-                    # Horizontal lines
-                    y = self.margin + i * self.cell_size * 1.5
-                    painter.drawLine(
-                        QPointF(self.margin, y), 
-                        QPointF(self.margin + 3 * self.cell_size * 1.5, y)
-                    )
-                    
-                    # Vertical lines
-                    x = self.margin + i * self.cell_size * 1.5
-                    painter.drawLine(
-                        QPointF(x, self.margin), 
-                        QPointF(x, self.margin + 3 * self.cell_size * 1.5)
-                    )
-            
-            elif self.dimension == 3:
-                # Draw 3D grid (simplified)
-                for key, (x, y) in self._grid_positions.items():
-                    # Draw a small grid point
-                    painter.drawEllipse(QPointF(x, y), 1, 1)
+            self._draw_dimension_specific_grid(painter)
         
-        else:
-            # For higher dimensions, draw connecting lines between nearby points
-            # This creates a network visualization of the dimensional structure
-            for key1, (x1, y1) in self._grid_positions.items():
-                ternary1 = decimal_to_ternary(key1).zfill(self.dimension)
-                
-                for key2, (x2, y2) in self._grid_positions.items():
-                    ternary2 = decimal_to_ternary(key2).zfill(self.dimension)
+        # For all dimensions, draw connecting lines between nearby points
+        # This creates a network visualization of the dimensional structure
+        for key1, (x1, y1) in positions.items():
+            ternary1 = decimal_to_ternary(key1).zfill(self.dimension)
+            
+            for key2, (x2, y2) in positions.items():
+                if key1 >= key2:  # Skip already processed pairs
+                    continue
                     
-                    # Check if they differ by only one digit
-                    diff_count = sum(a != b for a, b in zip(ternary1, ternary2))
-                    if diff_count == 1:
-                        # Draw a connecting line
-                        painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+                ternary2 = decimal_to_ternary(key2).zfill(self.dimension)
+                
+                # Check if they differ by exactly one digit
+                diff_count = sum(a != b for a, b in zip(ternary1, ternary2))
+                
+                if diff_count == 1:
+                    # Determine line thickness based on the positions' Tao counts
+                    tao_count1 = ternary1.count('0')
+                    tao_count2 = ternary2.count('0')
+                    avg_tao = (tao_count1 + tao_count2) / 2
+                    
+                    # Thinner lines for higher dimensions
+                    thickness = max(0.5, 1.0 - avg_tao / self.dimension)
+                    
+                    # Draw connecting grid line
+                    painter.setPen(QPen(self.grid_color, thickness))
+                    painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
     
-    def _draw_tao_lines(self, painter: QPainter) -> None:
+    def _draw_dimension_specific_grid(self, painter: QPainter) -> None:
+        """Draw grid lines specific to 2D/3D visualizations."""
+        if self.dimension == 2:
+            # Get grid bounds from positions
+            min_x = min(x for x, _ in self._grid_positions.values())
+            max_x = max(x for x, _ in self._grid_positions.values())
+            min_y = min(y for _, y in self._grid_positions.values())
+            max_y = max(y for _, y in self._grid_positions.values())
+            
+            # Draw 2D grid lines
+            painter.setPen(QPen(self.grid_color, 0.5))
+            
+            # Horizontal and vertical lines through each position
+            for i in range(3):
+                x_positions = [pos[0] for key, pos in self._grid_positions.items() 
+                            if decimal_to_ternary(key).zfill(2)[1] == str(i)]
+                y_positions = [pos[1] for key, pos in self._grid_positions.items() 
+                            if decimal_to_ternary(key).zfill(2)[0] == str(i)]
+                
+                if x_positions:
+                    avg_x = sum(x_positions) / len(x_positions)
+                    painter.drawLine(QPointF(avg_x, min_y - self.margin/2), 
+                                    QPointF(avg_x, max_y + self.margin/2))
+                
+                if y_positions:
+                    avg_y = sum(y_positions) / len(y_positions)
+                    painter.drawLine(QPointF(min_x - self.margin/2, avg_y), 
+                                    QPointF(max_x + self.margin/2, avg_y))
+    
+    def _draw_tao_lines(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
         """
         Draw the Tao lines connecting vertices with the same Tao count.
         
         Args:
             painter: The QPainter to use
+            positions: The positions to use for drawing
         """
         # Group vertices by Tao count (number of 0s in their ternary representation)
         tao_groups = {}
         
-        for key in self._grid_positions:
+        for key in positions:
             ternary = decimal_to_ternary(key).zfill(self.dimension)
             tao_count = ternary.count('0')
             
@@ -382,12 +509,12 @@ class PlanarExpansionVisualizer(QWidget):
         
         # Draw connections between vertices in the same Tao group
         for tao_count, vertices in tao_groups.items():
-            # Skip empty groups
-            if not vertices:
+            # Skip empty groups or groups with just one vertex
+            if len(vertices) <= 1:
                 continue
             
             # Choose color based on Tao count
-            alpha = 100  # Semitransparent
+            alpha = 130  # More visible
             
             # Use different colors for different Tao counts
             if tao_count == 0:  # No Tao lines (vertices)
@@ -395,139 +522,243 @@ class PlanarExpansionVisualizer(QWidget):
             elif tao_count == self.dimension:  # All Tao lines (center)
                 color = QColor(0, 150, 0, alpha)  # Green
             else:
-                # Interpolate between blue and purple for intermediate values
-                blue_component = 255 - (tao_count * 40)
-                red_component = min(tao_count * 40, 150)
-                color = QColor(red_component, 0, blue_component, alpha)
+                # Interpolate between colors based on Tao count ratio
+                tao_ratio = tao_count / self.dimension
+                red = int(max(0, (1 - tao_ratio) * 200))
+                green = int(max(0, tao_ratio * 150))
+                blue = int(max(0, 100 + tao_ratio * 100))
+                color = QColor(red, green, blue, alpha)
             
-            painter.setPen(QPen(color, 2, Qt.PenStyle.DashLine))
+            # Line style based on dimension and Tao count
+            if self.dimension <= 3:
+                # Solid line for 2D/3D
+                pen = QPen(color, 2.0)
+            else:
+                # Dashed line for higher dimensions
+                pen = QPen(color, 1.5, Qt.PenStyle.DashLine)
+                
+                # Customize dash pattern based on Tao count
+                dash_length = 3 + tao_count
+                space_length = 2 + (self.dimension - tao_count)
+                pen.setDashPattern([dash_length, space_length])
+            
+            painter.setPen(pen)
             
             # Draw lines connecting all vertices in this Tao group
             for i in range(len(vertices)):
                 for j in range(i + 1, len(vertices)):
                     v1, v2 = vertices[i], vertices[j]
-                    x1, y1 = self._grid_positions[v1]
-                    x2, y2 = self._grid_positions[v2]
                     
-                    # Use QPointF objects instead of raw float coordinates
+                    # Skip if either vertex is not in the positions dict
+                    if v1 not in positions or v2 not in positions:
+                        continue
+                    
+                    x1, y1 = positions[v1]
+                    x2, y2 = positions[v2]
+                    
+                    # Use QPointF objects for float coordinates
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
     
-    def _draw_vertices(self, painter: QPainter) -> None:
+    def _draw_vertices(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
         """
         Draw the vertices of the dimensional structure.
         
         Args:
             painter: The QPainter to use
+            positions: The positions to use for drawing
         """
-        for key, (x, y) in self._grid_positions.items():
-            ternary = decimal_to_ternary(key).zfill(self.dimension)
-            tao_count = ternary.count('0')
-            
-            # Determine vertex size and color based on Tao count
-            radius = self.cell_size * 0.25
-            
-            # Adjust size based on Tao count
-            if tao_count == 0:  # Vertices (no Tao lines)
-                radius *= 1.3
-            elif tao_count == self.dimension:  # Center (all Tao lines)
-                radius *= 1.5
+        for key, (x, y) in positions.items():
+            # Get cached properties
+            if key in self._grid_colors and key in self._grid_radii:
+                color = self._grid_colors[key]
+                radius = self._grid_radii[key]
             else:
-                # Size increases with Tao count
-                radius *= (1 + 0.1 * tao_count)
+                # Fallback if properties aren't cached (shouldn't happen normally)
+                ternary = decimal_to_ternary(key).zfill(self.dimension)
+                tao_count = ternary.count('0')
+                
+                radius = self.cell_size * 0.25 * (1.0 + 0.5 * tao_count / self.dimension)
+                
+                if tao_count == 0:
+                    color = self.vertex_colors[1]  # Yang/Red
+                elif tao_count == self.dimension:
+                    color = self.vertex_colors[0]  # Tao/Green  
+                else:
+                    tao_ratio = tao_count / self.dimension
+                    red = int(max(0, (1 - tao_ratio) * 200))
+                    green = int(max(0, tao_ratio * 150))
+                    blue = int(max(0, 100 + tao_ratio * 100))
+                    color = QColor(red, green, blue)
             
-            # Color based on Tao count
-            if tao_count == 0:  # Vertices
-                color = self.vertex_colors[1]  # Yang/1: Red
-            elif tao_count == self.dimension:  # Center
-                color = self.vertex_colors[0]  # Tao/0: Green
-            else:
-                # Edges and faces use a blend of colors
-                color = QColor(
-                    0,
-                    0,
-                    180 + min(tao_count * 15, 75)  # More blue for higher Tao count
-                )
+            # Create a gradient for the vertex for a 3D effect
+            gradient = QRadialGradient(x, y, radius)
             
-            # Draw the vertex
-            painter.setBrush(QBrush(color))
+            # Lighter center, original color at edge
+            lighter_color = QColor(color)
+            lighter_color.setRed(min(255, lighter_color.red() + 50))
+            lighter_color.setGreen(min(255, lighter_color.green() + 50))
+            lighter_color.setBlue(min(255, lighter_color.blue() + 50))
+            
+            gradient.setColorAt(0.0, lighter_color)
+            gradient.setColorAt(1.0, color)
+            
+            # Draw the vertex with gradient fill
+            painter.setBrush(QBrush(gradient))
             painter.setPen(QPen(Qt.GlobalColor.black, 1))
             painter.drawEllipse(QPointF(x, y), radius, radius)
+            
+            # Add a small highlight for 3D effect
+            highlight_size = radius * 0.3
+            highlight_offset = radius * 0.2
+            
+            highlight_gradient = QRadialGradient(
+                x - highlight_offset, y - highlight_offset, 
+                highlight_size
+            )
+            highlight_gradient.setColorAt(0.0, QColor(255, 255, 255, 180))
+            highlight_gradient.setColorAt(1.0, QColor(255, 255, 255, 0))
+            
+            painter.setBrush(QBrush(highlight_gradient))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(
+                QPointF(x - highlight_offset, y - highlight_offset), 
+                highlight_size, highlight_size
+            )
     
-    def _draw_labels(self, painter: QPainter) -> None:
+    def _draw_labels(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
         """
         Draw labels for each position in the grid.
         
         Args:
             painter: The QPainter to use
+            positions: The positions to use for drawing
         """
         painter.setPen(QPen(Qt.GlobalColor.black))
         
-        # Adjust font size based on cell size
-        font_size = max(6, min(10, int(self.cell_size / 8)))
-        painter.setFont(QFont("Arial", font_size, QFont.Weight.Bold))
+        # Calculate the appropriate font size based on dimension and cell size
+        font_size = max(7, min(11, int(self.cell_size / 6.5)))
         
-        for key, (x, y) in self._grid_positions.items():
+        # Adjust font size for higher dimensions (smaller text for more nodes)
+        if self.dimension >= 4:
+            font_size = max(6, font_size - (self.dimension - 3))
+        
+        font = QFont("Arial", font_size, QFont.Weight.Bold)
+        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 98)
+        painter.setFont(font)
+        
+        # Track label positions to avoid overlaps
+        label_rects = []
+        
+        # Sort keys by decimal value for a consistent drawing order
+        sorted_keys = sorted(positions.keys())
+        
+        for key in sorted_keys:
+            x, y = positions[key]
+            
+            # Get the vertex radius
+            radius = self._grid_radii.get(key, self.cell_size * 0.25)
+            
             ternary = decimal_to_ternary(key).zfill(self.dimension)
             tao_count = ternary.count('0')
             
             # Create label text
-            label = f"{key} ({ternary})"
+            if self.dimension <= 3:
+                # Show both decimal and ternary for 2D and 3D
+                label = f"{key} ({ternary})"
+            else:
+                # Only show decimal for higher dimensions to save space
+                label = f"{key}"
             
-            # Adjust label size based on cell size
-            label_width = self.cell_size * 0.9
-            label_height = self.cell_size * 0.25
+            # Adjust label size based on cell size and dimension
+            label_width = max(40, min(120, self.cell_size * 0.9))
+            label_height = max(14, min(30, self.cell_size * 0.25))
             
-            # Position the label
+            # Position the label - adjust based on Tao count
+            y_offset = radius + self.label_offset_y * self.cell_size
             text_rect = QRectF(
                 x - label_width / 2,
-                y + self.cell_size * 0.3,
+                y + y_offset,
                 label_width,
                 label_height
             )
             
-            # Draw with a white background for readability
-            painter.fillRect(text_rect, QColor(255, 255, 255, 200))  # More opaque
-            painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, label)
+            # Check for overlaps
+            overlap = False
+            for rect in label_rects:
+                if rect.intersects(text_rect):
+                    overlap = True
+                    break
             
-            # Add a thin border around the label
-            painter.setPen(QPen(QColor(100, 100, 100, 150), 0.5))
-            painter.drawRect(text_rect)
-            
-            # Reset pen color for next label
-            painter.setPen(QPen(Qt.GlobalColor.black))
+            # Only draw if not overlapping
+            if not overlap:
+                # Adjust background color based on Tao count
+                bg_opacity = 180 + min(50, tao_count * 10)
+                
+                # Draw with a semi-transparent background for readability
+                painter.fillRect(text_rect, QColor(255, 255, 255, bg_opacity))
+                
+                # Add a border, with color indicating Tao count
+                border_color = QColor(
+                    max(50, 130 - tao_count * 20),
+                    min(120, 40 + tao_count * 15),
+                    min(130, 70 + tao_count * 10),
+                    200
+                )
+                painter.setPen(QPen(border_color, 0.8))
+                painter.drawRect(text_rect)
+                
+                # Draw text
+                painter.setPen(QPen(Qt.GlobalColor.black))
+                painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, label)
+                
+                # Store label rect to check for future overlaps
+                label_rects.append(text_rect)
     
-    def _highlight_current_ternary(self, painter: QPainter) -> None:
+    def _highlight_current_ternary(self, painter: QPainter, positions: Dict[int, Tuple[float, float]]) -> None:
         """
         Highlight the position corresponding to the current ternary value.
         
         Args:
             painter: The QPainter to use
+            positions: The positions to use for drawing
         """
         try:
             decimal_value = ternary_to_decimal(self.ternary_value)
             
-            # Skip if the value is not in our grid
-            if decimal_value not in self._grid_positions:
+            # Skip if the value is not in our positions
+            if decimal_value not in positions:
                 return
             
-            x, y = self._grid_positions[decimal_value]
+            x, y = positions[decimal_value]
             
-            # Draw a highlight circle
-            highlight_radius = self.cell_size * 0.4
+            # Get the vertex radius
+            radius = self._grid_radii.get(decimal_value, self.cell_size * 0.25)
             
-            # Create a glow effect
-            gradient = QRadialGradient(x, y, highlight_radius * 1.5)
-            gradient.setColorAt(0, QColor(255, 255, 0, 150))
-            gradient.setColorAt(1, QColor(255, 255, 0, 0))
+            # Create a pulsing glow effect
+            glow_size = radius * 2.0
+            pulse_factor = 0.5 + 0.5 * math.sin(self.animation_step * 0.1)
+            self.animation_step += 1
             
+            # Create a gradient for the glow
+            gradient = QRadialGradient(x, y, glow_size)
+            gradient.setColorAt(0, QColor(255, 255, 0, 120 * pulse_factor))
+            gradient.setColorAt(0.6, QColor(255, 215, 0, 80 * pulse_factor))
+            gradient.setColorAt(1, QColor(255, 180, 0, 0))
+            
+            # Draw the glow
             painter.setBrush(QBrush(gradient))
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawEllipse(QPointF(x, y), highlight_radius * 1.5, highlight_radius * 1.5)
+            painter.drawEllipse(QPointF(x, y), glow_size, glow_size)
             
             # Draw a golden ring around the vertex
-            painter.setPen(QPen(QColor(255, 215, 0), 2))
+            ring_width = 2.0 + pulse_factor * 1.0
+            painter.setPen(QPen(QColor(255, 215, 0), ring_width))
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawEllipse(QPointF(x, y), highlight_radius, highlight_radius)
+            painter.drawEllipse(QPointF(x, y), radius + 2, radius + 2)
+            
+            # Start the animation timer if not already running
+            if not self._animation_timer.isActive():
+                self._animation_timer.start()
         
         except (ValueError, KeyError):
             # Invalid ternary value or not in our grid
