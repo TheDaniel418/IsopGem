@@ -280,11 +280,17 @@ class PlanarExpansionVisualizer(QWidget):
                 for i in range(4):
                     # Horizontal lines
                     y = self.margin + i * self.cell_size * 1.5
-                    painter.drawLine(self.margin, y, self.margin + 3 * self.cell_size * 1.5, y)
+                    painter.drawLine(
+                        QPointF(self.margin, y), 
+                        QPointF(self.margin + 3 * self.cell_size * 1.5, y)
+                    )
                     
                     # Vertical lines
                     x = self.margin + i * self.cell_size * 1.5
-                    painter.drawLine(x, self.margin, x, self.margin + 3 * self.cell_size * 1.5)
+                    painter.drawLine(
+                        QPointF(x, self.margin), 
+                        QPointF(x, self.margin + 3 * self.cell_size * 1.5)
+                    )
             
             elif self.dimension == 3:
                 # Draw 3D grid (simplified)
@@ -305,7 +311,7 @@ class PlanarExpansionVisualizer(QWidget):
                     diff_count = sum(a != b for a, b in zip(ternary1, ternary2))
                     if diff_count == 1:
                         # Draw a connecting line
-                        painter.drawLine(x1, y1, x2, y2)
+                        painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
     
     def _draw_tao_lines(self, painter: QPainter) -> None:
         """
@@ -355,7 +361,8 @@ class PlanarExpansionVisualizer(QWidget):
                     x1, y1 = self._grid_positions[v1]
                     x2, y2 = self._grid_positions[v2]
                     
-                    painter.drawLine(x1, y1, x2, y2)
+                    # Use QPointF objects instead of raw float coordinates
+                    painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
     
     def _draw_vertices(self, painter: QPainter) -> None:
         """
