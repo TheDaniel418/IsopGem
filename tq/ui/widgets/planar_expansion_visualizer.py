@@ -531,10 +531,12 @@ class PlanarExpansionVisualizer(QWidget):
         self._grid_positions = positions
 
     def _generate_vertex_properties(self) -> None:
-        """Generate colors and sizes for vertices based on their Tao count."""
+        """Generate colors and sizes for vertices based on their ternary composition."""
         for decimal_value in self._grid_positions:
             ternary = decimal_to_ternary(decimal_value).zfill(self.dimension)
-            tao_count = ternary.count("0")
+            tao_count = ternary.count("0")  # Number of 0s
+            yang_count = ternary.count("1")  # Number of 1s
+            yin_count = ternary.count("2")   # Number of 2s
 
             # Determine radius based on Tao count and dimension
             base_radius = self.cell_size * 0.25
@@ -542,17 +544,27 @@ class PlanarExpansionVisualizer(QWidget):
             # Hypercube vertices all have the same size
             radius = base_radius * 1.2
 
-            # But color can be based on Tao count
-            if tao_count == 0:
-                color = self.vertex_colors[1]  # Yang/Red
+            # Determine color based on ternary composition
+            if yang_count == self.dimension:
+                # All Yang/1s - should be pure red
+                color = self.vertex_colors[1]  # Red
             elif tao_count == self.dimension:
-                color = self.vertex_colors[0]  # Tao/Green
+                # All Tao/0s - should be pure green
+                color = self.vertex_colors[0]  # Green
+            elif yin_count == self.dimension:
+                # All Yin/2s - should be pure blue
+                color = self.vertex_colors[2]  # Blue
             else:
-                # Blend between colors based on Tao count
+                # Mixed values - blend colors based on composition
                 tao_ratio = tao_count / self.dimension
-                red = int(max(0, (1 - tao_ratio) * 200))
-                green = int(max(0, tao_ratio * 150))
-                blue = int(max(0, 100 + tao_ratio * 100))
+                yang_ratio = yang_count / self.dimension
+                yin_ratio = yin_count / self.dimension
+                
+                # Calculate RGB components based on ratios
+                red = int(min(255, yang_ratio * 200))
+                green = int(min(255, tao_ratio * 150))
+                blue = int(min(255, yin_ratio * 200))
+                
                 color = QColor(red, green, blue)
 
             self._grid_radii[decimal_value] = radius
@@ -735,15 +747,29 @@ class PlanarExpansionVisualizer(QWidget):
         """
         # Group vertices by Tao count (number of 0s in their ternary representation)
         tao_groups = {}
+        yang_groups = {}
+        yin_groups = {}
 
         for key in positions:
             ternary = decimal_to_ternary(key).zfill(self.dimension)
             tao_count = ternary.count("0")
+            yang_count = ternary.count("1")
+            yin_count = ternary.count("2")
 
+            # Group by Tao count (0s)
             if tao_count not in tao_groups:
                 tao_groups[tao_count] = []
-
             tao_groups[tao_count].append(key)
+
+            # Additional grouping by yang count (for future use)
+            if yang_count not in yang_groups:
+                yang_groups[yang_count] = []
+            yang_groups[yang_count].append(key)
+            
+            # Additional grouping by yin count (for future use)
+            if yin_count not in yin_groups:
+                yin_groups[yin_count] = []
+            yin_groups[yin_count].append(key)
 
         # Draw connections between vertices in the same Tao group
         for tao_count, vertices in tao_groups.items():
@@ -755,9 +781,9 @@ class PlanarExpansionVisualizer(QWidget):
             alpha = 130  # More visible
 
             # Use different colors for different Tao counts
-            if tao_count == 0:  # No Tao lines (vertices)
+            if tao_count == 0:  # No Tao (all 1s or 2s)
                 color = QColor(200, 0, 0, alpha)  # Red
-            elif tao_count == self.dimension:  # All Tao lines (center)
+            elif tao_count == self.dimension:  # All Tao (all 0s)
                 color = QColor(0, 150, 0, alpha)  # Green
             else:
                 # Interpolate between colors based on Tao count ratio
@@ -977,40 +1003,25 @@ class PlanarExpansionVisualizer(QWidget):
             return
 
         # Get the position
-        pos_x, pos_y = positions[decimal]
-
-        # Create a pulse effect based on time
-        pulse_time = time.time() % 2  # 2-second cycle
-        pulse_factor = 0.5 + 0.5 * math.sin(
-            pulse_time * math.pi
-        )  # Range from 0.5 to 1.0
-
-        # Highlight size based on vertex size and pulse
-        size = self._grid_radii.get(decimal, 15) * (1.5 + 0.5 * pulse_factor)
-
-        # Create a radial gradient for the glow effect
-        center = QPointF(pos_x, pos_y)
-        radius = size * 2
-        gradient = QRadialGradient(center, radius)
-
-        # Convert the pulse_factor to integer alpha value
-        alpha = int(120 * pulse_factor)
-
-        # Ensure the alpha is within valid range (0-255)
-        alpha = max(0, min(255, alpha))
-
-        gradient.setColorAt(0, QColor(255, 255, 0, alpha))
+        x, y = positions[decimal]
+        
+        # Get the vertex radius
+        radius = self._grid_radii.get(decimal, self.cell_size * 0.25)
+        
+        # Calculate a pulse effect (0.7 to 1.0)
+        pulse_factor = 0.7 + 0.3 * (0.5 + 0.5 * math.sin(time.time() * 5))
+        
+        # Create a gradient for the glow effect
+        highlight_size = radius * 3.0 * pulse_factor
+        gradient = QRadialGradient(x, y, highlight_size)
+        
+        # Add yellow glow with pulse effect (using int for alpha)
+        gradient.setColorAt(0, QColor(255, 255, 0, int(120 * pulse_factor)))
         gradient.setColorAt(1, QColor(255, 255, 0, 0))
-
-        # Draw the highlight
+        
         painter.setBrush(QBrush(gradient))
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(center, radius, radius)
-
-        # Add a ring around the vertex
-        painter.setPen(QPen(QColor(255, 255, 0, min(255, int(200 * pulse_factor))), 2))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawEllipse(center, size + 5, size + 5)
+        painter.drawEllipse(QPointF(x, y), highlight_size, highlight_size)
 
     def resizeEvent(self, event):
         """
