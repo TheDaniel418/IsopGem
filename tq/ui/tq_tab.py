@@ -175,16 +175,8 @@ class MatrixCanvas(QWidget):
         for digit in self.digits:
             digit.update(dt)
 
-        # Occasionally log debug info
-        if hasattr(self, "_debug_counter"):
-            self._debug_counter += 1
-            if self._debug_counter >= 60:  # Log every ~60 frames
-                self._debug_counter = 0
-                logger.debug(
-                    f"MatrixCanvas animation update: {self.width()}x{self.height()}, visible: {self.isVisible()}"
-                )
-        else:
-            self._debug_counter = 0
+        # Remove debug logging to reduce console spam
+        # (previously logged animation updates every 60 frames)
 
         # Trigger repaint
         self.update()
