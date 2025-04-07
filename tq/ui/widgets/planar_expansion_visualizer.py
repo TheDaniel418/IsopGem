@@ -70,6 +70,7 @@ class PlanarExpansionVisualizer(QWidget):
         self.show_grid = True
         self.debug_mode = False  # Debug mode toggle
         self.debug_verbosity = 0  # 0: minimal, 1: normal, 2: verbose
+        self.pure_yang_mode = False  # New flag for pure Yang mode
 
         # Zoom and pan parameters
         self.zoom_factor = 1.0
@@ -222,6 +223,17 @@ class PlanarExpansionVisualizer(QWidget):
             enabled: Whether to enable debug mode
         """
         self.debug_mode = enabled
+        self.update()
+
+    def toggle_pure_yang_mode(self, enabled: bool) -> None:
+        """
+        Toggle pure Yang mode where all vertices are rendered as Yang (red).
+        
+        Args:
+            enabled: Whether to enable pure Yang mode
+        """
+        self.pure_yang_mode = enabled
+        self._update_grid_positions()
         self.update()
 
     def _animate_transition(self):
@@ -532,6 +544,9 @@ class PlanarExpansionVisualizer(QWidget):
 
     def _generate_vertex_properties(self) -> None:
         """Generate colors and sizes for vertices based on their ternary composition."""
+        # Check if we're in pure Yang mode
+        pure_yang_mode = self.pure_yang_mode or (self.ternary_value and all(digit == '1' for digit in self.ternary_value))
+        
         for decimal_value in self._grid_positions:
             ternary = decimal_to_ternary(decimal_value).zfill(self.dimension)
             tao_count = ternary.count("0")  # Number of 0s
@@ -544,8 +559,11 @@ class PlanarExpansionVisualizer(QWidget):
             # Hypercube vertices all have the same size
             radius = base_radius * 1.2
 
-            # Determine color based on ternary composition
-            if yang_count == self.dimension:
+            # Determine color based on ternary composition and mode
+            if pure_yang_mode:
+                # In pure Yang mode, all vertices are Yang/Red
+                color = self.vertex_colors[1]  # Yang/Red
+            elif yang_count == self.dimension:
                 # All Yang/1s - should be pure red
                 color = self.vertex_colors[1]  # Red
             elif tao_count == self.dimension:
@@ -750,6 +768,9 @@ class PlanarExpansionVisualizer(QWidget):
         yang_groups = {}
         yin_groups = {}
 
+        # Check if we're in pure Yang mode
+        pure_yang_mode = self.pure_yang_mode or (self.ternary_value and all(digit == '1' for digit in self.ternary_value))
+
         for key in positions:
             ternary = decimal_to_ternary(key).zfill(self.dimension)
             tao_count = ternary.count("0")
@@ -781,7 +802,10 @@ class PlanarExpansionVisualizer(QWidget):
             alpha = 130  # More visible
 
             # Use different colors for different Tao counts
-            if tao_count == 0:  # No Tao (all 1s or 2s)
+            if pure_yang_mode:
+                # In pure Yang mode, all lines are red (Yang color)
+                color = QColor(200, 0, 0, alpha)  # Red
+            elif tao_count == 0:  # No Tao (all 1s or 2s)
                 color = QColor(200, 0, 0, alpha)  # Red
             elif tao_count == self.dimension:  # All Tao (all 0s)
                 color = QColor(0, 150, 0, alpha)  # Green
@@ -1294,14 +1318,27 @@ class PlanarExpansionVisualizer(QWidget):
         ternary_positions = {}
         ternary_3d_points = {}
 
+        # Determine if we're visualizing pure Yang trigrams (all 1s)
+        # This can be determined from the ternary_value if set or from the explicit flag
+        pure_yang_mode = self.pure_yang_mode or (self.ternary_value and all(digit == '1' for digit in self.ternary_value))
+        
+        # For debugging
+        if self.debug_mode and pure_yang_mode and not self._transitioning:
+            print("\nPure Yang Mode detected - mapping all vertices to Yang (1) values")
+
         # For each binary vertex, create a ternary equivalent
         for binary_decimal, (x, y) in self._grid_positions.items():
             # Get binary representation
             binary = bin(binary_decimal)[2:].zfill(self.dimension)
-
-            # Create corresponding ternary string (0->0, 1->1)
-            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
-            ternary_decimal = int(ternary, 3)
+            
+            if pure_yang_mode:
+                # If we're in pure Yang mode, map everything to Yang (1)
+                ternary = "1" * self.dimension
+                ternary_decimal = int(ternary, 3)
+            else:
+                # Default mapping: binary 0->0, binary 1->1
+                ternary = "".join("1" if bit == "1" else "0" for bit in binary)
+                ternary_decimal = int(ternary, 3)
 
             # Store positions under ternary decimal key
             ternary_positions[ternary_decimal] = (x, y)
@@ -1313,6 +1350,9 @@ class PlanarExpansionVisualizer(QWidget):
         # Switch to ternary mapping for TQ compatibility
         self._grid_positions = ternary_positions
         self._3d_points = ternary_3d_points
+        
+        # Regenerate vertex colors with the new mapping
+        self._generate_vertex_properties()
 
     def set_debug_mode(self, enable: bool) -> None:
         """
@@ -1434,12 +1474,27 @@ class PlanarExpansionPanel(QFrame):
             "QPushButton:checked { background-color: #ffcc66; }"
         )
 
+        # Add Pure Yang Mode toggle
+        self.pure_yang_mode_checkbox = QPushButton("Pure Yang Mode")
+        self.pure_yang_mode_checkbox.setCheckable(True)
+        self.pure_yang_mode_checkbox.setChecked(False)
+        self.pure_yang_mode_checkbox.clicked.connect(self._toggle_pure_yang_mode)
+        self.pure_yang_mode_checkbox.setStyleSheet(
+            "QPushButton:checked { background-color: #ff8080; }"
+        )
+        
         options_layout.addWidget(self.show_labels_checkbox)
         options_layout.addWidget(self.show_tao_lines_checkbox)
         options_layout.addWidget(self.show_grid_checkbox)
         options_layout.addWidget(self.debug_mode_checkbox)
-
+        
+        # Add Pure Yang Mode to a second row to avoid crowding
+        yang_mode_layout = QHBoxLayout()
+        yang_mode_layout.addWidget(self.pure_yang_mode_checkbox)
+        yang_mode_layout.addStretch()  # Push the button to the left
+        
         basic_layout.addLayout(options_layout)
+        basic_layout.addLayout(yang_mode_layout)
 
         # Add zoom and pan controls
         zoom_layout = QHBoxLayout()
@@ -1646,6 +1701,19 @@ class PlanarExpansionPanel(QFrame):
             self.debug_mode_checkbox.setText("Debug Mode (ON)")
         else:
             self.debug_mode_checkbox.setText("Debug Mode")
+
+    def _toggle_pure_yang_mode(self) -> None:
+        """Toggle pure Yang mode."""
+        enabled = self.pure_yang_mode_checkbox.isChecked()
+        self.visualizer.toggle_pure_yang_mode(enabled)
+
+        # Update button appearance
+        if enabled:
+            self.pure_yang_mode_checkbox.setText("Pure Yang Mode (ON)")
+            self.pure_yang_mode_checkbox.setToolTip("All vertices shown as Yang (red)")
+        else:
+            self.pure_yang_mode_checkbox.setText("Pure Yang Mode")
+            self.pure_yang_mode_checkbox.setToolTip("Show normal ternary coloring")
 
     # Add methods to handle zoom and pan buttons
     def _zoom_in(self) -> None:
