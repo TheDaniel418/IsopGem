@@ -4,13 +4,20 @@ Accurate moon phase calculator using astronomical algorithms.
 
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+
 import ephem  # PyEphem for accurate astronomical calculations
 from loguru import logger
 
-from astrology.models.planner import PlannerEvent, EventType
+from astrology.models.planner import EventType, PlannerEvent
 from astrology.services.location_service import Location
 
-def calculate_moon_phases_for_month(year: int, month: int, get_zodiac_sign_func, default_location: Optional[Location] = None) -> List[PlannerEvent]:
+
+def calculate_moon_phases_for_month(
+    year: int,
+    month: int,
+    get_zodiac_sign_func,
+    default_location: Optional[Location] = None,
+) -> List[PlannerEvent]:
     """Calculate moon phases for a specific month using accurate astronomical calculations.
 
     Args:
@@ -22,7 +29,9 @@ def calculate_moon_phases_for_month(year: int, month: int, get_zodiac_sign_func,
     Returns:
         List of moon phase events
     """
-    logger.debug(f"Calculating moon phases for {year}-{month} using astronomical calculations")
+    logger.debug(
+        f"Calculating moon phases for {year}-{month} using astronomical calculations"
+    )
 
     # Calculate moon phases for the month
     events = []
@@ -42,7 +51,7 @@ def calculate_moon_phases_for_month(year: int, month: int, get_zodiac_sign_func,
         (ephem.next_new_moon, "New Moon", "#000000"),  # Black
         (ephem.next_first_quarter_moon, "First Quarter Moon", "#808080"),  # Gray
         (ephem.next_full_moon, "Full Moon", "#FFFF00"),  # Yellow
-        (ephem.next_last_quarter_moon, "Last Quarter Moon", "#808080")  # Gray
+        (ephem.next_last_quarter_moon, "Last Quarter Moon", "#808080"),  # Gray
     ]
 
     # Start looking from a few days before the month begins to catch phases at the start of the month
@@ -62,7 +71,9 @@ def calculate_moon_phases_for_month(year: int, month: int, get_zodiac_sign_func,
 
             # Convert PyEphem date to Python datetime
             # PyEphem dates are in UTC
-            phase_datetime_utc = datetime.strptime(str(next_phase_date), '%Y/%m/%d %H:%M:%S')
+            phase_datetime_utc = datetime.strptime(
+                str(next_phase_date), "%Y/%m/%d %H:%M:%S"
+            )
             phase_datetime_utc = phase_datetime_utc.replace(tzinfo=timezone.utc)
 
             # Adjust for timezone if a default location is provided
@@ -73,7 +84,9 @@ def calculate_moon_phases_for_month(year: int, month: int, get_zodiac_sign_func,
                 # Round to the nearest hour for simplicity
                 offset_hours = round(estimated_offset)
                 phase_datetime = phase_datetime_utc + timedelta(hours=offset_hours)
-                logger.debug(f"Adjusted time from UTC to {offset_hours:+d} hours (estimated from longitude {default_location.longitude:.2f}) for {default_location.name}")
+                logger.debug(
+                    f"Adjusted time from UTC to {offset_hours:+d} hours (estimated from longitude {default_location.longitude:.2f}) for {default_location.name}"
+                )
             else:
                 # Use UTC time if no location is provided
                 phase_datetime = phase_datetime_utc
@@ -85,19 +98,29 @@ def calculate_moon_phases_for_month(year: int, month: int, get_zodiac_sign_func,
 
                 # Convert back to naive datetime to maintain compatibility with the rest of the code
                 # We've already adjusted for timezone, so we just need to remove the timezone info
-                naive_datetime = datetime(phase_datetime.year, phase_datetime.month, phase_datetime.day,
-                                         phase_datetime.hour, phase_datetime.minute, phase_datetime.second)
+                naive_datetime = datetime(
+                    phase_datetime.year,
+                    phase_datetime.month,
+                    phase_datetime.day,
+                    phase_datetime.hour,
+                    phase_datetime.minute,
+                    phase_datetime.second,
+                )
 
                 # Create event for this moon phase
-                events.append(PlannerEvent(
-                    title=phase_name,
-                    description=f"{phase_name} in {zodiac_sign}",
-                    event_type=EventType.MOON_PHASE,
-                    start_time=naive_datetime,
-                    color=color
-                ))
+                events.append(
+                    PlannerEvent(
+                        title=phase_name,
+                        description=f"{phase_name} in {zodiac_sign}",
+                        event_type=EventType.MOON_PHASE,
+                        start_time=naive_datetime,
+                        color=color,
+                    )
+                )
 
-                logger.debug(f"Added {phase_name} on {phase_datetime.date()} in {zodiac_sign}")
+                logger.debug(
+                    f"Added {phase_name} on {phase_datetime.date()} in {zodiac_sign}"
+                )
 
             # Move past this phase to avoid finding it again
             # Add a small increment to ensure we don't get the same phase again

@@ -14,7 +14,7 @@ Dependencies:
 """
 
 import math
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 from loguru import logger
 
@@ -26,7 +26,15 @@ class GrandFusionService:
 
     def __init__(self):
         """Initialize the Grand Fusion Service."""
-        self.traditional_planets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
+        self.traditional_planets = [
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
+        ]
         self.coefficients = {}  # Store coefficients for bidirectional transformation
 
     def calculate_grand_fusion_midpoint(self, chart: Chart) -> Optional[float]:
@@ -41,7 +49,9 @@ class GrandFusionService:
         # Get the kerykeion subject
         subject = chart.kerykeion_subject
         if not subject:
-            logger.warning("No kerykeion subject available for Grand Fusion calculation")
+            logger.warning(
+                "No kerykeion subject available for Grand Fusion calculation"
+            )
             return None
 
         # Calculate all midpoints
@@ -92,7 +102,9 @@ class GrandFusionService:
 
         return reconstructed
 
-    def _calculate_all_midpoints(self, subject) -> Tuple[Dict[str, float], List[Tuple[str, str]]]:
+    def _calculate_all_midpoints(
+        self, subject
+    ) -> Tuple[Dict[str, float], List[Tuple[str, str]]]:
         """Calculate all midpoints between traditional planets.
 
         Args:
@@ -112,7 +124,7 @@ class GrandFusionService:
             planet1 = getattr(subject, planet1_name)
             pos1 = planet1.position + (planet1.sign_num * 30)
 
-            for j, planet2_name in enumerate(self.traditional_planets[i+1:], i+1):
+            for j, planet2_name in enumerate(self.traditional_planets[i + 1 :], i + 1):
                 if not hasattr(subject, planet2_name):
                     continue
 
@@ -161,8 +173,9 @@ class GrandFusionService:
 
         return midpoint
 
-    def _calculate_bidirectional_fusion(self, midpoints: Dict[str, float],
-                                        planet_pairs: List[Tuple[str, str]]) -> float:
+    def _calculate_bidirectional_fusion(
+        self, midpoints: Dict[str, float], planet_pairs: List[Tuple[str, str]]
+    ) -> float:
         """Calculate Grand Fusion Midpoint using bidirectional derivation with symmetrical transformation.
 
         Args:
@@ -263,8 +276,18 @@ class GrandFusionService:
             The zodiac sign as a string
         """
         signs = [
-            "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-            "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+            "Aries",
+            "Taurus",
+            "Gemini",
+            "Cancer",
+            "Leo",
+            "Virgo",
+            "Libra",
+            "Scorpio",
+            "Sagittarius",
+            "Capricorn",
+            "Aquarius",
+            "Pisces",
         ]
 
         sign_index = int(position / 30)

@@ -5,19 +5,24 @@ This file is part of the astrology pillar and serves as a UI component.
 It provides a monthly calendar view showing moon phases and user events.
 """
 
-from datetime import datetime, timedelta
-import calendar
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import List, Optional
 
 from loguru import logger
-from PyQt6.QtCore import Qt, QDate, pyqtSignal
+from PyQt6.QtCore import QDate, Qt, pyqtSignal
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QPushButton, QFrame, QSizePolicy
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QColor, QPalette, QFont
 
-from astrology.services.planner_service import PlannerService, PlannerEvent, EventType
+from astrology.services.planner_service import EventType, PlannerEvent, PlannerService
 
 
 class DayCell(QFrame):
@@ -52,7 +57,8 @@ class DayCell(QFrame):
             "    border-radius: 8px;"
             "    border: 1px solid #CCCCCC;"
             "    background-color: #FFFFFF;"
-            "}")
+            "}"
+        )
 
         # Create layout
         self.layout = QVBoxLayout(self)
@@ -108,7 +114,9 @@ class DayCell(QFrame):
 
         # Debug logging - only for the 1st and 15th to avoid too much output
         if date_py.day in [1, 15]:
-            logger.debug(f"Checking moon phase for {date_py}, events: {len(self.events)}")
+            logger.debug(
+                f"Checking moon phase for {date_py}, events: {len(self.events)}"
+            )
 
         for event in self.events:
             if event.event_type == EventType.MOON_PHASE:
@@ -175,9 +183,7 @@ class DayCell(QFrame):
                 if count > 1:
                     text += f" ({count})"
                 text_label = QLabel(text)
-                text_label.setStyleSheet(
-                    "color: #333333; font-size: 9px;"
-                )
+                text_label.setStyleSheet("color: #333333; font-size: 9px;")
                 text_label.setWordWrap(True)
                 indicator_layout.addWidget(text_label, 1)  # Give text label stretch
 
@@ -198,13 +204,13 @@ class DayCell(QFrame):
             Color as CSS string
         """
         colors = {
-            EventType.MOON_PHASE: "#808080",      # Gray
+            EventType.MOON_PHASE: "#808080",  # Gray
             EventType.VOID_OF_COURSE: "#800080",  # Purple
             EventType.PLANETARY_ASPECT: "#FFA500",  # Orange
-            EventType.RETROGRADE: "#800000",      # Maroon
-            EventType.ECLIPSE: "#000080",         # Navy
-            EventType.VENUS_CYCLE: "#00FFFF",     # Cyan
-            EventType.USER_EVENT: "#008000"       # Green
+            EventType.RETROGRADE: "#800000",  # Maroon
+            EventType.ECLIPSE: "#000080",  # Navy
+            EventType.VENUS_CYCLE: "#00FFFF",  # Cyan
+            EventType.USER_EVENT: "#008000",  # Green
         }
         return colors.get(event_type, "#000000")
 
@@ -253,9 +259,7 @@ class DayCell(QFrame):
                 "}"
             )
             self.day_label.setStyleSheet(
-                "color: #4080FF; "
-                "padding: 2px; "
-                "font-weight: bold;"
+                "color: #4080FF; " "padding: 2px; " "font-weight: bold;"
             )
         elif not self.is_current_month:
             self.setStyleSheet(
@@ -357,7 +361,9 @@ class MonthlyCalendarWidget(QWidget):
         # Month/year label
         self.month_label = QLabel()
         self.month_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.month_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))  # Increased font size
+        self.month_label.setFont(
+            QFont("Arial", 16, QFont.Weight.Bold)
+        )  # Increased font size
         self.month_label.setStyleSheet("color: white;")
         header_layout.addWidget(self.month_label, 1)
 
@@ -475,9 +481,11 @@ class MonthlyCalendarWidget(QWidget):
             ("🌑", "New Moon"),
             ("🌓", "First Quarter"),
             ("🌕", "Full Moon"),
-            ("🌗", "Last Quarter")
+            ("🌗", "Last Quarter"),
         ]:
-            phase_label = QLabel(f"<span style='font-size:16px;'>{phase}</span> = {name}")
+            phase_label = QLabel(
+                f"<span style='font-size:16px;'>{phase}</span> = {name}"
+            )
             phase_label.setTextFormat(Qt.TextFormat.RichText)
             moon_phases.addWidget(phase_label)
 
@@ -504,18 +512,18 @@ class MonthlyCalendarWidget(QWidget):
 
         # Get events for the month
         events_by_day = self.planner_service.get_events_for_month(
-            self.current_date.year(),
-            self.current_date.month()
+            self.current_date.year(), self.current_date.month()
         )
 
         # Add moon phases
         moon_phases = self.planner_service.get_moon_phases_for_month(
-            self.current_date.year(),
-            self.current_date.month()
+            self.current_date.year(), self.current_date.month()
         )
 
         # Log moon phases
-        logger.debug(f"Moon phases for {self.current_date.year()}-{self.current_date.month()}: {len(moon_phases)}")
+        logger.debug(
+            f"Moon phases for {self.current_date.year()}-{self.current_date.month()}: {len(moon_phases)}"
+        )
 
         # Organize moon phases by day
         for event in moon_phases:
@@ -628,7 +636,10 @@ class MonthlyCalendarWidget(QWidget):
         Args:
             date: Date to set
         """
-        if date.year() != self.current_date.year() or date.month() != self.current_date.month():
+        if (
+            date.year() != self.current_date.year()
+            or date.month() != self.current_date.month()
+        ):
             self.current_date = QDate(date.year(), date.month(), 1)
             self._update_calendar()
 

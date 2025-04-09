@@ -13,19 +13,21 @@ Dependencies:
 - astrology.models: For astrological data models
 """
 
-from typing import Dict, List, Optional
+from typing import List
 
+from kerykeion import AstrologicalSubject
+from loguru import logger
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
-    QHeaderView, QLabel
+    QHeaderView,
+    QLabel,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QColor
-
-from loguru import logger
 
 from astrology.models.chart import Chart
-from kerykeion import AstrologicalSubject
 
 
 class MidpointsWidget(QWidget):
@@ -54,9 +56,7 @@ class MidpointsWidget(QWidget):
         # Create table
         self.table = QTableWidget()
         self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels([
-            "Planets", "Midpoint", "Sign"
-        ])
+        self.table.setHorizontalHeaderLabels(["Planets", "Midpoint", "Sign"])
 
         # Set column widths
         header = self.table.horizontalHeader()
@@ -72,7 +72,9 @@ class MidpointsWidget(QWidget):
         layout.addWidget(self.table)
 
         # Add a note about midpoints
-        note = QLabel("Midpoints represent the halfway point between two planets (showing traditional 7 planets only)")
+        note = QLabel(
+            "Midpoints represent the halfway point between two planets (showing traditional 7 planets only)"
+        )
         note.setStyleSheet("font-style: italic; color: #666;")
         layout.addWidget(note)
 
@@ -143,8 +145,13 @@ class MidpointsWidget(QWidget):
         """
         # Define the traditional 7 planets to use for midpoints
         planet_names = [
-            "sun", "moon", "mercury", "venus", "mars",
-            "jupiter", "saturn"
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
         ]  # Traditional 7 planets only
 
         # Get all available planets from the subject
@@ -153,7 +160,9 @@ class MidpointsWidget(QWidget):
             if hasattr(subject, planet_name):
                 planet = getattr(subject, planet_name)
                 planets.append((planet_name, planet))
-                logger.debug(f"Found planet {planet_name}: {planet.sign} at {planet.position}°")
+                logger.debug(
+                    f"Found planet {planet_name}: {planet.sign} at {planet.position}°"
+                )
 
         # Calculate midpoints
         midpoints = []
@@ -192,12 +201,12 @@ class MidpointsWidget(QWidget):
             The absolute position in degrees
         """
         # If the planet has abs_pos attribute, use it
-        if hasattr(planet, 'abs_pos'):
+        if hasattr(planet, "abs_pos"):
             return planet.abs_pos
 
         # Otherwise calculate from sign and position
-        sign_num = planet.sign_num if hasattr(planet, 'sign_num') else 0
-        position = planet.position if hasattr(planet, 'position') else 0
+        sign_num = planet.sign_num if hasattr(planet, "sign_num") else 0
+        position = planet.position if hasattr(planet, "position") else 0
 
         return (sign_num * 30) + position
 
@@ -240,8 +249,18 @@ class MidpointsWidget(QWidget):
             The zodiac sign as a string
         """
         signs = [
-            "Ari", "Tau", "Gem", "Can", "Leo", "Vir",
-            "Lib", "Sco", "Sag", "Cap", "Aqu", "Pis"
+            "Ari",
+            "Tau",
+            "Gem",
+            "Can",
+            "Leo",
+            "Vir",
+            "Lib",
+            "Sco",
+            "Sag",
+            "Cap",
+            "Aqu",
+            "Pis",
         ]
 
         sign_index = int(position / 30)

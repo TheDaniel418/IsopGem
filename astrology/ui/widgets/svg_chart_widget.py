@@ -13,14 +13,12 @@ Dependencies:
 """
 
 import os
-from typing import Optional
-
-from PyQt6.QtCore import Qt, QSize, QRectF
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
-from PyQt6.QtSvg import QSvgRenderer
-from PyQt6.QtGui import QPainter, QPaintEvent
 
 from loguru import logger
+from PyQt6.QtCore import QRectF, QSize, Qt
+from PyQt6.QtGui import QPainter, QPaintEvent
+from PyQt6.QtSvg import QSvgRenderer
+from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from astrology.models.chart import Chart
 from astrology.services.kerykeion_service import KerykeionService

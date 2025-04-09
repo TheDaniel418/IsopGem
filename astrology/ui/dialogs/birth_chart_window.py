@@ -12,8 +12,8 @@ Dependencies:
 - astrology.ui.widgets: For the birth chart widget
 """
 
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 from loguru import logger
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 
 from astrology.ui.widgets.birth_chart_widget import BirthChartWidget
 

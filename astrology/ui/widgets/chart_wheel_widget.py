@@ -15,21 +15,23 @@ Dependencies:
 """
 
 import math
-from typing import Dict, List, Optional, Tuple
-
-from PyQt6.QtCore import Qt, QRectF, QPointF, QSize
-from PyQt6.QtWidgets import QWidget
-from PyQt6.QtGui import (
-    QPainter, QPen, QBrush, QColor, QFont, QPainterPath,
-    QFontMetrics, QTransform
-)
 
 from loguru import logger
+from PyQt6.QtCore import QPointF, QRectF, QSize, Qt
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QPainter,
+    QPainterPath,
+    QPen,
+)
+from PyQt6.QtWidgets import QWidget
 
 from astrology.models.chart import Chart
-from astrology.models.celestial_body import CelestialBody
-from astrology.models.zodiac import House
-from astrology.utils.astro_utils import zodiac_to_chart_angle, normalize_angle, calculate_width
+from astrology.utils.astro_utils import (
+    zodiac_to_chart_angle,
+)
 
 
 class ChartWheelWidget(QWidget):
@@ -68,7 +70,7 @@ class ChartWheelWidget(QWidget):
             "Sagittarius": "♐",
             "Capricorn": "♑",
             "Aquarius": "♒",
-            "Pisces": "♓"
+            "Pisces": "♓",
         }
 
         # Planet symbols
@@ -85,7 +87,7 @@ class ChartWheelWidget(QWidget):
             "Pluto": "♇",
             "North Node": "☊",
             "South Node": "☋",
-            "Chiron": "⚷"
+            "Chiron": "⚷",
         }
 
         # Set minimum size
@@ -108,7 +110,9 @@ class ChartWheelWidget(QWidget):
         if chart and chart.houses:
             logger.debug(f"Chart has {len(chart.houses)} houses")
             for house in sorted(chart.houses, key=lambda h: h.number):
-                logger.debug(f"House {house.number}: cusp at {house.cusp_degree:.2f}°, ends at {house.end_degree:.2f}°")
+                logger.debug(
+                    f"House {house.number}: cusp at {house.cusp_degree:.2f}°, ends at {house.end_degree:.2f}°"
+                )
 
             # Log the Ascendant position
             ascendant = chart.get_ascendant()
@@ -149,26 +153,16 @@ class ChartWheelWidget(QWidget):
         # Draw the outer circle (degree markers ring)
         painter.setPen(QPen(Qt.GlobalColor.black, 2))
         painter.setBrush(QBrush(Qt.GlobalColor.transparent))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            radius,
-            radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), radius, radius)
 
         # Draw the inner circle of the degree markers ring
         painter.setPen(QPen(Qt.GlobalColor.black, 1))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            inner_radius,
-            inner_radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), inner_radius, inner_radius)
 
         # Draw the inner circle of the house ring
         painter.setPen(QPen(Qt.GlobalColor.black, 1))
         painter.drawEllipse(
-            QPointF(center_x, center_y),
-            house_inner_radius,
-            house_inner_radius
+            QPointF(center_x, center_y), house_inner_radius, house_inner_radius
         )
 
         # Draw the degree markers in the outer ring (tick marks)
@@ -198,22 +192,17 @@ class ChartWheelWidget(QWidget):
 
             # Draw tick marks
             painter.setPen(QPen(Qt.GlobalColor.black, line_width))
-            painter.drawLine(
-                QPointF(inner_x, inner_y),
-                QPointF(outer_x, outer_y)
-            )
+            painter.drawLine(QPointF(inner_x, inner_y), QPointF(outer_x, outer_y))
 
         # Draw the cardinal cross lines (vertical and horizontal)
         painter.setPen(QPen(Qt.GlobalColor.black, 1.5))
         # Vertical line
         painter.drawLine(
-            QPointF(center_x, center_y - radius),
-            QPointF(center_x, center_y + radius)
+            QPointF(center_x, center_y - radius), QPointF(center_x, center_y + radius)
         )
         # Horizontal line
         painter.drawLine(
-            QPointF(center_x - radius, center_y),
-            QPointF(center_x + radius, center_y)
+            QPointF(center_x - radius, center_y), QPointF(center_x + radius, center_y)
         )
 
         # Get the Ascendant degree (1st house cusp)
@@ -225,13 +214,17 @@ class ChartWheelWidget(QWidget):
             # Log all house cusps for debugging
             logger.debug("=== HOUSE POSITIONS FOR CHART DRAWING ===")
             logger.debug("-" * 50)
-            logger.debug(f"{'House':<6} {'Cusp Degree':>12} {'End Degree':>12} {'Width':>8}")
+            logger.debug(
+                f"{'House':<6} {'Cusp Degree':>12} {'End Degree':>12} {'Width':>8}"
+            )
             logger.debug("-" * 50)
 
             houses = sorted(self.chart.houses, key=lambda h: h.number)
             for house in houses:
                 width = (house.end_degree - house.cusp_degree) % 360
-                logger.debug(f"{house.number:<6} {house.cusp_degree:>12.2f}° {house.end_degree:>12.2f}° {width:>8.2f}°")
+                logger.debug(
+                    f"{house.number:<6} {house.cusp_degree:>12.2f}° {house.end_degree:>12.2f}° {width:>8.2f}°"
+                )
 
         # If we have house data, use it; otherwise fall back to equal houses
         if self.chart and self.chart.houses and ascendant is not None:
@@ -252,15 +245,21 @@ class ChartWheelWidget(QWidget):
 
             # Force the Ascendant to be at 180 degrees (west/9 o'clock)
             # This is a direct approach to ensure the Ascendant is at the correct position
-            logger.debug(f"FORCING Ascendant to be at 180 degrees (west/9 o'clock)")
+            logger.debug("FORCING Ascendant to be at 180 degrees (west/9 o'clock)")
 
-            logger.debug(f"Ascendant zodiac degree: {ascendant:.2f}°, chart angle: {asc_chart_angle:.2f}°")
-            logger.debug(f"Rotation offset: {rotation_offset:.2f}° to place Ascendant at 180° (9 o'clock/west)")
+            logger.debug(
+                f"Ascendant zodiac degree: {ascendant:.2f}°, chart angle: {asc_chart_angle:.2f}°"
+            )
+            logger.debug(
+                f"Rotation offset: {rotation_offset:.2f}° to place Ascendant at 180° (9 o'clock/west)"
+            )
 
             # Draw each house cusp
             for i in range(len(houses)):
                 house = houses[i]
-                next_house = houses[(i + 1) % 12]  # Get the next house (wrap around to 1st house after 12th)
+                next_house = houses[
+                    (i + 1) % 12
+                ]  # Get the next house (wrap around to 1st house after 12th)
 
                 # Convert zodiacal degrees to chart angles
                 house_chart_angle = self._zodiac_to_chart_angle(house.cusp_degree)
@@ -271,25 +270,33 @@ class ChartWheelWidget(QWidget):
                 # Convert to radians for drawing
                 chart_angle = math.radians(rotated_angle)
 
-                logger.debug(f"House {house.number}: zodiac {house.cusp_degree:.2f}°, chart angle {house_chart_angle:.2f}°, rotated {rotated_angle:.2f}°")
+                logger.debug(
+                    f"House {house.number}: zodiac {house.cusp_degree:.2f}°, chart angle {house_chart_angle:.2f}°, rotated {rotated_angle:.2f}°"
+                )
 
                 # Draw the house line
                 # Use a thicker, red line for the first house to make it more visible
                 if house.number == 1:
-                    painter.setPen(QPen(QColor(255, 0, 0), 2))  # Red, thicker line for first house
+                    painter.setPen(
+                        QPen(QColor(255, 0, 0), 2)
+                    )  # Red, thicker line for first house
                 else:
                     painter.setPen(QPen(Qt.GlobalColor.black, 1))
 
                 line_x = center_x + inner_radius * math.cos(chart_angle)
                 line_y = center_y + inner_radius * math.sin(chart_angle)
                 painter.drawLine(
-                    QPointF(center_x + house_inner_radius * math.cos(chart_angle),
-                           center_y + house_inner_radius * math.sin(chart_angle)),
-                    QPointF(line_x, line_y)
+                    QPointF(
+                        center_x + house_inner_radius * math.cos(chart_angle),
+                        center_y + house_inner_radius * math.sin(chart_angle),
+                    ),
+                    QPointF(line_x, line_y),
                 )
 
                 # Calculate the middle angle between this house cusp and the next
-                next_house_chart_angle = self._zodiac_to_chart_angle(next_house.cusp_degree)
+                next_house_chart_angle = self._zodiac_to_chart_angle(
+                    next_house.cusp_degree
+                )
                 next_rotated_angle = (next_house_chart_angle + rotation_offset) % 360
                 next_chart_angle = math.radians(next_rotated_angle)
 
@@ -304,7 +311,9 @@ class ChartWheelWidget(QWidget):
 
                 # Log the middle angle for debugging
                 middle_degrees = math.degrees(middle_angle) % 360
-                logger.debug(f"House {house.number} middle angle: {middle_degrees:.2f}°")
+                logger.debug(
+                    f"House {house.number} middle angle: {middle_degrees:.2f}°"
+                )
 
                 # Draw the house number
                 number_radius = inner_radius - self.house_ring_width / 2
@@ -313,14 +322,16 @@ class ChartWheelWidget(QWidget):
 
                 # Log the house number position
                 degrees_middle = math.degrees(middle_angle) % 360
-                logger.debug(f"House {house.number} number drawn at angle {degrees_middle:.2f}° (radius: {number_radius:.2f})")
+                logger.debug(
+                    f"House {house.number} number drawn at angle {degrees_middle:.2f}° (radius: {number_radius:.2f})"
+                )
 
                 font = QFont()
 
                 # Make the first house number larger and bold
                 if house.number == 1:
                     font.setPointSize(12)  # Larger font for the first house
-                    font.setBold(True)     # Bold for emphasis
+                    font.setBold(True)  # Bold for emphasis
                     painter.setFont(font)
                     painter.setPen(QColor(255, 0, 0))  # Red text for first house
                 else:
@@ -331,49 +342,61 @@ class ChartWheelWidget(QWidget):
                 painter.drawText(
                     QRectF(number_x - 15, number_y - 15, 30, 30),
                     Qt.AlignmentFlag.AlignCenter,
-                    str(house.number)
+                    str(house.number),
                 )
         else:
             # Fall back to equal houses if no chart data
             for i in range(12):
                 # Start with house 1 at the 180-degree mark (9 o'clock position/west) and proceed counterclockwise
                 # Each house is 30 degrees, counterclockwise means NEGATIVE angle increment
-                angle = math.radians(180 - i * 30)  # This places house 1 at 180 degrees (west)
+                angle = math.radians(
+                    180 - i * 30
+                )  # This places house 1 at 180 degrees (west)
 
                 # Draw the house line
                 # Use a thicker, red line for the first house to make it more visible
                 house_number = i + 1
                 if house_number == 1:
-                    painter.setPen(QPen(QColor(255, 0, 0), 2))  # Red, thicker line for first house
+                    painter.setPen(
+                        QPen(QColor(255, 0, 0), 2)
+                    )  # Red, thicker line for first house
                 else:
                     painter.setPen(QPen(Qt.GlobalColor.black, 1))
 
                 line_x = center_x + inner_radius * math.cos(angle)
                 line_y = center_y + inner_radius * math.sin(angle)
                 painter.drawLine(
-                    QPointF(center_x + house_inner_radius * math.cos(angle),
-                           center_y + house_inner_radius * math.sin(angle)),
-                    QPointF(line_x, line_y)
+                    QPointF(
+                        center_x + house_inner_radius * math.cos(angle),
+                        center_y + house_inner_radius * math.sin(angle),
+                    ),
+                    QPointF(line_x, line_y),
                 )
 
                 # Draw the house number
-                house_number = i + 1  # Start with 1 at 9 o'clock (left), then 2, 3, etc.
+                house_number = (
+                    i + 1
+                )  # Start with 1 at 9 o'clock (left), then 2, 3, etc.
                 number_radius = inner_radius - self.house_ring_width / 2
                 # Position exactly in the middle of the house segment
-                number_angle = angle + math.radians(15)  # Middle of the house (15 degrees from house cusp)
+                number_angle = angle + math.radians(
+                    15
+                )  # Middle of the house (15 degrees from house cusp)
                 number_x = center_x + number_radius * math.cos(number_angle)
                 number_y = center_y + number_radius * math.sin(number_angle)
 
                 # Log the house number position
                 degrees_angle = math.degrees(number_angle) % 360
-                logger.debug(f"Fallback: House {house_number} number drawn at angle {degrees_angle:.2f}° (radius: {number_radius:.2f})")
+                logger.debug(
+                    f"Fallback: House {house_number} number drawn at angle {degrees_angle:.2f}° (radius: {number_radius:.2f})"
+                )
 
                 font = QFont()
 
                 # Make the first house number larger and bold
                 if house_number == 1:
                     font.setPointSize(12)  # Larger font for the first house
-                    font.setBold(True)     # Bold for emphasis
+                    font.setBold(True)  # Bold for emphasis
                     painter.setFont(font)
                     painter.setPen(QColor(255, 0, 0))  # Red text for first house
                 else:
@@ -384,7 +407,7 @@ class ChartWheelWidget(QWidget):
                 painter.drawText(
                     QRectF(number_x - 15, number_y - 15, 30, 30),
                     Qt.AlignmentFlag.AlignCenter,
-                    str(house_number)
+                    str(house_number),
                 )
 
         # Draw the zodiac divisions (30 degree divisions in the outer ring)
@@ -397,7 +420,9 @@ class ChartWheelWidget(QWidget):
             # Use the same rotation offset as for house cusps to ensure consistency
             asc_chart_angle = self._zodiac_to_chart_angle(ascendant)
             rotation_offset = 180 - asc_chart_angle
-            logger.debug(f"Zodiac divisions: Using rotation offset {rotation_offset:.2f}° to place Ascendant at 180° (west)")
+            logger.debug(
+                f"Zodiac divisions: Using rotation offset {rotation_offset:.2f}° to place Ascendant at 180° (west)"
+            )
 
             # Draw the 12 zodiac sign divisions (every 30 degrees)
             for i in range(12):
@@ -405,15 +430,21 @@ class ChartWheelWidget(QWidget):
                 zodiac_degree = i * 30  # 0, 30, 60, ..., 330
 
                 # Convert to chart angle and apply rotation
-                chart_angle = math.radians(self._zodiac_to_chart_angle(zodiac_degree) + rotation_offset)
+                chart_angle = math.radians(
+                    self._zodiac_to_chart_angle(zodiac_degree) + rotation_offset
+                )
 
                 # Draw the division line - only in the outer ring
                 painter.setPen(QPen(Qt.GlobalColor.black, 2.0))
                 painter.drawLine(
-                    QPointF(center_x + inner_radius * math.cos(chart_angle),
-                           center_y + inner_radius * math.sin(chart_angle)),
-                    QPointF(center_x + radius * math.cos(chart_angle),
-                           center_y + radius * math.sin(chart_angle))
+                    QPointF(
+                        center_x + inner_radius * math.cos(chart_angle),
+                        center_y + inner_radius * math.sin(chart_angle),
+                    ),
+                    QPointF(
+                        center_x + radius * math.cos(chart_angle),
+                        center_y + radius * math.sin(chart_angle),
+                    ),
                 )
         else:
             # Fall back to fixed positions if no chart data
@@ -424,10 +455,14 @@ class ChartWheelWidget(QWidget):
                 # Draw the division line - only in the outer ring
                 painter.setPen(QPen(Qt.GlobalColor.black, 2.0))
                 painter.drawLine(
-                    QPointF(center_x + inner_radius * math.cos(angle),
-                           center_y + inner_radius * math.sin(angle)),
-                    QPointF(center_x + radius * math.cos(angle),
-                           center_y + radius * math.sin(angle))
+                    QPointF(
+                        center_x + inner_radius * math.cos(angle),
+                        center_y + inner_radius * math.sin(angle),
+                    ),
+                    QPointF(
+                        center_x + radius * math.cos(angle),
+                        center_y + radius * math.sin(angle),
+                    ),
                 )
 
         # Draw center circle
@@ -435,13 +470,11 @@ class ChartWheelWidget(QWidget):
         painter.setBrush(QBrush(QColor(255, 255, 255)))
         center_circle_radius = house_inner_radius / 2
         painter.drawEllipse(
-            QPointF(center_x, center_y),
-            center_circle_radius,
-            center_circle_radius
+            QPointF(center_x, center_y), center_circle_radius, center_circle_radius
         )
 
         # Draw chart info in center if available
-        if hasattr(self, '_draw_chart_info'):
+        if hasattr(self, "_draw_chart_info"):
             self._draw_chart_info(painter, center_x, center_y, center_circle_radius)
 
     def _zodiac_to_chart_angle(self, zodiac_degree):
@@ -460,8 +493,7 @@ class ChartWheelWidget(QWidget):
         return zodiac_to_chart_angle(zodiac_degree)
 
     def _paint_empty_wheel(self, _):
-        """Paint an empty wheel with a message.
-        """
+        """Paint an empty wheel with a message."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -484,39 +516,27 @@ class ChartWheelWidget(QWidget):
         # Draw the outer circle (degree markers ring)
         painter.setPen(QPen(Qt.GlobalColor.black, 2))
         painter.setBrush(QBrush(Qt.GlobalColor.transparent))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            radius,
-            radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), radius, radius)
 
         # Draw the inner circle of the degree markers ring
         painter.setPen(QPen(Qt.GlobalColor.black, 1))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            inner_radius,
-            inner_radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), inner_radius, inner_radius)
 
         # Draw the inner circle of the house ring
         painter.setPen(QPen(Qt.GlobalColor.black, 1))
         painter.drawEllipse(
-            QPointF(center_x, center_y),
-            house_inner_radius,
-            house_inner_radius
+            QPointF(center_x, center_y), house_inner_radius, house_inner_radius
         )
 
         # Draw the cardinal cross lines (vertical and horizontal)
         painter.setPen(QPen(Qt.GlobalColor.black, 1.5))
         # Vertical line
         painter.drawLine(
-            QPointF(center_x, center_y - radius),
-            QPointF(center_x, center_y + radius)
+            QPointF(center_x, center_y - radius), QPointF(center_x, center_y + radius)
         )
         # Horizontal line
         painter.drawLine(
-            QPointF(center_x - radius, center_y),
-            QPointF(center_x + radius, center_y)
+            QPointF(center_x - radius, center_y), QPointF(center_x + radius, center_y)
         )
 
         # Draw center circle
@@ -524,9 +544,7 @@ class ChartWheelWidget(QWidget):
         painter.setBrush(QBrush(QColor(255, 255, 255)))
         center_circle_radius = house_inner_radius / 2
         painter.drawEllipse(
-            QPointF(center_x, center_y),
-            center_circle_radius,
-            center_circle_radius
+            QPointF(center_x, center_y), center_circle_radius, center_circle_radius
         )
 
         # Draw message
@@ -535,9 +553,14 @@ class ChartWheelWidget(QWidget):
         font.setPointSize(12)
         painter.setFont(font)
         painter.drawText(
-            QRectF(center_x - center_circle_radius, center_y - 20, center_circle_radius * 2, 40),
+            QRectF(
+                center_x - center_circle_radius,
+                center_y - 20,
+                center_circle_radius * 2,
+                40,
+            ),
             Qt.AlignmentFlag.AlignCenter,
-            "No chart data available.\nCreate a chart to view it here."
+            "No chart data available.\nCreate a chart to view it here.",
         )
 
     def _draw_zodiac_ring(self, painter, center_x, center_y, radius, rotation_angle):
@@ -556,19 +579,11 @@ class ChartWheelWidget(QWidget):
         # Draw the outer circle
         painter.setPen(QPen(Qt.GlobalColor.black, 2))
         painter.setBrush(QBrush(Qt.GlobalColor.transparent))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            radius,
-            radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), radius, radius)
 
         # Draw the inner circle
         painter.setPen(QPen(Qt.GlobalColor.black, 1))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            inner_radius,
-            inner_radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), inner_radius, inner_radius)
 
         # Draw each zodiac sign (30 degrees each)
         for i in range(12):
@@ -584,28 +599,38 @@ class ChartWheelWidget(QWidget):
             path = QPainterPath()
 
             # Start at inner radius, not center
-            inner_start_x = center_x + inner_radius * math.cos(math.radians(90 - start_angle))
-            inner_start_y = center_y - inner_radius * math.sin(math.radians(90 - start_angle))
+            inner_start_x = center_x + inner_radius * math.cos(
+                math.radians(90 - start_angle)
+            )
+            inner_start_y = center_y - inner_radius * math.sin(
+                math.radians(90 - start_angle)
+            )
             path.moveTo(inner_start_x, inner_start_y)
 
             # Outer arc
             path.arcTo(
-                center_x - radius, center_y - radius,
-                radius * 2, radius * 2,
-                90 - start_angle, -30
+                center_x - radius,
+                center_y - radius,
+                radius * 2,
+                radius * 2,
+                90 - start_angle,
+                -30,
             )
 
             # Line to inner radius
             path.lineTo(
                 center_x + inner_radius * math.cos(math.radians(90 - end_angle)),
-                center_y - inner_radius * math.sin(math.radians(90 - end_angle))
+                center_y - inner_radius * math.sin(math.radians(90 - end_angle)),
             )
 
             # Inner arc
             path.arcTo(
-                center_x - inner_radius, center_y - inner_radius,
-                inner_radius * 2, inner_radius * 2,
-                90 - end_angle, 30
+                center_x - inner_radius,
+                center_y - inner_radius,
+                inner_radius * 2,
+                inner_radius * 2,
+                90 - end_angle,
+                30,
             )
 
             path.closeSubpath()
@@ -617,7 +642,9 @@ class ChartWheelWidget(QWidget):
 
             # Draw the sign symbol
             symbol_radius = radius - self.zodiac_ring_width / 2
-            symbol_angle = math.radians(90 - (start_angle + 15))  # Middle of the segment
+            symbol_angle = math.radians(
+                90 - (start_angle + 15)
+            )  # Middle of the segment
             symbol_x = center_x + symbol_radius * math.cos(symbol_angle)
             symbol_y = center_y - symbol_radius * math.sin(symbol_angle)
 
@@ -638,7 +665,7 @@ class ChartWheelWidget(QWidget):
             painter.drawText(
                 QRectF(-15, -15, 30, 30),
                 Qt.AlignmentFlag.AlignCenter,
-                self.zodiac_symbols[sign]
+                self.zodiac_symbols[sign],
             )
 
             # Restore the painter state
@@ -664,11 +691,7 @@ class ChartWheelWidget(QWidget):
         # Draw the inner circle
         painter.setPen(QPen(Qt.GlobalColor.black, 1))
         painter.setBrush(QBrush(Qt.GlobalColor.transparent))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            inner_radius,
-            inner_radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), inner_radius, inner_radius)
 
         # Draw each house
         for house in self.chart.houses:
@@ -688,28 +711,42 @@ class ChartWheelWidget(QWidget):
             path = QPainterPath()
 
             # Start at inner radius, not center
-            inner_start_x = center_x + inner_radius * math.cos(math.radians(start_painter_angle))
-            inner_start_y = center_y - inner_radius * math.sin(math.radians(start_painter_angle))
+            inner_start_x = center_x + inner_radius * math.cos(
+                math.radians(start_painter_angle)
+            )
+            inner_start_y = center_y - inner_radius * math.sin(
+                math.radians(start_painter_angle)
+            )
             path.moveTo(inner_start_x, inner_start_y)
 
             # Outer arc
             path.arcTo(
-                center_x - radius, center_y - radius,
-                radius * 2, radius * 2,
-                start_painter_angle, sweep_angle
+                center_x - radius,
+                center_y - radius,
+                radius * 2,
+                radius * 2,
+                start_painter_angle,
+                sweep_angle,
             )
 
             # Line to inner radius
             path.lineTo(
-                center_x + inner_radius * math.cos(math.radians(start_painter_angle + sweep_angle)),
-                center_y - inner_radius * math.sin(math.radians(start_painter_angle + sweep_angle))
+                center_x
+                + inner_radius
+                * math.cos(math.radians(start_painter_angle + sweep_angle)),
+                center_y
+                - inner_radius
+                * math.sin(math.radians(start_painter_angle + sweep_angle)),
             )
 
             # Inner arc
             path.arcTo(
-                center_x - inner_radius, center_y - inner_radius,
-                inner_radius * 2, inner_radius * 2,
-                start_painter_angle + sweep_angle, -sweep_angle
+                center_x - inner_radius,
+                center_y - inner_radius,
+                inner_radius * 2,
+                inner_radius * 2,
+                start_painter_angle + sweep_angle,
+                -sweep_angle,
             )
 
             path.closeSubpath()
@@ -721,7 +758,9 @@ class ChartWheelWidget(QWidget):
 
             # Draw the house number
             number_radius = radius - self.house_ring_width / 2
-            number_angle = math.radians(start_painter_angle + sweep_angle / 2)  # Middle of the segment
+            number_angle = math.radians(
+                start_painter_angle + sweep_angle / 2
+            )  # Middle of the segment
             number_x = center_x + number_radius * math.cos(number_angle)
             number_y = center_y - number_radius * math.sin(number_angle)
 
@@ -742,7 +781,7 @@ class ChartWheelWidget(QWidget):
             painter.drawText(
                 QRectF(-15, -15, 30, 30),
                 Qt.AlignmentFlag.AlignCenter,
-                str(house.number)
+                str(house.number),
             )
 
             # Restore the painter state
@@ -752,10 +791,14 @@ class ChartWheelWidget(QWidget):
             painter.setPen(QPen(Qt.GlobalColor.black, 1, Qt.PenStyle.DashLine))
             cusp_angle = math.radians(start_painter_angle)
             painter.drawLine(
-                QPointF(center_x + inner_radius * math.cos(cusp_angle),
-                       center_y - inner_radius * math.sin(cusp_angle)),
-                QPointF(center_x + radius * math.cos(cusp_angle),
-                       center_y - radius * math.sin(cusp_angle))
+                QPointF(
+                    center_x + inner_radius * math.cos(cusp_angle),
+                    center_y - inner_radius * math.sin(cusp_angle),
+                ),
+                QPointF(
+                    center_x + radius * math.cos(cusp_angle),
+                    center_y - radius * math.sin(cusp_angle),
+                ),
             )
 
     def _draw_planets(self, painter, center_x, center_y, radius, rotation_angle):
@@ -774,11 +817,7 @@ class ChartWheelWidget(QWidget):
         # Draw the inner circle
         painter.setPen(QPen(Qt.GlobalColor.black, 1))
         painter.setBrush(QBrush(Qt.GlobalColor.transparent))
-        painter.drawEllipse(
-            QPointF(center_x, center_y),
-            inner_radius,
-            inner_radius
-        )
+        painter.drawEllipse(QPointF(center_x, center_y), inner_radius, inner_radius)
 
         # Get the Ascendant degree
         ascendant = None
@@ -791,7 +830,9 @@ class ChartWheelWidget(QWidget):
             # Use the same rotation offset as for house cusps to ensure consistency
             asc_chart_angle = self._zodiac_to_chart_angle(ascendant)
             rotation_offset = 180 - asc_chart_angle
-            logger.debug(f"Planets: Using rotation offset {rotation_offset:.2f}° to place Ascendant at 180° (west)")
+            logger.debug(
+                f"Planets: Using rotation offset {rotation_offset:.2f}° to place Ascendant at 180° (west)"
+            )
 
         # Group planets by position to avoid overlaps
         planet_positions = {}
@@ -820,7 +861,9 @@ class ChartWheelWidget(QWidget):
 
             for i, body in enumerate(bodies):
                 # Calculate offset position
-                offset_angle = angle + math.radians((i - (num_bodies - 1) / 2) * offset / radius)
+                offset_angle = angle + math.radians(
+                    (i - (num_bodies - 1) / 2) * offset / radius
+                )
                 planet_x = center_x + planet_radius * math.cos(offset_angle)
                 planet_y = center_y + planet_radius * math.sin(offset_angle)
 
@@ -848,9 +891,7 @@ class ChartWheelWidget(QWidget):
 
                 # Draw the symbol centered at the origin (0,0)
                 painter.drawText(
-                    QRectF(-12, -12, 24, 24),
-                    Qt.AlignmentFlag.AlignCenter,
-                    symbol
+                    QRectF(-12, -12, 24, 24), Qt.AlignmentFlag.AlignCenter, symbol
                 )
 
                 # Restore the painter state
@@ -861,8 +902,7 @@ class ChartWheelWidget(QWidget):
                 zodiac_x = center_x + radius * math.cos(offset_angle)
                 zodiac_y = center_y + radius * math.sin(offset_angle)
                 painter.drawLine(
-                    QPointF(planet_x, planet_y),
-                    QPointF(zodiac_x, zodiac_y)
+                    QPointF(planet_x, planet_y), QPointF(zodiac_x, zodiac_y)
                 )
 
     def _draw_chart_info(self, painter, center_x, center_y, radius):
@@ -883,7 +923,7 @@ class ChartWheelWidget(QWidget):
         painter.drawText(
             QRectF(center_x - radius * 0.8, center_y - radius * 0.5, radius * 1.6, 30),
             Qt.AlignmentFlag.AlignCenter,
-            self.chart.name
+            self.chart.name,
         )
 
         # Draw the chart date
@@ -891,15 +931,17 @@ class ChartWheelWidget(QWidget):
         painter.drawText(
             QRectF(center_x - radius * 0.8, center_y - radius * 0.2, radius * 1.6, 30),
             Qt.AlignmentFlag.AlignCenter,
-            date_str
+            date_str,
         )
 
         # Draw the location
         if self.chart.location_name:
             painter.drawText(
-                QRectF(center_x - radius * 0.8, center_y + radius * 0.1, radius * 1.6, 30),
+                QRectF(
+                    center_x - radius * 0.8, center_y + radius * 0.1, radius * 1.6, 30
+                ),
                 Qt.AlignmentFlag.AlignCenter,
-                self.chart.location_name
+                self.chart.location_name,
             )
 
         # Draw the coordinates
@@ -907,9 +949,11 @@ class ChartWheelWidget(QWidget):
             lat_str = f"Lat: {self.chart.latitude:.4f}"
             lon_str = f"Lon: {self.chart.longitude:.4f}"
             painter.drawText(
-                QRectF(center_x - radius * 0.8, center_y + radius * 0.4, radius * 1.6, 30),
+                QRectF(
+                    center_x - radius * 0.8, center_y + radius * 0.4, radius * 1.6, 30
+                ),
                 Qt.AlignmentFlag.AlignCenter,
-                f"{lat_str}, {lon_str}"
+                f"{lat_str}, {lon_str}",
             )
 
     def sizeHint(self):

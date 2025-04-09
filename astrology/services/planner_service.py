@@ -11,30 +11,30 @@ Key components:
 - PlannerEvent: Data model for astrological events
 """
 
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 import json
 import os
-
-# Import our models
-from astrology.models.planner import PlannerEvent, EventType
-
-# Import our astronomical moon phase calculator
-from astrology.services.moon_phase_calculator import calculate_moon_phases_for_month
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
 from loguru import logger
 from pydantic import BaseModel
 
 from astrology.models.chart import Chart
+
+# Import our models
+from astrology.models.planner import EventType, PlannerEvent
 from astrology.services.chart_service import ChartService
 from astrology.services.location_service import Location, LocationService
 
+# Import our astronomical moon phase calculator
+from astrology.services.moon_phase_calculator import calculate_moon_phases_for_month
 
 # EventType and PlannerEvent are now imported from astrology.models.planner
 
 
 class PlannerSettings(BaseModel):
     """Model for planner settings."""
+
     default_location: Optional[Location] = None
     default_view: str = "month"  # "month" or "day"
 
@@ -63,8 +63,12 @@ class PlannerService:
         self.location_service = LocationService.get_instance()
 
         # Initialize events storage
-        self.events_file = os.path.join(os.path.expanduser("~"), ".isopgem", "planner_events.json")
-        self.settings_file = os.path.join(os.path.expanduser("~"), ".isopgem", "planner_settings.json")
+        self.events_file = os.path.join(
+            os.path.expanduser("~"), ".isopgem", "planner_events.json"
+        )
+        self.settings_file = os.path.join(
+            os.path.expanduser("~"), ".isopgem", "planner_settings.json"
+        )
 
         # Ensure directory exists
         os.makedirs(os.path.dirname(self.events_file), exist_ok=True)
@@ -95,26 +99,34 @@ class PlannerService:
                 processed_events = []
                 for event_data in event_list:
                     # Check if event_type is a string and convert it to the proper enum value
-                    if 'event_type' in event_data and isinstance(event_data['event_type'], str):
+                    if "event_type" in event_data and isinstance(
+                        event_data["event_type"], str
+                    ):
                         # Handle the case where event_type is stored as 'EventType.USER_EVENT'
-                        if event_data['event_type'].startswith('EventType.'):
-                            enum_name = event_data['event_type'].split('.')[1]
+                        if event_data["event_type"].startswith("EventType."):
+                            enum_name = event_data["event_type"].split(".")[1]
                             try:
-                                event_data['event_type'] = EventType[enum_name]
+                                event_data["event_type"] = EventType[enum_name]
                             except KeyError:
                                 # If the enum name doesn't exist, default to USER_EVENT
-                                logger.warning(f"Unknown event type: {event_data['event_type']}, defaulting to USER_EVENT")
-                                event_data['event_type'] = EventType.USER_EVENT
+                                logger.warning(
+                                    f"Unknown event type: {event_data['event_type']}, defaulting to USER_EVENT"
+                                )
+                                event_data["event_type"] = EventType.USER_EVENT
 
                     # Create the PlannerEvent object
                     try:
                         processed_events.append(PlannerEvent(**event_data))
                     except Exception as e:
-                        logger.warning(f"Error processing event: {e}. Event data: {event_data}")
+                        logger.warning(
+                            f"Error processing event: {e}. Event data: {event_data}"
+                        )
 
                 events[date_str] = processed_events
 
-            logger.debug(f"Loaded {sum(len(events) for events in events.values())} events from {self.events_file}")
+            logger.debug(
+                f"Loaded {sum(len(events) for events in events.values())} events from {self.events_file}"
+            )
             return events
 
         except Exception as e:
@@ -138,8 +150,10 @@ class PlannerService:
                     event_data = event.model_dump()
 
                     # Ensure event_type is saved as an integer
-                    if 'event_type' in event_data and hasattr(event_data['event_type'], 'value'):
-                        event_data['event_type'] = event_data['event_type'].value
+                    if "event_type" in event_data and hasattr(
+                        event_data["event_type"], "value"
+                    ):
+                        event_data["event_type"] = event_data["event_type"].value
 
                     serialized_events.append(event_data)
 
@@ -148,7 +162,9 @@ class PlannerService:
             with open(self.events_file, "w") as f:
                 json.dump(data, f, indent=2, default=str)
 
-            logger.debug(f"Saved {sum(len(events) for events in self.events.values())} events to {self.events_file}")
+            logger.debug(
+                f"Saved {sum(len(events) for events in self.events.values())} events to {self.events_file}"
+            )
             return True
 
         except Exception as e:
@@ -272,24 +288,28 @@ class PlannerService:
         # Add yearly repeating events
         for date_str, event_list in self.events.items():
             for event in event_list:
-                if event.repeats_yearly and event.start_time.month == date.month and event.start_time.day == date.day:
+                if (
+                    event.repeats_yearly
+                    and event.start_time.month == date.month
+                    and event.start_time.day == date.day
+                ):
                     # Create a copy of the event with the current year
                     new_event = event.model_copy()
                     new_event.start_time = datetime.combine(
-                        date,
-                        event.start_time.time()
+                        date, event.start_time.time()
                     )
                     if event.end_time:
                         new_event.end_time = datetime.combine(
-                            date,
-                            event.end_time.time()
+                            date, event.end_time.time()
                         )
 
                     events.append(new_event)
 
         return events
 
-    def get_events_for_month(self, year: int, month: int) -> Dict[int, List[PlannerEvent]]:
+    def get_events_for_month(
+        self, year: int, month: int
+    ) -> Dict[int, List[PlannerEvent]]:
         """Get events for a specific month.
 
         Args:
@@ -335,8 +355,6 @@ class PlannerService:
         """
         return self.settings
 
-
-
     def _get_zodiac_sign(self, date: datetime) -> str:
         """Get the zodiac sign for a date.
 
@@ -351,18 +369,18 @@ class PlannerService:
         """
         # Define the approximate dates for each zodiac sign
         zodiac_dates = [
-            (1, 20, "Aquarius"),    # Jan 20 - Feb 18
-            (2, 19, "Pisces"),      # Feb 19 - Mar 20
-            (3, 21, "Aries"),       # Mar 21 - Apr 19
-            (4, 20, "Taurus"),      # Apr 20 - May 20
-            (5, 21, "Gemini"),      # May 21 - Jun 20
-            (6, 21, "Cancer"),      # Jun 21 - Jul 22
-            (7, 23, "Leo"),         # Jul 23 - Aug 22
-            (8, 23, "Virgo"),       # Aug 23 - Sep 22
-            (9, 23, "Libra"),       # Sep 23 - Oct 22
-            (10, 23, "Scorpio"),    # Oct 23 - Nov 21
-            (11, 22, "Sagittarius"),# Nov 22 - Dec 21
-            (12, 22, "Capricorn")   # Dec 22 - Jan 19
+            (1, 20, "Aquarius"),  # Jan 20 - Feb 18
+            (2, 19, "Pisces"),  # Feb 19 - Mar 20
+            (3, 21, "Aries"),  # Mar 21 - Apr 19
+            (4, 20, "Taurus"),  # Apr 20 - May 20
+            (5, 21, "Gemini"),  # May 21 - Jun 20
+            (6, 21, "Cancer"),  # Jun 21 - Jul 22
+            (7, 23, "Leo"),  # Jul 23 - Aug 22
+            (8, 23, "Virgo"),  # Aug 23 - Sep 22
+            (9, 23, "Libra"),  # Sep 23 - Oct 22
+            (10, 23, "Scorpio"),  # Oct 23 - Nov 21
+            (11, 22, "Sagittarius"),  # Nov 22 - Dec 21
+            (12, 22, "Capricorn"),  # Dec 22 - Jan 19
         ]
 
         # Get the month and day
@@ -374,7 +392,12 @@ class PlannerService:
             return "Capricorn"
 
         for m, d, sign in zodiac_dates:
-            if month == m and day >= d or month == m + 1 and day < zodiac_dates[m % 12][1]:
+            if (
+                month == m
+                and day >= d
+                or month == m + 1
+                and day < zodiac_dates[m % 12][1]
+            ):
                 return sign
 
         # Default to Aries if something goes wrong
@@ -395,7 +418,9 @@ class PlannerService:
 
         # Use astronomical calculations to determine accurate moon phases
         # Pass the default location to adjust for timezone
-        return calculate_moon_phases_for_month(year, month, self._get_zodiac_sign, default_location)
+        return calculate_moon_phases_for_month(
+            year, month, self._get_zodiac_sign, default_location
+        )
 
     def get_void_of_course_periods(self, date: datetime.date) -> List[PlannerEvent]:
         """Get void-of-course periods for a specific date.
@@ -415,14 +440,16 @@ class PlannerService:
         # Add Void-of-Course period
         voc_start = datetime.combine(date, datetime.min.time()) + timedelta(hours=14)
         voc_end = voc_start + timedelta(hours=2)
-        events.append(PlannerEvent(
-            title="Moon Void-of-Course",
-            description="Moon Void-of-Course",
-            event_type=EventType.VOID_OF_COURSE,
-            start_time=voc_start,
-            end_time=voc_end,
-            color="#800080"  # Purple
-        ))
+        events.append(
+            PlannerEvent(
+                title="Moon Void-of-Course",
+                description="Moon Void-of-Course",
+                event_type=EventType.VOID_OF_COURSE,
+                start_time=voc_start,
+                end_time=voc_end,
+                color="#800080",  # Purple
+            )
+        )
 
         return events
 
@@ -443,23 +470,27 @@ class PlannerService:
 
         # Add Sun-Jupiter conjunction
         aspect_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=10)
-        events.append(PlannerEvent(
-            title="Sun conjunct Jupiter",
-            description="Sun conjunct Jupiter at 15° Aries",
-            event_type=EventType.PLANETARY_ASPECT,
-            start_time=aspect_time,
-            color="#FFA500"  # Orange
-        ))
+        events.append(
+            PlannerEvent(
+                title="Sun conjunct Jupiter",
+                description="Sun conjunct Jupiter at 15° Aries",
+                event_type=EventType.PLANETARY_ASPECT,
+                start_time=aspect_time,
+                color="#FFA500",  # Orange
+            )
+        )
 
         # Add Moon-Venus square
         aspect_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=16)
-        events.append(PlannerEvent(
-            title="Moon square Venus",
-            description="Moon square Venus at 22° Cancer/Aries",
-            event_type=EventType.PLANETARY_ASPECT,
-            start_time=aspect_time,
-            color="#FF0000"  # Red
-        ))
+        events.append(
+            PlannerEvent(
+                title="Moon square Venus",
+                description="Moon square Venus at 22° Cancer/Aries",
+                event_type=EventType.PLANETARY_ASPECT,
+                start_time=aspect_time,
+                color="#FF0000",  # Red
+            )
+        )
 
         return events
 
@@ -482,47 +513,59 @@ class PlannerService:
         if date.month == 5 and 10 <= date.day <= 31:
             # Mercury goes retrograde
             if date.day == 10:
-                retro_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=12)
-                events.append(PlannerEvent(
-                    title="Mercury Retrograde Begins",
-                    description="Mercury stations retrograde at 5° Gemini",
-                    event_type=EventType.RETROGRADE,
-                    start_time=retro_time,
-                    color="#800000"  # Maroon
-                ))
+                retro_time = datetime.combine(date, datetime.min.time()) + timedelta(
+                    hours=12
+                )
+                events.append(
+                    PlannerEvent(
+                        title="Mercury Retrograde Begins",
+                        description="Mercury stations retrograde at 5° Gemini",
+                        event_type=EventType.RETROGRADE,
+                        start_time=retro_time,
+                        color="#800000",  # Maroon
+                    )
+                )
             # Mercury is retrograde
             else:
-                events.append(PlannerEvent(
-                    title="Mercury Retrograde",
-                    description="Mercury retrograde in Gemini",
-                    event_type=EventType.RETROGRADE,
-                    start_time=datetime.combine(date, datetime.min.time()),
-                    end_time=datetime.combine(date, datetime.max.time()),
-                    color="#800000"  # Maroon
-                ))
+                events.append(
+                    PlannerEvent(
+                        title="Mercury Retrograde",
+                        description="Mercury retrograde in Gemini",
+                        event_type=EventType.RETROGRADE,
+                        start_time=datetime.combine(date, datetime.min.time()),
+                        end_time=datetime.combine(date, datetime.max.time()),
+                        color="#800000",  # Maroon
+                    )
+                )
 
         # Add Venus retrograde
         if date.month == 7 and 15 <= date.day <= 31:
             # Venus goes retrograde
             if date.day == 15:
-                retro_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=18)
-                events.append(PlannerEvent(
-                    title="Venus Retrograde Begins",
-                    description="Venus stations retrograde at 28° Leo",
-                    event_type=EventType.RETROGRADE,
-                    start_time=retro_time,
-                    color="#008000"  # Green
-                ))
+                retro_time = datetime.combine(date, datetime.min.time()) + timedelta(
+                    hours=18
+                )
+                events.append(
+                    PlannerEvent(
+                        title="Venus Retrograde Begins",
+                        description="Venus stations retrograde at 28° Leo",
+                        event_type=EventType.RETROGRADE,
+                        start_time=retro_time,
+                        color="#008000",  # Green
+                    )
+                )
             # Venus is retrograde
             else:
-                events.append(PlannerEvent(
-                    title="Venus Retrograde",
-                    description="Venus retrograde in Leo",
-                    event_type=EventType.RETROGRADE,
-                    start_time=datetime.combine(date, datetime.min.time()),
-                    end_time=datetime.combine(date, datetime.max.time()),
-                    color="#008000"  # Green
-                ))
+                events.append(
+                    PlannerEvent(
+                        title="Venus Retrograde",
+                        description="Venus retrograde in Leo",
+                        event_type=EventType.RETROGRADE,
+                        start_time=datetime.combine(date, datetime.min.time()),
+                        end_time=datetime.combine(date, datetime.max.time()),
+                        color="#008000",  # Green
+                    )
+                )
 
         return events
 
@@ -543,25 +586,33 @@ class PlannerService:
 
         # Add Solar Eclipse
         if date.month == 4 and date.day == 20:
-            eclipse_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=8)
-            events.append(PlannerEvent(
-                title="Total Solar Eclipse",
-                description="Total Solar Eclipse at 0° Taurus",
-                event_type=EventType.ECLIPSE,
-                start_time=eclipse_time,
-                color="#000080"  # Navy
-            ))
+            eclipse_time = datetime.combine(date, datetime.min.time()) + timedelta(
+                hours=8
+            )
+            events.append(
+                PlannerEvent(
+                    title="Total Solar Eclipse",
+                    description="Total Solar Eclipse at 0° Taurus",
+                    event_type=EventType.ECLIPSE,
+                    start_time=eclipse_time,
+                    color="#000080",  # Navy
+                )
+            )
 
         # Add Lunar Eclipse
         if date.month == 10 and date.day == 14:
-            eclipse_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=20)
-            events.append(PlannerEvent(
-                title="Partial Lunar Eclipse",
-                description="Partial Lunar Eclipse at 21° Aries",
-                event_type=EventType.ECLIPSE,
-                start_time=eclipse_time,
-                color="#4B0082"  # Indigo
-            ))
+            eclipse_time = datetime.combine(date, datetime.min.time()) + timedelta(
+                hours=20
+            )
+            events.append(
+                PlannerEvent(
+                    title="Partial Lunar Eclipse",
+                    description="Partial Lunar Eclipse at 21° Aries",
+                    event_type=EventType.ECLIPSE,
+                    start_time=eclipse_time,
+                    color="#4B0082",  # Indigo
+                )
+            )
 
         return events
 
@@ -582,29 +633,39 @@ class PlannerService:
 
         # Add Venus Morning Star
         if date.month == 6 and date.day == 10:
-            venus_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=5)
-            events.append(PlannerEvent(
-                title="Venus Morning Star Begins",
-                description="Venus becomes visible as Morning Star",
-                event_type=EventType.VENUS_CYCLE,
-                start_time=venus_time,
-                color="#00FFFF"  # Cyan
-            ))
+            venus_time = datetime.combine(date, datetime.min.time()) + timedelta(
+                hours=5
+            )
+            events.append(
+                PlannerEvent(
+                    title="Venus Morning Star Begins",
+                    description="Venus becomes visible as Morning Star",
+                    event_type=EventType.VENUS_CYCLE,
+                    start_time=venus_time,
+                    color="#00FFFF",  # Cyan
+                )
+            )
 
         # Add Venus Evening Star
         if date.month == 1 and date.day == 15:
-            venus_time = datetime.combine(date, datetime.min.time()) + timedelta(hours=18)
-            events.append(PlannerEvent(
-                title="Venus Evening Star Begins",
-                description="Venus becomes visible as Evening Star",
-                event_type=EventType.VENUS_CYCLE,
-                start_time=venus_time,
-                color="#00FFFF"  # Cyan
-            ))
+            venus_time = datetime.combine(date, datetime.min.time()) + timedelta(
+                hours=18
+            )
+            events.append(
+                PlannerEvent(
+                    title="Venus Evening Star Begins",
+                    description="Venus becomes visible as Evening Star",
+                    event_type=EventType.VENUS_CYCLE,
+                    start_time=venus_time,
+                    color="#00FFFF",  # Cyan
+                )
+            )
 
         return events
 
-    def get_all_astrological_events_for_date(self, date: datetime.date) -> List[PlannerEvent]:
+    def get_all_astrological_events_for_date(
+        self, date: datetime.date
+    ) -> List[PlannerEvent]:
         """Get all astrological events for a specific date.
 
         Args:
@@ -658,12 +719,14 @@ class PlannerService:
             birth_date=date_time,
             latitude=location.latitude,
             longitude=location.longitude,
-            location_name=location.display_name
+            location_name=location.display_name,
         )
 
         return chart
 
-    def send_event_to_chart_maker(self, event: PlannerEvent, location: Location) -> Chart:
+    def send_event_to_chart_maker(
+        self, event: PlannerEvent, location: Location
+    ) -> Chart:
         """Send an event to the chart maker.
 
         Args:
@@ -679,7 +742,7 @@ class PlannerService:
             birth_date=event.start_time,
             latitude=location.latitude,
             longitude=location.longitude,
-            location_name=location.display_name
+            location_name=location.display_name,
         )
 
         return chart

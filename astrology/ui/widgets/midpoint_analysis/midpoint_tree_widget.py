@@ -13,17 +13,20 @@ Dependencies:
 - astrology.models: For astrological data models
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QComboBox, QScrollArea, QGridLayout, QFrame,
-    QTableWidget, QTableWidgetItem, QHeaderView
-)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
-
-from loguru import logger
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QScrollArea,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from astrology.models.chart import Chart
 
@@ -39,7 +42,15 @@ class MidpointTreeWidget(QWidget):
         """
         super().__init__()
         self.chart = chart
-        self.traditional_planets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
+        self.traditional_planets = [
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
+        ]
         self.selected_planet = "sun"  # Default selected planet
         self.midpoint_interpretations = self._initialize_interpretations()
         self._init_ui()
@@ -71,7 +82,9 @@ class MidpointTreeWidget(QWidget):
             "visible through traditional aspect analysis."
         )
         explanation.setWordWrap(True)
-        explanation.setStyleSheet("font-style: italic; color: #666; margin: 10px 0; padding: 5px;")
+        explanation.setStyleSheet(
+            "font-style: italic; color: #666; margin: 10px 0; padding: 5px;"
+        )
         explanation.setMinimumHeight(50)  # Ensure enough height for wrapped text
         layout.addWidget(explanation)
 
@@ -88,7 +101,9 @@ class MidpointTreeWidget(QWidget):
         # Create table for midpoint tree
         self.tree_table = QTableWidget()
         self.tree_table.setColumnCount(3)
-        self.tree_table.setHorizontalHeaderLabels(["Midpoint", "Position", "Interpretation"])
+        self.tree_table.setHorizontalHeaderLabels(
+            ["Midpoint", "Position", "Interpretation"]
+        )
 
         # Set column widths
         header = self.tree_table.horizontalHeader()
@@ -139,7 +154,9 @@ class MidpointTreeWidget(QWidget):
 
             # Interpretation
             interp_item = QTableWidgetItem(interpretation)
-            interp_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            interp_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             self.tree_table.setItem(i, 2, interp_item)
 
         # Enable word wrap for the interpretation column
@@ -147,7 +164,9 @@ class MidpointTreeWidget(QWidget):
         self.tree_table.setTextElideMode(Qt.TextElideMode.ElideNone)
         self.tree_table.resizeRowsToContents()
 
-    def _calculate_midpoints_for_planet(self, subject, planet_name: str) -> List[Tuple[str, float, str, str]]:
+    def _calculate_midpoints_for_planet(
+        self, subject, planet_name: str
+    ) -> List[Tuple[str, float, str, str]]:
         """Calculate midpoints involving the selected planet.
 
         Args:
@@ -232,8 +251,18 @@ class MidpointTreeWidget(QWidget):
             The zodiac sign as a string
         """
         signs = [
-            "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-            "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+            "Aries",
+            "Taurus",
+            "Gemini",
+            "Cancer",
+            "Leo",
+            "Virgo",
+            "Libra",
+            "Scorpio",
+            "Sagittarius",
+            "Capricorn",
+            "Aquarius",
+            "Pisces",
         ]
 
         sign_index = int(position / 30)
@@ -282,7 +311,7 @@ class MidpointTreeWidget(QWidget):
             "venus_saturn": "The integration of values and structure. Represents enduring relationships, artistic discipline, and mature values.",
             "mars_jupiter": "The integration of action and expansion. Represents ambitious drive, entrepreneurial spirit, and expansive energy.",
             "mars_saturn": "The integration of action and structure. Represents disciplined effort, strategic action, and enduring strength.",
-            "jupiter_saturn": "The integration of expansion and structure. Represents balanced growth, practical wisdom, and sustainable success."
+            "jupiter_saturn": "The integration of expansion and structure. Represents balanced growth, practical wisdom, and sustainable success.",
         }
 
         return interpretations

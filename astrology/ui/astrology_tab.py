@@ -3,32 +3,30 @@
 This module provides the main tab for the Astrology pillar.
 """
 
+import random
+
 from loguru import logger
-from PyQt6.QtCore import Qt, QSize, QTimer, QPoint, QPointF, QRectF
+from PyQt6.QtCore import QPointF, Qt, QTimer
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QPainter,
+    QPen,
+    QPixmap,
+    QRadialGradient,
+)
 from PyQt6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
     QWidget,
-    QFrame
 )
-from PyQt6.QtGui import (
-    QPixmap,
-    QImage,
-    QColor,
-    QPalette,
-    QBrush,
-    QPainter,
-    QPen,
-    QRadialGradient,
-    QPainterPath
-)
-import random
 
-from shared.ui.window_management import TabManager, WindowManager
 from astrology.ui.dialogs.birth_chart_window import BirthChartWindow
 from astrology.ui.dialogs.planner_window import PlannerWindow
+from shared.ui.window_management import TabManager, WindowManager
 
 
 class AstrologyTab(QWidget):
@@ -53,7 +51,9 @@ class AstrologyTab(QWidget):
         # Timer for animation
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.twinkle_stars)
-        self.timer.start(100)  # Update every 100ms (reduced from 50ms for better performance)
+        self.timer.start(
+            100
+        )  # Update every 100ms (reduced from 50ms for better performance)
 
         # Initialize UI
         self._init_ui()
@@ -73,44 +73,48 @@ class AstrologyTab(QWidget):
             brightness = random.uniform(0.2, 1.0)
 
             # Generate random color (mostly white/blue, some yellow/red)
-            hue = random.choice([
-                random.randint(200, 240),  # Blue
-                random.randint(40, 60),    # Yellow
-                0,                          # Red
-                random.randint(0, 360)      # Any color (rare)
-            ])
+            hue = random.choice(
+                [
+                    random.randint(200, 240),  # Blue
+                    random.randint(40, 60),  # Yellow
+                    0,  # Red
+                    random.randint(0, 360),  # Any color (rare)
+                ]
+            )
             saturation = random.randint(0, 20)  # Mostly white
             value = int(255 * brightness)
 
             # Add star to list
-            self.stars.append({
-                'x': x,
-                'y': y,
-                'size': size,
-                'brightness': brightness,
-                'hue': hue,
-                'saturation': saturation,
-                'value': value,
-                'twinkle_direction': random.choice([-1, 1]),
-                'twinkle_speed': random.uniform(0.01, 0.03)
-            })
+            self.stars.append(
+                {
+                    "x": x,
+                    "y": y,
+                    "size": size,
+                    "brightness": brightness,
+                    "hue": hue,
+                    "saturation": saturation,
+                    "value": value,
+                    "twinkle_direction": random.choice([-1, 1]),
+                    "twinkle_speed": random.uniform(0.01, 0.03),
+                }
+            )
 
     def twinkle_stars(self):
         """Update star brightness for twinkling effect."""
         for star in self.stars:
             # Update brightness
-            star['brightness'] += star['twinkle_direction'] * star['twinkle_speed']
+            star["brightness"] += star["twinkle_direction"] * star["twinkle_speed"]
 
             # Reverse direction if limits reached
-            if star['brightness'] > 1.0:
-                star['brightness'] = 1.0
-                star['twinkle_direction'] = -1
-            elif star['brightness'] < 0.2:
-                star['brightness'] = 0.2
-                star['twinkle_direction'] = 1
+            if star["brightness"] > 1.0:
+                star["brightness"] = 1.0
+                star["twinkle_direction"] = -1
+            elif star["brightness"] < 0.2:
+                star["brightness"] = 0.2
+                star["twinkle_direction"] = 1
 
             # Update value based on brightness
-            star['value'] = int(255 * star['brightness'])
+            star["value"] = int(255 * star["brightness"])
 
         # Trigger repaint
         self.update()
@@ -122,9 +126,7 @@ class AstrologyTab(QWidget):
 
         # Open it in a window
         self.window_manager.open_window(
-            "birth_chart",
-            birth_chart_window,
-            "Birth Chart"
+            "birth_chart", birth_chart_window, "Birth Chart"
         )
 
     def _open_planner(self):
@@ -137,9 +139,7 @@ class AstrologyTab(QWidget):
 
         # Open it in a window
         self.window_manager.open_window(
-            "astro_planner",
-            planner_window,
-            "Astrological Planner"
+            "astro_planner", planner_window, "Astrological Planner"
         )
 
     def _on_chart_requested_from_planner(self, chart):
@@ -154,9 +154,7 @@ class AstrologyTab(QWidget):
 
         # Open it in a window
         self.window_manager.open_window(
-            "planner_chart",
-            birth_chart_window,
-            f"Chart: {chart.name}"
+            "planner_chart", birth_chart_window, f"Chart: {chart.name}"
         )
 
     def _init_ui(self) -> None:
@@ -167,7 +165,8 @@ class AstrologyTab(QWidget):
         # Button bar with semi-transparent background
         button_bar = QFrame()
         button_bar.setObjectName("astrology_button_bar")
-        button_bar.setStyleSheet("""
+        button_bar.setStyleSheet(
+            """
             QFrame#astrology_button_bar {
                 background-color: rgba(0, 0, 0, 70);
                 border-radius: 5px;
@@ -183,7 +182,8 @@ class AstrologyTab(QWidget):
             QPushButton:hover {
                 background-color: rgba(60, 120, 180, 200);
             }
-        """)
+        """
+        )
         button_layout = QHBoxLayout(button_bar)
         button_layout.setContentsMargins(10, 5, 10, 5)
         button_layout.setSpacing(10)
@@ -241,7 +241,8 @@ class AstrologyTab(QWidget):
         # Create card for welcome content
         welcome_card = QFrame()
         welcome_card.setObjectName("welcomeCard")
-        welcome_card.setStyleSheet("""
+        welcome_card.setStyleSheet(
+            """
             #welcomeCard {
                 background-color: rgba(255, 255, 255, 180);
                 border-radius: 8px;
@@ -252,7 +253,8 @@ class AstrologyTab(QWidget):
                 max-width: 800px;
                 min-height: 200px;
             }
-        """)
+        """
+        )
         welcome_layout = QVBoxLayout(welcome_card)
         welcome_layout.setContentsMargins(15, 15, 15, 15)
         welcome_layout.setSpacing(10)
@@ -290,14 +292,16 @@ class AstrologyTab(QWidget):
         # Add Urania image below welcome card
         urania_container = QFrame()
         urania_container.setObjectName("uraniaImageContainer")
-        urania_container.setStyleSheet("""
+        urania_container.setStyleSheet(
+            """
             #uraniaImageContainer {
                 background-color: rgba(255, 255, 255, 100);
                 border-radius: 8px;
                 margin: 10px 40px 20px 40px;
                 padding: 10px;
             }
-        """)
+        """
+        )
         urania_layout = QVBoxLayout(urania_container)
 
         # Create image label
@@ -307,25 +311,32 @@ class AstrologyTab(QWidget):
         if not urania_pixmap.isNull():
             # Scale the image to a reasonable size while maintaining aspect ratio
             scaled_pixmap = urania_pixmap.scaled(
-                400, 400,
+                400,
+                400,
                 Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
+                Qt.TransformationMode.SmoothTransformation,
             )
             urania_image_label.setPixmap(scaled_pixmap)
             urania_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             # Add caption
             caption = QLabel("Urania - Muse of Astronomy and Celestial Sciences")
-            caption.setStyleSheet("font-size: 12px; color: #1565C0; font-style: italic; background-color: rgba(255, 255, 255, 150); padding: 4px; border-radius: 4px;")
+            caption.setStyleSheet(
+                "font-size: 12px; color: #1565C0; font-style: italic; background-color: rgba(255, 255, 255, 150); padding: 4px; border-radius: 4px;"
+            )
             caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            urania_layout.addWidget(urania_image_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            urania_layout.addWidget(
+                urania_image_label, alignment=Qt.AlignmentFlag.AlignCenter
+            )
             urania_layout.addWidget(caption, alignment=Qt.AlignmentFlag.AlignCenter)
 
             # Add the image container to the main layout
             layout.addWidget(urania_container, alignment=Qt.AlignmentFlag.AlignCenter)
         else:
-            logger.error("Failed to load Urania image from assets/tab_images/urania.png")
+            logger.error(
+                "Failed to load Urania image from assets/tab_images/urania.png"
+            )
 
         # Add stretch to push content to top
         layout.addStretch()
@@ -340,8 +351,8 @@ class AstrologyTab(QWidget):
 
         # Draw dark blue gradient background
         gradient = QRadialGradient(
-            QPointF(self.width()/2, self.height()/2),
-            max(self.width(), self.height())
+            QPointF(self.width() / 2, self.height() / 2),
+            max(self.width(), self.height()),
         )
         gradient.setColorAt(0, QColor(10, 10, 40))
         gradient.setColorAt(1, QColor(0, 0, 20))
@@ -350,22 +361,20 @@ class AstrologyTab(QWidget):
         # Draw stars
         for star in self.stars:
             # Calculate pixel position
-            x = int(self.width() * star['x'] / 100)
-            y = int(self.height() * star['y'] / 100)
+            x = int(self.width() * star["x"] / 100)
+            y = int(self.height() * star["y"] / 100)
 
             # Set color
             color = QColor()
-            color.setHsv(star['hue'], star['saturation'], star['value'])
+            color.setHsv(star["hue"], star["saturation"], star["value"])
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(color))
 
             # Draw star (circle with optional glow for brighter stars)
-            size = star['size']
-            if star['brightness'] > 0.7:
+            size = star["size"]
+            if star["brightness"] > 0.7:
                 # For bright stars, add glow
-                glow_gradient = QRadialGradient(
-                    QPointF(x, y), size * 3
-                )
+                glow_gradient = QRadialGradient(QPointF(x, y), size * 3)
                 glow_color = QColor(color)
                 glow_color.setAlpha(50)
                 glow_gradient.setColorAt(0, color)
@@ -380,14 +389,12 @@ class AstrologyTab(QWidget):
             painter.drawEllipse(QPointF(x, y), size, size)
 
             # For really bright stars, add cross spikes
-            if star['brightness'] > 0.85:
+            if star["brightness"] > 0.85:
                 painter.setPen(QPen(color, 0.5))
                 spike_length = size * 4
                 painter.drawLine(
-                    QPointF(x - spike_length, y),
-                    QPointF(x + spike_length, y)
+                    QPointF(x - spike_length, y), QPointF(x + spike_length, y)
                 )
                 painter.drawLine(
-                    QPointF(x, y - spike_length),
-                    QPointF(x, y + spike_length)
+                    QPointF(x, y - spike_length), QPointF(x, y + spike_length)
                 )

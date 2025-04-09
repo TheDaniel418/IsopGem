@@ -4,12 +4,7 @@ This package contains services for astrological calculations and chart managemen
 """
 
 from astrology.services.chart_service import ChartService
-from astrology.services.location_service import LocationService, Location
 from astrology.services.kerykeion_service import KerykeionService
+from astrology.services.location_service import Location, LocationService
 
-__all__ = [
-    "ChartService",
-    "LocationService",
-    "Location",
-    "KerykeionService"
-]
+__all__ = ["ChartService", "LocationService", "Location", "KerykeionService"]

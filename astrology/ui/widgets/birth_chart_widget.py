@@ -14,29 +14,32 @@ Dependencies:
 - astrology.services: For astrological services
 """
 
-from datetime import datetime
-import math
-from typing import Optional, Dict, List, Tuple
+
 import tzlocal
-
-from PyQt6.QtCore import Qt, QDateTime, QDate, QTime, pyqtSignal
-from PyQt6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QLineEdit,
-    QPushButton, QDateTimeEdit, QComboBox, QCheckBox,
-    QGroupBox, QScrollArea, QWidget, QSplitter, QTabWidget
-)
-from PyQt6.QtGui import QFont
-
 from loguru import logger
+from PyQt6.QtCore import QDateTime, Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDateTimeEdit,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLineEdit,
+    QPushButton,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
-from astrology.models.chart import Chart, NatalChart
+from astrology.models.chart import NatalChart
 from astrology.models.zodiac import HouseSystem, PerspectiveType
 from astrology.services.kerykeion_service import KerykeionService
-from astrology.services.location_service import Location
-from astrology.ui.widgets.planetary_positions_widget import PlanetaryPositionsWidget
-from astrology.ui.widgets.new_house_positions_widget import NewHousePositionsWidget
-from astrology.ui.widgets.midpoints_widget import MidpointsWidget
 from astrology.ui.dialogs.location_search_window import LocationSearchWindow
+from astrology.ui.widgets.midpoints_widget import MidpointsWidget
+from astrology.ui.widgets.new_house_positions_widget import NewHousePositionsWidget
+from astrology.ui.widgets.planetary_positions_widget import PlanetaryPositionsWidget
 
 
 class BirthChartWidget(QWidget):
@@ -173,7 +176,6 @@ class BirthChartWidget(QWidget):
         self.midpoint_analysis_button.setStyleSheet("background-color: #ccccff;")
         display_layout.addWidget(self.midpoint_analysis_button)
 
-
         # Positions tab
         self.positions_tab = QWidget()
         positions_layout = QVBoxLayout(self.positions_tab)
@@ -262,10 +264,14 @@ class BirthChartWidget(QWidget):
                 HouseSystem.TOPOCENTRIC: "T",
                 HouseSystem.MORINUS: "M",
                 HouseSystem.PORPHYRY: "O",
-                HouseSystem.ALCABITIUS: "B"
+                HouseSystem.ALCABITIUS: "B",
             }
-            house_system_code = house_system_codes.get(house_system_data, "P")  # Default to Placidus
-            logger.debug(f"Using house system: {house_system_data.value} (code: {house_system_code})")
+            house_system_code = house_system_codes.get(
+                house_system_data, "P"
+            )  # Default to Placidus
+            logger.debug(
+                f"Using house system: {house_system_data.value} (code: {house_system_code})"
+            )
 
             # Get the selected perspective type
             perspective_type_data = self.perspective_combo.currentData()
@@ -280,7 +286,7 @@ class BirthChartWidget(QWidget):
                 longitude=longitude,
                 timezone_str=timezone_str,
                 house_system=house_system_code,
-                perspective_type=perspective_type
+                perspective_type=perspective_type,
             )
 
             # Add additional information to the chart
@@ -291,9 +297,13 @@ class BirthChartWidget(QWidget):
             self.current_chart = chart
 
             # Log chart details
-            logger.debug(f"Created chart with {len(chart.planets)} planets and {len(chart.houses)} houses")
+            logger.debug(
+                f"Created chart with {len(chart.planets)} planets and {len(chart.houses)} houses"
+            )
             for house in chart.houses:
-                logger.debug(f"House {house.number}: {house.sign} at {house.cusp_degree}°, planets: {house.planets}")
+                logger.debug(
+                    f"House {house.number}: {house.sign} at {house.cusp_degree}°, planets: {house.planets}"
+                )
 
             # Update the chart display
             self._update_chart_display()
@@ -307,14 +317,16 @@ class BirthChartWidget(QWidget):
                 natal_chart = NatalChart(
                     name=chart.name,
                     date=chart.date,
-                    planets=chart.planets if hasattr(chart, 'planets') else [],
-                    houses=chart.houses if hasattr(chart, 'houses') else [],
-                    aspects=chart.aspects if hasattr(chart, 'aspects') else [],
+                    planets=chart.planets if hasattr(chart, "planets") else [],
+                    houses=chart.houses if hasattr(chart, "houses") else [],
+                    aspects=chart.aspects if hasattr(chart, "aspects") else [],
                     latitude=chart.latitude,
                     longitude=chart.longitude,
                     location_name=chart.location_name,
-                    house_system=chart.house_system if hasattr(chart, 'house_system') else None,
-                    kerykeion_subject=chart.kerykeion_subject
+                    house_system=chart.house_system
+                    if hasattr(chart, "house_system")
+                    else None,
+                    kerykeion_subject=chart.kerykeion_subject,
                 )
                 self.chart_created.emit(natal_chart)
 
@@ -328,7 +340,9 @@ class BirthChartWidget(QWidget):
         self.location_search_window = LocationSearchWindow()
 
         # Connect the location selected signal
-        self.location_search_window.location_selected.connect(self._on_location_selected)
+        self.location_search_window.location_selected.connect(
+            self._on_location_selected
+        )
 
         # Show the window
         self.location_search_window.show()
@@ -353,14 +367,11 @@ class BirthChartWidget(QWidget):
         try:
             # Generate the SVG and open it in the browser
             self.kerykeion_service.generate_chart_svg(
-                chart=self.current_chart,
-                open_in_browser=True
+                chart=self.current_chart, open_in_browser=True
             )
             logger.debug(f"Opened chart for {self.current_chart.name} in browser")
         except Exception as e:
             logger.error(f"Error opening chart in browser: {e}")
-
-
 
     def _show_houses_tab(self):
         """Debug method to switch to the Houses tab."""
@@ -396,7 +407,10 @@ class BirthChartWidget(QWidget):
         """Open the advanced midpoint analysis window."""
         from astrology.ui.windows.midpoint_analysis_window import MidpointAnalysisWindow
 
-        if not hasattr(self, 'midpoint_analysis_window') or self.midpoint_analysis_window is None:
+        if (
+            not hasattr(self, "midpoint_analysis_window")
+            or self.midpoint_analysis_window is None
+        ):
             if self.current_chart is None:
                 logger.warning("No chart available for midpoint analysis")
                 return
@@ -417,11 +431,13 @@ class BirthChartWidget(QWidget):
         self.positions_widget.set_chart(self.current_chart)
 
         # Update the houses widget
-        logger.debug(f"Setting chart with {len(self.current_chart.houses)} houses to houses widget")
+        logger.debug(
+            f"Setting chart with {len(self.current_chart.houses)} houses to houses widget"
+        )
         self.houses_widget.set_chart(self.current_chart)
 
         # Update the midpoints widget
-        logger.debug(f"Setting chart to midpoints widget")
+        logger.debug("Setting chart to midpoints widget")
         self.midpoints_widget.set_chart(self.current_chart)
 
         # Switch to the positions tab

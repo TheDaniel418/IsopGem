@@ -14,16 +14,19 @@ Dependencies:
 """
 
 import math
-from typing import List, Dict, Tuple
 
+from PyQt6.QtCore import QPoint, QRectF, Qt
+from PyQt6.QtGui import QBrush, QColor, QFont, QMouseEvent, QPainter, QPen
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QComboBox, QFrame, QSpinBox, QToolTip
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QSpinBox,
+    QToolTip,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, QRectF, QPoint
-from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QBrush, QMouseEvent
-
-from loguru import logger
 
 from astrology.models.chart import Chart
 
@@ -40,15 +43,23 @@ class HarmonicDialWidget(QWidget):
         super().__init__()
         self.chart = chart
         self.harmonic = 4  # Default to 90° dial (4th harmonic)
-        self.traditional_planets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
+        self.traditional_planets = [
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
+        ]
         self.planet_colors = {
-            "sun": QColor("#FFD700"),      # Gold
-            "moon": QColor("#C0C0C0"),     # Silver
+            "sun": QColor("#FFD700"),  # Gold
+            "moon": QColor("#C0C0C0"),  # Silver
             "mercury": QColor("#708090"),  # Slate Gray
-            "venus": QColor("#00FF7F"),    # Spring Green
-            "mars": QColor("#FF4500"),     # Orange Red
+            "venus": QColor("#00FF7F"),  # Spring Green
+            "mars": QColor("#FF4500"),  # Orange Red
             "jupiter": QColor("#4169E1"),  # Royal Blue
-            "saturn": QColor("#708090")    # Slate Gray
+            "saturn": QColor("#708090"),  # Slate Gray
         }
 
         # Store planet and midpoint positions for tooltips
@@ -81,14 +92,16 @@ class HarmonicDialWidget(QWidget):
         controls_layout.addWidget(preset_label)
 
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems([
-            "90° Dial (4th Harmonic)",
-            "45° Dial (8th Harmonic)",
-            "30° Dial (12th Harmonic)",
-            "22.5° Dial (16th Harmonic)",
-            "15° Dial (24th Harmonic)",
-            "10° Dial (36th Harmonic)"
-        ])
+        self.preset_combo.addItems(
+            [
+                "90° Dial (4th Harmonic)",
+                "45° Dial (8th Harmonic)",
+                "30° Dial (12th Harmonic)",
+                "22.5° Dial (16th Harmonic)",
+                "15° Dial (24th Harmonic)",
+                "10° Dial (36th Harmonic)",
+            ]
+        )
         self.preset_combo.currentIndexChanged.connect(self._on_preset_changed)
         controls_layout.addWidget(self.preset_combo)
 
@@ -102,14 +115,18 @@ class HarmonicDialWidget(QWidget):
             "Points that align vertically form significant midpoint relationships."
         )
         explanation.setWordWrap(True)
-        explanation.setStyleSheet("font-style: italic; color: #666; margin: 10px 0; padding: 5px;")
+        explanation.setStyleSheet(
+            "font-style: italic; color: #666; margin: 10px 0; padding: 5px;"
+        )
         explanation.setMinimumHeight(50)  # Ensure enough height for wrapped text
         layout.addWidget(explanation)
 
         # Add dial display
         self.dial_frame = QFrame()
         self.dial_frame.setMinimumHeight(500)  # Increased from 400 to 500
-        self.dial_frame.setMinimumWidth(500)  # Added minimum width to ensure circular display
+        self.dial_frame.setMinimumWidth(
+            500
+        )  # Added minimum width to ensure circular display
         self.dial_frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.dial_frame.setFrameShadow(QFrame.Shadow.Sunken)
         self.dial_frame.setMouseTracking(True)  # Enable mouse tracking for tooltips
@@ -157,7 +174,9 @@ class HarmonicDialWidget(QWidget):
 
         # Draw outer circle
         painter.setPen(QPen(QColor("#000000"), 2))
-        painter.drawEllipse(QRectF(center_x - radius, center_y - radius, radius * 2, radius * 2))
+        painter.drawEllipse(
+            QRectF(center_x - radius, center_y - radius, radius * 2, radius * 2)
+        )
 
         # Draw degree markings
         self._draw_degree_markings(painter, center_x, center_y, radius)
@@ -186,7 +205,9 @@ class HarmonicDialWidget(QWidget):
 
         # Calculate degree increment based on harmonic
         increment = 360 / self.harmonic
-        degrees_per_mark = max(1, int(increment / 10))  # Adjust mark frequency based on harmonic
+        degrees_per_mark = max(
+            1, int(increment / 10)
+        )  # Adjust mark frequency based on harmonic
 
         # Draw markings
         for i in range(0, int(increment) + 1, degrees_per_mark):
@@ -268,7 +289,7 @@ class HarmonicDialWidget(QWidget):
                     "label": planet_name.capitalize(),
                     "position": f"{position:.2f}° {self._get_sign_for_position(position)}",
                     "harmonic_position": f"{harmonic_position:.2f}°",
-                    "color": planet_color
+                    "color": planet_color,
                 }
 
     def _draw_midpoints(self, painter, center_x, center_y, radius):
@@ -296,7 +317,7 @@ class HarmonicDialWidget(QWidget):
             planet1 = getattr(subject, planet1_name)
             pos1 = planet1.position + (planet1.sign_num * 30)
 
-            for j, planet2_name in enumerate(self.traditional_planets[i+1:], i+1):
+            for j, planet2_name in enumerate(self.traditional_planets[i + 1 :], i + 1):
                 if not hasattr(subject, planet2_name):
                     continue
 
@@ -321,11 +342,22 @@ class HarmonicDialWidget(QWidget):
                 blended_color = QColor(
                     (color1.red() + color2.red()) // 2,
                     (color1.green() + color2.green()) // 2,
-                    (color1.blue() + color2.blue()) // 2
+                    (color1.blue() + color2.blue()) // 2,
                 )
 
                 # Draw connection line
-                painter.setPen(QPen(QColor(blended_color.red(), blended_color.green(), blended_color.blue(), 100), 1, Qt.PenStyle.DashLine))
+                painter.setPen(
+                    QPen(
+                        QColor(
+                            blended_color.red(),
+                            blended_color.green(),
+                            blended_color.blue(),
+                            100,
+                        ),
+                        1,
+                        Qt.PenStyle.DashLine,
+                    )
+                )
                 painter.drawLine(int(center_x), int(center_y), int(x), int(y))
 
                 # Draw midpoint marker with planet-specific color
@@ -342,7 +374,7 @@ class HarmonicDialWidget(QWidget):
                     "label": f"{planet1_name.capitalize()}/{planet2_name.capitalize()}",
                     "position": f"{midpoint:.2f}° {self._get_sign_for_position(midpoint)}",
                     "harmonic_position": f"{harmonic_midpoint:.2f}°",
-                    "color": blended_color
+                    "color": blended_color,
                 }
 
     def _calculate_midpoint(self, pos1: float, pos2: float) -> float:
@@ -384,8 +416,18 @@ class HarmonicDialWidget(QWidget):
             The zodiac sign as a string
         """
         signs = [
-            "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-            "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+            "Aries",
+            "Taurus",
+            "Gemini",
+            "Cancer",
+            "Leo",
+            "Virgo",
+            "Libra",
+            "Scorpio",
+            "Sagittarius",
+            "Capricorn",
+            "Aquarius",
+            "Pisces",
         ]
 
         sign_index = int(position / 30)
@@ -415,7 +457,10 @@ class HarmonicDialWidget(QWidget):
                 tooltip_text = f"<b>{planet_info['label']}</b><br>"
                 tooltip_text += f"Position: {planet_info['position']}<br>"
                 tooltip_text += f"Harmonic Position: {planet_info['harmonic_position']}"
-                QToolTip.showText(self.dial_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))), tooltip_text)
+                QToolTip.showText(
+                    self.dial_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))),
+                    tooltip_text,
+                )
                 return
 
         # Check if mouse is over any midpoint
@@ -431,8 +476,13 @@ class HarmonicDialWidget(QWidget):
                 # Show tooltip for midpoint
                 tooltip_text = f"<b>{midpoint_info['label']}</b><br>"
                 tooltip_text += f"Position: {midpoint_info['position']}<br>"
-                tooltip_text += f"Harmonic Position: {midpoint_info['harmonic_position']}"
-                QToolTip.showText(self.dial_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))), tooltip_text)
+                tooltip_text += (
+                    f"Harmonic Position: {midpoint_info['harmonic_position']}"
+                )
+                QToolTip.showText(
+                    self.dial_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))),
+                    tooltip_text,
+                )
                 return
 
         # If not over any point, hide tooltip

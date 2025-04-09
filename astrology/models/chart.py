@@ -19,12 +19,13 @@ Dependencies:
 - datetime: For date and time handling
 """
 
-from enum import Enum, auto
-from typing import Optional, Dict, List, Any, Union
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
-from astrology.models.zodiac import House, HouseSystem, Planet, Aspect
+from astrology.models.zodiac import Aspect, House, HouseSystem, Planet
 
 # Import kerykeion types for type hints
 try:
@@ -54,9 +55,7 @@ class Chart(BaseModel):
     """Base class for all astrological charts."""
 
     # Configure the model to allow arbitrary types (like AstrologicalSubject)
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
+    model_config = {"arbitrary_types_allowed": True}
 
     name: str
     type: ChartType

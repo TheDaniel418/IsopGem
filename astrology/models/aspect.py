@@ -16,14 +16,15 @@ Dependencies:
 - Enum: For enumeration types
 """
 
-from enum import Enum, auto
-from typing import Optional, Dict, List, Any, Tuple
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 from pydantic import BaseModel, Field
 
 
 class AspectType(Enum):
     """Types of astrological aspects."""
-    
+
     CONJUNCTION = "Conjunction"
     OPPOSITION = "Opposition"
     TRINE = "Trine"
@@ -43,16 +44,16 @@ class AspectType(Enum):
 
 class AspectInfo(BaseModel):
     """Information about an aspect type."""
-    
+
     type: AspectType
     angle: float
     orb: float = 5.0  # Default orb of 5 degrees
     harmonious: bool = False
-    
+
     # Symbol and color for display
     symbol: str
     color: str
-    
+
     # Additional properties
     keywords: List[str] = Field(default_factory=list)
     description: Optional[str] = None
@@ -60,7 +61,7 @@ class AspectInfo(BaseModel):
 
 class Aspect(BaseModel):
     """Class representing an aspect between two celestial bodies."""
-    
+
     body1: str
     body2: str
     aspect_type: AspectType
@@ -68,13 +69,13 @@ class Aspect(BaseModel):
     orb: float
     exact_angle: float
     applying: bool = False  # True if the aspect is applying, False if separating
-    
+
     # Additional properties
     properties: Dict[str, Any] = Field(default_factory=dict)
-    
+
     def is_harmonious(self) -> bool:
         """Check if the aspect is harmonious.
-        
+
         Returns:
             True if the aspect is harmonious, False otherwise
         """
@@ -83,13 +84,13 @@ class Aspect(BaseModel):
             AspectType.SEXTILE,
             AspectType.QUINTILE,
             AspectType.BIQUINTILE,
-            AspectType.NOVILE
+            AspectType.NOVILE,
         ]
         return self.aspect_type in harmonious_aspects
-    
+
     def is_challenging(self) -> bool:
         """Check if the aspect is challenging.
-        
+
         Returns:
             True if the aspect is challenging, False otherwise
         """
@@ -98,13 +99,13 @@ class Aspect(BaseModel):
             AspectType.SQUARE,
             AspectType.SEMISQUARE,
             AspectType.SESQUISQUARE,
-            AspectType.QUINCUNX
+            AspectType.QUINCUNX,
         ]
         return self.aspect_type in challenging_aspects
-    
+
     def is_major(self) -> bool:
         """Check if the aspect is a major aspect.
-        
+
         Returns:
             True if the aspect is a major aspect, False otherwise
         """
@@ -113,24 +114,24 @@ class Aspect(BaseModel):
             AspectType.OPPOSITION,
             AspectType.TRINE,
             AspectType.SQUARE,
-            AspectType.SEXTILE
+            AspectType.SEXTILE,
         ]
         return self.aspect_type in major_aspects
-    
+
     def is_minor(self) -> bool:
         """Check if the aspect is a minor aspect.
-        
+
         Returns:
             True if the aspect is a minor aspect, False otherwise
         """
         return not self.is_major()
-    
+
     def is_exact(self, precision: float = 1.0) -> bool:
         """Check if the aspect is exact within a given precision.
-        
+
         Args:
             precision: Maximum orb to consider the aspect exact
-            
+
         Returns:
             True if the aspect is exact, False otherwise
         """
@@ -139,7 +140,7 @@ class Aspect(BaseModel):
 
 class AspectPatternType(Enum):
     """Types of aspect patterns in astrology."""
-    
+
     GRAND_TRINE = "Grand Trine"
     GRAND_CROSS = "Grand Cross"
     T_SQUARE = "T-Square"
@@ -154,18 +155,18 @@ class AspectPatternType(Enum):
 
 class AspectPattern(BaseModel):
     """Class representing a pattern of aspects in a chart."""
-    
+
     pattern_type: AspectPatternType
     bodies: List[str]
     aspects: List[Tuple[str, str, AspectType]]
-    
+
     # Additional properties
     keywords: List[str] = Field(default_factory=list)
     description: Optional[str] = None
-    
+
     def get_focal_planet(self) -> Optional[str]:
         """Get the focal planet of the pattern, if applicable.
-        
+
         Returns:
             The focal planet if the pattern has one, None otherwise
         """
@@ -176,10 +177,10 @@ class AspectPattern(BaseModel):
             for body1, body2, _ in self.aspects:
                 aspect_count[body1] += 1
                 aspect_count[body2] += 1
-            
+
             # The focal planet is the one with the most aspects
             return max(aspect_count.items(), key=lambda x: x[1])[0]
-        
+
         # For Yod, the focal planet is the one that receives the two quincunxes
         if self.pattern_type == AspectPatternType.YOD and len(self.bodies) == 3:
             quincunx_count = {body: 0 for body in self.bodies}
@@ -187,8 +188,8 @@ class AspectPattern(BaseModel):
                 if aspect_type == AspectType.QUINCUNX:
                     quincunx_count[body1] += 1
                     quincunx_count[body2] += 1
-            
+
             # The focal planet is the one with the most quincunxes
             return max(quincunx_count.items(), key=lambda x: x[1])[0]
-        
+
         return None

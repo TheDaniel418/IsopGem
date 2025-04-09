@@ -13,18 +13,20 @@ Dependencies:
 - astrology.models: For astrological data models
 """
 
-import math
-from typing import Dict, List, Tuple, Set
 from collections import defaultdict
+from typing import List, Tuple
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QSpinBox, QTableWidget, QTableWidgetItem, QHeaderView
-)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
-
-from loguru import logger
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from astrology.models.chart import Chart
 
@@ -40,9 +42,19 @@ class SensitivePointsWidget(QWidget):
         """
         super().__init__()
         self.chart = chart
-        self.traditional_planets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
+        self.traditional_planets = [
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
+        ]
         self.orb = 1.0  # Default orb for sensitive points (in degrees)
-        self.min_midpoints = 3  # Minimum number of midpoints to consider a degree sensitive
+        self.min_midpoints = (
+            3  # Minimum number of midpoints to consider a degree sensitive
+        )
         self._init_ui()
 
     def _init_ui(self):
@@ -85,14 +97,18 @@ class SensitivePointsWidget(QWidget):
             "often correlating with significant life events when activated by transits."
         )
         explanation.setWordWrap(True)
-        explanation.setStyleSheet("font-style: italic; color: #666; margin: 10px 0; padding: 5px;")
+        explanation.setStyleSheet(
+            "font-style: italic; color: #666; margin: 10px 0; padding: 5px;"
+        )
         explanation.setMinimumHeight(50)  # Ensure enough height for wrapped text
         layout.addWidget(explanation)
 
         # Create table for sensitive points
         self.points_table = QTableWidget()
         self.points_table.setColumnCount(3)
-        self.points_table.setHorizontalHeaderLabels(["Degree", "Midpoints", "Interpretation"])
+        self.points_table.setHorizontalHeaderLabels(
+            ["Degree", "Midpoints", "Interpretation"]
+        )
 
         # Set column widths
         header = self.points_table.horizontalHeader()
@@ -143,7 +159,9 @@ class SensitivePointsWidget(QWidget):
         # Fill the table
         for i, (degree, midpoints) in enumerate(sensitive_points):
             # Degree
-            degree_item = QTableWidgetItem(f"{int(degree)}° {self._get_sign_for_position(degree)}")
+            degree_item = QTableWidgetItem(
+                f"{int(degree)}° {self._get_sign_for_position(degree)}"
+            )
             degree_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.points_table.setItem(i, 0, degree_item)
 
@@ -156,7 +174,9 @@ class SensitivePointsWidget(QWidget):
             # Interpretation
             interpretation = self._interpret_sensitive_point(degree, midpoints)
             interp_item = QTableWidgetItem(interpretation)
-            interp_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            interp_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             self.points_table.setItem(i, 2, interp_item)
 
         # Enable word wrap for the interpretation column
@@ -183,7 +203,7 @@ class SensitivePointsWidget(QWidget):
             planet1 = getattr(subject, planet1_name)
             pos1 = planet1.position + (planet1.sign_num * 30)
 
-            for j, planet2_name in enumerate(self.traditional_planets[i+1:], i+1):
+            for j, planet2_name in enumerate(self.traditional_planets[i + 1 :], i + 1):
                 if not hasattr(subject, planet2_name):
                     continue
 
@@ -198,7 +218,9 @@ class SensitivePointsWidget(QWidget):
 
         return midpoints
 
-    def _find_sensitive_points(self, midpoints: List[Tuple[float, Tuple[str, str]]]) -> List[Tuple[float, List[Tuple[str, str]]]]:
+    def _find_sensitive_points(
+        self, midpoints: List[Tuple[float, Tuple[str, str]]]
+    ) -> List[Tuple[float, List[Tuple[str, str]]]]:
         """Find sensitive points where multiple midpoints converge.
 
         Args:
@@ -266,14 +288,26 @@ class SensitivePointsWidget(QWidget):
             The zodiac sign as a string
         """
         signs = [
-            "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-            "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+            "Aries",
+            "Taurus",
+            "Gemini",
+            "Cancer",
+            "Leo",
+            "Virgo",
+            "Libra",
+            "Scorpio",
+            "Sagittarius",
+            "Capricorn",
+            "Aquarius",
+            "Pisces",
         ]
 
         sign_index = int(position / 30)
         return signs[sign_index]
 
-    def _interpret_sensitive_point(self, degree: float, midpoints: List[Tuple[str, str]]) -> str:
+    def _interpret_sensitive_point(
+        self, degree: float, midpoints: List[Tuple[str, str]]
+    ) -> str:
         """Interpret a sensitive point.
 
         Args:

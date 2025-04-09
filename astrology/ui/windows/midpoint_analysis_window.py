@@ -15,19 +15,23 @@ Dependencies:
 - astrology.ui.widgets.midpoint_analysis: For midpoint analysis widgets
 """
 
-from PyQt6.QtWidgets import (
-    QMainWindow, QTabWidget, QVBoxLayout, QWidget, QLabel
-)
 from PyQt6.QtCore import Qt
-
-from loguru import logger
+from PyQt6.QtWidgets import QLabel, QMainWindow, QTabWidget, QVBoxLayout, QWidget
 
 from astrology.models.chart import Chart
-from astrology.ui.widgets.midpoint_analysis.harmonic_dial_widget import HarmonicDialWidget
-from astrology.ui.widgets.midpoint_analysis.midpoint_tree_widget import MidpointTreeWidget
-from astrology.ui.widgets.midpoint_analysis.sensitive_points_widget import SensitivePointsWidget
-from astrology.ui.widgets.midpoint_analysis.midpoint_patterns_widget import MidpointPatternsWidget
 from astrology.ui.widgets.midpoint_analysis.grand_fusion_widget import GrandFusionWidget
+from astrology.ui.widgets.midpoint_analysis.harmonic_dial_widget import (
+    HarmonicDialWidget,
+)
+from astrology.ui.widgets.midpoint_analysis.midpoint_patterns_widget import (
+    MidpointPatternsWidget,
+)
+from astrology.ui.widgets.midpoint_analysis.midpoint_tree_widget import (
+    MidpointTreeWidget,
+)
+from astrology.ui.widgets.midpoint_analysis.sensitive_points_widget import (
+    SensitivePointsWidget,
+)
 
 
 class MidpointAnalysisWindow(QMainWindow):
@@ -61,7 +65,9 @@ class MidpointAnalysisWindow(QMainWindow):
         main_layout.addWidget(title)
 
         # Add note about traditional planets
-        note = QLabel("Analysis limited to traditional 7 planets: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn")
+        note = QLabel(
+            "Analysis limited to traditional 7 planets: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn"
+        )
         note.setStyleSheet("font-style: italic; color: #666;")
         note.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(note)

@@ -19,8 +19,9 @@ Dependencies:
 - Enum: For enumeration types
 """
 
-from enum import Enum, auto
-from typing import Optional, Dict, Any, List, Union, Tuple
+from enum import Enum
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -45,7 +46,7 @@ class Polarity(Enum):
     """The two polarities in astrology."""
 
     MASCULINE = "Masculine"  # Also known as Positive/Yang
-    FEMININE = "Feminine"    # Also known as Negative/Yin
+    FEMININE = "Feminine"  # Also known as Negative/Yin
 
 
 class ZodiacSign(BaseModel):
@@ -119,9 +120,13 @@ class HouseSystem(Enum):
 class PerspectiveType(Enum):
     """Different perspective types used in astrology."""
 
-    GEOCENTRIC = "Apparent Geocentric"  # Earth-centered view with apparent positions (default)
+    GEOCENTRIC = (
+        "Apparent Geocentric"  # Earth-centered view with apparent positions (default)
+    )
     TRUE_GEOCENTRIC = "True Geocentric"  # Earth-centered view with true positions
-    TOPOCENTRIC = "Topocentric"  # Observer-centered view from a specific location on Earth
+    TOPOCENTRIC = (
+        "Topocentric"  # Observer-centered view from a specific location on Earth
+    )
     HELIOCENTRIC = "Heliocentric"  # Sun-centered view
 
 
@@ -159,7 +164,10 @@ class House(BaseModel):
 
         # Handle houses that cross the 0° Aries point
         if self.end_degree < self.cusp_degree:
-            return normalized_degree >= self.cusp_degree or normalized_degree < self.end_degree
+            return (
+                normalized_degree >= self.cusp_degree
+                or normalized_degree < self.end_degree
+            )
 
         return self.cusp_degree <= normalized_degree < self.end_degree
 
@@ -206,7 +214,9 @@ class Aspect(BaseModel):
     orb: float  # Orb in degrees
 
     # Additional properties
-    applying: Optional[bool] = None  # True if the aspect is applying, False if separating
+    applying: Optional[
+        bool
+    ] = None  # True if the aspect is applying, False if separating
     exact: Optional[bool] = None  # True if the aspect is exact
 
     def __str__(self) -> str:
@@ -215,4 +225,6 @@ class Aspect(BaseModel):
         Returns:
             String representation
         """
-        return f"{self.planet1} {self.aspect_type} {self.planet2} (Orb: {self.orb:.2f}°)"
+        return (
+            f"{self.planet1} {self.aspect_type} {self.planet2} (Orb: {self.orb:.2f}°)"
+        )

@@ -12,19 +12,18 @@ Dependencies:
 - kerykeion: For astrological calculations
 """
 
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime
 import os
 import webbrowser
-
-from loguru import logger
+from datetime import datetime
+from typing import List, Optional
 
 from kerykeion import AstrologicalSubject
 from kerykeion.aspects import NatalAspects
 from kerykeion.charts.kerykeion_chart_svg import KerykeionChartSVG
+from loguru import logger
 
 from astrology.models.chart import Chart
-from astrology.models.zodiac import Planet, House, Aspect
+from astrology.models.zodiac import Aspect, House, Planet
 
 
 class KerykeionService:
@@ -42,7 +41,7 @@ class KerykeionService:
         longitude: float,
         timezone_str: str,
         house_system: str = "P",
-        perspective_type: str = "Apparent Geocentric"
+        perspective_type: str = "Apparent Geocentric",
     ) -> Chart:
         """Create a natal chart for the given parameters.
 
@@ -58,7 +57,9 @@ class KerykeionService:
         Returns:
             A Chart object containing the calculated data
         """
-        logger.debug(f"Creating natal chart for {name} with perspective {perspective_type}")
+        logger.debug(
+            f"Creating natal chart for {name} with perspective {perspective_type}"
+        )
 
         # Create a kerykeion subject
         subject = AstrologicalSubject(
@@ -74,7 +75,7 @@ class KerykeionService:
             lng=longitude,
             tz_str=timezone_str,
             houses_system_identifier=house_system,
-            perspective_type=perspective_type
+            perspective_type=perspective_type,
         )
 
         # Calculate aspects
@@ -86,12 +87,12 @@ class KerykeionService:
         chart = Chart(
             name=name,
             type=ChartType.NATAL,  # Set the chart type
-            date=birth_date,       # Set the date field
-            birth_date=birth_date, # Also set the birth_date field
+            date=birth_date,  # Set the date field
+            birth_date=birth_date,  # Also set the birth_date field
             latitude=latitude,
             longitude=longitude,
             timezone=timezone_str,
-            kerykeion_subject=subject  # Store the kerykeion subject directly
+            kerykeion_subject=subject,  # Store the kerykeion subject directly
         )
 
         # Add planets to the chart
@@ -113,7 +114,7 @@ class KerykeionService:
         self,
         chart: Chart,
         output_path: Optional[str] = None,
-        open_in_browser: bool = False
+        open_in_browser: bool = False,
     ) -> str:
         """Generate an SVG chart for the given chart data.
 
@@ -137,7 +138,7 @@ class KerykeionService:
             nation="",
             lat=chart.latitude,
             lng=chart.longitude,
-            tz_str=chart.timezone
+            tz_str=chart.timezone,
         )
 
         # Create the chart
@@ -198,7 +199,7 @@ class KerykeionService:
             "Saturn": "Saturn",
             "Uranus": "Uranus",
             "Neptune": "Neptune",
-            "Pluto": "Pluto"
+            "Pluto": "Pluto",
         }
 
         # Extract planet data
@@ -211,7 +212,7 @@ class KerykeionService:
                     sign=kerykeion_planet.sign,
                     degree=kerykeion_planet.position,
                     retrograde=kerykeion_planet.retrograde,
-                    house=kerykeion_planet.house.replace("_House", "")
+                    house=kerykeion_planet.house.replace("_House", ""),
                 )
 
                 planets.append(planet)
@@ -234,9 +235,18 @@ class KerykeionService:
 
         # Kerykeion uses lowercase attributes like first_house, second_house, etc.
         house_names = [
-            "first_house", "second_house", "third_house", "fourth_house",
-            "fifth_house", "sixth_house", "seventh_house", "eighth_house",
-            "ninth_house", "tenth_house", "eleventh_house", "twelfth_house"
+            "first_house",
+            "second_house",
+            "third_house",
+            "fourth_house",
+            "fifth_house",
+            "sixth_house",
+            "seventh_house",
+            "eighth_house",
+            "ninth_house",
+            "tenth_house",
+            "eleventh_house",
+            "twelfth_house",
         ]
 
         # Check if the subject has house attributes
@@ -244,10 +254,14 @@ class KerykeionService:
         for i, house_name in enumerate(house_names, 1):
             if hasattr(subject, house_name):
                 kerykeion_house = getattr(subject, house_name)
-                logger.debug(f"Found house {i} ({house_name}): {kerykeion_house.sign} at {kerykeion_house.position}°")
+                logger.debug(
+                    f"Found house {i} ({house_name}): {kerykeion_house.sign} at {kerykeion_house.position}°"
+                )
                 house_objects.append((i, kerykeion_house))
             else:
-                logger.warning(f"House {i} ({house_name}) not found in kerykeion subject")
+                logger.warning(
+                    f"House {i} ({house_name}) not found in kerykeion subject"
+                )
 
         # Create House objects
         if house_objects:
@@ -264,7 +278,7 @@ class KerykeionService:
                     number=house_num,
                     sign=kerykeion_house.sign,
                     cusp_degree=kerykeion_house.position,
-                    end_degree=next_kerykeion_house.position
+                    end_degree=next_kerykeion_house.position,
                 )
 
                 houses.append(house)
@@ -291,7 +305,7 @@ class KerykeionService:
                 planet1=kerykeion_aspect.p1_name,
                 planet2=kerykeion_aspect.p2_name,
                 aspect_type=kerykeion_aspect.aspect,
-                orb=kerykeion_aspect.orbit
+                orb=kerykeion_aspect.orbit,
             )
 
             result.append(aspect)
@@ -309,7 +323,9 @@ class KerykeionService:
             house.planets = []
 
         # Assign planets to houses
-        logger.debug(f"Assigning {len(chart.planets)} planets to {len(chart.houses)} houses")
+        logger.debug(
+            f"Assigning {len(chart.planets)} planets to {len(chart.houses)} houses"
+        )
 
         # Map from kerykeion house names to house numbers
         house_name_to_number = {
@@ -338,7 +354,7 @@ class KerykeionService:
             "ninth_house": 9,
             "tenth_house": 10,
             "eleventh_house": 11,
-            "twelfth_house": 12
+            "twelfth_house": 12,
         }
 
         for planet in chart.planets:
@@ -362,16 +378,19 @@ class KerykeionService:
                 elif planet.house in house_name_to_number:
                     house_number = house_name_to_number[planet.house]
                 # Format like 'house_1'
-                elif '_' in planet.house and planet.house.split('_')[1].isdigit():
-                    house_number = int(planet.house.split('_')[1])
+                elif "_" in planet.house and planet.house.split("_")[1].isdigit():
+                    house_number = int(planet.house.split("_")[1])
                 # Try to extract digits as last resort
                 else:
                     import re
-                    digits = re.findall(r'\d+', planet.house)
+
+                    digits = re.findall(r"\d+", planet.house)
                     if digits:
                         house_number = int(digits[0])
                     else:
-                        logger.warning(f"Could not parse house number from {planet.house} for {planet.name}")
+                        logger.warning(
+                            f"Could not parse house number from {planet.house} for {planet.name}"
+                        )
                         continue
 
                 logger.debug(f"Assigning {planet.name} to house {house_number}")
@@ -384,6 +403,8 @@ class KerykeionService:
                         logger.debug(f"Added {planet.name} to house {house.number}")
                         break
                 else:
-                    logger.warning(f"House {house_number} not found for planet {planet.name}")
+                    logger.warning(
+                        f"House {house_number} not found for planet {planet.name}"
+                    )
             except Exception as e:
                 logger.error(f"Error assigning {planet.name} to house: {e}")

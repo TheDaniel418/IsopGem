@@ -15,17 +15,30 @@ Dependencies:
 """
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QTableWidget, QTableWidgetItem, QHeaderView,
-    QFrame, QPushButton, QSplitter, QToolTip
+from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QRadialGradient,
 )
-from PyQt6.QtCore import Qt, QPoint, QRect
-from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QFont, QRadialGradient, QMouseEvent
-
-from loguru import logger
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QSplitter,
+    QTableWidget,
+    QTableWidgetItem,
+    QToolTip,
+    QVBoxLayout,
+    QWidget,
+)
 
 from astrology.models.chart import Chart
 from astrology.services.grand_fusion_service import GrandFusionService
@@ -44,15 +57,23 @@ class GrandFusionWidget(QWidget):
         self.chart = chart
         self.fusion_service = GrandFusionService()
         self.fusion_point = None
-        self.traditional_planets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
+        self.traditional_planets = [
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
+        ]
         self.planet_colors = {
-            "sun": QColor("#FFD700"),      # Gold
-            "moon": QColor("#C0C0C0"),     # Silver
+            "sun": QColor("#FFD700"),  # Gold
+            "moon": QColor("#C0C0C0"),  # Silver
             "mercury": QColor("#708090"),  # Slate Gray
-            "venus": QColor("#00FF7F"),    # Spring Green
-            "mars": QColor("#FF4500"),     # Orange Red
+            "venus": QColor("#00FF7F"),  # Spring Green
+            "mars": QColor("#FF4500"),  # Orange Red
             "jupiter": QColor("#4169E1"),  # Royal Blue
-            "saturn": QColor("#708090")    # Slate Gray
+            "saturn": QColor("#708090"),  # Slate Gray
         }
 
         # Store midpoint positions and tooltips for hover functionality
@@ -74,7 +95,9 @@ class GrandFusionWidget(QWidget):
 
         # Hebrew title
         hebrew_title = QLabel("מרכבת היחוד")
-        hebrew_title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #8B4513;")
+        hebrew_title.setStyleSheet(
+            "font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #8B4513;"
+        )
         hebrew_title.setAlignment(Qt.AlignmentFlag.AlignRight)
         title_layout.addWidget(hebrew_title)
 
@@ -89,7 +112,9 @@ class GrandFusionWidget(QWidget):
 
         # Add subtitle
         subtitle = QLabel("Merkavat HaYichud - The Chariot of Unity")
-        subtitle.setStyleSheet("font-size: 14px; font-style: italic; margin-bottom: 5px;")
+        subtitle.setStyleSheet(
+            "font-size: 14px; font-style: italic; margin-bottom: 5px;"
+        )
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(subtitle)
 
@@ -108,7 +133,9 @@ class GrandFusionWidget(QWidget):
             "the integrative and transcendental point from which all other midpoints derive."
         )
         explanation.setWordWrap(True)
-        explanation.setStyleSheet("font-style: italic; color: #666; margin: 10px 0; padding: 5px;")
+        explanation.setStyleSheet(
+            "font-style: italic; color: #666; margin: 10px 0; padding: 5px;"
+        )
         explanation.setMinimumHeight(80)  # Ensure enough height for wrapped text
         layout.addWidget(explanation)
 
@@ -119,7 +146,9 @@ class GrandFusionWidget(QWidget):
         # Add visualization frame
         self.visual_frame = QFrame()
         self.visual_frame.setMinimumHeight(500)  # Increased from 250 to 500
-        self.visual_frame.setMinimumWidth(500)  # Added minimum width to ensure circular display
+        self.visual_frame.setMinimumWidth(
+            500
+        )  # Added minimum width to ensure circular display
         self.visual_frame.setFrameShape(QFrame.Shape.StyledPanel)
         self.visual_frame.setFrameShadow(QFrame.Shadow.Sunken)
         self.visual_frame.setMouseTracking(True)  # Enable mouse tracking for tooltips
@@ -137,9 +166,9 @@ class GrandFusionWidget(QWidget):
 
         self.table = QTableWidget()
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels([
-            "Midpoint", "Original", "Derived", "Difference"
-        ])
+        self.table.setHorizontalHeaderLabels(
+            ["Midpoint", "Original", "Derived", "Difference"]
+        )
 
         # Set column widths
         header = self.table.horizontalHeader()
@@ -173,7 +202,9 @@ class GrandFusionWidget(QWidget):
             return
 
         # Calculate the Grand Fusion Midpoint
-        self.fusion_point = self.fusion_service.calculate_grand_fusion_midpoint(self.chart)
+        self.fusion_point = self.fusion_service.calculate_grand_fusion_midpoint(
+            self.chart
+        )
         if self.fusion_point is None:
             return
 
@@ -190,13 +221,17 @@ class GrandFusionWidget(QWidget):
             return
 
         # Get all original midpoints
-        midpoints, planet_pairs = self.fusion_service._calculate_all_midpoints(self.chart.kerykeion_subject)
+        midpoints, planet_pairs = self.fusion_service._calculate_all_midpoints(
+            self.chart.kerykeion_subject
+        )
 
         # Set the number of rows
         self.table.setRowCount(len(midpoints))
 
         # Fill the table
-        for i, ((p1, p2), original_pos) in enumerate(zip(planet_pairs, midpoints.values())):
+        for i, ((p1, p2), original_pos) in enumerate(
+            zip(planet_pairs, midpoints.values())
+        ):
             # Midpoint name
             midpoint_name = f"{p1.capitalize()}/{p2.capitalize()}"
             name_item = QTableWidgetItem(midpoint_name)
@@ -210,7 +245,9 @@ class GrandFusionWidget(QWidget):
             self.table.setItem(i, 1, original_item)
 
             # Derived position
-            derived_pos = self.fusion_service.reconstruct_midpoint(self.fusion_point, p1, p2)
+            derived_pos = self.fusion_service.reconstruct_midpoint(
+                self.fusion_point, p1, p2
+            )
             derived_str = f"{derived_pos:.2f}° {self.fusion_service.get_sign_for_position(derived_pos)}"
             derived_item = QTableWidgetItem(derived_str)
             derived_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -234,7 +271,9 @@ class GrandFusionWidget(QWidget):
             elif diff < 5:
                 diff_item.setForeground(QColor("#996600"))  # Orange for moderate
             else:
-                diff_item.setForeground(QColor("#990000"))  # Red for significant difference
+                diff_item.setForeground(
+                    QColor("#990000")
+                )  # Red for significant difference
 
             self.table.setItem(i, 3, diff_item)
 
@@ -268,7 +307,12 @@ class GrandFusionWidget(QWidget):
         gradient.setColorAt(1, QColor(10, 10, 30))
         painter.setBrush(QBrush(gradient))
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(int(center_x - radius), int(center_y - radius), int(radius * 2), int(radius * 2))
+        painter.drawEllipse(
+            int(center_x - radius),
+            int(center_y - radius),
+            int(radius * 2),
+            int(radius * 2),
+        )
 
         # Draw zodiac ring
         self._draw_zodiac_ring(painter, center_x, center_y, radius)
@@ -295,26 +339,33 @@ class GrandFusionWidget(QWidget):
         """
         # Draw outer circle - increased line width
         painter.setPen(QPen(QColor("#FFFFFF"), 3))  # Increased from 2 to 3
-        painter.drawEllipse(int(center_x - radius), int(center_y - radius), int(radius * 2), int(radius * 2))
+        painter.drawEllipse(
+            int(center_x - radius),
+            int(center_y - radius),
+            int(radius * 2),
+            int(radius * 2),
+        )
 
         # Draw inner circle - increased line width
         inner_radius = radius * 0.9
         painter.setPen(QPen(QColor("#AAAAAA"), 2))  # Increased from 1 to 2
-        painter.drawEllipse(int(center_x - inner_radius), int(center_y - inner_radius), int(inner_radius * 2), int(inner_radius * 2))
+        painter.drawEllipse(
+            int(center_x - inner_radius),
+            int(center_y - inner_radius),
+            int(inner_radius * 2),
+            int(inner_radius * 2),
+        )
 
         # Draw zodiac signs
-        signs = [
-            "♈", "♉", "♊", "♋", "♌", "♍",
-            "♎", "♏", "♐", "♑", "♒", "♓"
-        ]
+        signs = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
 
         for i, sign in enumerate(signs):
             angle = i * 30
             angle_rad = math.radians(angle)
 
             # Calculate position
-            x = center_x + (radius * 0.95) * math.cos(angle_rad - math.pi/2)
-            y = center_y + (radius * 0.95) * math.sin(angle_rad - math.pi/2)
+            x = center_x + (radius * 0.95) * math.cos(angle_rad - math.pi / 2)
+            y = center_y + (radius * 0.95) * math.sin(angle_rad - math.pi / 2)
 
             # Draw sign symbol - increased size
             painter.setPen(QPen(QColor("#FFFFFF"), 2))  # Increased from 1 to 2
@@ -337,7 +388,9 @@ class GrandFusionWidget(QWidget):
         self.midpoint_positions = {}
 
         # Get all midpoints
-        midpoints, planet_pairs = self.fusion_service._calculate_all_midpoints(self.chart.kerykeion_subject)
+        midpoints, planet_pairs = self.fusion_service._calculate_all_midpoints(
+            self.chart.kerykeion_subject
+        )
 
         # Draw each midpoint
         for (p1, p2), position in zip(planet_pairs, midpoints.values()):
@@ -353,7 +406,7 @@ class GrandFusionWidget(QWidget):
             blended_color = QColor(
                 (color1.red() + color2.red()) // 2,
                 (color1.green() + color2.green()) // 2,
-                (color1.blue() + color2.blue()) // 2
+                (color1.blue() + color2.blue()) // 2,
             )
 
             # Draw midpoint marker with planet-specific color
@@ -369,7 +422,7 @@ class GrandFusionWidget(QWidget):
                 "radius": 5,
                 "label": f"{p1.capitalize()}/{p2.capitalize()}",
                 "position": f"{position:.2f}° {self.fusion_service.get_sign_for_position(position)}",
-                "color": blended_color
+                "color": blended_color,
             }
 
     def _draw_fusion_point(self, painter, center_x, center_y, radius):
@@ -385,7 +438,9 @@ class GrandFusionWidget(QWidget):
             return
 
         # Calculate position on the circle
-        angle_rad = math.radians(self.fusion_point - 90)  # Subtract 90 to start at the top
+        angle_rad = math.radians(
+            self.fusion_point - 90
+        )  # Subtract 90 to start at the top
         x = center_x + radius * 0.5 * math.cos(angle_rad)
         y = center_y + radius * 0.5 * math.sin(angle_rad)
 
@@ -396,7 +451,7 @@ class GrandFusionWidget(QWidget):
             "radius": 15,  # Larger radius for easier hovering
             "label": "Grand Fusion Midpoint - Merkavat HaYichud",
             "position": f"{self.fusion_point:.2f}° {self.fusion_service.get_sign_for_position(self.fusion_point)}",
-            "description": "The Chariot of Unity - The integrative and transcendental midpoint from which all midpoints derive."
+            "description": "The Chariot of Unity - The integrative and transcendental midpoint from which all midpoints derive.",
         }
 
         # Draw fusion point marker with chariot symbolism and glow effect
@@ -407,12 +462,14 @@ class GrandFusionWidget(QWidget):
             painter.setPen(QPen(color, 2))  # Increased from 1 to 2
             painter.setBrush(QBrush(color))
             size = 30 - i  # Increased from 20 to 30
-            painter.drawEllipse(int(x - size/2), int(y - size/2), size, size)
+            painter.drawEllipse(int(x - size / 2), int(y - size / 2), size, size)
 
         # Inner point - the Chariot itself - increased size
         painter.setPen(QPen(QColor("#FFFFFF"), 3))  # Increased from 2 to 3
         painter.setBrush(QBrush(QColor(255, 215, 0)))  # Gold
-        painter.drawEllipse(int(x - 12), int(y - 12), 24, 24)  # Increased from 16x16 to 24x24
+        painter.drawEllipse(
+            int(x - 12), int(y - 12), 24, 24
+        )  # Increased from 16x16 to 24x24
 
         # Draw chariot symbol (simplified) - increased size
         painter.setPen(QPen(QColor("#000000"), 2))  # Increased from 1 to 2
@@ -420,15 +477,25 @@ class GrandFusionWidget(QWidget):
         painter.drawEllipse(int(x - 7), int(y + 3), 6, 6)  # Increased from 4x4 to 6x6
         painter.drawEllipse(int(x + 1), int(y + 3), 6, 6)  # Increased from 4x4 to 6x6
         # Chariot body
-        painter.drawLine(int(x - 9), int(y - 3), int(x + 9), int(y - 3))  # Increased width
-        painter.drawLine(int(x - 9), int(y - 3), int(x - 9), int(y + 3))  # Increased height
-        painter.drawLine(int(x + 9), int(y - 3), int(x + 9), int(y + 3))  # Increased height
+        painter.drawLine(
+            int(x - 9), int(y - 3), int(x + 9), int(y - 3)
+        )  # Increased width
+        painter.drawLine(
+            int(x - 9), int(y - 3), int(x - 9), int(y + 3)
+        )  # Increased height
+        painter.drawLine(
+            int(x + 9), int(y - 3), int(x + 9), int(y + 3)
+        )  # Increased height
 
         # Draw position text - increased size
         sign = self.fusion_service.get_sign_for_position(self.fusion_point)
         position_text = f"{self.fusion_point:.2f}° {sign}"
-        painter.setFont(QFont("Arial", 16, QFont.Weight.Bold))  # Increased from 12 to 16
-        painter.drawText(int(center_x - 80), int(center_y), position_text)  # Adjusted position
+        painter.setFont(
+            QFont("Arial", 16, QFont.Weight.Bold)
+        )  # Increased from 12 to 16
+        painter.drawText(
+            int(center_x - 80), int(center_y), position_text
+        )  # Adjusted position
 
     def _draw_connection_lines(self, painter, center_x, center_y, radius):
         """Draw lines connecting the fusion point to midpoints.
@@ -443,7 +510,9 @@ class GrandFusionWidget(QWidget):
             return
 
         # Get all midpoints
-        midpoints, planet_pairs = self.fusion_service._calculate_all_midpoints(self.chart.kerykeion_subject)
+        midpoints, planet_pairs = self.fusion_service._calculate_all_midpoints(
+            self.chart.kerykeion_subject
+        )
 
         # Get fusion point position
         fusion_x = self.fusion_position["x"]
@@ -457,7 +526,11 @@ class GrandFusionWidget(QWidget):
 
             # Draw connection line with color matching the midpoint
             color = midpoint_info["color"]
-            pen = QPen(QColor(color.red(), color.green(), color.blue(), 100), 1, Qt.PenStyle.DashLine)  # Semi-transparent
+            pen = QPen(
+                QColor(color.red(), color.green(), color.blue(), 100),
+                1,
+                Qt.PenStyle.DashLine,
+            )  # Semi-transparent
             painter.setPen(pen)
             painter.drawLine(int(fusion_x), int(fusion_y), int(x), int(y))
 
@@ -485,7 +558,10 @@ class GrandFusionWidget(QWidget):
                 tooltip_text = f"<b>{self.fusion_position['label']}</b><br>"
                 tooltip_text += f"Position: {self.fusion_position['position']}<br>"
                 tooltip_text += f"<i>{self.fusion_position['description']}</i>"
-                QToolTip.showText(self.visual_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))), tooltip_text)
+                QToolTip.showText(
+                    self.visual_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))),
+                    tooltip_text,
+                )
                 return
 
         # Check if mouse is over any midpoint
@@ -501,7 +577,10 @@ class GrandFusionWidget(QWidget):
                 # Show tooltip for midpoint
                 tooltip_text = f"<b>{midpoint_info['label']}</b><br>"
                 tooltip_text += f"Position: {midpoint_info['position']}"
-                QToolTip.showText(self.visual_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))), tooltip_text)
+                QToolTip.showText(
+                    self.visual_frame.mapToGlobal(QPoint(int(mouse_x), int(mouse_y))),
+                    tooltip_text,
+                )
                 return
 
         # If not over any point, hide tooltip

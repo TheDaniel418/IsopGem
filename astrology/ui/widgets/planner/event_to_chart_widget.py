@@ -6,19 +6,23 @@ It provides functionality to send events from the planner to the chart maker.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from loguru import logger
-from PyQt6.QtCore import Qt, QDate, pyqtSignal
+from PyQt6.QtCore import QDate, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QDialog,
-    QLabel, QPushButton, QFrame, QListWidget,
-    QListWidgetItem, QMessageBox
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
 )
-from PyQt6.QtGui import QColor, QPalette, QFont
 
-from astrology.services.planner_service import PlannerService, PlannerEvent
 from astrology.models.chart import Chart
+from astrology.services.planner_service import PlannerService
 from astrology.ui.dialogs.location_search_window import LocationSearchWindow
 
 
@@ -53,7 +57,9 @@ class EventToChartDialog(QDialog):
     def _init_ui(self):
         """Initialize the UI components."""
         # Set window properties
-        self.setWindowTitle(f"Send Event to Chart - {self.date.toString('MMMM d, yyyy')}")
+        self.setWindowTitle(
+            f"Send Event to Chart - {self.date.toString('MMMM d, yyyy')}"
+        )
         self.resize(400, 300)
 
         # Main layout
@@ -93,7 +99,9 @@ class EventToChartDialog(QDialog):
 
         # Add events to list
         for event in events:
-            item = QListWidgetItem(f"{event.start_time.strftime('%I:%M %p')} - {event.title}")
+            item = QListWidgetItem(
+                f"{event.start_time.strftime('%I:%M %p')} - {event.title}"
+            )
             item.setData(Qt.ItemDataRole.UserRole, event)
 
             # Set background color based on event color
@@ -101,7 +109,9 @@ class EventToChartDialog(QDialog):
 
             # Set text color to white or black depending on background brightness
             color = QColor(event.color)
-            brightness = (color.red() * 299 + color.green() * 587 + color.blue() * 114) / 1000
+            brightness = (
+                color.red() * 299 + color.green() * 587 + color.blue() * 114
+            ) / 1000
             if brightness > 128:
                 item.setForeground(QColor(0, 0, 0))
             else:
@@ -146,7 +156,7 @@ class EventToChartDialog(QDialog):
                 "No Default Location",
                 "No default location is set. Would you like to select a location now?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes
+                QMessageBox.StandardButton.Yes,
             )
 
             if response == QMessageBox.StandardButton.Yes:
@@ -161,7 +171,7 @@ class EventToChartDialog(QDialog):
             "Location Selection",
             f"Use default location ({settings.default_location.display_name}) or select a new one?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes
+            QMessageBox.StandardButton.Yes,
         )
 
         if response == QMessageBox.StandardButton.No:
@@ -171,8 +181,7 @@ class EventToChartDialog(QDialog):
 
         # Create chart for the event with default location
         chart = self.planner_service.send_event_to_chart_maker(
-            event=event,
-            location=settings.default_location
+            event=event, location=settings.default_location
         )
 
         # Emit signal with the chart
@@ -194,8 +203,7 @@ class EventToChartDialog(QDialog):
         def on_location_selected(location):
             # Create chart for the event
             chart = self.planner_service.send_event_to_chart_maker(
-                event=event,
-                location=location
+                event=event, location=location
             )
 
             # Emit signal with the chart
@@ -208,7 +216,9 @@ class EventToChartDialog(QDialog):
             self.accept()
 
         # Connect signal
-        location_window.location_search_widget.location_selected.connect(on_location_selected)
+        location_window.location_search_widget.location_selected.connect(
+            on_location_selected
+        )
 
         # Show window
         location_window.show()

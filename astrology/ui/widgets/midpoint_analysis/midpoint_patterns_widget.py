@@ -13,19 +13,20 @@ Dependencies:
 - astrology.models: For astrological data models
 """
 
-import math
-from typing import Dict, List, Tuple, Set
-from collections import defaultdict
+from typing import Dict, List, Tuple
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QSpinBox, QTableWidget, QTableWidgetItem, QHeaderView,
-    QComboBox
-)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
-
-from loguru import logger
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from astrology.models.chart import Chart
 
@@ -41,7 +42,15 @@ class MidpointPatternsWidget(QWidget):
         """
         super().__init__()
         self.chart = chart
-        self.traditional_planets = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
+        self.traditional_planets = [
+            "sun",
+            "moon",
+            "mercury",
+            "venus",
+            "mars",
+            "jupiter",
+            "saturn",
+        ]
         self.orb = 2.0  # Default orb for aspects (in degrees)
         self.pattern_type = "all"  # Default to show all patterns
         self._init_ui()
@@ -70,14 +79,16 @@ class MidpointPatternsWidget(QWidget):
         controls_layout.addWidget(pattern_label)
 
         self.pattern_combo = QComboBox()
-        self.pattern_combo.addItems([
-            "All Patterns",
-            "Conjunctions",
-            "Oppositions",
-            "Squares",
-            "T-Squares",
-            "Grand Crosses"
-        ])
+        self.pattern_combo.addItems(
+            [
+                "All Patterns",
+                "Conjunctions",
+                "Oppositions",
+                "Squares",
+                "T-Squares",
+                "Grand Crosses",
+            ]
+        )
         self.pattern_combo.currentIndexChanged.connect(self._on_pattern_changed)
         controls_layout.addWidget(self.pattern_combo)
 
@@ -91,14 +102,18 @@ class MidpointPatternsWidget(QWidget):
             "that can indicate important themes in the chart."
         )
         explanation.setWordWrap(True)
-        explanation.setStyleSheet("font-style: italic; color: #666; margin: 10px 0; padding: 5px;")
+        explanation.setStyleSheet(
+            "font-style: italic; color: #666; margin: 10px 0; padding: 5px;"
+        )
         explanation.setMinimumHeight(50)  # Ensure enough height for wrapped text
         layout.addWidget(explanation)
 
         # Create table for patterns
         self.patterns_table = QTableWidget()
         self.patterns_table.setColumnCount(3)
-        self.patterns_table.setHorizontalHeaderLabels(["Pattern", "Planets Involved", "Interpretation"])
+        self.patterns_table.setHorizontalHeaderLabels(
+            ["Pattern", "Planets Involved", "Interpretation"]
+        )
 
         # Set column widths
         header = self.patterns_table.horizontalHeader()
@@ -126,7 +141,14 @@ class MidpointPatternsWidget(QWidget):
         Args:
             index: Index of the selected pattern type
         """
-        pattern_types = ["all", "conjunction", "opposition", "square", "t-square", "grand-cross"]
+        pattern_types = [
+            "all",
+            "conjunction",
+            "opposition",
+            "square",
+            "t-square",
+            "grand-cross",
+        ]
         if 0 <= index < len(pattern_types):
             self.pattern_type = pattern_types[index]
             self._update_patterns()
@@ -166,7 +188,9 @@ class MidpointPatternsWidget(QWidget):
 
             # Interpretation
             interp_item = QTableWidgetItem(description)
-            interp_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            interp_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             self.patterns_table.setItem(i, 2, interp_item)
 
         # Enable word wrap for the interpretation column
@@ -193,7 +217,7 @@ class MidpointPatternsWidget(QWidget):
             planet1 = getattr(subject, planet1_name)
             pos1 = planet1.position + (planet1.sign_num * 30)
 
-            for j, planet2_name in enumerate(self.traditional_planets[i+1:], i+1):
+            for j, planet2_name in enumerate(self.traditional_planets[i + 1 :], i + 1):
                 if not hasattr(subject, planet2_name):
                     continue
 
@@ -204,7 +228,9 @@ class MidpointPatternsWidget(QWidget):
                 midpoint_pos = self._calculate_midpoint(pos1, pos2)
 
                 # Add to dictionary
-                midpoint_name = f"{planet1_name.capitalize()}/{planet2_name.capitalize()}"
+                midpoint_name = (
+                    f"{planet1_name.capitalize()}/{planet2_name.capitalize()}"
+                )
                 midpoints[midpoint_name] = midpoint_pos
 
         return midpoints
@@ -242,7 +268,9 @@ class MidpointPatternsWidget(QWidget):
 
         return patterns
 
-    def _find_conjunctions(self, midpoints: Dict[str, float]) -> List[Tuple[str, str, str]]:
+    def _find_conjunctions(
+        self, midpoints: Dict[str, float]
+    ) -> List[Tuple[str, str, str]]:
         """Find conjunctions between midpoints.
 
         Args:
@@ -256,7 +284,7 @@ class MidpointPatternsWidget(QWidget):
         # Check all pairs of midpoints
         midpoint_items = list(midpoints.items())
         for i, (name1, pos1) in enumerate(midpoint_items):
-            for name2, pos2 in midpoint_items[i+1:]:
+            for name2, pos2 in midpoint_items[i + 1 :]:
                 # Check if the midpoints are conjunct
                 if self._is_aspect(pos1, pos2, 0, self.orb):
                     planets_involved = f"{name1} conjunct {name2}"
@@ -270,7 +298,9 @@ class MidpointPatternsWidget(QWidget):
 
         return conjunctions
 
-    def _find_oppositions(self, midpoints: Dict[str, float]) -> List[Tuple[str, str, str]]:
+    def _find_oppositions(
+        self, midpoints: Dict[str, float]
+    ) -> List[Tuple[str, str, str]]:
         """Find oppositions between midpoints.
 
         Args:
@@ -284,7 +314,7 @@ class MidpointPatternsWidget(QWidget):
         # Check all pairs of midpoints
         midpoint_items = list(midpoints.items())
         for i, (name1, pos1) in enumerate(midpoint_items):
-            for name2, pos2 in midpoint_items[i+1:]:
+            for name2, pos2 in midpoint_items[i + 1 :]:
                 # Check if the midpoints are opposite
                 if self._is_aspect(pos1, pos2, 180, self.orb):
                     planets_involved = f"{name1} opposite {name2}"
@@ -312,7 +342,7 @@ class MidpointPatternsWidget(QWidget):
         # Check all pairs of midpoints
         midpoint_items = list(midpoints.items())
         for i, (name1, pos1) in enumerate(midpoint_items):
-            for name2, pos2 in midpoint_items[i+1:]:
+            for name2, pos2 in midpoint_items[i + 1 :]:
                 # Check if the midpoints are square
                 if self._is_aspect(pos1, pos2, 90, self.orb):
                     planets_involved = f"{name1} square {name2}"
@@ -326,7 +356,9 @@ class MidpointPatternsWidget(QWidget):
 
         return squares
 
-    def _find_t_squares(self, midpoints: Dict[str, float]) -> List[Tuple[str, str, str]]:
+    def _find_t_squares(
+        self, midpoints: Dict[str, float]
+    ) -> List[Tuple[str, str, str]]:
         """Find T-squares between midpoints.
 
         Args:
@@ -340,15 +372,16 @@ class MidpointPatternsWidget(QWidget):
         # Check all triplets of midpoints
         midpoint_items = list(midpoints.items())
         for i, (name1, pos1) in enumerate(midpoint_items):
-            for j, (name2, pos2) in enumerate(midpoint_items[i+1:], i+1):
+            for j, (name2, pos2) in enumerate(midpoint_items[i + 1 :], i + 1):
                 # Check if the first two midpoints are in opposition
                 if not self._is_aspect(pos1, pos2, 180, self.orb):
                     continue
 
-                for k, (name3, pos3) in enumerate(midpoint_items[j+1:], j+1):
+                for k, (name3, pos3) in enumerate(midpoint_items[j + 1 :], j + 1):
                     # Check if the third midpoint is square to both others
-                    if (self._is_aspect(pos1, pos3, 90, self.orb) and
-                        self._is_aspect(pos2, pos3, 90, self.orb)):
+                    if self._is_aspect(pos1, pos3, 90, self.orb) and self._is_aspect(
+                        pos2, pos3, 90, self.orb
+                    ):
                         planets_involved = f"{name1}, {name2}, {name3}"
                         description = (
                             f"The midpoints {name1}, {name2}, and {name3} form a T-square. "
@@ -360,7 +393,9 @@ class MidpointPatternsWidget(QWidget):
 
         return t_squares
 
-    def _find_grand_crosses(self, midpoints: Dict[str, float]) -> List[Tuple[str, str, str]]:
+    def _find_grand_crosses(
+        self, midpoints: Dict[str, float]
+    ) -> List[Tuple[str, str, str]]:
         """Find grand crosses between midpoints.
 
         Args:
@@ -374,22 +409,26 @@ class MidpointPatternsWidget(QWidget):
         # Check all quartets of midpoints
         midpoint_items = list(midpoints.items())
         for i, (name1, pos1) in enumerate(midpoint_items):
-            for j, (name2, pos2) in enumerate(midpoint_items[i+1:], i+1):
+            for j, (name2, pos2) in enumerate(midpoint_items[i + 1 :], i + 1):
                 # Check if the first two midpoints are square
                 if not self._is_aspect(pos1, pos2, 90, self.orb):
                     continue
 
-                for k, (name3, pos3) in enumerate(midpoint_items[j+1:], j+1):
+                for k, (name3, pos3) in enumerate(midpoint_items[j + 1 :], j + 1):
                     # Check if the third midpoint is square to the second and opposite the first
-                    if not (self._is_aspect(pos2, pos3, 90, self.orb) and
-                            self._is_aspect(pos1, pos3, 180, self.orb)):
+                    if not (
+                        self._is_aspect(pos2, pos3, 90, self.orb)
+                        and self._is_aspect(pos1, pos3, 180, self.orb)
+                    ):
                         continue
 
-                    for l, (name4, pos4) in enumerate(midpoint_items[k+1:], k+1):
+                    for l, (name4, pos4) in enumerate(midpoint_items[k + 1 :], k + 1):
                         # Check if the fourth midpoint completes the grand cross
-                        if (self._is_aspect(pos3, pos4, 90, self.orb) and
-                            self._is_aspect(pos1, pos4, 90, self.orb) and
-                            self._is_aspect(pos2, pos4, 180, self.orb)):
+                        if (
+                            self._is_aspect(pos3, pos4, 90, self.orb)
+                            and self._is_aspect(pos1, pos4, 90, self.orb)
+                            and self._is_aspect(pos2, pos4, 180, self.orb)
+                        ):
                             planets_involved = f"{name1}, {name2}, {name3}, {name4}"
                             description = (
                                 f"The midpoints {name1}, {name2}, {name3}, and {name4} form a Grand Cross. "
@@ -398,11 +437,15 @@ class MidpointPatternsWidget(QWidget):
                                 f"are interconnected in a way that demands comprehensive integration "
                                 f"and balance across multiple areas of life."
                             )
-                            grand_crosses.append(("Grand Cross", planets_involved, description))
+                            grand_crosses.append(
+                                ("Grand Cross", planets_involved, description)
+                            )
 
         return grand_crosses
 
-    def _is_aspect(self, pos1: float, pos2: float, aspect_angle: float, orb: float) -> bool:
+    def _is_aspect(
+        self, pos1: float, pos2: float, aspect_angle: float, orb: float
+    ) -> bool:
         """Check if two positions form an aspect.
 
         Args:

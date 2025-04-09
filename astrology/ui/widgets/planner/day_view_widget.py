@@ -9,19 +9,30 @@ from datetime import datetime
 from typing import List, Optional
 
 from loguru import logger
-from PyQt6.QtCore import Qt, QDate, QTime, pyqtSignal
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QScrollArea,
-    QLabel, QPushButton, QFrame,
-    QToolButton, QDialog, QTimeEdit,
-    QLineEdit, QTextEdit, QFormLayout, QCheckBox,
-    QComboBox, QMessageBox
-)
+from PyQt6.QtCore import QDate, Qt, QTime, pyqtSignal
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QTextEdit,
+    QTimeEdit,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from astrology.services.planner_service import PlannerService, PlannerEvent, EventType
-from astrology.services.chart_service import ChartService
 from astrology.models.chart import Chart
+from astrology.services.chart_service import ChartService
+from astrology.services.planner_service import EventType, PlannerEvent, PlannerService
 from astrology.ui.dialogs.location_search_window import LocationSearchWindow
 
 
@@ -61,7 +72,9 @@ class EventDialog(QDialog):
         self.time_edit = QTimeEdit()
         self.time_edit.setDisplayFormat("hh:mm AP")
         if event:
-            self.time_edit.setTime(QTime(event.start_time.hour, event.start_time.minute))
+            self.time_edit.setTime(
+                QTime(event.start_time.hour, event.start_time.minute)
+            )
         else:
             self.time_edit.setTime(QTime.currentTime())
         form_layout.addRow("Time:", self.time_edit)
@@ -83,7 +96,7 @@ class EventDialog(QDialog):
             ("#9b59b6", "Purple"),
             ("#1abc9c", "Teal"),
             ("#34495e", "Dark Blue"),
-            ("#7f8c8d", "Gray")
+            ("#7f8c8d", "Gray"),
         ]
         for color_code, color_name in colors:
             self.color_combo.addItem(color_name, color_code)
@@ -139,7 +152,7 @@ class EventDialog(QDialog):
             self.date.month(),
             self.date.day(),
             time.hour(),
-            time.minute()
+            time.minute(),
         )
 
         # Create or update event
@@ -159,7 +172,7 @@ class EventDialog(QDialog):
                 event_type=EventType.USER_EVENT,
                 start_time=start_time,
                 color=color,
-                repeats_yearly=repeats_yearly
+                repeats_yearly=repeats_yearly,
             )
 
 
@@ -239,7 +252,9 @@ class HourSection(QFrame):
             # Create event widget
             event_widget = QFrame()
             event_widget.setFrameShape(QFrame.Shape.StyledPanel)
-            event_widget.setStyleSheet(f"background-color: {event.color}; color: white; border-radius: 5px;")
+            event_widget.setStyleSheet(
+                f"background-color: {event.color}; color: white; border-radius: 5px;"
+            )
 
             event_layout = QVBoxLayout(event_widget)
             event_layout.setContentsMargins(5, 5, 5, 5)
@@ -283,7 +298,9 @@ class HourSection(QFrame):
             view_chart_button.setFont(QFont("Arial", 8))
 
             # Connect button to event
-            view_chart_button.clicked.connect(lambda _, e=event: self.chart_requested.emit(e))
+            view_chart_button.clicked.connect(
+                lambda _, e=event: self.chart_requested.emit(e)
+            )
 
             button_layout.addWidget(view_chart_button)
             event_layout.addLayout(button_layout)
@@ -409,7 +426,9 @@ class DayViewWidget(QWidget):
         self._clear_hours()
 
         # Get events for the day
-        date = datetime(self.current_date.year(), self.current_date.month(), self.current_date.day()).date()
+        date = datetime(
+            self.current_date.year(), self.current_date.month(), self.current_date.day()
+        ).date()
         user_events = self.planner_service.get_events_for_date(date)
         astro_events = self.planner_service.get_all_astrological_events_for_date(date)
 
@@ -471,7 +490,7 @@ class DayViewWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "No Default Location",
-                "Please set a default location in the settings first."
+                "Please set a default location in the settings first.",
             )
             return
 
@@ -493,20 +512,17 @@ class DayViewWidget(QWidget):
             QMessageBox.warning(
                 self,
                 "No Default Location",
-                "Please set a default location in the settings first."
+                "Please set a default location in the settings first.",
             )
             return
 
         # Create chart for the event with default location
         chart = self.planner_service.send_event_to_chart_maker(
-            event=event,
-            location=settings.default_location
+            event=event, location=settings.default_location
         )
 
         # Emit signal with the chart
         self.chart_requested.emit(chart)
-
-
 
     def _create_day_chart(self):
         """Create a chart for noon on the current day."""
@@ -518,19 +534,17 @@ class DayViewWidget(QWidget):
             self.current_date.year(),
             self.current_date.month(),
             self.current_date.day(),
-            12, 0  # Noon
+            12,
+            0,  # Noon
         )
 
         # Calculate the chart
         chart = self.planner_service.calculate_chart(
-            date_time=date_time,
-            location=settings.default_location
+            date_time=date_time, location=settings.default_location
         )
 
         # Emit signal with the chart
         self.chart_requested.emit(chart)
-
-
 
     def _add_event(self):
         """Add a new event."""
@@ -545,11 +559,7 @@ class DayViewWidget(QWidget):
                 # Update the view
                 self._update_view()
             else:
-                QMessageBox.warning(
-                    self,
-                    "Error",
-                    "Failed to save event."
-                )
+                QMessageBox.warning(self, "Error", "Failed to save event.")
 
     def _show_settings(self):
         """Show settings dialog."""
@@ -622,11 +632,7 @@ class DayViewWidget(QWidget):
             if self.planner_service.save_settings(settings):
                 logger.debug("Settings saved")
             else:
-                QMessageBox.warning(
-                    self,
-                    "Error",
-                    "Failed to save settings."
-                )
+                QMessageBox.warning(self, "Error", "Failed to save settings.")
 
     def _change_location(self, parent_dialog):
         """Change the default location.
@@ -654,14 +660,12 @@ class DayViewWidget(QWidget):
                 # Close the location window
                 location_window.close()
             else:
-                QMessageBox.warning(
-                    parent_dialog,
-                    "Error",
-                    "Failed to save location."
-                )
+                QMessageBox.warning(parent_dialog, "Error", "Failed to save location.")
 
         # Connect signal
-        location_window.location_search_widget.location_selected.connect(on_location_selected)
+        location_window.location_search_widget.location_selected.connect(
+            on_location_selected
+        )
 
         # Show window
         location_window.show()

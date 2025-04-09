@@ -16,13 +16,17 @@ Dependencies:
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from loguru import logger
 
-from astrology.models.chart import Chart, NatalChart, TransitChart, CompositeChart, ChartType
-from astrology.models.celestial_body import CelestialBody
-from astrology.models.zodiac import House, HouseSystem
+from astrology.models.chart import (
+    Chart,
+    CompositeChart,
+    NatalChart,
+    TransitChart,
+)
+from astrology.models.zodiac import HouseSystem
 from astrology.services.kerykeion_service import KerykeionService
 
 
@@ -59,7 +63,7 @@ class ChartService:
         location_name: Optional[str] = None,
         house_system: HouseSystem = HouseSystem.PLACIDUS,
         birth_time_known: bool = True,
-        perspective_type: str = "Apparent Geocentric"
+        perspective_type: str = "Apparent Geocentric",
     ) -> NatalChart:
         """Create a natal chart.
 
@@ -87,13 +91,16 @@ class ChartService:
             HouseSystem.TOPOCENTRIC: "T",
             HouseSystem.MORINUS: "M",
             HouseSystem.PORPHYRY: "O",
-            HouseSystem.ALCABITIUS: "B"
+            HouseSystem.ALCABITIUS: "B",
         }
-        house_system_code = house_system_codes.get(house_system, "P")  # Default to Placidus
+        house_system_code = house_system_codes.get(
+            house_system, "P"
+        )  # Default to Placidus
 
         # Get the timezone string
         try:
             import tzlocal
+
             timezone_str = str(tzlocal.get_localzone())
         except Exception:
             timezone_str = "UTC"
@@ -106,7 +113,7 @@ class ChartService:
             longitude=longitude,
             timezone_str=timezone_str,
             house_system=house_system_code,
-            perspective_type=perspective_type
+            perspective_type=perspective_type,
         )
 
         # Add additional information to the chart
@@ -124,7 +131,7 @@ class ChartService:
         reference_chart: Chart,
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
-        location_name: Optional[str] = None
+        location_name: Optional[str] = None,
     ) -> TransitChart:
         """Create a transit chart.
 
@@ -155,13 +162,14 @@ class ChartService:
             longitude=longitude,
             location_name=location_name,
             house_system=reference_chart.house_system,
-            reference_chart=reference_chart
+            reference_chart=reference_chart,
         )
 
         # Use kerykeion service to create a new chart for the transit date
         # Get the timezone string
         try:
             import tzlocal
+
             timezone_str = str(tzlocal.get_localzone())
         except Exception:
             timezone_str = "UTC"
@@ -177,9 +185,11 @@ class ChartService:
             HouseSystem.TOPOCENTRIC: "T",
             HouseSystem.MORINUS: "M",
             HouseSystem.PORPHYRY: "O",
-            HouseSystem.ALCABITIUS: "B"
+            HouseSystem.ALCABITIUS: "B",
         }
-        house_system_code = house_system_codes.get(reference_chart.house_system, "P")  # Default to Placidus
+        house_system_code = house_system_codes.get(
+            reference_chart.house_system, "P"
+        )  # Default to Placidus
 
         # Create a temporary chart for the transit date
         transit_data = self.kerykeion_service.create_natal_chart(
@@ -188,7 +198,7 @@ class ChartService:
             latitude=latitude,
             longitude=longitude,
             timezone_str=timezone_str,
-            house_system=house_system_code
+            house_system=house_system_code,
         )
 
         # Copy the planets from the transit chart to our chart
@@ -200,11 +210,7 @@ class ChartService:
         return chart
 
     def create_composite_chart(
-        self,
-        name: str,
-        chart1: Chart,
-        chart2: Chart,
-        midpoint_method: bool = True
+        self, name: str, chart1: Chart, chart2: Chart, midpoint_method: bool = True
     ) -> CompositeChart:
         """Create a composite chart for a relationship.
 
@@ -224,8 +230,16 @@ class ChartService:
         midpoint_date = date1 + datetime.timedelta(days=days_diff)
 
         # Calculate midpoint location (simplified)
-        latitude = (chart1.latitude + chart2.latitude) / 2 if chart1.latitude and chart2.latitude else None
-        longitude = (chart1.longitude + chart2.longitude) / 2 if chart1.longitude and chart2.longitude else None
+        latitude = (
+            (chart1.latitude + chart2.latitude) / 2
+            if chart1.latitude and chart2.latitude
+            else None
+        )
+        longitude = (
+            (chart1.longitude + chart2.longitude) / 2
+            if chart1.longitude and chart2.longitude
+            else None
+        )
 
         # Create the chart
         chart = CompositeChart(
@@ -237,7 +251,7 @@ class ChartService:
             house_system=chart1.house_system,
             chart1=chart1,
             chart2=chart2,
-            midpoint_method=midpoint_method
+            midpoint_method=midpoint_method,
         )
 
         # Note: Composite charts are not directly supported by kerykeion
@@ -250,7 +264,7 @@ class ChartService:
         self,
         chart: Chart,
         major_only: bool = False,
-        custom_orbs: Optional[Dict[str, float]] = None
+        custom_orbs: Optional[Dict[str, float]] = None,
     ) -> List:
         """Calculate aspects in a chart.
 
@@ -264,7 +278,7 @@ class ChartService:
         """
         # Kerykeion calculates aspects automatically
         # We just need to return the aspects from the chart
-        return chart.aspects if hasattr(chart, 'aspects') else []
+        return chart.aspects if hasattr(chart, "aspects") else []
 
     def identify_aspect_patterns(self, chart: Chart, aspects: List) -> List:
         """Identify aspect patterns in a chart.
@@ -278,5 +292,7 @@ class ChartService:
         """
         # Aspect pattern identification is not supported by kerykeion
         # This would need to be implemented separately
-        logger.warning("Aspect pattern identification is not implemented with kerykeion yet")
+        logger.warning(
+            "Aspect pattern identification is not implemented with kerykeion yet"
+        )
         return []
