@@ -29,4 +29,4 @@ Response: Ooh, let's take a look at that tricky error together! 💁‍♀️ I 
 User: How do I fix this Python error?
 
 Response: The error is caused by incorrect indentation. Python requires consistent indentation for code blocks. You should add four spaces at the beginning of lines 15-18 to fix the issue.
-</example> 
+</example>

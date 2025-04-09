@@ -17,12 +17,13 @@
 #
 # Contributor(s): Michael Howitz, gocept gmbh & co. kg
 
-import sys
 import getopt
+import sys
 
 import odf.userfield
 
-if sys.version_info[0]==3: unicode=str
+if sys.version_info[0] == 3:
+    unicode = str
 
 listfields = False
 Listfields = False
@@ -34,9 +35,11 @@ inputfile = None
 
 
 def exitwithusage(exitcode=2):
-    """ print out usage information """
-    sys.stderr.write("Usage: %s [-lL] [-xX metafield] [-s metafield:value]... "
-                     "[-o output] [inputfile]\n" % sys.argv[0])
+    """print out usage information"""
+    sys.stderr.write(
+        "Usage: %s [-lL] [-xX metafield] [-s metafield:value]... "
+        "[-o output] [inputfile]\n" % sys.argv[0]
+    )
     sys.stderr.write("\tInputfile must be OpenDocument format\n")
     sys.exit(exitcode)
 
@@ -50,18 +53,18 @@ if len(opts) == 0:
     exitwithusage()
 
 for o, a in opts:
-    if o == '-s':
+    if o == "-s":
         if a.find(":") >= 0:
-            k,v = a.split(":",1)
+            k, v = a.split(":", 1)
         else:
-            k,v = (a, "")
+            k, v = (a, "")
         if len(k) == 0:
             exitwithusage()
         setfields[unicode(k)] = unicode(v)
-    if o == '-l':
+    if o == "-l":
         listfields = True
         Listfields = False
-    if o == '-L':
+    if o == "-L":
         Listfields = True
         listfields = False
     if o == "-x":
@@ -78,22 +81,20 @@ user_fields = odf.userfield.UserFields(inputfile, outputfile)
 
 if xfields:
     for value in user_fields.list_values(xfields):
-        print (value)
+        print(value)
 
 if Listfields or Xfields:
     if Listfields:
         Xfields = None
-    for field_name, value_type, value in user_fields.list_fields_and_values(
-        Xfields):
-        print ("%s#%s:%s" % (field_name, value_type, value))
-    
+    for field_name, value_type, value in user_fields.list_fields_and_values(Xfields):
+        print("%s#%s:%s" % (field_name, value_type, value))
+
 if listfields:
     for value in user_fields.list_fields():
-        print (value)
+        print(value)
 
 if setfields:
     user_fields.update(setfields)
-
 
 
 # Local Variables: ***

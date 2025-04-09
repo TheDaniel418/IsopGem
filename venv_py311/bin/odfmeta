@@ -17,32 +17,38 @@
 #
 # Contributor(s):
 #
-import zipfile, time, sys, getopt, re
-import xml.sax, xml.sax.saxutils
-from odf.namespaces import TOOLSVERSION, OFFICENS, XLINKNS, DCNS, METANS
+import getopt
+import re
+import sys
+import time
+import xml.sax
+import xml.sax.saxutils
+import zipfile
 from io import BytesIO
 
-OUTENCODING="utf-8"
+from odf.namespaces import DCNS, METANS, OFFICENS, TOOLSVERSION
 
-whitespace = re.compile(r'\s+')
+OUTENCODING = "utf-8"
+
+whitespace = re.compile(r"\s+")
 
 fields = {
-'title':            (DCNS,u'title'),
-'description':      (DCNS,u'description'),
-'subject':          (DCNS,u'subject'),
-'creator':          (DCNS,u'creator'),
-'date':             (DCNS,u'date'),
-'language':         (DCNS,u'language'),
-'generator':        (METANS,u'generator'),
-'initial-creator':  (METANS,u'initial-creator'),
-'keyword':          (METANS,u'keyword'),
-'editing-duration': (METANS,u'editing-duration'),
-'editing-cycles':   (METANS,u'editing-cycles'),
-'printed-by':       (METANS,u'printed-by'),
-'print-date':       (METANS,u'print-date'),
-'creation-date':    (METANS,u'creation-date'),
-'user-defined':     (METANS,u'user-defined'),
-#'template':         (METANS,u'template'),
+    "title": (DCNS, "title"),
+    "description": (DCNS, "description"),
+    "subject": (DCNS, "subject"),
+    "creator": (DCNS, "creator"),
+    "date": (DCNS, "date"),
+    "language": (DCNS, "language"),
+    "generator": (METANS, "generator"),
+    "initial-creator": (METANS, "initial-creator"),
+    "keyword": (METANS, "keyword"),
+    "editing-duration": (METANS, "editing-duration"),
+    "editing-cycles": (METANS, "editing-cycles"),
+    "printed-by": (METANS, "printed-by"),
+    "print-date": (METANS, "print-date"),
+    "creation-date": (METANS, "creation-date"),
+    "user-defined": (METANS, "user-defined"),
+    #'template':         (METANS,u'template'),
 }
 
 xfields = []
@@ -52,25 +58,32 @@ deletefields = {}
 yieldfields = {}
 showversion = None
 
+
 def exitwithusage(exitcode=2):
-    """ print out usage information """
-    sys.stderr.write("Usage: %s [-cdlvV] [-xXaAI metafield]... [-o output] [inputfile]\n" % sys.argv[0])
+    """print out usage information"""
+    sys.stderr.write(
+        "Usage: %s [-cdlvV] [-xXaAI metafield]... [-o output] [inputfile]\n"
+        % sys.argv[0]
+    )
     sys.stderr.write("\tInputfile must be OpenDocument format\n")
     sys.exit(exitcode)
 
+
 def normalize(str):
-    """ 
+    """
     The normalize-space function returns the argument string with whitespace
     normalized by stripping leading and trailing whitespace and replacing
     sequences of whitespace characters by a single space.
     """
-    return whitespace.sub(' ', str).strip()
+    return whitespace.sub(" ", str).strip()
+
 
 class MetaCollector:
     """
     The MetaCollector is a pseudo file object, that can temporarily ignore write-calls
     It could probably be replaced with a StringIO object.
     """
+
     def __init__(self):
         self._content = []
         self.dowrite = True
@@ -80,21 +93,23 @@ class MetaCollector:
             self._content.append(str)
 
     def content(self):
-        return ''.join(self._content)
+        return "".join(self._content)
 
 
 base = xml.sax.saxutils.XMLGenerator
 
+
 class odfmetaparser(base):
-    """ Parse a meta.xml file with an event-driven parser and replace elements.
-        It would probably be a cleaner approach to use a DOM based parser and
-        then manipulate in memory.
-        Small issue: Reorders elements
+    """Parse a meta.xml file with an event-driven parser and replace elements.
+    It would probably be a cleaner approach to use a DOM based parser and
+    then manipulate in memory.
+    Small issue: Reorders elements
     """
-    version = 'Unknown'
+
+    version = "Unknown"
 
     def __init__(self):
-        self._mimetype = ''
+        self._mimetype = ""
         self.output = MetaCollector()
         self._data = []
         self.seenfields = {}
@@ -103,17 +118,22 @@ class odfmetaparser(base):
     def startElementNS(self, name, qname, attrs):
         self._data = []
         field = name
-# I can't modify the template until the tool replaces elements at the same
-# location and not at the end
-#       if name == (METANS,u'template'):
-#           self._data = [attrs.get((XLINKNS,u'title'),'')]
-        if showversion and name == (OFFICENS,u'document-meta'):
-            if showversion == '-V':
-                print ("version:%s" % attrs.get((OFFICENS,u'version'),'Unknown').decode('utf-8'))
+        # I can't modify the template until the tool replaces elements at the same
+        # location and not at the end
+        #       if name == (METANS,u'template'):
+        #           self._data = [attrs.get((XLINKNS,u'title'),'')]
+        if showversion and name == (OFFICENS, "document-meta"):
+            if showversion == "-V":
+                print(
+                    "version:%s"
+                    % attrs.get((OFFICENS, "version"), "Unknown").decode("utf-8")
+                )
             else:
-                print ("%s" % attrs.get((OFFICENS,u'version'),'Unknown').decode('utf-8'))
-        if name == (METANS,u'user-defined'):
-            field = attrs.get((METANS,u'name'))
+                print(
+                    "%s" % attrs.get((OFFICENS, "version"), "Unknown").decode("utf-8")
+                )
+        if name == (METANS, "user-defined"):
+            field = attrs.get((METANS, "name"))
         if field in deletefields:
             self.output.dowrite = False
         elif field in yieldfields:
@@ -125,27 +145,29 @@ class odfmetaparser(base):
 
     def endElementNS(self, name, qname):
         field = name
-        if name == (METANS,u'user-defined'):
+        if name == (METANS, "user-defined"):
             field = self._tag
-        if name == (OFFICENS,u'meta'):
-            for k,v in addfields.items():
+        if name == (OFFICENS, "meta"):
+            for k, v in addfields.items():
                 if len(v) > 0:
-                    if type(k) == type(''):
-                        base.startElementNS(self,(METANS,u'user-defined'),None,{(METANS,u'name'):k})
+                    if type(k) == type(""):
+                        base.startElementNS(
+                            self, (METANS, "user-defined"), None, {(METANS, "name"): k}
+                        )
                         base.characters(self, v)
-                        base.endElementNS(self, (METANS,u'user-defined'),None)
+                        base.endElementNS(self, (METANS, "user-defined"), None)
                     else:
                         base.startElementNS(self, k, None, {})
                         base.characters(self, v)
                         base.endElementNS(self, k, None)
         if name in xfields:
-                print ("%s" % self.data())
+            print("%s" % self.data())
         if name in Xfields:
             if isinstance(self._tag, tuple):
                 texttag = self._tag[1]
             else:
                 texttag = self._tag
-            print ("%s:%s" % (texttag, self.data()))
+            print("%s:%s" % (texttag, self.data()))
         if field in deletefields:
             self.output.dowrite = True
         else:
@@ -160,13 +182,14 @@ class odfmetaparser(base):
 
     def data(self):
         if usenormalize:
-            return normalize(''.join(self._data))
+            return normalize("".join(self._data))
         else:
-            return ''.join(self._data)
+            return "".join(self._data)
+
 
 now = time.localtime()[:6]
 outputfile = "-"
-writemeta = False   # Do we change any meta data?
+writemeta = False  # Do we change any meta data?
 usenormalize = False
 
 try:
@@ -175,45 +198,45 @@ except getopt.GetoptError:
     exitwithusage()
 
 if len(opts) == 0:
-    opts = [ ('-l','') ]
+    opts = [("-l", "")]
 
 for o, a in opts:
-    if o in ('-a','-A','-I'):
+    if o in ("-a", "-A", "-I"):
         writemeta = True
         if a.find(":") >= 0:
-            k,v = a.split(":",1)
+            k, v = a.split(":", 1)
         else:
-            k,v = (a, "")
+            k, v = (a, "")
         if len(k) == 0:
             exitwithusage()
-        k = fields.get(k,k)
-        addfields[k] = unicode(v,'utf-8')
-    if o == '-a':
+        k = fields.get(k, k)
+        addfields[k] = unicode(v, "utf-8")
+    if o == "-a":
         yieldfields[k] = True
-    if o == '-I':
+    if o == "-I":
         deletefields[k] = True
-    if o == '-d':
+    if o == "-d":
         writemeta = True
-        addfields[(DCNS,u'date')] = "%04d-%02d-%02dT%02d:%02d:%02d" % now
-        deletefields[(DCNS,u'date')] = True
-    if o == '-c':
+        addfields[(DCNS, "date")] = "%04d-%02d-%02dT%02d:%02d:%02d" % now
+        deletefields[(DCNS, "date")] = True
+    if o == "-c":
         usenormalize = True
-    if o in ('-v', '-V'):
+    if o in ("-v", "-V"):
         showversion = o
-    if o == '-l':
+    if o == "-l":
         Xfields = fields.values()
     if o == "-x":
-        xfields.append(fields.get(a,a))
+        xfields.append(fields.get(a, a))
     if o == "-X":
-        Xfields.append(fields.get(a,a))
+        Xfields.append(fields.get(a, a))
     if o == "-o":
         outputfile = a
 
 # The specification says we should change the element to our own,
 # and must not export the original identifier.
 if writemeta:
-    addfields[(METANS,u'generator')] = TOOLSVERSION
-    deletefields[(METANS,u'generator')] = True
+    addfields[(METANS, "generator")] = TOOLSVERSION
+    deletefields[(METANS, "generator")] = True
 
 odfs = odfmetaparser()
 parser = xml.sax.make_parser()
@@ -221,29 +244,27 @@ parser.setFeature(xml.sax.handler.feature_namespaces, 1)
 parser.setContentHandler(odfs)
 
 if len(args) == 0:
-    zin = zipfile.ZipFile(sys.stdin,'r')
+    zin = zipfile.ZipFile(sys.stdin, "r")
 else:
     if not zipfile.is_zipfile(args[0]):
         exitwithusage()
-    zin = zipfile.ZipFile(args[0], 'r')
+    zin = zipfile.ZipFile(args[0], "r")
 
 try:
-    content = zin.read('meta.xml').decode('utf-8')
+    content = zin.read("meta.xml").decode("utf-8")
 except:
     sys.stderr.write("File has no meta data\n")
     sys.exit(1)
-parser.parse(BytesIO(content.encode('utf-8')))
+parser.parse(BytesIO(content.encode("utf-8")))
 
 if writemeta:
-    if outputfile == '-':
+    if outputfile == "-":
         if sys.stdout.isatty():
-           sys.stderr.write("Won't write ODF file to terminal\n")
-           sys.exit(1)
-        zout = zipfile.ZipFile(sys.stdout,"w")
+            sys.stderr.write("Won't write ODF file to terminal\n")
+            sys.exit(1)
+        zout = zipfile.ZipFile(sys.stdout, "w")
     else:
-        zout = zipfile.ZipFile(outputfile,"w")
-
-
+        zout = zipfile.ZipFile(outputfile, "w")
 
     # Loop through the input zipfile and copy the content to the output until we
     # get to the meta.xml. Then substitute.
@@ -252,7 +273,7 @@ if writemeta:
             # Write meta
             zi = zipfile.ZipInfo("meta.xml", now)
             zi.compress_type = zipfile.ZIP_DEFLATED
-            zout.writestr(zi,odfs.meta() )
+            zout.writestr(zi, odfs.meta())
         else:
             payload = zin.read(zinfo.filename)
             zout.writestr(zinfo, payload)

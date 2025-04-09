@@ -19,21 +19,27 @@
 #
 from __future__ import print_function
 
-import zipfile, sys, getopt, mimetypes
+import getopt
+import mimetypes
+import sys
+import zipfile
+
 try:
-    from urllib2 import urlopen, quote, unquote
+    from urllib2 import quote, unquote, urlopen
 except ImportError:
-    from urllib.request import urlopen, quote, unquote
+    from urllib.request import quote, unquote, urlopen
 try:
-    from urlparse import urlunsplit, urlsplit
+    from urlparse import urlsplit, urlunsplit
 except ImportError:
     from urllib.parse import urlunsplit, urlsplit
-from odf.opendocument import load
+
 from odf.draw import Image
+from odf.opendocument import load
 
-if sys.version_info[0]==3: unicode=str
+if sys.version_info[0] == 3:
+    unicode = str
 
-#sys.tracebacklimit = 0
+# sys.tracebacklimit = 0
 
 # Variable to count the number of retrieval failures
 failures = 0
@@ -49,30 +55,34 @@ verbose = 0
 newpictures = {}
 doc = None
 
+
 def importpicture(href):
-    """ Add the picture to the ZIP file
-        Returns the new path name to the file in the zip archive
-        If it is unable to import, then it returns the original href
-        Sideeffect: add line to manifest
+    """Add the picture to the ZIP file
+    Returns the new path name to the file in the zip archive
+    If it is unable to import, then it returns the original href
+    Sideeffect: add line to manifest
     """
     global doc, newpictures, failures, verbose
 
     # Check that it is not already in the manifest
-    if href in doc.Pictures: return href
+    if href in doc.Pictures:
+        return href
 
     image = None
-    if verbose: print ("Importing", href, file=sys.stderr)
+    if verbose:
+        print("Importing", href, file=sys.stderr)
     if href[:7] == "http://" or href[:8] == "https://" or href[:6] == "ftp://":
         # There is a bug in urlopen: It can't open urls with non-ascii unicode
         # characters. Convert to UTF-8 and then use percent encoding
         try:
-            goodhref = href.encode('ascii')
+            goodhref = href.encode("ascii")
         except:
             o = list(urlsplit(href))
-            o[2] = quote(o[2].encode('utf-8'))
+            o[2] = quote(o[2].encode("utf-8"))
             goodhref = urlunsplit(o)
         if goodhref in newpictures:
-            if verbose: print ("already imported", file=sys.stderr)
+            if verbose:
+                print("already imported", file=sys.stderr)
             return newpictures[goodhref]  # Already imported
         try:
             f = urlopen(goodhref.decode("utf-8"))
@@ -80,44 +90,55 @@ def importpicture(href):
             headers = f.info()
             f.close()
             # Get the mimetype from the headerlines
-            c_t = headers['Content-Type'].split(';')[0].strip()
-            if c_t: mediatype = c_t.split(';')[0].strip()
-            if verbose: print ("OK", file=sys.stderr)
+            c_t = headers["Content-Type"].split(";")[0].strip()
+            if c_t:
+                mediatype = c_t.split(";")[0].strip()
+            if verbose:
+                print("OK", file=sys.stderr)
         except:
             failures += 1
-            if verbose: print ("failed", file=sys.stderr)
+            if verbose:
+                print("failed", file=sys.stderr)
             return href
         # Remove query string
-        try: href= href[:href.rindex('?')]
-        except: pass
         try:
-            lastslash = href[href.rindex('/'):]
-            ext = lastslash[lastslash.rindex('.'):]
-        except: ext = mimetypes.guess_extension(mediatype)
+            href = href[: href.rindex("?")]
+        except:
+            pass
+        try:
+            lastslash = href[href.rindex("/") :]
+            ext = lastslash[lastslash.rindex(".") :]
+        except:
+            ext = mimetypes.guess_extension(mediatype)
     # Everything is a simple path.
     else:
         goodhref = href
-        if href[:3] == '../':
+        if href[:3] == "../":
             if directory is None:
                 goodhref = unquote(href[3:])
             else:
                 goodhref = unquote(directory + href[2:])
         if goodhref in newpictures:
-            if verbose: print ("already imported", file=sys.stderr)
+            if verbose:
+                print("already imported", file=sys.stderr)
             return newpictures[goodhref]  # Already imported
         mediatype, encoding = mimetypes.guess_type(goodhref)
         if mediatype is None:
-            mediatype = ''
-            try: ext = goodhref[goodhref.rindex('.'):]
-            except: ext=''
+            mediatype = ""
+            try:
+                ext = goodhref[goodhref.rindex(".") :]
+            except:
+                ext = ""
         else:
             ext = mimetypes.guess_extension(mediatype)
         try:
             image = file(goodhref).read()
-            if verbose: print ("OK", file=sys.stderr)
+            if verbose:
+                print("OK", file=sys.stderr)
         except:
             failures += 1
-            if verbose: print ("failed", file=sys.stderr)
+            if verbose:
+                print("failed", file=sys.stderr)
             return href
     # If we have a picture to import, the image variable contains it
     # and manifestfn, ext and mediatype has a value
@@ -126,14 +147,17 @@ def importpicture(href):
         newpictures[goodhref] = manifestfn
         return manifestfn
 
-    if verbose: print ("not imported", file=sys.stderr)
+    if verbose:
+        print("not imported", file=sys.stderr)
     return href
 
+
 def exitwithusage(exitcode=2):
-    """ Print out usage information and exit """
-    print ("Usage: %s [-q] [-v] [-o output] [inputfile]" % sys.argv[0], file=sys.stderr)
-    print ("\tInputfile must be OpenDocument format", file=sys.stderr)
+    """Print out usage information and exit"""
+    print("Usage: %s [-q] [-v] [-o output] [inputfile]" % sys.argv[0], file=sys.stderr)
+    print("\tInputfile must be OpenDocument format", file=sys.stderr)
     sys.exit(exitcode)
+
 
 outputfile = None
 writefile = True
@@ -157,21 +181,23 @@ if len(args) == 0:
         doc = load(sys.stdin)
         directory = None
     except:
-        print ("Couldn't open OpenDocument file", file=sys.stderr)
+        print("Couldn't open OpenDocument file", file=sys.stderr)
         exitwithusage()
 else:
     fn = unicode(args[0])
     if not zipfile.is_zipfile(fn):
         exitwithusage()
-    dirinx = max(fn.rfind('\\'), fn.rfind('/'))
-    if dirinx >= 0: directory = fn[:dirinx]
-    else: directory = "."
+    dirinx = max(fn.rfind("\\"), fn.rfind("/"))
+    if dirinx >= 0:
+        directory = fn[:dirinx]
+    else:
+        directory = "."
     doc = load(fn)
 
 for image in doc.getElementsByType(Image):
-    href = image.getAttribute('href')
+    href = image.getAttribute("href")
     newhref = importpicture(href)
-    image.setAttribute('href',newhref)
+    image.setAttribute("href", newhref)
 
 if writefile:
     if outputfile is None:
@@ -181,8 +207,8 @@ if writefile:
 
 
 if quiet == 0 and failures > 0:
-    print ("Couldn't import %d image(s)" % failures, file=sys.stderr)
-sys.exit( int(failures > 0) )
+    print("Couldn't import %d image(s)" % failures, file=sys.stderr)
+sys.exit(int(failures > 0))
 
 
 # Local Variables: ***

@@ -9,7 +9,7 @@ This document tracks the files in the project and their purposes to make navigat
   - `shared/ui/` - UI-related components and widgets
     - `shared/ui/components/` - Reusable UI components
       - `shared/ui/components/message_box.py` - Standardized message box implementation
-    - `shared/ui/widgets/` - Base widgets for UI consistency 
+    - `shared/ui/widgets/` - Base widgets for UI consistency
       - `shared/ui/widgets/panel.py` - Base panel widget for consistent panel styling
   - `shared/utils/` - General utility functions and classes
   - `shared/db/` - Database-related utilities and services
@@ -65,4 +65,4 @@ This document tracks the files in the project and their purposes to make navigat
 - `requirements/` - Project dependencies
   - `requirements/base.txt` - Core project dependencies
   - `requirements/dev.txt` - Development-specific dependencies
-  - `requirements/test.txt` - Testing-specific dependencies 
+  - `requirements/test.txt` - Testing-specific dependencies

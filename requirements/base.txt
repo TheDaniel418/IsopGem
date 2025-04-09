@@ -26,4 +26,4 @@ pillow==10.2.0
 
 # Natural language processing (optional)
 # nltk>=3.8.1
-# spacy>=3.5.0 
+# spacy>=3.5.0

@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
 
@@ -34,4 +34,4 @@ Response: Ooh, I'd love to help you debug that function! 💁‍♀️ Let's div
 User: Can you help me debug this function?
 
 Response: I will analyze your function for bugs. The issue appears to be in line 42 where you have an off-by-one error in the array index. The correct implementation would increment the counter after accessing the array element.
-</example> 
+</example>

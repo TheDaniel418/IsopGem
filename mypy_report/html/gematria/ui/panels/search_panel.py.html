@@ -502,7 +502,7 @@
 <span class="line-empty" title="No Anys on this line!">    """Panel for searching the Gematria database."""</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">    # Signal emitted when a search result is selected</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x1)">    result_selected = pyqtSignal(CalculationResult)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">    def __init__(</span>
@@ -547,10 +547,10 @@ Explicit (x1)">    result_selected = pyqtSignal(CalculationResult)</span>
 <span class="line-precise" title="No Anys on this line!">        while current is not None:</span>
 <span class="line-empty" title="No Anys on this line!">            # Check if parent has window_manager attribute</span>
 <span class="line-precise" title="No Anys on this line!">            if hasattr(current, "window_manager"):</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x14)
 Omitted Generics (x2)">                manager = getattr(current, "window_manager")</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x1)">                if isinstance(manager, WindowManager):</span>
 <span class="line-precise" title="No Anys on this line!">                    return manager</span>
 <span class="line-empty" title="No Anys on this line!"></span>
@@ -563,7 +563,7 @@ Explicit (x1)">                if isinstance(manager, WindowManager):</span>
 <span class="line-precise" title="No Anys on this line!">            current = current.parent()</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Log warning if no manager found</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x3)">        logger.warning("No window manager found in parent widget chain")</span>
 <span class="line-unanalyzed" title="No Anys on this line!">        return None</span>
 <span class="line-empty" title="No Anys on this line!"></span>
@@ -573,7 +573,7 @@ Explicit (x3)">        logger.warning("No window manager found in parent widget 
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Title</span>
 <span class="line-precise" title="No Anys on this line!">        title_label = QLabel("Gematria Search")</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x1)">        title_font = QFont()</span>
 <span class="line-precise" title="No Anys on this line!">        title_font.setPointSize(14)</span>
 <span class="line-precise" title="No Anys on this line!">        title_font.setBold(True)</span>
@@ -633,7 +633,7 @@ Explicit (x1)">        title_font = QFont()</span>
 <span class="line-precise" title="No Anys on this line!">        right_layout.addRow("Language:", self.language_combo)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">        self.method_combo = QComboBox()</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x2)">        self.method_combo.addItem("Any Method")</span>
 <span class="line-precise" title="No Anys on this line!">        right_layout.addRow("Method:", self.method_combo)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
@@ -656,12 +656,12 @@ Explicit (x2)">        self.method_combo.addItem("Any Method")</span>
 <span class="line-precise" title="No Anys on this line!">        button_layout = QHBoxLayout()</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">        self.search_button = QPushButton("Search")</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x1)">        self.search_button.setIcon(QIcon.fromTheme("search"))</span>
 <span class="line-precise" title="No Anys on this line!">        self.search_button.clicked.connect(self._perform_search)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">        self.clear_button = QPushButton("Clear")</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x1)">        self.clear_button.setIcon(QIcon.fromTheme("edit-clear"))</span>
 <span class="line-precise" title="No Anys on this line!">        self.clear_button.clicked.connect(self._clear_search)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
@@ -707,7 +707,7 @@ Explicit (x1)">        self.clear_button.setIcon(QIcon.fromTheme("edit-clear"))<
 <span class="line-precise" title="No Anys on this line!">    def _update_method_combo(self) -&gt; None:</span>
 <span class="line-empty" title="No Anys on this line!">        """Update the method combo box based on the selected language."""</span>
 <span class="line-precise" title="No Anys on this line!">        self.method_combo.clear()</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x2)">        self.method_combo.addItem("Any Method")</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">        language_idx = self.language_combo.currentIndex()</span>
@@ -726,7 +726,7 @@ Explicit (x2)">        self.method_combo.addItem("Any Method")</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Add standard methods to combo</span>
 <span class="line-precise" title="No Anys on this line!">        for method in methods:</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x2)">            self.method_combo.addItem(method.display_name, method)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Add separator and custom methods if applicable</span>
@@ -734,7 +734,7 @@ Explicit (x2)">            self.method_combo.addItem(method.display_name, method
 <span class="line-precise" title="No Anys on this line!">            language = [Language.HEBREW, Language.GREEK, Language.ENGLISH][</span>
 <span class="line-precise" title="No Anys on this line!">                language_idx - 1</span>
 <span class="line-empty" title="No Anys on this line!">            ]</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">            custom_methods = self.custom_cipher_service.get_methods_for_language(</span>
 <span class="line-precise" title="No Anys on this line!">                language</span>
 <span class="line-empty" title="No Anys on this line!">            )</span>
@@ -744,40 +744,40 @@ Explicit (x1)">            custom_methods = self.custom_cipher_service.get_metho
 <span class="line-precise" title="No Anys on this line!">                for custom_method in custom_methods:</span>
 <span class="line-precise" title="No Anys on this line!">                    custom_method_obj: CustomCipherConfig = custom_method</span>
 <span class="line-empty" title="No Anys on this line!">                    # Store the custom method name as a string, not as a CalculationType</span>
-<span class="line-precise" title="Any Types on this line: 
+<span class="line-precise" title="Any Types on this line:
 Explicit (x2)">                    self.method_combo.addItem(</span>
 <span class="line-precise" title="No Anys on this line!">                        f"Custom: {custom_method_obj.name}", custom_method_obj.name</span>
 <span class="line-empty" title="No Anys on this line!">                    )</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">    def _perform_search(self) -&gt; None:</span>
 <span class="line-empty" title="No Anys on this line!">        """Perform search based on current criteria."""</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x2)">        criteria: Dict[str, Any] = {}</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Text criteria</span>
 <span class="line-precise" title="No Anys on this line!">        if self.text_search.text():</span>
 <span class="line-precise" title="No Anys on this line!">            if self.exact_text_match.isChecked():</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">                criteria["input_text"] = self.text_search.text()</span>
 <span class="line-empty" title="No Anys on this line!">            else:</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">                criteria["input_text_like"] = f"%{self.text_search.text()}%"</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Value criteria - Updated to handle the QLineEdit instead of QSpinBox</span>
 <span class="line-precise" title="No Anys on this line!">        exact_value_text = self.exact_value.text().strip()</span>
 <span class="line-precise" title="No Anys on this line!">        if exact_value_text:</span>
 <span class="line-empty" title="No Anys on this line!">            try:</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">                criteria["result_value"] = int(exact_value_text)</span>
 <span class="line-precise" title="No Anys on this line!">            except ValueError:</span>
 <span class="line-empty" title="No Anys on this line!">                # If text is not a valid integer, ignore it</span>
 <span class="line-precise" title="No Anys on this line!">                pass</span>
 <span class="line-empty" title="No Anys on this line!">        else:</span>
 <span class="line-precise" title="No Anys on this line!">            if self.value_min.value() &gt; 0:</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">                criteria["result_value_min"] = self.value_min.value()</span>
 <span class="line-precise" title="No Anys on this line!">            if self.value_max.value() &gt; 0:</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">                criteria["result_value_max"] = self.value_max.value()</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Language/Method filter</span>
@@ -786,37 +786,37 @@ Explicit (x1)">                criteria["result_value_max"] = self.value_max.val
 <span class="line-precise" title="No Anys on this line!">            language = [Language.HEBREW, Language.GREEK, Language.ENGLISH][</span>
 <span class="line-precise" title="No Anys on this line!">                language_idx - 1</span>
 <span class="line-empty" title="No Anys on this line!">            ]</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">            criteria["language"] = language</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">        method_idx = self.method_combo.currentIndex()</span>
 <span class="line-precise" title="No Anys on this line!">        if method_idx &gt; 0:</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x3)">            method_data = self.method_combo.currentData()</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x1)">            if isinstance(method_data, CalculationType):</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">                criteria["calculation_type"] = method_data</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x1)">            elif isinstance(method_data, str):</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">                criteria["custom_method_name"] = method_data</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Other filters</span>
 <span class="line-precise" title="No Anys on this line!">        if self.favorites_only.isChecked():</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">            criteria["favorite"] = True</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">        if self.has_tags.isChecked():</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">            criteria["has_tags"] = True</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">        if self.has_notes.isChecked():</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x1)">            criteria["has_notes"] = True</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Perform search</span>
-<span class="line-imprecise" title="Any Types on this line: 
+<span class="line-imprecise" title="Any Types on this line:
 Explicit (x2)">        results = self.calculation_db_service.search_calculations(criteria)</span>
 <span class="line-precise" title="No Anys on this line!">        self._display_results(results)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
@@ -854,7 +854,7 @@ Explicit (x2)">        results = self.calculation_db_service.search_calculations
 <span class="line-precise" title="No Anys on this line!">        for i, result in enumerate(results):</span>
 <span class="line-empty" title="No Anys on this line!">            # Text column</span>
 <span class="line-precise" title="No Anys on this line!">            text_item = QTableWidgetItem(result.input_text)</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x1)">            text_item.setData(Qt.ItemDataRole.UserRole, result)</span>
 <span class="line-precise" title="No Anys on this line!">            self.results_table.setItem(i, 0, text_item)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
@@ -916,12 +916,12 @@ Explicit (x1)">            text_item.setData(Qt.ItemDataRole.UserRole, result)</
 <span class="line-precise" title="No Anys on this line!">        row = selected_items[0].row()</span>
 <span class="line-precise" title="No Anys on this line!">        self.selected_calculation = cast(</span>
 <span class="line-empty" title="No Anys on this line!">            CalculationResult,</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x2)">            self.results_table.item(row, 0).data(Qt.ItemDataRole.UserRole),</span>
 <span class="line-empty" title="No Anys on this line!">        )</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-empty" title="No Anys on this line!">        # Emit signal that result was selected</span>
-<span class="line-any" title="Any Types on this line: 
+<span class="line-any" title="Any Types on this line:
 Explicit (x1)">        self.result_selected.emit(self.selected_calculation)</span>
 <span class="line-empty" title="No Anys on this line!"></span>
 <span class="line-precise" title="No Anys on this line!">    def _open_detail_window(self, item: QTableWidgetItem) -&gt; None:</span>

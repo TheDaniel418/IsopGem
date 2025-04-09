@@ -7,8 +7,6 @@ that you can share with Cursor support when asking about mode activation.
 """
 
 import json
-import os
-import sys
 import platform
 import subprocess
 from datetime import datetime
@@ -40,7 +38,7 @@ def load_modes():
         with open(modes_file, "r") as f:
             data = json.load(f)
             return data.get("modes", [])
-    except Exception as e:
+    except Exception:
         return None
 
 

@@ -17,79 +17,66 @@
 #
 # Contributor(s):
 #
-import zipfile
-from xml.sax import make_parser,handler
-from xml.sax.xmlreader import InputSource
-import xml.sax.saxutils
 import sys
-from odf.opendocument import OpenDocument
-from odf import element, grammar
-from odf.namespaces import *
-from odf.attrconverters import attrconverters, cnv_string
-
+import zipfile
 from io import BytesIO
+from xml.sax import handler, make_parser
+from xml.sax.xmlreader import InputSource
 
-if sys.version_info[0]==3: unicode=str
+from odf import grammar
+from odf.attrconverters import attrconverters, cnv_string
+from odf.namespaces import *
+from odf.opendocument import OpenDocument
+
+if sys.version_info[0] == 3:
+    unicode = str
 
 extension_attributes = {
-	 "OpenOffice.org" : {
-		(METANS,u'template'): (
-			(XLINKNS,u'role'),
-		),
-		(STYLENS,u'graphic-properties'): (
-			(STYLENS,u'background-transparency'),
-		),
-		(STYLENS,u'paragraph-properties'): (
-			(TEXTNS,u'enable-numbering'),
-                        (STYLENS,u'join-border'),
-		),
-		(STYLENS,u'table-cell-properties'): (
-			(STYLENS,u'writing-mode'),
-		),
-		(STYLENS,u'table-row-properties'): (
-			(STYLENS,u'keep-together'),
-		),
-	},
-	"KOffice" : {
-		(STYLENS,u'graphic-properties'): (
-			(KOFFICENS,u'frame-behavior-on-new-page'),
-		),
-		(DRAWNS,u'page'): (
-			(KOFFICENS,u'name'),
-		),
-		(PRESENTATIONNS,u'show-shape'): (
-			(KOFFICENS,u'order-id'),
-		),
-		(PRESENTATIONNS,u'hide-shape'): (
-			(KOFFICENS,u'order-id'),
-		),
-		(CHARTNS,u'legend'): (
-			(KOFFICENS,u'title'),
-		),
-	}
+    "OpenOffice.org": {
+        (METANS, "template"): ((XLINKNS, "role"),),
+        (STYLENS, "graphic-properties"): ((STYLENS, "background-transparency"),),
+        (STYLENS, "paragraph-properties"): (
+            (TEXTNS, "enable-numbering"),
+            (STYLENS, "join-border"),
+        ),
+        (STYLENS, "table-cell-properties"): ((STYLENS, "writing-mode"),),
+        (STYLENS, "table-row-properties"): ((STYLENS, "keep-together"),),
+    },
+    "KOffice": {
+        (STYLENS, "graphic-properties"): ((KOFFICENS, "frame-behavior-on-new-page"),),
+        (DRAWNS, "page"): ((KOFFICENS, "name"),),
+        (PRESENTATIONNS, "show-shape"): ((KOFFICENS, "order-id"),),
+        (PRESENTATIONNS, "hide-shape"): ((KOFFICENS, "order-id"),),
+        (CHARTNS, "legend"): ((KOFFICENS, "title"),),
+    },
 }
 
 printed_errors = []
 
+
 def print_error(str):
     if str not in printed_errors:
         printed_errors.append(str)
-        print (str)
+        print(str)
+
 
 def chop_arg(arg):
     if len(arg) > 20:
         return "%s..." % arg[0:20]
     return arg
 
+
 def make_qname(tag):
-    return "%s:%s" % (nsdict.get(tag[0],tag[0]), tag[1])
+    return "%s:%s" % (nsdict.get(tag[0], tag[0]), tag[1])
+
 
 def allowed_attributes(tag):
-   return grammar.allowed_attributes.get(tag)
+    return grammar.allowed_attributes.get(tag)
 
 
 class ODFElementHandler(handler.ContentHandler):
-    """ Extract headings from content.xml of an ODT file """
+    """Extract headings from content.xml of an ODT file"""
+
     def __init__(self, document):
         self.doc = document
         self.tagstack = []
@@ -100,72 +87,95 @@ class ODFElementHandler(handler.ContentHandler):
         self.data.append(data)
 
     def startElementNS(self, tag, qname, attrs):
-        """ Pseudo-create an element
-        """
+        """Pseudo-create an element"""
         allowed_attrs = grammar.allowed_attributes.get(tag)
         attrdict = {}
-        for (att,value) in attrs.items():
-            prefix = nsdict.get(att[0],att[0])
+        for att, value in attrs.items():
+            prefix = nsdict.get(att[0], att[0])
             # Check if it is a known extension
             notan_extension = True
             for product, ext_attrs in extension_attributes.items():
                 allowed_ext_attrs = ext_attrs.get(tag)
                 if allowed_ext_attrs and att in allowed_ext_attrs:
-                    print_error("Warning: Attribute %s in element <%s> is illegal - %s extension"  % ( make_qname(att), make_qname(tag), product))
+                    print_error(
+                        "Warning: Attribute %s in element <%s> is illegal - %s extension"
+                        % (make_qname(att), make_qname(tag), product)
+                    )
                     notan_extension = False
             # Check if it is an allowed attribute
             if notan_extension and allowed_attrs and att not in allowed_attrs:
-                print_error("Error: Attribute %s:%s is not allowed in element <%s>" % ( prefix, att[1], make_qname(tag)))
+                print_error(
+                    "Error: Attribute %s:%s is not allowed in element <%s>"
+                    % (prefix, att[1], make_qname(tag))
+                )
             # Check the value
             try:
                 convert = attrconverters.get(att, cnv_string)
                 convert(att, value, tag)
             except ValueError as res:
-                print_error("Error: Bad value '%s' for attribute %s:%s in  tag: <%s> - %s" % 
-                    (chop_arg(value), prefix, att[1], make_qname(tag), res))
+                print_error(
+                    "Error: Bad value '%s' for attribute %s:%s in  tag: <%s> - %s"
+                    % (chop_arg(value), prefix, att[1], make_qname(tag), res)
+                )
 
         self.tagstack.append(tag)
         self.data = []
         # Check that the parent allows this child element
-        if tag not in ( (OFFICENS, 'document'), (OFFICENS, 'document-content'), (OFFICENS, 'document-styles'),
-             (OFFICENS, 'document-meta'), (OFFICENS, 'document-settings'),
-             (MANIFESTNS,'manifest')):
+        if tag not in (
+            (OFFICENS, "document"),
+            (OFFICENS, "document-content"),
+            (OFFICENS, "document-styles"),
+            (OFFICENS, "document-meta"),
+            (OFFICENS, "document-settings"),
+            (MANIFESTNS, "manifest"),
+        ):
             try:
                 parent = self.tagstack[-2]
                 allowed_children = grammar.allowed_children.get(parent)
             except:
-                print_error("Error: This document starts with the wrong tag: <%s>" % make_qname(tag))
+                print_error(
+                    "Error: This document starts with the wrong tag: <%s>"
+                    % make_qname(tag)
+                )
                 allowed_children = None
             if allowed_children and tag not in allowed_children:
-                print_error("Error: Element %s is not allowed in element %s" % ( make_qname(tag), make_qname(parent)))
+                print_error(
+                    "Error: Element %s is not allowed in element %s"
+                    % (make_qname(tag), make_qname(parent))
+                )
         # Test that all mandatory attributes have been added.
         required = grammar.required_attributes.get(tag)
         if required:
             for r in required:
                 if attrs.get(r) is None:
-                    print_error("Error: Required attribute missing: %s in <%s>" % (make_qname(r), make_qname(tag)))
-
+                    print_error(
+                        "Error: Required attribute missing: %s in <%s>"
+                        % (make_qname(r), make_qname(tag))
+                    )
 
     def endElementNS(self, tag, qname):
         self.currtag = self.tagstack.pop()
-        str = ''.join(self.data).strip()
+        str = "".join(self.data).strip()
         # Check that only elements that can take text have text
         # But only elements we know exist in grammar
         if tag in grammar.allowed_children:
-            if str != '' and tag not in grammar.allows_text:
+            if str != "" and tag not in grammar.allows_text:
                 print_error("Error: %s does not allow text data" % make_qname(tag))
         self.data = []
 
+
 class ODFDTDHandler(handler.DTDHandler):
     def notationDecl(self, name, public_id, system_id):
-        """ Ignore DTDs """
+        """Ignore DTDs"""
         print_error("Warning: ODF doesn't use DOCTYPEs")
 
+
 def exitwithusage(exitcode=2):
-    """ print out usage information """
+    """print out usage information"""
     sys.stderr.write("Usage: %s inputfile\n" % sys.argv[0])
     sys.stderr.write("\tInputfile must be OpenDocument format\n")
     sys.exit(exitcode)
+
 
 def lint(odffile):
     if not zipfile.is_zipfile(odffile):
@@ -173,22 +183,34 @@ def lint(odffile):
         return
     zfd = zipfile.ZipFile(odffile)
     try:
-        mimetype = zfd.read('mimetype')
+        mimetype = zfd.read("mimetype")
     except:
-        mimetype=''
+        mimetype = ""
     d = OpenDocument(unicode(mimetype))
     first = True
     for zi in zfd.infolist():
         if first:
-            if zi.filename == 'mimetype':
+            if zi.filename == "mimetype":
                 if zi.compress_type != zipfile.ZIP_STORED:
-                    print_error("Error: The 'mimetype' member must be stored - not deflated")
+                    print_error(
+                        "Error: The 'mimetype' member must be stored - not deflated"
+                    )
                 if zi.comment != "":
-                    print_error("Error: The 'mimetype' member must not have extra header info")
+                    print_error(
+                        "Error: The 'mimetype' member must not have extra header info"
+                    )
             else:
-                print_error("Warning: The first member in the archive should be the mimetype")
+                print_error(
+                    "Warning: The first member in the archive should be the mimetype"
+                )
         first = False
-        if zi.filename in ('META-INF/manifest.xml', 'content.xml', 'meta.xml', 'styles.xml', 'settings.xml'):
+        if zi.filename in (
+            "META-INF/manifest.xml",
+            "content.xml",
+            "meta.xml",
+            "styles.xml",
+            "settings.xml",
+        ):
             content = zfd.read(zi.filename)
             parser = make_parser()
             parser.setFeature(handler.feature_namespaces, True)
@@ -200,7 +222,7 @@ def lint(odffile):
 
             inpsrc = InputSource()
             if not isinstance(content, str):
-                content=content
+                content = content
             inpsrc.setByteStream(BytesIO(content))
             parser.parse(inpsrc)
 
@@ -208,7 +230,6 @@ def lint(odffile):
 if len(sys.argv) != 2:
     exitwithusage()
 lint(unicode(sys.argv[1]))
-
 
 
 # Local Variables: ***

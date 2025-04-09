@@ -17,18 +17,22 @@
 #
 # Contributor(s):
 #
+import getopt
+import sys
+
 from odf.odf2xhtml import ODF2XHTML
-import sys, getopt
 
-if sys.version_info[0]==3: unicode=str
+if sys.version_info[0] == 3:
+    unicode = str
 
-from io import StringIO
+
 
 def usage():
-   sys.stderr.write("Usage: %s [-p] inputfile\n" % sys.argv[0])
+    sys.stderr.write("Usage: %s [-p] inputfile\n" % sys.argv[0])
+
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "ep", ["plain","embedable"])
+    opts, args = getopt.getopt(sys.argv[1:], "ep", ["plain", "embedable"])
 except getopt.GetoptError:
     usage()
     sys.exit(2)
@@ -47,7 +51,7 @@ if len(args) != 1:
 
 odhandler = ODF2XHTML(generatecss, embedable)
 try:
-   result = odhandler.odf2xhtml(unicode(args[0]))
+    result = odhandler.odf2xhtml(unicode(args[0]))
 except:
     sys.stderr.write("Unable to open file %s or file is not OpenDocument\n" % args[0])
     sys.exit(1)

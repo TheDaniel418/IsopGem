@@ -154,4 +154,4 @@ The system provides a mathematical framework for exploring:
 
 The Ternary Transition System represents a unique approach to mathematical transformation that incorporates philosophical depth. By moving beyond purely quantitative operations to include qualitative dimensions, it offers a more holistic approach to pattern analysis and transformation.
 
-Its elegant simplicity (limited to three digits and nine transitions) balances comprehensiveness with usability, making it accessible while still capturing the essential dynamics of transformation. 
+Its elegant simplicity (limited to three digits and nine transitions) balances comprehensiveness with usability, making it accessible while still capturing the essential dynamics of transformation.
