@@ -51,36 +51,36 @@ class TagSelectionDialog(QDialog):
     def __init__(self, selected_tag_ids: List[str] = None, parent=None):
         """
         Initialize the dialog with optional pre-selected tags.
-        
+
         Args:
             selected_tag_ids: Optional list of tag IDs that should be pre-selected
             parent: Parent widget
         """
         super().__init__(parent)
         self.setWindowTitle("Select Tags")
-        
+
         # Store initial selected tag IDs
         self.selected_tag_ids = selected_tag_ids or []
-        
+
         # Get tag service
         self.tag_service = ServiceLocator.get(TagService)
-        
+
         # Initialize UI
         self._init_ui()
-        
+
         # Load tags from service
         self._load_tags()
         
         # Set window properties
         self.resize(500, 400)
         self.setModal(True)
-        
+
     def _init_ui(self):
         """Initialize the user interface."""
         # Main layout
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
-        
+
         # Tag list
         tag_group = QGroupBox("Available Tags")
         tag_layout = QVBoxLayout(tag_group)
@@ -196,7 +196,7 @@ class TagSelectionDialog(QDialog):
         if not tag:
             QMessageBox.warning(self, "No Selection", "Please select a tag to edit.")
             return
-        
+
         # Create tag input dialog with existing tag data
         dialog = TagInputDialog(tag, parent=self)
         if dialog.exec():
@@ -227,7 +227,7 @@ class TagSelectionDialog(QDialog):
         if not tag:
             QMessageBox.warning(self, "No Selection", "Please select a tag to delete.")
             return
-        
+
         # Confirm deletion
         reply = QMessageBox.question(
             self, 
@@ -269,7 +269,7 @@ class TagInputDialog(QDialog):
     def __init__(self, tag: Optional[Tag] = None, parent=None):
         """
         Initialize the dialog with optional existing tag data.
-        
+
         Args:
             tag: Optional existing tag for editing
             parent: Parent widget
@@ -280,10 +280,10 @@ class TagInputDialog(QDialog):
         # Set initial values
         self.tag = tag
         self.color = tag.color if tag else "#3498db"  # Default to a pleasant blue
-        
+
         # Initialize UI
         self._init_ui()
-        
+
         # Fill fields if editing
         if tag:
             self.name_edit.setText(tag.name)
@@ -293,13 +293,13 @@ class TagInputDialog(QDialog):
         # Set window properties
         self.resize(400, 300)
         self.setModal(True)
-        
+
     def _init_ui(self):
         """Initialize the user interface."""
         # Main layout
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
-        
+
         # Name field
         name_layout = QHBoxLayout()
         name_label = QLabel("Name:")
@@ -336,7 +336,7 @@ class TagInputDialog(QDialog):
         
         # Dialog buttons
         button_layout = QHBoxLayout()
-        
+
         ok_button = QPushButton("OK")
         ok_button.clicked.connect(self.accept)
         button_layout.addWidget(ok_button)
@@ -344,9 +344,9 @@ class TagInputDialog(QDialog):
         cancel_button = QPushButton("Cancel")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
-        
+
         layout.addLayout(button_layout)
-        
+
     def _update_color_preview(self):
         """Update the color preview label with the selected color."""
         self.color_preview.setStyleSheet(f"background-color: {self.color}; border: 1px solid gray;")

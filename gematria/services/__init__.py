@@ -6,8 +6,8 @@ from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.services.history_service import HistoryService
 
 __all__ = [
-    'GematriaService',
-    'CalculationDatabaseService',
-    'CustomCipherService',
-    'HistoryService',
+    "GematriaService",
+    "CalculationDatabaseService",
+    "CustomCipherService",
+    "HistoryService",
 ]

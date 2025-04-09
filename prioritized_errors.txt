@@ -1,0 +1,201 @@
+=== Error Type Summary ===
+assignment: 9 errors
+attr-defined: 7 errors
+return-value: 1 errors
+no-any-return: 4 errors
+valid-type: 1 errors
+unreachable: 3 errors
+no-redef: 3 errors
+no-untyped-def: 379 errors
+import-untyped: 1 errors
+<type>: 3 errors
+<type>, <type>: 5 errors
+tuple[int, int: 3 errors
+int: 1 errors
+int, bool: 1 errors
+[int: 3 errors
+call-overload: 2 errors
+method-assign: 4 errors
+[: 17 errors
+str: 3 errors
+has-type: 8 errors
+CalculationDatabaseService: 1 errors
+CustomCipherService: 1 errors
+SearchPanel: 1 errors
+call-arg: 1 errors
+
+=== Files with Most Errors ===
+shared/ui/widgets/rtf_editor/image_editor_dialog.py: 42 errors
+gematria/ui/panels/calculation_history_panel.py: 32 errors
+document_manager/ui/panels/document_browser_panel.py: 24 errors
+shared/ui/widgets/rtf_editor/format_toolbar.py: 22 errors
+shared/ui/widgets/rtf_editor/rtf_editor_window.py: 19 errors
+shared/services/number_properties_service.py: 18 errors
+tq/ui/widgets/tq_grid_panel.py: 17 errors
+shared/ui/widgets/rtf_editor/table_manager.py: 15 errors
+shared/ui/widgets/rtf_editor/zoom_manager.py: 14 errors
+gematria/ui/panels/tag_management_panel.py: 14 errors
+gematria/ui/gematria_tab.py: 14 errors
+gematria/ui/dialogs/tag_selection_dialog.py: 13 errors
+geometry/ui/geometry_tab.py: 13 errors
+document_manager/ui/panels/document_analysis_panel.py: 13 errors
+shared/ui/widgets/rtf_editor/document_manager.py: 12 errors
+tq/ui/widgets/number_properties_panel.py: 12 errors
+shared/ui/dialogs/database_maintenance_window.py: 11 errors
+document_manager/ui/dialogs/category_manager_dialog.py: 10 errors
+shared/ui/widgets/common_widgets.py: 9 errors
+gematria/ui/dialogs/gematria_help_dialog.py: 9 errors
+
+=== Errors by Priority ===
+
+--- assignment (9 errors) ---
+tq/utils/ternary_cli.py:160: error: Incompatible types in assignment (expression has type "int", variable has type "str")  [assignment]
+shared/services/number_properties_service.py:106: error: Incompatible types in assignment (expression has type "int | None", target has type "bool")  [assignment]
+shared/services/number_properties_service.py:412: error: Incompatible types in assignment (expression has type "float", variable has type "int")  [assignment]
+shared/services/number_properties_service.py:442: error: Incompatible types in assignment (expression has type "float", variable has type "int")  [assignment]
+gematria/services/calculation_database_service.py:456: error: Incompatible types in assignment (expression has type "CalculationType | str", target has type "str")  [assignment]
+gematria/services/calculation_database_service.py:458: error: Incompatible types in assignment (expression has type "bool", target has type "str")  [assignment]
+tq/ui/widgets/number_properties_panel.py:86: error: Incompatible default for argument "tooltip" (default has type "None", argument has type "str")  [assignment]
+gematria/ui/gematria_tab.py:114: error: Incompatible types in assignment (expression has type "float", variable has type "int")  [assignment]
+document_manager/ui/panels/document_browser_panel.py:668: error: Incompatible types in assignment (expression has type "None", variable has type "QWidget")  [assignment]
+
+--- attr-defined (7 errors) ---
+shared/ui/widgets/common_widgets.py:15: error: Module "PyQt6.QtCore" has no attribute "pyqtProperty"  [attr-defined]
+gematria/ui/dialogs/edit_tags_window.py:249: error: "TagSelectionDialog" has no attribute "get_selected_tags"; maybe "_get_selected_tag" or "selected_tag_ids"?  [attr-defined]
+gematria/ui/dialogs/save_calculation_dialog.py:391: error: Module "gematria.ui.dialogs.tag_selection_dialog" has no attribute "TagEditDialog"  [attr-defined]
+tq/ui/widgets/number_properties_panel.py:47: error: Module "shared.ui.widgets.common_widgets" has no attribute "CollapsibleSection"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:319: error: "NumberPropertiesPanel" has no attribute "set_number"  [attr-defined]
+gematria/ui/panels/calculation_history_panel.py:399: error: "QObject" has no attribute "format_calculation_type"  [attr-defined]
+gematria/ui/panels/calculation_history_panel.py:917: error: "CalculationDetailsDialog" has no attribute "calculation_updated"; maybe "calculationUpdated"?  [attr-defined]
+
+--- return-value (1 errors) ---
+tq/services/tq_analysis_service.py:69: error: Incompatible return value type (got "Any | None", expected "TQGridPanel")  [return-value]
+
+--- no-any-return (4 errors) ---
+shared/services/number_properties_service.py:153: error: Returning Any from function declared to return "bool"  [no-any-return]
+shared/repositories/sqlite_calculation_repository.py:105: error: Returning Any from function declared to return "int"  [no-any-return]
+gematria/ui/dialogs/tag_selection_dialog.py:168: error: Returning Any from function declared to return "Tag | None"  [no-any-return]
+gematria/ui/panels/calculation_history_panel.py:424: error: Returning Any from function declared to return "str"  [no-any-return]
+
+--- valid-type (1 errors) ---
+shared/services/singleton_service.py:43: error: Type variable "shared.services.singleton_service.T" is unbound  [valid-type]
+
+--- unreachable (3 errors) ---
+shared/services/number_properties_service.py:609: error: Statement is unreachable  [unreachable]
+shared/services/number_properties_service.py:771: error: Statement is unreachable  [unreachable]
+tq/ui/widgets/number_properties_panel.py:568: error: Statement is unreachable  [unreachable]
+
+--- no-redef (3 errors) ---
+shared/services/number_properties_service.py:599: error: Name "get_number_properties" already defined on line 85  [no-redef]
+shared/services/number_properties_service.py:755: error: Name "get_quadset_properties" already defined on line 501  [no-redef]
+shared/services/number_properties_service.py:823: error: Name "is_perfect" already defined on line 199  [no-redef]
+
+--- no-untyped-def (379 errors) ---
+shared/models/tag.py:42: error: Function is missing a type annotation  [no-untyped-def]
+shared/models/tag.py:56: error: Function is missing a return type annotation  [no-untyped-def]
+document_manager/document_manager_pillar.py:17: error: Function is missing a return type annotation  [no-untyped-def]
+scripts/activate_mode.py:15: error: Function is missing a return type annotation  [no-untyped-def]
+scripts/activate_mode.py:33: error: Function is missing a type annotation  [no-untyped-def]
+scripts/activate_mode.py:51: error: Function is missing a return type annotation  [no-untyped-def]
+scripts/activate_mode.py:69: error: Function is missing a return type annotation  [no-untyped-def]
+scripts/cursor_mode_info.py:18: error: Function is missing a return type annotation  [no-untyped-def]
+scripts/cursor_mode_info.py:31: error: Function is missing a return type annotation  [no-untyped-def]
+scripts/cursor_mode_info.py:47: error: Function is missing a return type annotation  [no-untyped-def]
+gematria/services/search_service.py:25: error: Function is missing a return type annotation  [no-untyped-def]
+gematria/services/search_service.py:74: error: Function is missing a return type annotation  [no-untyped-def]
+gematria/services/search_service.py:82: error: Function is missing a return type annotation  [no-untyped-def]
+run_tests.py:13: error: Function is missing a return type annotation  [no-untyped-def]
+shared/ui/widgets/rtf_editor/table_properties_dialog.py:22: error: Function is missing a type annotation  [no-untyped-def]
+shared/ui/widgets/rtf_editor/table_properties_dialog.py:30: error: Function is missing a return type annotation  [no-untyped-def]
+shared/ui/widgets/rtf_editor/table_properties_dialog.py:101: error: Function is missing a return type annotation  [no-untyped-def]
+shared/ui/widgets/rtf_editor/table_properties_dialog.py:154: error: Function is missing a return type annotation  [no-untyped-def]
+shared/ui/widgets/rtf_editor/table_properties_dialog.py:161: error: Function is missing a type annotation  [no-untyped-def]
+shared/ui/widgets/rtf_editor/table_properties_dialog.py:165: error: Function is missing a return type annotation  [no-untyped-def]
+... and 359 more errors of this type
+
+--- import-untyped (1 errors) ---
+shared/services/number_properties_service.py:28: error: Skipping analyzing "sympy": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+
+--- <type> (3 errors) ---
+tq/utils/ternary_converter.py:127: error: Need type annotation for "groups" (hint: "groups: List[<type>] = ...")  [var-annotated]
+astrology/ui/astrology_tab.py:47: error: Need type annotation for "stars" (hint: "stars: List[<type>] = ...")  [var-annotated]
+document_manager/ui/document_tab.py:47: error: Need type annotation for "parchment_noise" (hint: "parchment_noise: List[<type>] = ...")  [var-annotated]
+
+--- <type>, <type> (5 errors) ---
+tq/utils/ternary_transition.py:200: error: Need type annotation for "seen_states" (hint: "seen_states: Dict[<type>, <type>] = ...")  [var-annotated]
+tq/ui/widgets/number_properties_panel.py:172: error: Need type annotation for "_sections" (hint: "_sections: Dict[<type>, <type>] = ...")  [var-annotated]
+tq/ui/widgets/number_properties_panel.py:173: error: Need type annotation for "_repr_sections" (hint: "_repr_sections: Dict[<type>, <type>] = ...")  [var-annotated]
+tq/ui/widgets/number_properties_panel.py:174: error: Need type annotation for "_quadset_sections" (hint: "_quadset_sections: Dict[<type>, <type>] = ...")  [var-annotated]
+tq/services/tq_analysis_service.py:44: error: Need type annotation for "_active_quadset_panels" (hint: "_active_quadset_panels: Dict[<type>, <type>] = ...")  [var-annotated]
+
+--- tuple[int, int (3 errors) ---
+shared/services/number_properties_service.py:107: error: Incompatible types in assignment (expression has type "list[tuple[int, int]]", target has type "bool")  [assignment]
+shared/services/number_properties_service.py:120: error: Incompatible types in assignment (expression has type "list[tuple[int, int]]", target has type "bool")  [assignment]
+shared/services/number_properties_service.py:130: error: Incompatible types in assignment (expression has type "list[tuple[int, int]]", target has type "bool")  [assignment]
+
+--- int (1 errors) ---
+shared/services/number_properties_service.py:110: error: Incompatible types in assignment (expression has type "list[int]", target has type "bool")  [assignment]
+
+--- int, bool (1 errors) ---
+shared/services/number_properties_service.py:267: error: "dict[int, bool]" has no attribute "append"  [attr-defined]
+
+--- [int (3 errors) ---
+shared/services/number_properties_service.py:990: error: "Callable[[int], bool]" has no attribute "cache_clear"  [attr-defined]
+shared/services/number_properties_service.py:991: error: "Callable[[int], list[tuple[int, int]]]" has no attribute "cache_clear"  [attr-defined]
+shared/services/number_properties_service.py:992: error: "Callable[[int], list[int]]" has no attribute "cache_clear"  [attr-defined]
+
+--- call-overload (2 errors) ---
+shared/ui/widgets/common_widgets.py:109: error: No overload variant of "QPropertyAnimation" matches argument types "CollapsibleBox", "bytes"  [call-overload]
+tq/ui/widgets/number_properties_panel.py:574: error: No overload variant of "setParent" of "QWidget" matches argument type "None"  [call-overload]
+
+--- method-assign (4 errors) ---
+tq/ui/widgets/ternary_visualizer.py:49: error: Cannot assign to a method  [method-assign]
+tq/ui/widgets/tq_grid_panel.py:56: error: Cannot assign to a method  [method-assign]
+tq/ui/widgets/tq_grid_panel.py:165: error: Cannot assign to a method  [method-assign]
+document_manager/ui/panels/document_browser_panel.py:702: error: Cannot assign to a method  [method-assign]
+
+--- [ (17 errors) ---
+tq/ui/widgets/ternary_visualizer.py:49: error: Incompatible types in assignment (expression has type "QVBoxLayout", variable has type "Callable[[], QLayout]")  [assignment]
+tq/ui/widgets/ternary_visualizer.py:50: error: "Callable[[], QLayout]" has no attribute "setAlignment"  [attr-defined]
+tq/ui/widgets/ternary_visualizer.py:51: error: "Callable[[], QLayout]" has no attribute "setSpacing"  [attr-defined]
+tq/ui/widgets/ternary_visualizer.py:96: error: "Callable[[], QLayout]" has no attribute "addWidget"  [attr-defined]
+tq/ui/widgets/ternary_visualizer.py:112: error: "Callable[[], QLayout]" has no attribute "removeWidget"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:56: error: Incompatible types in assignment (expression has type "QVBoxLayout", variable has type "Callable[[], QLayout]")  [assignment]
+tq/ui/widgets/tq_grid_panel.py:57: error: "Callable[[], QLayout]" has no attribute "setContentsMargins"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:58: error: "Callable[[], QLayout]" has no attribute "setSpacing"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:64: error: "Callable[[], QLayout]" has no attribute "addWidget"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:88: error: "Callable[[], QLayout]" has no attribute "addLayout"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:108: error: "Callable[[], QLayout]" has no attribute "addWidget"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:165: error: Incompatible types in assignment (expression has type "QVBoxLayout", variable has type "Callable[[], QLayout]")  [assignment]
+tq/ui/widgets/tq_grid_panel.py:166: error: "Callable[[], QLayout]" has no attribute "setContentsMargins"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:167: error: "Callable[[], QLayout]" has no attribute "setSpacing"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:173: error: "Callable[[], QLayout]" has no attribute "addWidget"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:192: error: "Callable[[], QLayout]" has no attribute "addLayout"  [attr-defined]
+tq/ui/widgets/tq_grid_panel.py:247: error: "Callable[[], QLayout]" has no attribute "addWidget"  [attr-defined]
+
+--- str (3 errors) ---
+gematria/ui/dialogs/tag_selection_dialog.py:51: error: Incompatible default for argument "selected_tag_ids" (default has type "None", argument has type "list[str]")  [assignment]
+gematria/services/calculation_database_service.py:454: error: Incompatible types in assignment (expression has type "list[str]", target has type "str")  [assignment]
+gematria/ui/dialogs/edit_tags_window.py:245: error: Argument 1 to "TagSelectionDialog" has incompatible type "str"; expected "list[str]"  [arg-type]
+
+--- has-type (8 errors) ---
+geometry/ui/geometry_tab.py:130: error: Cannot determine type of "_debug_counter"  [has-type]
+geometry/ui/geometry_tab.py:131: error: Cannot determine type of "_debug_counter"  [has-type]
+geometry/ui/geometry_tab.py:202: error: Cannot determine type of "_paint_counter"  [has-type]
+geometry/ui/geometry_tab.py:203: error: Cannot determine type of "_paint_counter"  [has-type]
+tq/ui/tq_tab.py:167: error: Cannot determine type of "_debug_counter"  [has-type]
+tq/ui/tq_tab.py:168: error: Cannot determine type of "_debug_counter"  [has-type]
+gematria/ui/gematria_tab.py:233: error: Cannot determine type of "_debug_counter"  [has-type]
+gematria/ui/gematria_tab.py:234: error: Cannot determine type of "_debug_counter"  [has-type]
+
+--- CalculationDatabaseService (1 errors) ---
+tq/ui/widgets/number_properties_panel.py:146: error: "type[CalculationDatabaseService]" has no attribute "get_instance"  [attr-defined]
+
+--- CustomCipherService (1 errors) ---
+tq/ui/widgets/number_properties_panel.py:148: error: "type[CustomCipherService]" has no attribute "get_instance"  [attr-defined]
+
+--- SearchPanel (1 errors) ---
+tq/ui/widgets/number_properties_panel.py:584: error: "type[SearchPanel]" has no attribute "get_instance"  [attr-defined]
+
+--- call-arg (1 errors) ---
+gematria/ui/panels/calculation_history_panel.py:914: error: Too many arguments for "CalculationDetailsDialog"  [call-arg]

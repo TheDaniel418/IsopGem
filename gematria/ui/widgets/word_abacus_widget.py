@@ -21,10 +21,23 @@ Related files:
 
 from typing import Dict, List, Optional, Union, Any, cast, Tuple, Set
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
-    QLineEdit, QPushButton, QTableWidget, QHeaderView,
-    QTableWidgetItem, QSizePolicy, QStyle, QMenu, QGridLayout,
-    QApplication, QFrame, QGroupBox
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QComboBox,
+    QLineEdit,
+    QPushButton,
+    QTableWidget,
+    QHeaderView,
+    QTableWidgetItem,
+    QSizePolicy,
+    QStyle,
+    QMenu,
+    QGridLayout,
+    QApplication,
+    QFrame,
+    QGroupBox,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QAction, QCursor
@@ -42,15 +55,21 @@ from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
 # Define method type as a union of CalculationType and CustomCipherConfig
 MethodType = Union[CalculationType, CustomCipherConfig]
 
+
 class WordAbacusWidget(QWidget):
     """Widget for calculating gematria values."""
 
     # Signal emitted when a calculation is performed
     calculation_performed = pyqtSignal(CalculationResult)
-    
-    def __init__(self, calculation_service: GematriaService, custom_cipher_service: CustomCipherService, history_service: HistoryService) -> None:
+
+    def __init__(
+        self,
+        calculation_service: GematriaService,
+        custom_cipher_service: CustomCipherService,
+        history_service: HistoryService,
+    ) -> None:
         """Initialize WordAbacusWidget.
-        
+
         Args:
             calculation_service: Service for performing gematria calculations
             custom_cipher_service: Service for managing custom ciphers
@@ -61,51 +80,51 @@ class WordAbacusWidget(QWidget):
         self._custom_cipher_service = custom_cipher_service
         self._history_service = history_service
         self._custom_cipher_dialog: Optional[CustomCipherDialog] = None
-        
+
         # Initialize UI components
         self._setup_ui()
-        
+
         # Connect signals
         self._connect_signals()
-        
+
         # Set initial state
         self._update_ui()
-        
+
     def _setup_ui(self) -> None:
         """Initialize the UI components."""
         # Main layout
         layout = QVBoxLayout(self)
-        
+
         # Title with divider
         title_container = QWidget()
         title_layout = QVBoxLayout(title_container)
         title_layout.setContentsMargins(0, 0, 0, 10)
-        
+
         title_label = QLabel("Word Abacus")
         title_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #2c3e50;")
         title_layout.addWidget(title_label)
-        
+
         # Add a horizontal line
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)
         line.setStyleSheet("background-color: #bdc3c7;")
         title_layout.addWidget(line)
-        
+
         layout.addWidget(title_container)
-        
+
         # Create a group box for input
         input_group = QGroupBox("Text Input")
         input_group.setStyleSheet("QGroupBox { font-weight: bold; }")
         input_layout = QGridLayout()
-        
+
         # Language selection
         self._language_combo = QComboBox()
         self._language_combo.addItems(["Hebrew", "Greek", "English"])
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
         input_layout.addWidget(QLabel("Language:"), 0, 0)
         input_layout.addWidget(self._language_combo, 0, 1)
-        
+
         # Input text field
         self._input_label = QLabel("Enter Hebrew text:")
         self._input_field = QLineEdit()
@@ -113,85 +132,93 @@ class WordAbacusWidget(QWidget):
         self._input_field.textChanged.connect(self._on_input_changed)
         input_layout.addWidget(self._input_label, 1, 0)
         input_layout.addWidget(self._input_field, 1, 1)
-        
+
         input_group.setLayout(input_layout)
         layout.addWidget(input_group)
-        
+
         # Create a group box for calculation methods
         method_group = QGroupBox("Calculation Method")
         method_group.setStyleSheet("QGroupBox { font-weight: bold; }")
         method_layout = QGridLayout()
-        
+
         # Type selection (categories)
         method_layout.addWidget(QLabel("Type:"), 0, 0)
         self._type_combo = QComboBox()
         method_layout.addWidget(self._type_combo, 0, 1)
-        
+
         # Method selection (specific calculations)
         method_layout.addWidget(QLabel("Method:"), 1, 0)
         self._method_combo = QComboBox()
         method_layout.addWidget(self._method_combo, 1, 1)
-        
+
         # Custom cipher button
         self._custom_cipher_button = QPushButton("Manage Custom Ciphers")
         self._custom_cipher_button.clicked.connect(self._open_custom_cipher_manager)
         method_layout.addWidget(self._custom_cipher_button, 2, 0, 1, 2)
-        
+
         # Connect signals
         self._type_combo.currentIndexChanged.connect(self._on_type_changed)
         self._method_combo.currentIndexChanged.connect(self._on_method_changed)
-        
+
         method_group.setLayout(method_layout)
         layout.addWidget(method_group)
-        
+
         # Calculate button and result in a nice group box
         result_group = QGroupBox("Calculation")
         result_group.setStyleSheet("QGroupBox { font-weight: bold; }")
         result_layout = QHBoxLayout()
-        
+
         self._calc_button = QPushButton("Calculate")
-        self._calc_button.setStyleSheet("background-color: #3498db; color: white; font-weight: bold; padding: 8px 16px;")
+        self._calc_button.setStyleSheet(
+            "background-color: #3498db; color: white; font-weight: bold; padding: 8px 16px;"
+        )
         self._calc_button.clicked.connect(self._calculate)
         self._calc_button.setEnabled(False)  # Disabled until text is entered
-        
+
         self._result_label = QLabel("Result: ")
         self._result_value = QLabel("0")
-        self._result_value.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50;")
-        
+        self._result_value.setStyleSheet(
+            "font-size: 18px; font-weight: bold; color: #2c3e50;"
+        )
+
         result_layout.addWidget(self._calc_button)
         result_layout.addWidget(self._result_label)
         result_layout.addWidget(self._result_value)
         result_layout.addStretch()
-        
+
         result_group.setLayout(result_layout)
         layout.addWidget(result_group)
-        
+
         # History section
         history_group = QGroupBox("Calculation History")
         history_group.setStyleSheet("QGroupBox { font-weight: bold; }")
         history_layout = QVBoxLayout()
-        
+
         self._history_table = QTableWidget(0, 5)  # Rows, Columns
         self._history_table.setHorizontalHeaderLabels(
             ["Input", "Method", "Result", "Time", "Notes"]
         )
-        self._history_table.setStyleSheet("QHeaderView::section { background-color: #ecf0f1; }")
+        self._history_table.setStyleSheet(
+            "QHeaderView::section { background-color: #ecf0f1; }"
+        )
         self._history_table.horizontalHeader().setStretchLastSection(True)
         history_layout.addWidget(self._history_table)
-        
+
         # Clear history button
         clear_button = QPushButton("Clear History")
-        clear_button.setStyleSheet("background-color: #e74c3c; color: white; font-weight: bold;")
+        clear_button.setStyleSheet(
+            "background-color: #e74c3c; color: white; font-weight: bold;"
+        )
         clear_button.clicked.connect(self.clear_history)
         history_layout.addWidget(clear_button)
-        
+
         history_group.setLayout(history_layout)
         layout.addWidget(history_group)
-        
+
         # Set the layout spacing
         layout.setSpacing(15)
         self.setLayout(layout)
-        
+
         # Initialize the language-specific UI
         self._populate_method_categories()
         self._language_combo.setCurrentIndex(0)  # Default to Hebrew
@@ -200,7 +227,7 @@ class WordAbacusWidget(QWidget):
         """Populate the calculation type categories based on the selected language."""
         language = self._language_combo.currentText()
         self._type_combo.clear()
-        
+
         if language == "Hebrew":
             hebrew_categories: Dict[str, List[MethodType]] = {
                 "Standard Methods": [
@@ -225,24 +252,28 @@ class WordAbacusWidget(QWidget):
                     CalculationType.MISPAR_MESHUPACH,
                     CalculationType.ALBAM,
                     CalculationType.ATBASH,
-                ]
+                ],
             }
-            
+
             # Add custom ciphers category if available
-            hebrew_custom_ciphers = self._custom_cipher_service.get_ciphers(LanguageType.HEBREW)
+            hebrew_custom_ciphers = self._custom_cipher_service.get_ciphers(
+                LanguageType.HEBREW
+            )
             if hebrew_custom_ciphers:
-                hebrew_categories["Custom Methods"] = cast(List[MethodType], hebrew_custom_ciphers)
-                
+                hebrew_categories["Custom Methods"] = cast(
+                    List[MethodType], hebrew_custom_ciphers
+                )
+
             # Store the categories and their methods
             self._method_categories = hebrew_categories
-            
+
             # Add the categories to the combobox
             for category in hebrew_categories.keys():
                 self._type_combo.addItem(category)
-                
+
             # Set default category to Standard Methods
             self._type_combo.setCurrentIndex(0)
-        
+
         elif language == "Greek":
             greek_categories: Dict[str, List[MethodType]] = {
                 "Standard Methods": [
@@ -265,56 +296,62 @@ class WordAbacusWidget(QWidget):
                     CalculationType.GREEK_REVERSAL,
                     CalculationType.GREEK_ALPHA_MU,
                     CalculationType.GREEK_ALPHA_OMEGA,
-                ]
+                ],
             }
-            
+
             # Add custom ciphers category if available
-            greek_custom_ciphers = self._custom_cipher_service.get_ciphers(LanguageType.GREEK)
+            greek_custom_ciphers = self._custom_cipher_service.get_ciphers(
+                LanguageType.GREEK
+            )
             if greek_custom_ciphers:
-                greek_categories["Custom Methods"] = cast(List[MethodType], greek_custom_ciphers)
-                
+                greek_categories["Custom Methods"] = cast(
+                    List[MethodType], greek_custom_ciphers
+                )
+
             # Store the categories and their methods
             self._method_categories = greek_categories
-            
+
             # Add the categories to the combobox
             for category in greek_categories.keys():
                 self._type_combo.addItem(category)
-                
+
             # Set default category to Standard Methods
             self._type_combo.setCurrentIndex(0)
-            
+
         elif language == "English":
             english_categories: Dict[str, List[MethodType]] = {
-                "TQ Methods": [
-                    CalculationType.TQ_ENGLISH
-                ]
+                "TQ Methods": [CalculationType.TQ_ENGLISH]
             }
-            
+
             # Add custom ciphers category if available
-            english_custom_ciphers = self._custom_cipher_service.get_ciphers(LanguageType.ENGLISH)
+            english_custom_ciphers = self._custom_cipher_service.get_ciphers(
+                LanguageType.ENGLISH
+            )
             if english_custom_ciphers:
-                english_categories["Custom Methods"] = cast(List[MethodType], english_custom_ciphers)
-                
+                english_categories["Custom Methods"] = cast(
+                    List[MethodType], english_custom_ciphers
+                )
+
             # Store the categories and their methods
             self._method_categories = english_categories
-            
+
             # Add the categories to the combobox
             for category in english_categories.keys():
                 self._type_combo.addItem(category)
-                
+
             # Set default category (only one for English)
             self._type_combo.setCurrentIndex(0)
-    
+
     def _populate_methods(self) -> None:
         """Populate the methods combobox based on selected category."""
         self._method_combo.clear()
-        
+
         category = self._type_combo.currentText()
         if not category or category not in self._method_categories:
             return
-            
+
         methods = self._method_categories[category]
-        
+
         # Add methods to combo box
         for method in methods:
             if isinstance(method, CalculationType):
@@ -325,14 +362,14 @@ class WordAbacusWidget(QWidget):
                 # Handle custom cipher configs
                 display_name = method.name
                 self._method_combo.addItem(display_name, method)
-            
+
         # Set the first method as default
         if methods:
             self._method_combo.setCurrentIndex(0)
 
     def _on_language_changed(self, language_index_or_text: Union[int, str]) -> None:
         """Handle language selection change.
-        
+
         Args:
             language_index_or_text: Index of the selected language or the language text
         """
@@ -341,16 +378,16 @@ class WordAbacusWidget(QWidget):
             language = self._language_combo.itemText(language_index_or_text)
         else:
             language = language_index_or_text
-            
+
         # Update the input label based on the language
         self._input_label.setText(f"Enter {language} text:")
-        
+
         # Clear the input field
         self._input_field.clear()
-        
+
         # Populate the method categories for the selected language
         self._populate_method_categories()
-    
+
     def _on_type_changed(self, index: int) -> None:
         """Handle method type selection changes.
 
@@ -385,13 +422,13 @@ class WordAbacusWidget(QWidget):
         # Get selected calculation type
         selected_index = self._method_combo.currentIndex()
         calc_type = self._method_combo.itemData(selected_index)
-        
+
         # Perform calculation
         result_value = self._calculation_service.calculate(input_text, calc_type)
-        
+
         # Update result display
         self._result_value.setText(str(result_value))
-        
+
         # Create calculation result and add to history
         method_name = self._method_combo.currentText()
         if isinstance(calc_type, CustomCipherConfig):
@@ -400,40 +437,40 @@ class WordAbacusWidget(QWidget):
                 input_text=input_text,
                 calculation_type="CUSTOM_CIPHER",  # Use a string identifier instead of None
                 result_value=result_value,
-                custom_method_name=f"Custom: {method_name}"
+                custom_method_name=f"Custom: {method_name}",
             )
         else:
             # For standard calculation types
             result = CalculationResult(
                 input_text=input_text,
                 calculation_type=calc_type,
-                result_value=result_value
+                result_value=result_value,
             )
-            
+
         self._history_service.add_calculation(result)
-        
+
         # Update history table
         self._update_history_table()
-        
+
         # Emit signal with calculation result
         self.calculation_performed.emit(result)
 
     def _update_history_table(self) -> None:
         """Update the history table with the latest calculations."""
         history = self._history_service.get_history()
-        
+
         # Clear existing rows
         self._history_table.setRowCount(0)
-        
+
         # Add new rows
         for i, calc in enumerate(history):
             self._history_table.insertRow(i)
             display_dict = calc.to_display_dict()
-            
+
             for j, column in enumerate(["Input", "Method", "Result", "Time", "Notes"]):
                 item = QTableWidgetItem(display_dict[column])
                 self._history_table.setItem(i, j, item)
-                
+
         # Resize columns to content
         self._history_table.resizeColumnsToContents()
 
@@ -446,36 +483,41 @@ class WordAbacusWidget(QWidget):
         """Reset the calculator to its initial state."""
         self._input_field.clear()
         self._result_value.setText("0")
-        
+
         # Reset to defaults based on current language
         language = self._language_combo.currentText()
         self._populate_method_categories()
         self._type_combo.setCurrentIndex(0)
-        
+
         self._calc_button.setEnabled(False)
 
     def _open_custom_cipher_manager(self) -> None:
         """Open the custom cipher manager dialog."""
         # Create the dialog if it doesn't exist or is closed
-        if self._custom_cipher_dialog is None or not self._custom_cipher_dialog.isVisible():
+        if (
+            self._custom_cipher_dialog is None
+            or not self._custom_cipher_dialog.isVisible()
+        ):
             self._custom_cipher_dialog = CustomCipherDialog(self)
-            
+
             # Connect the cipher updated signal to refresh our UI
-            self._custom_cipher_dialog.cipher_updated.connect(self._on_custom_cipher_updated)
-        
+            self._custom_cipher_dialog.cipher_updated.connect(
+                self._on_custom_cipher_updated
+            )
+
         # Show the dialog (non-modal)
         self._custom_cipher_dialog.show()
         self._custom_cipher_dialog.raise_()
         self._custom_cipher_dialog.activateWindow()
-        
+
     def _on_custom_cipher_updated(self, cipher: CustomCipherConfig) -> None:
         """Handle updates to custom ciphers.
-        
+
         Args:
             cipher: The updated custom cipher
         """
         # Refresh the method categories to include any new or updated ciphers
-        self._populate_method_categories() 
+        self._populate_method_categories()
 
     def _connect_signals(self) -> None:
         """Connect UI signals to handlers."""
@@ -484,18 +526,18 @@ class WordAbacusWidget(QWidget):
         self._type_combo.currentTextChanged.connect(self._on_type_changed)
         self._method_combo.currentTextChanged.connect(self._on_method_changed)
         self._input_field.textChanged.connect(self._on_input_changed)
-        
+
         # Connect buttons
         self._calc_button.clicked.connect(self._calculate)
         self._custom_cipher_button.clicked.connect(self._open_custom_cipher_manager)
-        
+
     def _update_ui(self) -> None:
         """Update UI state based on current values."""
         # Populate method categories based on selected language
         self._populate_method_categories()
-        
+
         # Update input field validation based on selected language
         self._on_language_changed(self._language_combo.currentText())
-        
+
         # Enable/disable calculation button based on input
-        self._on_input_changed(self._input_field.text()) 
+        self._on_input_changed(self._input_field.text())

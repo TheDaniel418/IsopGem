@@ -27,17 +27,19 @@ class HistoryService:
             calculation: The calculation result to add
         """
         self._history.append(calculation)
-        
+
         # Format calculation type name based on its type
         if isinstance(calculation.calculation_type, CalculationType):
             calc_type_name = calculation.calculation_type.name
         else:
             # Handle string calculation type
             calc_type_name = str(calculation.calculation_type)
-            
-        logger.debug(f"Added calculation to history: {calculation.input_text}, "
-                    f"method: {calc_type_name}, "
-                    f"result: {calculation.result_value}")
+
+        logger.debug(
+            f"Added calculation to history: {calculation.input_text}, "
+            f"method: {calc_type_name}, "
+            f"result: {calculation.result_value}"
+        )
 
     def get_history(self) -> List[CalculationResult]:
         """Get the calculation history.
@@ -63,4 +65,4 @@ class HistoryService:
         """
         if not self._history:
             raise IndexError("No calculations in history")
-        return self._history[-1] 
+        return self._history[-1]

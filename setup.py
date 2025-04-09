@@ -31,4 +31,4 @@ setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Visualization",
     ],
-) 
+)

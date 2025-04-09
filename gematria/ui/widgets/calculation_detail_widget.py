@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QMessageBox,
 )
 
 from gematria.models.calculation_result import CalculationResult
@@ -25,6 +26,13 @@ from gematria.models.calculation_type import get_calculation_type_name
 from gematria.services.calculation_database_service import CalculationDatabaseService
 from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.ui.dialogs.edit_tags_window import EditTagsWindow
+
+# Import the TQ analysis service for sending numbers to Quadset Analysis
+try:
+    from tq.services import tq_analysis_service
+    TQ_AVAILABLE = True
+except ImportError:
+    TQ_AVAILABLE = False
 
 
 class CalculationDetailWidget(QWidget):
@@ -85,6 +93,13 @@ class CalculationDetailWidget(QWidget):
         self.favorite_checkbox = QCheckBox("Favorite")
         self.favorite_checkbox.toggled.connect(self._on_favorite_toggled)
         form_layout.addRow("", self.favorite_checkbox)
+
+        # Add TQ Analysis button
+        if TQ_AVAILABLE:
+            self.tq_analysis_btn = QPushButton("Send to Quadset Analysis")
+            self.tq_analysis_btn.setToolTip("Analyze this number in the TQ Grid")
+            self.tq_analysis_btn.clicked.connect(self._send_to_quadset_analysis)
+            form_layout.addRow("", self.tq_analysis_btn)
 
         main_layout.addWidget(left_group)
 
@@ -185,6 +200,15 @@ class CalculationDetailWidget(QWidget):
             self.calculation
         )
         self.tags_label.setText(", ".join(tag_names) if tag_names else "No tags")
+        
+        # Enable/disable TQ Analysis button based on whether the result is a valid integer
+        if TQ_AVAILABLE and hasattr(self, 'tq_analysis_btn'):
+            try:
+                int(self.calculation.result_value)
+                self.tq_analysis_btn.setEnabled(True)
+            except (ValueError, TypeError):
+                self.tq_analysis_btn.setEnabled(False)
+                self.tq_analysis_btn.setToolTip("Only integer values can be sent to Quadset Analysis")
 
     def _on_favorite_toggled(self, checked: bool) -> None:
         """Handle toggling the favorite status.
@@ -267,3 +291,28 @@ class CalculationDetailWidget(QWidget):
             self._update_display()
             # Emit signal that calculation was updated
             self.calculation_updated.emit(self.calculation)
+
+    def _send_to_quadset_analysis(self) -> None:
+        """Send the calculation result to the TQ Quadset Analysis (TQ Grid)."""
+        if not self.calculation or not TQ_AVAILABLE:
+            return
+            
+        try:
+            # Convert the result to an integer
+            value = int(self.calculation.result_value)
+            
+            # Open the TQ Grid with this number
+            tq_analysis_service.get_instance().open_quadset_analysis(value)
+            
+        except (ValueError, TypeError):
+            QMessageBox.warning(
+                self,
+                "Invalid Value",
+                "Only integer values can be sent to Quadset Analysis."
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred while opening Quadset Analysis: {str(e)}"
+            )

@@ -10,8 +10,20 @@ python-dotenv==1.0.1
 numpy==1.26.3
 pandas==2.2.0
 
+# Database
+sqlite3worker>=1.1.0
+
+# Document processing
+PyMuPDF>=1.21.0  # For PDF processing
+python-docx>=0.8.11  # For DOCX processing
+odfpy>=1.4.1  # For LibreOffice documents (ODT, ODS, ODP)
+
 # Utilities
 loguru==0.7.2
 tqdm==4.66.1
 pytz==2023.4
-pillow==10.2.0 
+pillow==10.2.0
+
+# Natural language processing (optional)
+# nltk>=3.8.1
+# spacy>=3.5.0 

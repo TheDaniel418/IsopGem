@@ -27,7 +27,7 @@ os.environ["ISOPGEM_ENV"] = "test"
 @pytest.fixture(scope="session")
 def qapp():
     """Provide a QApplication instance for the test session.
-    
+
     This fixture ensures that only one QApplication instance is created
     for the entire test session, which is required by PyQt.
     """
@@ -40,24 +40,24 @@ def qapp():
 @pytest.fixture
 def temp_config_dir(tmp_path: Path) -> Generator[Path, None, None]:
     """Create a temporary config directory for tests.
-    
+
     Args:
         tmp_path: Pytest-provided temporary directory.
-        
+
     Yields:
         Path to the temporary config directory.
     """
     config_dir = tmp_path / "config"
     config_dir.mkdir()
-    
+
     # Store original environment variable
     original_env = os.environ.get("ISOPGEM_CONFIG_DIR")
-    
+
     # Set environment variable to point to temp directory
     os.environ["ISOPGEM_CONFIG_DIR"] = str(config_dir)
-    
+
     yield config_dir
-    
+
     # Restore original environment variable
     if original_env:
         os.environ["ISOPGEM_CONFIG_DIR"] = original_env
@@ -89,33 +89,33 @@ def mock_config() -> dict[str, Any]:
             "document_manager": {"enabled": True},
             "astrology": {"enabled": True},
             "tq": {"enabled": True},
-        }
+        },
     }
 
 
 @pytest.fixture
 def temp_data_dir(tmp_path: Path) -> Generator[Path, None, None]:
     """Create a temporary data directory for tests.
-    
+
     Args:
         tmp_path: Pytest-provided temporary directory.
-        
+
     Yields:
         Path to the temporary data directory.
     """
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    
+
     # Store original environment variable
     original_env = os.environ.get("ISOPGEM_DATA_DIR")
-    
+
     # Set environment variable to point to temp directory
     os.environ["ISOPGEM_DATA_DIR"] = str(data_dir)
-    
+
     yield data_dir
-    
+
     # Restore original environment variable
     if original_env:
         os.environ["ISOPGEM_DATA_DIR"] = original_env
     else:
-        del os.environ["ISOPGEM_DATA_DIR"] 
+        del os.environ["ISOPGEM_DATA_DIR"]

@@ -124,10 +124,10 @@ class DocumentCategory(BaseModel):
         # This needs to be done with a list of all categories
         # For simplicity, use the service to get all categories
         from document_manager.services.category_service import CategoryService
-        
+
         service = CategoryService()
         all_categories = service.get_all_categories()
-        
+
         # Use the helper function to get the path
         return get_path_to_category(self.id, all_categories)
 

@@ -13,7 +13,7 @@ A comprehensive tool for sacred geometry, gematria, and esoteric document analys
 - Over 20 calculation methods across all language systems
 - Word/phrase analysis with extensive results
 - Custom cipher creation and management
-- Calculation history with search, filtering, and tagging 
+- Calculation history with search, filtering, and tagging
 - Word abacus for rapid computations
 - Import word lists from spreadsheets with automatic language detection
 
@@ -325,4 +325,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-For questions or support, please contact us at support@isopgem.com 
+For questions or support, please contact us at support@isopgem.com

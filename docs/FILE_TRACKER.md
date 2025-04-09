@@ -6,6 +6,11 @@ This document tracks all the files in the IsopGem project, their purpose, and th
 
 | Path | Description | Last Modified | Change Type |
 | ---- | ----------- | ------------ | ----------- |
+| shared/services/number_properties_service.py | Enhanced with support for general k-gonal numbers and centered polygonal numbers | 2025-04-08 | Modified |
+| tq/ui/widgets/number_properties_panel.py | Updated to display general polygonal numbers and centered polygonal numbers | 2025-04-08 | Modified |
+| shared/utils/app.py | Fixed initialization order for NumberPropertiesService and CustomCipherService | 2025-04-08 | Modified |
+| gematria/services/calculation_database_service.py | Non-singleton service used by NumberPropertiesPanel | 2025-04-08 | Referenced |
+| gematria/services/custom_cipher_service.py | Non-singleton service used by NumberPropertiesPanel | 2025-04-08 | Referenced |
 | shared/utils/app.py | Simplified Astrology and TQ pillars - kept tabs but removed buttons | 2025-04-06 | Modified |
 | shared/utils/app.py | Simplified Geometry pillar - kept tab but removed buttons | 2025-04-06 | Modified |
 | shared/ui/widgets/rtf_editor/rtf_editor_adapter.py | Removed adapter layer for direct RTFEditorWindow usage | 2025-04-06 | Removed |
@@ -43,6 +48,12 @@ This document tracks all the files in the IsopGem project, their purpose, and th
 | document_manager/models/qgem_document.py | Fixed field mappings and type handling in document conversion | 2025-04-07 | Modified |
 | shared/ui/widgets/rtf_editor/models/* | Added models directory for RTF editor components | 2025-04-06 | Added |
 | shared/ui/widgets/qgem_editor/* | Removed in favor of RTFEditor implementation | 2025-04-06 | Removed |
+| tq/ui/widgets/ternary_visualizer.py | Created ternary digit visualizer for displaying base-3 numbers with PNG images | 2025-04-06 | Added |
+| tq/utils/ternary_transition.py | Implemented Ternary Transition System for transforming ternary numbers | 2025-04-06 | Added |
+| tq/utils/ternary_converter.py | Added utilities for converting between decimal and ternary number systems | 2025-04-06 | Added |
+| tq/ui/tq_tab.py | Added ternary visualizer button to TQ tab | 2025-04-06 | Modified |
+| tq/ui/widgets/__init__.py | Added package initialization for TQ UI widgets | 2025-04-06 | Added |
+| tq/ui/widgets/tq_grid_panel.py | Added panel for displaying TQ Grid with base numbers and their transformations, including conrune and ternary digit reversal | 2025-04-06 | Added |
 
 ## Directory Structure
 
@@ -224,7 +235,7 @@ Components for geometric analysis and visualization.
 - `__init__.py`: Initialization and exports for geometry utilities.
 
 ### /tq
-Components for additional specialized functionalities related to Trigrammaton Qabalah.
+Components for Ternary Qabala (TQ) analysis and visualization.
 
 - `__init__.py`: Initialization and exports for the TQ package.
 
@@ -239,18 +250,24 @@ Components for additional specialized functionalities related to Trigrammaton Qa
 
 #### /tq/ui
 - `__init__.py`: Initialization and exports for TQ UI components.
+- `tq_tab.py`: Main tab for TQ functionality with Matrix-inspired background and buttons for TQ tools.
 
 ##### /tq/ui/panels
 - `__init__.py`: Initialization and exports for TQ UI panels.
 
 ##### /tq/ui/widgets
 - `__init__.py`: Initialization and exports for TQ UI widgets.
+- `number_properties_panel.py`: Panel for displaying comprehensive properties of numbers in a tabbed interface, showing base number, conrune, ternary reversal, and reversal conrune with rich property details including polygonal and centered polygonal numbers. Includes gematria search functionality.
+- `ternary_visualizer.py`: Created ternary digit visualizer for displaying base-3 numbers with PNG images.
+- `tq_grid_panel.py`: Panel for displaying TQ Grid with base numbers and their transformations, including conrune and ternary digit reversal.
 
 ##### /tq/ui/dialogs
 - `__init__.py`: Initialization and exports for TQ dialog components.
 
 #### /tq/utils
 - `__init__.py`: Initialization and exports for TQ utilities.
+- `ternary_converter.py`: Utilities for converting between decimal and ternary number systems.
+- `ternary_transition.py`: Implementation of Ternary Transition System for transforming ternary numbers.
 
 ### /shared
 Core shared components, utilities, and services used across multiple pillars.
@@ -286,6 +303,7 @@ Core shared components, utilities, and services used across multiple pillars.
 
 #### /shared/services
 - `__init__.py`: Initialization and exports for shared services.
+- `number_properties_service.py`: Comprehensive service for analyzing number properties including primality, factors, polygonal numbers (triangular, square, pentagonal, hexagonal, and general k-gonal), centered polygonal numbers, and mathematical relationships. Features efficient caching and utilities for ternary operations.
 
 #### /shared/repositories
 - `__init__.py`: Initialization and exports for shared data repositories.

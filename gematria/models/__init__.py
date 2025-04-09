@@ -5,4 +5,4 @@ from gematria.models.calculation_type import CalculationType
 from gematria.models.custom_cipher_config import CustomCipherConfig
 from gematria.models.tag import Tag
 
-__all__ = ['CalculationResult', 'CalculationType', 'CustomCipherConfig', 'Tag']
+__all__ = ["CalculationResult", "CalculationType", "CustomCipherConfig", "Tag"]

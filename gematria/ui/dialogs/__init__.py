@@ -27,12 +27,12 @@ from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
 from gematria.ui.dialogs.import_word_list_dialog import ImportWordListDialog
 
 __all__ = [
-    "WordAbacusWindow", 
+    "WordAbacusWindow",
     "GematriaHelpDialog",
     "CreateTagDialog",
     "SaveCalculationDialog",
     "TagSelectionDialog",
     "EditTagsWindow",
     "CustomCipherDialog",
-    "ImportWordListDialog"
+    "ImportWordListDialog",
 ]

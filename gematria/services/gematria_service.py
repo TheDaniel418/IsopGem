@@ -1547,6 +1547,7 @@ class GematriaService:
         notes: Optional[str] = None,
         tags: Optional[List[str]] = None,
         favorite: bool = False,
+        value: Optional[int] = None,
     ) -> CalculationResult:
         """Calculate the gematria value and save the result.
 
@@ -1556,12 +1557,15 @@ class GematriaService:
             notes: Optional notes to attach to the calculation
             tags: Optional list of tag IDs to associate with the calculation
             favorite: Whether to mark the calculation as a favorite
+            value: Optional explicit value to override the calculated result (for custom calculations)
 
         Returns:
             The saved calculation result
         """
-        # Calculate the value
-        result_value = self.calculate(text, calculation_type)
+        # Calculate the value if not explicitly provided
+        result_value = (
+            value if value is not None else self.calculate(text, calculation_type)
+        )
 
         # Handle CustomCipherConfig as calculation type
         calc_type: Union[CalculationType, str] = CalculationType.MISPAR_HECHRACHI

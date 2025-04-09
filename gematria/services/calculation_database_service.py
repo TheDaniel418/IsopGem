@@ -400,7 +400,9 @@ class CalculationDatabaseService:
 
         if "result_value" in criteria and criteria["result_value"] is not None:
             results = [
-                calc for calc in results if calc.result_value == criteria["result_value"]
+                calc
+                for calc in results
+                if calc.result_value == criteria["result_value"]
             ]
 
         if "tags" in criteria and criteria["tags"]:
@@ -421,7 +423,7 @@ class CalculationDatabaseService:
             results = [calc for calc in results if calc.favorite]
 
         return results
-        
+
     def get_filtered_calculations(
         self,
         search_term: Optional[str] = None,
@@ -429,10 +431,10 @@ class CalculationDatabaseService:
         calculation_type: Optional[Union[CalculationType, str]] = None,
         favorites_only: bool = False,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> tuple[List[CalculationResult], int]:
         """Get calculations filtered by various criteria with pagination.
-        
+
         Args:
             search_term: Optional text to search for in input text, notes, or result
             tag_id: Optional tag ID to filter by
@@ -440,7 +442,7 @@ class CalculationDatabaseService:
             favorites_only: Whether to only include favorites
             limit: Maximum number of results to return
             offset: Number of results to skip
-            
+
         Returns:
             Tuple of (list of filtered calculations, total count of matching calculations)
         """
@@ -454,32 +456,32 @@ class CalculationDatabaseService:
             criteria["method"] = calculation_type
         if favorites_only:
             criteria["favorites_only"] = True
-            
+
         # First get all matching calculations to count them
         all_matching = self.search_calculations(criteria)
         total_count = len(all_matching)
-        
+
         # Then get the paginated subset
         end_idx = min(offset + limit, total_count)
         if offset >= total_count:
             return [], total_count
-            
+
         paginated_results = all_matching[offset:end_idx]
         return paginated_results, total_count
-        
+
     def get_distinct_calculation_types(self) -> List[Union[CalculationType, str]]:
         """Get a list of all distinct calculation types used in saved calculations.
-        
+
         Returns:
             List of unique calculation types
         """
         # Get all calculations and extract unique calculation types
         calculations = self.get_all_calculations()
-        
+
         # Use a set to track unique types
         unique_types = set()
-        
+
         for calc in calculations:
             unique_types.add(calc.calculation_type)
-            
+
         return list(unique_types)

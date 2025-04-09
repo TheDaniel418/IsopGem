@@ -39,6 +39,8 @@ from PyQt6.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,
+    QCheckBox,
+    QGridLayout,
 )
 
 from tq.utils.ternary_converter import decimal_to_ternary, ternary_to_decimal
@@ -58,77 +60,86 @@ class PlanarExpansionVisualizer(QWidget):
     def __init__(self, parent=None):
         """Initialize the planar expansion visualizer."""
         super().__init__(parent)
-
-        # Configuration
-        self.ternary_value = "0"
-        self.dimension = 3  # 3D cube by default
-        self.cell_size = 80  # Increased from 60 to 80
-        self.margin = 50  # Increased for better spacing
-        self.animation_step = 0
+        
+        # Set up basic properties
+        self.dimension = 2
+        self.ternary_value = ""
+        self.vertex_count = 9  # Number of vertices in the 2D grid
+        self.cell_size = 50.0  # Base size for grid cells
+        self.zoom_factor = 1.0  # Zoom level
+        self.min_zoom = 0.2    # Minimum zoom level
+        self.max_zoom = 5.0    # Maximum zoom level
+        self.margin = 50       # Margin around the visualization
+        
+        # Set the size policy
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Initialize the grid
+        self._grid_positions = {}
+        self._3d_points = {}
+        self._grid_colors = {}
+        self._grid_radii = {}
+        self._animation_progress = 0.0  # 0.0 to 1.0
+        self._animating = False
+        self._highlighted_vertices = set()
+        
+        # Rotation angles (in degrees) for 3D visualization
+        self.x_rotation = 20
+        self.y_rotation = 30
+        self.z_rotation = 0
+        
+        # Set up colors
+        self.background_color = QColor(255, 255, 255)
+        self.grid_color = QColor(200, 200, 200)
+        self.text_color = QColor(0, 0, 0)
+        
+        # Define colors for each ternary value
+        self.vertex_colors = {
+            0: QColor(50, 220, 50),    # Tao/0 - Green
+            1: QColor(220, 50, 50),    # Yang/1 - Red
+            2: QColor(50, 50, 220)     # Yin/2 - Blue
+        }
+        
+        # Initialize tracking variables
+        self.mouse_x = 0
+        self.mouse_y = 0
+        self.dragging = False
+        self.last_click_position = QPointF(0, 0)
+        
+        # Toggle flags
         self.show_labels = True
         self.show_tao_lines = True
         self.show_grid = True
-        self.debug_mode = False  # Debug mode toggle
-        self.debug_verbosity = 0  # 0: minimal, 1: normal, 2: verbose
-        self.pure_yang_mode = False  # New flag for pure Yang mode
-
-        # Zoom and pan parameters
-        self.zoom_factor = 1.0
+        self.debug_mode = False
+        self.pure_yang_mode = False
+        self.debug_verbosity = 1  # 0: minimal, 1: normal, 2: verbose
+        self.cube_within_cube_style = True  # Default to the new visualization style
+        
+        # Label styling
+        self.label_offset_y = 0.35  # Distance below the vertex
+        self.label_bg_color = QColor(255, 255, 255, 230)  # Background color for labels
+        self.label_border_color = QColor(80, 80, 80, 200)  # Border color for labels
+        
+        # Initialize pan offset
         self.pan_offset_x = 0
         self.pan_offset_y = 0
-        self.panning = False
-        self.last_mouse_pos = None
-        self.min_zoom = 0.2
-        self.max_zoom = 5.0
-
-        # 3D rotation parameters
-        self.x_rotation = 30  # Degrees
-        self.y_rotation = 30  # Degrees
-        self.z_rotation = 0  # Degrees
-
-        # Visual styling
-        self.background_color = QColor(240, 240, 255)
-        self.grid_color = QColor(200, 200, 220)
-        self.vertex_colors = [
-            QColor(0, 150, 0),  # Tao/0: Green
-            QColor(200, 0, 0),  # Yang/1: Red
-            QColor(0, 0, 200),  # Yin/2: Blue
-        ]
-
-        # Label styling
-        self.label_bg_color = QColor(255, 255, 255, 230)  # More opaque background
-        self.label_border_color = QColor(80, 80, 80, 200)  # Darker border
-        self.label_offset_y = 0.35  # Distance below the vertex
-
-        # Set size policy
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setMinimumSize(600, 600)  # Larger minimum size
-
-        # Initialize the cached grid positions
-        self._grid_positions = {}
-        self._grid_colors = {}  # Cache for vertex colors
-        self._grid_radii = {}  # Cache for vertex radii
-
-        # Cache for 3D points before projection
-        self._3d_points = {}
-
-        # Timer for smooth transitions
-        self._animation_timer = QTimer(self)
-        self._animation_timer.timeout.connect(self._animate_transition)
-        self._animation_timer.setInterval(30)  # 30ms for smooth animation
-
-        self._transitioning = False
-        self._old_positions = {}
-        self._transition_progress = 0.0
-
-        # Enable mouse tracking for pan operations
-        self.setMouseTracking(True)
-
-        # Enable focus to capture key events
+        
+        # Set up animation timer
+        self._timer = QTimer()
+        self._timer.timeout.connect(self._animate_transition)
+        self._timer.setInterval(16)  # ~60 FPS
+        
+        # Set focus policy to receive keyboard events
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-
-        # Initialize the grid
+        
+        # Enable mouse tracking for panning
+        self.setMouseTracking(True)
+        
+        # Initialize the positions
         self._update_grid_positions()
+        
+        # Generate vertex properties (colors and sizes)
+        self._generate_vertex_properties()
 
     def set_ternary(self, value: str) -> None:
         """
@@ -169,11 +180,11 @@ class PlanarExpansionVisualizer(QWidget):
 
         # Generate positions for the new dimension
         old_vertex_count = len(self._grid_positions)
-        self._reset_grid_positions()
+        self._update_grid_positions()
 
         # Start transition animation
-        self._transition_progress = 0.0
-        self._transitioning = True
+        self._animation_progress = 0.0
+        self._animating = True
         self._start_time = time.time()
 
         # Print debug info
@@ -217,12 +228,23 @@ class PlanarExpansionVisualizer(QWidget):
 
     def toggle_debug_mode(self, enabled: bool) -> None:
         """
-        Toggle debug mode to show vertex count information.
+        Toggle debug mode on or off.
 
         Args:
             enabled: Whether to enable debug mode
         """
         self.debug_mode = enabled
+        
+        # When enabling debug mode, set verbosity to at least 1
+        if enabled and self.debug_verbosity == 0:
+            self.debug_verbosity = 1
+            print("Debug mode enabled with verbosity level 1")
+        elif enabled:
+            print(f"Debug mode enabled with verbosity level {self.debug_verbosity}")
+        else:
+            print("Debug mode disabled")
+            
+        # Update the visualization
         self.update()
 
     def toggle_pure_yang_mode(self, enabled: bool) -> None:
@@ -238,16 +260,16 @@ class PlanarExpansionVisualizer(QWidget):
 
     def _animate_transition(self):
         """Animate the transition between dimensions."""
-        if not self._transitioning:
-            self._animation_timer.stop()
+        if not self._animating:
+            self._timer.stop()
             return
 
         # Update transition progress
-        self._transition_progress += 0.05
-        if self._transition_progress >= 1.0:
-            self._transition_progress = 1.0
-            self._transitioning = False
-            self._animation_timer.stop()
+        self._animation_progress += 0.05
+        if self._animation_progress >= 1.0:
+            self._animation_progress = 1.0
+            self._animating = False
+            self._timer.stop()
 
         self.update()  # Trigger repaint
 
@@ -255,8 +277,8 @@ class PlanarExpansionVisualizer(QWidget):
         """
         Update the cached grid positions based on the current dimension.
         """
-        # Store old positions if transitioning
-        old_positions = self._grid_positions.copy() if self._transitioning else {}
+        # Store old positions if animating
+        old_positions = self._grid_positions.copy() if self._animating else {}
 
         # Clear the existing positions
         self._grid_positions = {}
@@ -276,8 +298,8 @@ class PlanarExpansionVisualizer(QWidget):
         cell_size_multiplier = {
             2: 1.0,  # 2D needs less space
             3: 0.9,  # 3D needs moderate space
-            4: 0.8,  # 4D+ need progressively more space
-            5: 0.7,
+            4: 0.7,  # 4D needs more space than 3D
+            5: 0.6,
             6: 0.5,
         }
 
@@ -296,6 +318,8 @@ class PlanarExpansionVisualizer(QWidget):
             self._generate_square(center_x, center_y)
         elif self.dimension == 3:
             self._generate_cube(center_x, center_y)
+        elif self.dimension == 4:
+            self._generate_tesseract(center_x, center_y)
         else:
             self._generate_hypercube(self.dimension, center_x, center_y)
 
@@ -303,11 +327,11 @@ class PlanarExpansionVisualizer(QWidget):
         self._generate_vertex_properties()
 
         # For debugging - ensure we have the right number of vertices
-        # Only show warning when not in a transition animation
+        # Only show warning when not in an animation
         expected_count = 2**self.dimension
         actual_count = len(self._grid_positions)
 
-        if actual_count != expected_count and not self._transitioning:
+        if actual_count != expected_count and not self._animating:
             print(
                 f"WARNING: Mismatch in vertex count for {self.dimension}D. "
                 f"Expected {expected_count}, got {actual_count}"
@@ -368,16 +392,56 @@ class PlanarExpansionVisualizer(QWidget):
         print("=== END 2D SQUARE GEOMETRY DEBUG ===\n")
 
     def _generate_cube(self, center_x: float, center_y: float) -> None:
-        """Generate grid positions for a proper 3D cube with rotation."""
-        # A cube has 8 vertices, with coordinates in the range (-0.5,0.5) for each axis
-        # This centers the origin (0,0,0) at the center of the cube
+        """Generate grid positions for a proper 3D cube with ternary vertices (no-Tao n-grams only)."""
+        # A cube has 8 vertices, but we're using ternary no-Tao n-grams (only 1s and 2s)
+        # This means we're representing vertices with ternary numbers that have no 0s
 
-        print("\n=== 3D CUBE GEOMETRY DEBUG ===")
+        print("\n=== 3D TERNARY CUBE GEOMETRY DEBUG ===")
 
         # Calculate size
         size = self.cell_size * 3.0
 
-        # Generate binary vertices (000, 001, 010, ..., 111)
+        # Generate ternary vertices with no 0s (only 1s and 2s)
+        # For 3D cube, we need 8 vertices which are represented by 3-digit ternary numbers
+        # Binary cube vertices are: 000, 001, 010, 011, 100, 101, 110, 111
+        # We map these to ternary no-Tao vertices (using only 1 and 2): 111, 112, 121, 122, 211, 212, 221, 222
+        
+        # Create a mapping from binary positions to no-Tao ternary values
+        binary_to_ternary_mapping = {
+            0: "111",  # 000 → 111 (all Yang)
+            1: "112",  # 001 → 112
+            2: "121",  # 010 → 121
+            3: "122",  # 011 → 122
+            4: "211",  # 100 → 211
+            5: "212",  # 101 → 212
+            6: "221",  # 110 → 221
+            7: "222",  # 111 → 222 (all Yin)
+        }
+
+        # Verify that opposite vertices are conrunes of each other
+        print("Verifying that opposite vertices are conrunes:")
+        from tq.utils.ternary_transition import TernaryTransition
+        transition = TernaryTransition()
+        
+        for i in range(8):
+            for j in range(i+1, 8):
+                # Check if these are opposite vertices in the cube
+                # In binary, opposite vertices have all bits flipped (i ^ j == 7)
+                if i ^ j == 7:  # XOR equals 7 means these are opposite vertices
+                    ternary_i = binary_to_ternary_mapping[i]
+                    ternary_j = binary_to_ternary_mapping[j]
+                    
+                    # Check if j is conrune of i (0→0, 1→2, 2→1)
+                    conrune_i = ''.join(['0' if d == '0' else '2' if d == '1' else '1' for d in ternary_i])
+                    
+                    print(f"  Opposite vertices: {i}({ternary_i}) and {j}({ternary_j})")
+                    print(f"  Conrune of {ternary_i} is {conrune_i}")
+                    if conrune_i == ternary_j:
+                        print(f"  ✓ Verified: Opposite vertices are conrunes")
+                    else:
+                        print(f"  ✗ Error: Opposite vertices are NOT conrunes")
+
+        # Generate vertices with their spatial coordinates
         vertices = []
         for i in range(2):
             for j in range(2):
@@ -385,16 +449,21 @@ class PlanarExpansionVisualizer(QWidget):
                     # Binary encoding of vertices
                     binary = f"{i}{j}{k}"
                     decimal = int(binary, 2)
+                    
+                    # Get the no-Tao ternary representation for this vertex
+                    ternary = binary_to_ternary_mapping[decimal]
+                    
+                    # We'll use the binary decimal value as the key internally, but
+                    # print the ternary representation for clarity
+                    print(f"Vertex: binary={binary}, decimal={decimal}, ternary={ternary}")
+                    print(f"  Coordinates in 3D space: ({-0.5 + i}, {-0.5 + j}, {-0.5 + k})")
 
                     # Map to x,y,z coordinates centered around the origin
                     x = -0.5 + i
                     y = -0.5 + j
                     z = -0.5 + k
 
-                    print(f"3D Vertex: binary={binary}, decimal={decimal}")
-                    print(f"  Coordinates in 3D space: ({x}, {y}, {z})")
-
-                    vertices.append((decimal, (x, y, z)))
+                    vertices.append((decimal, ternary, (x, y, z)))
 
         # Calculate rotation matrices
         sin_x = math.sin(math.radians(self.x_rotation))
@@ -404,13 +473,11 @@ class PlanarExpansionVisualizer(QWidget):
         sin_z = math.sin(math.radians(self.z_rotation))
         cos_z = math.cos(math.radians(self.z_rotation))
 
-        print(
-            f"  3D Rotation angles: X={self.x_rotation}°, Y={self.y_rotation}°, Z={self.z_rotation}°"
-        )
+        print(f"  3D Rotation angles: X={self.x_rotation}°, Y={self.y_rotation}°, Z={self.z_rotation}°")
 
         # Place vertices in the widget with rotation
-        for decimal, (x, y, z) in vertices:
-            # Store the 3D point
+        for decimal, ternary, (x, y, z) in vertices:
+            # Store the 3D point (using original binary decimal as key)
             self._3d_points[decimal] = (x, y, z)
 
             # Apply rotations
@@ -426,9 +493,7 @@ class PlanarExpansionVisualizer(QWidget):
             x4 = x3 * cos_z - y2 * sin_z
             y4 = x3 * sin_z + y2 * cos_z
 
-            print(
-                f"3D Vertex {decimal}: After rotation: ({x4:.2f}, {y4:.2f}, {z3:.2f})"
-            )
+            print(f"Vertex {decimal}: After rotation: ({x4:.2f}, {y4:.2f}, {z3:.2f})")
 
             # Scale, apply perspective, and center
             scale = size
@@ -437,22 +502,273 @@ class PlanarExpansionVisualizer(QWidget):
             widget_x = center_x + x4 * scale * perspective
             widget_y = center_y + y4 * scale * perspective
 
-            print(
-                f"  Final screen coordinates: ({widget_x:.1f}, {widget_y:.1f}), perspective={perspective:.2f}"
-            )
+            print(f"  Final screen coordinates: ({widget_x:.1f}, {widget_y:.1f}), perspective={perspective:.2f}")
+            print(f"  Using ternary: {ternary}")
 
-            # Convert binary to ternary mapping
-            binary = bin(decimal)[2:].zfill(3)
-            ternary = "".join("1" if bit == "1" else "0" for bit in binary)
-            ternary_decimal = int(ternary, 3)
+            # Create a unique ID for this vertex by using the position in the binary sequence (0-7)
+            # This ensures we have 8 unique vertices in the visualizer
+            vertex_id = 1000 + decimal  # Add 1000 to ensure it doesn't collide with other IDs
+            self._grid_positions[vertex_id] = (widget_x, widget_y)
+            
+            # Also store the ternary representation for later use
+            self._ternary_values = getattr(self, '_ternary_values', {})
+            self._ternary_values[vertex_id] = ternary
 
-            print(
-                f"  Binary: {binary}, Mapped to ternary: {ternary}, Ternary decimal: {ternary_decimal}"
-            )
+        # Check edge transitions
+        print("\nChecking edge transitions (vertices connected by edges):")
+        # In a cube, edges connect vertices that differ in exactly one binary digit
+        for i, (dec_i, tern_i, _) in enumerate(vertices):
+            for j, (dec_j, tern_j, _) in enumerate(vertices[i+1:], i+1):
+                # Calculate binary Hamming distance (number of different bits)
+                bin_i = bin(dec_i)[2:].zfill(3)
+                bin_j = bin(dec_j)[2:].zfill(3)
+                hamming_distance = sum(bit_i != bit_j for bit_i, bit_j in zip(bin_i, bin_j))
+                
+                # Edges connect vertices with Hamming distance of 1
+                if hamming_distance == 1:
+                    # Calculate the transition between these ternary values
+                    transition_result = transition.apply_transition(tern_i, tern_j)
+                    print(f"  Edge: {dec_i}({tern_i}) to {dec_j}({tern_j}) → Transition: {transition_result}")
 
-            self._grid_positions[ternary_decimal] = (widget_x, widget_y)
+        print("=== END 3D TERNARY CUBE GEOMETRY DEBUG ===\n")
 
-        print("=== END 3D CUBE GEOMETRY DEBUG ===\n")
+    def _generate_tesseract(
+        self, center_x: float, center_y: float
+    ) -> None:
+        """
+        Generate the positions for a 4D tesseract (4-dimensional hypercube).
+        
+        This implementation uses either a cube-within-cube style or 4D projections
+        based on the cube_within_cube_style flag.
+
+        Args:
+            center_x: The center x coordinate for the visualization
+            center_y: The center y coordinate for the visualization
+        """
+        # Clear existing positions and 3D points
+        self._grid_positions.clear()
+        self._3d_points = {}
+        
+        # Define ternary values for each vertex of the tesseract
+        ternary_mapping = {}
+        print("\n=== 4D TERNARY TESSERACT GEOMETRY DEBUG ===")
+        print("Tesseract vertex mapping (binary decimal → ternary):")
+        
+        # Create a mapping from binary to ternary for the tesseract
+        for i in range(16):  # 16 vertices for a 4D tesseract
+            binary = format(i, '04b')  # 4 bits for 4D
+            # For 4D tesseract, we'll use 1 and 2 (instead of 0 and 1) for clarity
+            ternary = ''.join('2' if bit == '1' else '1' for bit in binary)
+            ternary_mapping[i] = ternary
+            print(f"  {i} ({binary}) → {ternary}")
+        
+        print("\nVerifying that opposite vertices are conrunes:")
+        # Verify that opposite vertices are conrunes in a tesseract
+        for i in range(8):
+            opposite_vertex = 15 - i  # In a 4D tesseract, opposite vertex has all bits flipped
+            ternary_i = ternary_mapping[i]
+            ternary_opposite = ternary_mapping[opposite_vertex]
+            
+            conrune_i = self._calculate_conrune(ternary_i)
+            
+            print(f"  Opposite vertices: {i}({ternary_i}) and {opposite_vertex}({ternary_opposite})")
+            print(f"  Conrune of {ternary_i} is {conrune_i}")
+            
+            # Verify that the opposite vertex is the conrune
+            if conrune_i == ternary_opposite:
+                print(f"  ✓ Verified: Opposite vertices are conrunes")
+            else:
+                print(f"  ✗ ERROR: Opposite vertices are NOT conrunes")
+        
+        # Create mappings for vertex indices
+        index_to_key = {}
+        key_to_index = {}
+        self._ternary_values = getattr(self, '_ternary_values', {})
+        
+        # Check which visualization style to use
+        if hasattr(self, 'cube_within_cube_style') and self.cube_within_cube_style:
+            # CUBE-WITHIN-CUBE STYLE
+            # Size parameters for inner and outer cubes
+            outer_size = 150.0
+            inner_size = outer_size * 0.6  # Inner cube is 60% the size of outer cube
+            
+            # First, place vertices in a "cube within a cube" layout
+            for i in range(16):
+                binary = format(i, '04b')  # 4 bits for 4D
+                
+                # The first bit (MSB) determines whether vertex is in inner or outer cube
+                is_inner_cube = binary[0] == '1'
+                
+                # The last 3 bits determine position within the cube (000 to 111)
+                cube_position = binary[1:]
+                
+                # Convert binary to coordinates within cube (-1 or 1)
+                x_offset = 1 if cube_position[0] == '1' else -1
+                y_offset = 1 if cube_position[1] == '1' else -1
+                z_offset = 1 if cube_position[2] == '1' else -1
+                
+                # Scale based on whether it's inner or outer cube
+                size = inner_size if is_inner_cube else outer_size
+                
+                # Apply perspective adjustment for z-axis
+                perspective = 1.0 + (z_offset * 0.2)  # Adjust multiplier for stronger/weaker effect
+                
+                # Calculate final coordinates
+                x = center_x + (x_offset * size * 0.5 * perspective)
+                y = center_y + (y_offset * size * 0.5 * perspective)
+                
+                # Store vertex position
+                vertex_id = 2000 + i  # Start at 2000 to avoid collision with 3D cube vertices
+                self._grid_positions[vertex_id] = (x, y)
+                
+                # Store mappings
+                index_to_key[i] = vertex_id
+                key_to_index[vertex_id] = i
+                
+                # Store the ternary representation
+                self._ternary_values[vertex_id] = ternary_mapping[i]
+                
+                # Store 3D coordinates for later use
+                self._3d_points[vertex_id] = (x_offset, y_offset, z_offset)
+                
+                # Print debug info
+                size_label = "Inner" if is_inner_cube else "Outer"
+                print(f"Vertex {i}: {size_label} cube, position {cube_position}")
+                print(f"  Binary: {binary}, Ternary: {ternary_mapping[i]}")
+                print(f"  Coordinates: ({x_offset}, {y_offset}, {z_offset})")
+                print(f"  Final screen coordinates: ({x:.1f}, {y:.1f}), perspective={perspective:.2f}")
+        else:
+            # 4D PROJECTION STYLE
+            # Vertices of 4D tesseract in model space
+            vertices_4d = []
+            for i in range(16):
+                binary = format(i, '04b')
+                
+                # Convert binary to coordinates (-0.5 or 0.5)
+                x = 0.5 if binary[0] == '1' else -0.5
+                y = 0.5 if binary[1] == '1' else -0.5
+                z = 0.5 if binary[2] == '1' else -0.5
+                w = 0.5 if binary[3] == '1' else -0.5
+                
+                vertices_4d.append((x, y, z, w))
+                
+                # Print vertex info
+                print(f"Vertex: binary={binary}, decimal={i}, ternary={ternary_mapping[i]}")
+                print(f"  Coordinates in 4D space: ({x}, {y}, {z}, {w})")
+            
+            # Apply 4D rotations
+            # We'll use simple rotations in the wx, wy, and wz planes
+            wx_angle = math.radians(30)  # 30-degree rotation in the wx plane
+            wy_angle = math.radians(30)  # 30-degree rotation in the wy plane
+            wz_angle = math.radians(0)   # No rotation in the wz plane
+            
+            print(f"  4D Rotation angles: WX={int(math.degrees(wx_angle))}°, WY={int(math.degrees(wy_angle))}°, WZ={int(math.degrees(wz_angle))}°")
+            
+            for i, (x, y, z, w) in enumerate(vertices_4d):
+                # Apply wx rotation
+                x1 = x * math.cos(wx_angle) - w * math.sin(wx_angle)
+                w1 = x * math.sin(wx_angle) + w * math.cos(wx_angle)
+                y1 = y
+                z1 = z
+                
+                # Apply wy rotation
+                y2 = y1 * math.cos(wy_angle) - w1 * math.sin(wy_angle)
+                w2 = y1 * math.sin(wy_angle) + w1 * math.cos(wy_angle)
+                x2 = x1
+                z2 = z1
+                
+                # Apply wz rotation
+                z3 = z2 * math.cos(wz_angle) - w2 * math.sin(wz_angle)
+                w3 = z2 * math.sin(wz_angle) + w2 * math.cos(wz_angle)
+                x3 = x2
+                y3 = y2
+                
+                # Project 4D to 3D using perspective projection from the w-axis
+                # We'll use w3 to create a scaling factor for perspective
+                distance = 2.0  # Distance from 4D viewer to hyperplane
+                scale = distance / (distance + w3)
+                
+                x4 = x3 * scale
+                y4 = y3 * scale
+                z4 = z3 * scale
+                
+                # Now project from 3D to 2D for screen display
+                # Use standard perspective projection
+                perspective = 1.0 + z4 * 0.2  # Adjust multiplier for stronger/weaker effect
+                
+                # Scale and translate to screen coordinates
+                scaling_factor = 150.0 * perspective
+                widget_x = center_x + x4 * scaling_factor
+                widget_y = center_y - y4 * scaling_factor  # Flip y for screen coordinates
+                
+                # Create a unique ID for this vertex
+                vertex_id = 2000 + i  # Start at 2000 to avoid collision with 3D cube vertices
+                self._grid_positions[vertex_id] = (widget_x, widget_y)
+                
+                # Store mappings
+                index_to_key[i] = vertex_id
+                key_to_index[vertex_id] = i
+                
+                # Store the ternary representation
+                self._ternary_values[vertex_id] = ternary_mapping[i]
+                
+                # Also store the 3D projected point for edge calculations
+                self._3d_points[vertex_id] = (x4, y4, z3)
+                
+                # Print debug info
+                print(f"Vertex {i}: After 4D-3D-2D projection: ({x4:.2f}, {y4:.2f}, {z3:.2f})")
+                print(f"  Final screen coordinates: ({widget_x:.1f}, {widget_y:.1f}), perspective={perspective:.2f}")
+                print(f"  Using ternary: {ternary_mapping[i]}")
+        
+        # Check edge transitions
+        print("\nChecking 4D hypercube edge connections:")
+        edge_count = 0
+        
+        # A 4D hypercube has 16 vertices, and each vertex connects to exactly 4 others
+        # (one for each dimension). This means there are 16 * 4 / 2 = 32 edges total
+        # (dividing by 2 because each edge connects 2 vertices)
+        for i in range(16):
+            binary_i = format(i, '04b')
+            
+            # For each bit position (dimension)
+            for bit_pos in range(4):
+                # Flip the bit at this position to find the connected vertex
+                bin_j_list = list(binary_i)
+                bin_j_list[bit_pos] = '1' if binary_i[bit_pos] == '0' else '0'
+                bin_j = ''.join(bin_j_list)
+                j = int(bin_j, 2)
+                
+                # Only process if j > i to avoid duplicate edges
+                if j > i:
+                    # These vertices should be connected with an edge
+                    if i in index_to_key and j in index_to_key:
+                        start_key = index_to_key[i]
+                        end_key = index_to_key[j]
+                        
+                        # Print the edge transition
+                        if start_key in self._ternary_values and end_key in self._ternary_values:
+                            start_ternary = self._ternary_values[start_key]
+                            end_ternary = self._ternary_values[end_key]
+                            
+                            # Calculate transition digits
+                            transition = self._calculate_transition(start_ternary, end_ternary)
+                            print(f"  Edge: {i}({start_ternary}) to {j}({end_ternary}) → Transition: {transition}")
+                            edge_count += 1
+        
+        print(f"  Total edges found: {edge_count} (expected: 32)")
+        print("=== END 4D TERNARY TESSERACT GEOMETRY DEBUG ===\n")
+        
+    def toggle_tesseract_style(self) -> None:
+        """Toggle between cube-within-cube and 4D projection visualization styles for the tesseract."""
+        if not hasattr(self, 'cube_within_cube_style'):
+            self.cube_within_cube_style = True
+        else:
+            self.cube_within_cube_style = not self.cube_within_cube_style
+        
+        # Only regenerate if we're currently in 4D mode
+        if self.dimension == 4:
+            self._update_grid_positions()
+            self.update()  # Trigger repaint
 
     def _generate_hypercube(
         self, dimension: int, center_x: float, center_y: float
@@ -468,96 +784,48 @@ class PlanarExpansionVisualizer(QWidget):
         Returns:
             A dictionary mapping vertex indices to (x, y) coordinates
         """
-        # For higher dimensions, we switch to binary-based hypercube visualization
-        positions = {}
-
-        # Calculate the number of vertices (2^dimension)
-        num_vertices = 2**dimension
-
-        # Calculate radius based on widget size (smaller for higher dimensions)
-        widget_size = min(self.width(), self.height()) - 100
-        radius = widget_size / 2 * 0.9
-        radius = min(radius, 300)  # Cap radius for very large dimensions
-
-        # For dimensions > 4, reduce the size as dimension increases
-        if dimension > 4:
-            radius = radius * (1 - 0.1 * (dimension - 4))
-
-        # If we're in debug mode and not transitioning, log the generation
-        if self.debug_mode and self.debug_verbosity > 1 and not self._transitioning:
-            print(f"\n=== {dimension}D HYPERCUBE GEOMETRY DEBUG ===")
-            print(f"  Generating positions for {num_vertices} vertices")
-
-        # Generate positions for each vertex
-        for i in range(num_vertices):
-            binary = format(i, f"0{dimension}b")
-
-            # For higher dimensions, we use a circular layout with binary encoding
-            # determining the angular position and distance from center
-
-            # Calculate angle based on position in the sequence
-            angle = (i / num_vertices) * 2 * math.pi
-
-            # Count the 1s in the binary representation to affect distance from center
-            ones_count = binary.count("1")
-            distance_factor = ones_count / dimension
-
-            # Adjust distance from center based on the number of 1s
-            distance = radius * (0.2 + 0.8 * distance_factor)
-
-            # Calculate coordinates
-            x = center_x + distance * math.cos(angle)
-            y = center_y + distance * math.sin(angle)
-
-            # Apply zoom and pan
-            x = (
-                (x - self.width() / 2) * self.zoom_factor
-                + self.width() / 2
-                + self.pan_offset_x
-            )
-            y = (
-                (y - self.height() / 2) * self.zoom_factor
-                + self.height() / 2
-                + self.pan_offset_y
-            )
-
-            if (
-                self.debug_mode
-                and self.debug_verbosity > 1
-                and not self._transitioning
-                and i < 10
-            ):
-                print(f"  Vertex {i}: binary={binary}, position=({x:.1f}, {y:.1f})")
-
-            positions[i] = (x, y)
-
-        # If we're debugging, log completion and any vertex count issues
-        if self.debug_mode and self.debug_verbosity > 1 and not self._transitioning:
-            print(f"  Generated {len(positions)} vertices for {dimension}D hypercube")
-            if len(positions) != num_vertices:
-                print(
-                    f"  WARNING: Expected {num_vertices} vertices, but generated {len(positions)}"
-                )
-            print(f"=== END {dimension}D HYPERCUBE GEOMETRY DEBUG ===\n")
-
-        self._grid_positions = positions
+        # For 4D, use the tesseract implementation
+        if dimension == 4:
+            self._generate_tesseract(center_x, center_y)
+            return
+        
+        # For higher dimensions, use the existing implementation
+        # ... existing hypercube code ...
 
     def _generate_vertex_properties(self) -> None:
         """Generate colors and sizes for vertices based on their ternary composition."""
         # Check if we're in pure Yang mode
         pure_yang_mode = self.pure_yang_mode or (self.ternary_value and all(digit == '1' for digit in self.ternary_value))
         
+        # Access ternary values if available
+        ternary_values = getattr(self, '_ternary_values', {})
+        
         for decimal_value in self._grid_positions:
-            ternary = decimal_to_ternary(decimal_value).zfill(self.dimension)
+            # Get ternary representation - either from stored values or calculate it
+            if decimal_value in ternary_values:
+                ternary = ternary_values[decimal_value]
+            else:
+                # Fall back to old method for other dimensions
+                ternary = decimal_to_ternary(decimal_value).zfill(self.dimension)
+            
             tao_count = ternary.count("0")  # Number of 0s
             yang_count = ternary.count("1")  # Number of 1s
             yin_count = ternary.count("2")   # Number of 2s
 
-            # Determine radius based on Tao count and dimension
+            # Determine radius based on composition and dimension
             base_radius = self.cell_size * 0.25
-
-            # Hypercube vertices all have the same size
-            radius = base_radius * 1.2
+            
+            # Increase the radius of vertices with more significant meaning
+            if self.dimension == 3:
+                # Make vertices slightly larger for the 3D cube
+                radius = base_radius * 1.3
+                
+                # If this is an all-Yang, all-Yin or all-Tao vertex, make it even larger
+                if yang_count == self.dimension or yin_count == self.dimension or tao_count == self.dimension:
+                    radius *= 1.2
+            else:
+                # Hypercube vertices all have the same size
+                radius = base_radius * 1.2
 
             # Determine color based on ternary composition and mode
             if pure_yang_mode:
@@ -578,10 +846,10 @@ class PlanarExpansionVisualizer(QWidget):
                 yang_ratio = yang_count / self.dimension
                 yin_ratio = yin_count / self.dimension
                 
-                # Calculate RGB components based on ratios
-                red = int(min(255, yang_ratio * 200))
-                green = int(min(255, tao_ratio * 150))
-                blue = int(min(255, yin_ratio * 200))
+                # Calculate RGB components based on ratios - enhance saturation for better visibility
+                red = int(min(255, yang_ratio * 230))
+                green = int(min(255, tao_ratio * 180))
+                blue = int(min(255, yin_ratio * 230))
                 
                 color = QColor(red, green, blue)
 
@@ -606,10 +874,10 @@ class PlanarExpansionVisualizer(QWidget):
         painter.translate(self.pan_offset_x, self.pan_offset_y)
         painter.scale(self.zoom_factor, self.zoom_factor)
 
-        # If transitioning, interpolate positions
+        # If animating, interpolate positions
         positions = (
             self._get_interpolated_positions()
-            if self._transitioning
+            if self._animating
             else self._grid_positions
         )
 
@@ -650,8 +918,8 @@ class PlanarExpansionVisualizer(QWidget):
         Returns:
             A dictionary of interpolated positions
         """
-        # If not transitioning, just return the current grid positions
-        if not self._transitioning:
+        # If not animating, just return the current grid positions
+        if not self._animating:
             return self._grid_positions
 
         # Create a dictionary for the interpolated positions
@@ -668,8 +936,8 @@ class PlanarExpansionVisualizer(QWidget):
                 new_x, new_y = new_pos
 
                 # Linear interpolation
-                interp_x = old_x + (new_x - old_x) * self._transition_progress
-                interp_y = old_y + (new_y - old_y) * self._transition_progress
+                interp_x = old_x + (new_x - old_x) * self._animation_progress
+                interp_y = old_y + (new_y - old_y) * self._animation_progress
 
                 interpolated[decimal_value] = (interp_x, interp_y)
             else:
@@ -679,8 +947,8 @@ class PlanarExpansionVisualizer(QWidget):
                 center_y = self.height() / 2
 
                 # Start from center and move to final position
-                interp_x = center_x + (new_x - center_x) * self._transition_progress
-                interp_y = center_y + (new_y - center_y) * self._transition_progress
+                interp_x = center_x + (new_x - center_x) * self._animation_progress
+                interp_y = center_y + (new_y - center_y) * self._animation_progress
 
                 interpolated[decimal_value] = (interp_x, interp_y)
 
@@ -692,8 +960,8 @@ class PlanarExpansionVisualizer(QWidget):
                 center_y = self.height() / 2
 
                 # Move from current position toward center
-                interp_x = old_x + (center_x - old_x) * self._transition_progress
-                interp_y = old_y + (center_y - old_y) * self._transition_progress
+                interp_x = old_x + (center_x - old_x) * self._animation_progress
+                interp_y = old_y + (center_y - old_y) * self._animation_progress
 
                 interpolated[decimal_value] = (interp_x, interp_y)
 
@@ -709,6 +977,20 @@ class PlanarExpansionVisualizer(QWidget):
             painter: The QPainter to use
             positions: The positions to use for drawing
         """
+        # Access ternary values if available
+        ternary_values = getattr(self, '_ternary_values', {})
+
+        # For the 3D cube, use a special grid drawing that shows the cube edges more clearly
+        if self.dimension == 3 and hasattr(self, '_ternary_values') and len(ternary_values) > 0:
+            self._draw_3d_cube_grid(painter, positions)
+            return
+            
+        # For the 4D tesseract, use a special grid drawing
+        if self.dimension == 4 and hasattr(self, '_ternary_values') and len(ternary_values) > 0:
+            self._draw_4d_tesseract_grid(painter, positions)
+            return
+
+        # Standard grid drawing for other dimensions
         painter.setPen(QPen(self.grid_color, 1.0))
 
         # For all dimensions, draw connecting lines between adjacent vertices
@@ -753,6 +1035,265 @@ class PlanarExpansionVisualizer(QWidget):
                     painter.setPen(QPen(self.grid_color, thickness))
                     painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
+    def _draw_3d_cube_grid(
+        self, painter: QPainter, positions: Dict[int, Tuple[float, float]]
+    ) -> None:
+        """
+        Draw a clearer grid for the 3D cube case.
+
+        Args:
+            painter: The QPainter to use
+            positions: The positions to use for drawing
+        """
+        from tq.utils.ternary_transition import TernaryTransition
+        transition = TernaryTransition()
+        
+        # Get ternary values
+        ternary_values = self._ternary_values
+        
+        # Define cube edges based on the binary representation
+        # Each vertex in a cube is connected to 3 others (along each axis)
+        cube_edges = [
+            # Connecting vertices that differ by 1 bit in binary
+            (0, 1), (0, 2), (0, 4),  # Edges from 000
+            (1, 3), (1, 5),          # Edges from 001 
+            (2, 3), (2, 6),          # Edges from 010
+            (3, 7),                  # Edges from 011
+            (4, 5), (4, 6),          # Edges from 100
+            (5, 7),                  # Edges from 101
+            (6, 7)                   # Edges from 110
+        ]
+        
+        # First make a mapping from the original keys to 0-7 indices
+        key_to_index = {}
+        index_to_key = {}
+        
+        # Sort by the embedded decimal value, which should be 1000, 1001, etc. for the cube
+        sorted_keys = sorted(positions.keys())
+        if len(sorted_keys) == 8:  # Ensure we have the correct number of vertices
+            for i, key in enumerate(sorted_keys):
+                key_to_index[key] = i
+                index_to_key[i] = key
+
+        # Draw the edges
+        for start, end in cube_edges:
+            if start in index_to_key and end in index_to_key:
+                start_key = index_to_key[start]
+                end_key = index_to_key[end]
+                
+                # Get positions
+                x1, y1 = positions[start_key]
+                x2, y2 = positions[end_key]
+                
+                # Get ternary values
+                if start_key in ternary_values and end_key in ternary_values:
+                    start_ternary = ternary_values[start_key]
+                    end_ternary = ternary_values[end_key]
+                    
+                    # Determine the type of transition
+                    diff_positions = [i for i in range(len(start_ternary)) if start_ternary[i] != end_ternary[i]]
+                    if len(diff_positions) == 1:
+                        position = diff_positions[0]
+                        
+                        # Determine the specific digit transition (0→1, 0→2, 1→2, etc.)
+                        from_digit = start_ternary[position]
+                        to_digit = end_ternary[position]
+                        
+                        transition_type = f"{from_digit}{to_digit}"
+                        
+                        # Set color and style based on transition type
+                        if transition_type == "01" or transition_type == "10":
+                            # Tao-Yang transition - use a green-red gradient
+                            pen = QPen(QColor(180, 90, 60), 1.8)
+                        elif transition_type == "02" or transition_type == "20":
+                            # Tao-Yin transition - use a green-blue gradient
+                            pen = QPen(QColor(60, 90, 180), 1.8)
+                        elif transition_type == "12" or transition_type == "21":
+                            # Yang-Yin transition - use a purple gradient
+                            pen = QPen(QColor(140, 60, 140), 1.8)
+                        else:
+                            # Fallback for any other transitions
+                            pen = QPen(self.grid_color, 1.5)
+                            
+                        # Set the pen
+                        painter.setPen(pen)
+                        
+                        # Draw the line
+                        painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+                    
+                else:
+                    # Fallback if we don't have ternary values
+                    painter.setPen(QPen(self.grid_color, 1.5))
+                    painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+    def _draw_4d_tesseract_grid(
+        self, painter: QPainter, positions: Dict[int, Tuple[float, float]]
+    ) -> None:
+        """
+        Draw a clearer grid for the 4D tesseract case.
+
+        Args:
+            painter: The QPainter to use
+            positions: The positions to use for drawing
+        """
+        from tq.utils.ternary_transition import TernaryTransition
+        transition = TernaryTransition()
+        
+        # Get ternary values
+        ternary_values = self._ternary_values
+        
+        # For a 4D hypercube, each vertex connects to 4 others (one for each dimension)
+        # Vertices are connected if they differ by exactly one bit in their binary representation
+        
+        # First make a mapping from our display keys (2000+) back to 0-15 indices
+        key_to_index = {}
+        index_to_key = {}
+        edge_count = 0
+        
+        # Sort by the embedded decimal value, which should be 2000, 2001, etc. for 4D
+        sorted_keys = sorted(positions.keys())
+        
+        if len(sorted_keys) == 16:  # Ensure we have the correct number of vertices
+            # Create mappings between display keys and indices
+            for i, key in enumerate(sorted_keys):
+                key_to_index[key] = i
+                index_to_key[i] = key
+            
+            # A 4D hypercube has 16 vertices, and each vertex connects to exactly 4 others
+            # (one for each dimension). This means there are 16 * 4 / 2 = 32 edges total
+            # (dividing by 2 because each edge connects 2 vertices)
+            for i in range(16):
+                binary_i = format(i, '04b')
+                
+                # For each bit position (dimension)
+                for bit_pos in range(4):
+                    # Flip the bit at this position to find the connected vertex
+                    bin_j_list = list(binary_i)
+                    bin_j_list[bit_pos] = '1' if binary_i[bit_pos] == '0' else '0'
+                    bin_j = ''.join(bin_j_list)
+                    j = int(bin_j, 2)
+                    
+                    # Only process if j > i to avoid duplicate edges
+                    if j > i:
+                        # These vertices should be connected with an edge
+                        if i in index_to_key and j in index_to_key:
+                            start_key = index_to_key[i]
+                            end_key = index_to_key[j]
+                            
+                            # Get positions
+                            x1, y1 = positions[start_key]
+                            x2, y2 = positions[end_key]
+                            
+                            # Get ternary values
+                            if start_key in ternary_values and end_key in ternary_values:
+                                start_ternary = ternary_values[start_key]
+                                end_ternary = ternary_values[end_key]
+                                
+                                # The changed position is bit_pos (we already know it)
+                                changed_position = bit_pos
+                                
+                                # Determine color and style based on which dimension the edge traverses
+                                line_width = 2.0  # Thicker lines for better visibility
+                                
+                                if changed_position == 0:  # First dimension (W)
+                                    color = QColor(200, 50, 50, 220)  # Red-ish with more opacity
+                                    pen = QPen(color, line_width, Qt.PenStyle.SolidLine)
+                                elif changed_position == 1:  # Second dimension (X)
+                                    color = QColor(50, 200, 50, 220)  # Green-ish with more opacity
+                                    pen = QPen(color, line_width, Qt.PenStyle.SolidLine)
+                                elif changed_position == 2:  # Third dimension (Y)
+                                    color = QColor(50, 50, 200, 220)  # Blue-ish with more opacity
+                                    pen = QPen(color, line_width, Qt.PenStyle.SolidLine)
+                                elif changed_position == 3:  # Fourth dimension (Z)
+                                    color = QColor(200, 200, 40, 220)  # Yellow-ish with more opacity
+                                    pen = QPen(color, line_width, Qt.PenStyle.SolidLine)
+                                else:
+                                    # Fallback (shouldn't happen)
+                                    pen = QPen(self.grid_color, line_width)
+                                
+                                # Add different dash patterns for different dimensions to help
+                                # distinguish the connections in the visual projection
+                                if changed_position == 0:
+                                    # Solid line for first dimension
+                                    pass
+                                elif changed_position == 1:
+                                    # Dashed line for second dimension
+                                    pen.setDashPattern([8, 4])
+                                elif changed_position == 2:
+                                    # Dotted line for third dimension
+                                    pen.setDashPattern([2, 2])
+                                elif changed_position == 3:
+                                    # Dash-dot line for fourth dimension
+                                    pen.setDashPattern([8, 4, 2, 4])
+                                
+                                # Set the pen
+                                painter.setPen(pen)
+                                
+                                # Draw the line
+                                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+                                edge_count += 1
+                                
+                                # Optionally, add a small dimension indicator at the midpoint
+                                midx = (x1 + x2) / 2
+                                midy = (y1 + y2) / 2
+                                
+                                # Draw a small indicator of the dimension
+                                dim_colors = [
+                                    QColor(255, 100, 100),  # W - Red
+                                    QColor(100, 255, 100),  # X - Green
+                                    QColor(100, 100, 255),  # Y - Blue
+                                    QColor(255, 255, 100)   # Z - Yellow
+                                ]
+                                
+                                if changed_position >= 0 and changed_position < 4:
+                                    painter.setBrush(QBrush(dim_colors[changed_position]))
+                                    painter.setPen(Qt.PenStyle.NoPen)
+                                    radius = min(5, line_width + 3)  # Small circle
+                                    painter.drawEllipse(QPointF(midx, midy), radius, radius)
+                            else:
+                                # Fallback if we don't have ternary values
+                                painter.setPen(QPen(self.grid_color, 1.5))
+                                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+                                edge_count += 1
+        else:
+            # Fallback if we don't have the right number of vertices
+            # Use the standard grid drawing (not via super since this isn't an override method)
+            painter.setPen(QPen(self.grid_color, 1.0))
+            
+            # Draw connecting lines between adjacent vertices
+            position_keys = list(positions.keys())
+            
+            for i, key1 in enumerate(position_keys):
+                for j, key2 in enumerate(position_keys[i + 1 :], i + 1):
+                    x1, y1 = positions[key1]
+                    x2, y2 = positions[key2]
+                    
+                    # Draw a simple line for fallback case
+                    painter.setPen(QPen(self.grid_color, 1.0))
+                    painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+    def _generate_hypercube(
+        self, dimension: int, center_x: float, center_y: float
+    ) -> None:
+        """
+        Generate the positions for an n-dimensional hypercube where n > 4.
+        This is a fallback for higher dimensions where the number of vertices becomes too large
+        for a ternary-based approach.
+
+        Args:
+            dimension: The dimension of the hypercube
+
+        Returns:
+            A dictionary mapping vertex indices to (x, y) coordinates
+        """
+        # For 4D, use the tesseract implementation
+        if dimension == 4:
+            self._generate_tesseract(center_x, center_y)
+            return
+        
+        # For higher dimensions, use the existing implementation
+        # ... existing hypercube code ...
+
     def _draw_tao_lines(
         self, painter: QPainter, positions: Dict[int, Tuple[float, float]]
     ) -> None:
@@ -768,11 +1309,19 @@ class PlanarExpansionVisualizer(QWidget):
         yang_groups = {}
         yin_groups = {}
 
+        # Access ternary values if available
+        ternary_values = getattr(self, '_ternary_values', {})
+        
         # Check if we're in pure Yang mode
         pure_yang_mode = self.pure_yang_mode or (self.ternary_value and all(digit == '1' for digit in self.ternary_value))
 
         for key in positions:
-            ternary = decimal_to_ternary(key).zfill(self.dimension)
+            # Get ternary representation - either from stored values or calculate it
+            if key in ternary_values:
+                ternary = ternary_values[key]
+            else:
+                ternary = decimal_to_ternary(key).zfill(self.dimension)
+            
             tao_count = ternary.count("0")
             yang_count = ternary.count("1")
             yin_count = ternary.count("2")
@@ -792,6 +1341,82 @@ class PlanarExpansionVisualizer(QWidget):
                 yin_groups[yin_count] = []
             yin_groups[yin_count].append(key)
 
+        # For 3D cube, draw connections based on digit groups
+        if self.dimension == 3 and hasattr(self, '_ternary_values') and len(ternary_values) > 0:
+            # In 3D cube, draw special pattern connections
+            groups_to_draw = []
+            
+            # Draw by Tao count
+            for count, vertices in tao_groups.items():
+                if len(vertices) > 1:
+                    groups_to_draw.append((vertices, 'tao', count))
+                    
+            # Draw by Yang count
+            for count, vertices in yang_groups.items():
+                if len(vertices) > 1:
+                    groups_to_draw.append((vertices, 'yang', count))
+                    
+            # Draw by Yin count
+            for count, vertices in yin_groups.items():
+                if len(vertices) > 1:
+                    groups_to_draw.append((vertices, 'yin', count))
+                    
+            # Draw all groups with appropriate styling
+            for vertices, type_name, count in groups_to_draw:
+                # Choose color based on group type
+                alpha = 100  # More transparent for less visual clutter
+                
+                if pure_yang_mode:
+                    # In pure Yang mode, all lines are red
+                    color = QColor(200, 0, 0, alpha)
+                elif type_name == 'tao':
+                    # Tao-based groups - green
+                    green_intensity = min(220, 100 + count * 40)
+                    color = QColor(0, green_intensity, 0, alpha)
+                elif type_name == 'yang':
+                    # Yang-based groups - red
+                    red_intensity = min(220, 100 + count * 40)
+                    color = QColor(red_intensity, 0, 0, alpha)
+                elif type_name == 'yin':
+                    # Yin-based groups - blue
+                    blue_intensity = min(220, 100 + count * 40)
+                    color = QColor(0, 0, blue_intensity, alpha)
+                    
+                # Set up the pen - use dashed line for 3D cube groups
+                pen = QPen(color, 1.0, Qt.PenStyle.DashLine)
+                dash_length = 5
+                space_length = 3
+                pen.setDashPattern([dash_length, space_length])
+                
+                painter.setPen(pen)
+                
+                # Draw lines connecting vertices in this group, but only if more than one
+                if len(vertices) > 1:
+                    # Draw as a polygon for complete groups
+                    if len(vertices) >= 3 and (count == 0 or count == self.dimension):
+                        # For complete groups, draw a polygon
+                        points = [QPointF(*positions[v]) for v in vertices]
+                        painter.setPen(pen)
+                        painter.setBrush(Qt.BrushStyle.NoBrush)
+                        painter.drawPolygon(points)
+                    else:
+                        # Otherwise draw individual lines
+                        for i in range(len(vertices)):
+                            for j in range(i + 1, len(vertices)):
+                                v1, v2 = vertices[i], vertices[j]
+                                
+                                # Skip if either vertex is not in positions
+                                if v1 not in positions or v2 not in positions:
+                                    continue
+                                    
+                                x1, y1 = positions[v1]
+                                x2, y2 = positions[v2]
+                                
+                                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+        
+        return  # Skip the standard rendering for 3D cube
+                
+        # Standard rendering for other dimensions
         # Draw connections between vertices in the same Tao group
         for tao_count, vertices in tao_groups.items():
             # Skip empty groups or groups with just one vertex
@@ -851,159 +1476,393 @@ class PlanarExpansionVisualizer(QWidget):
         self, painter: QPainter, positions: Dict[int, Tuple[float, float]]
     ) -> None:
         """
-        Draw the vertices of the dimensional structure.
+        Draw the vertices of the visualization.
 
         Args:
             painter: The QPainter to use
             positions: The positions to use for drawing
         """
-        for key, (x, y) in positions.items():
-            # Get cached properties
-            if key in self._grid_colors and key in self._grid_radii:
+        # Access ternary values if available
+        ternary_values = getattr(self, '_ternary_values', {})
+        
+        # Get the ordered list of keys sorted by increasing value
+        position_keys = sorted(positions.keys())
+        
+        for key in position_keys:
+            x, y = positions[key]
+            
+            # Get the ternary representation
+            if key in ternary_values:
+                ternary = ternary_values[key]
+            else:
+                ternary = decimal_to_ternary(key).zfill(self.dimension)
+            
+            # Get the color and size from cache if available
+            if key in self._grid_colors:
                 color = self._grid_colors[key]
+            else:
+                # Determine color based on ternary representation
+                # Default to pure Yang (red) in pure Yang mode
+                if self.pure_yang_mode:
+                    color = self.vertex_colors[1]  # Yang color
+                else:
+                    # Count the occurrences of each ternary value
+                    tao_count = ternary.count("0")
+                    yang_count = ternary.count("1")
+                    yin_count = ternary.count("2")
+                    
+                    # Normalize the counts to get color ratios
+                    total = self.dimension
+                    tao_ratio = tao_count / total
+                    yang_ratio = yang_count / total
+                    yin_ratio = yin_count / total
+                    
+                    # Create a blended color based on the ratios
+                    red = int(yang_ratio * 255)
+                    green = int(tao_ratio * 255)
+                    blue = int(yin_ratio * 255)
+                    
+                    # Enhance saturation for better visibility
+                    # For cases where there's no strong dominance, boost the primary colors
+                    max_ratio = max(tao_ratio, yang_ratio, yin_ratio)
+                    
+                    if max_ratio < 0.5:  # No strong dominance
+                        if tao_ratio > 0:
+                            green = min(255, green * 2)
+                        if yang_ratio > 0:
+                            red = min(255, red * 2)
+                        if yin_ratio > 0:
+                            blue = min(255, blue * 2)
+                    
+                    color = QColor(red, green, blue)
+                
+                # Cache the color
+                self._grid_colors[key] = color
+            
+            # Get the radius from cache if available
+            if key in self._grid_radii:
                 radius = self._grid_radii[key]
             else:
-                # Fallback if properties aren't cached (shouldn't happen normally)
-                ternary = decimal_to_ternary(key).zfill(self.dimension)
-                tao_count = ternary.count("0")
-
-                radius = (
-                    self.cell_size * 0.25 * (1.0 + 0.5 * tao_count / self.dimension)
-                )
-
-                if tao_count == 0:
-                    color = self.vertex_colors[1]  # Yang/Red
-                elif tao_count == self.dimension:
-                    color = self.vertex_colors[0]  # Tao/Green
+                # Determine radius based on composition
+                base_radius = self.cell_size * 0.25
+                
+                # For 3D vertices, make them larger - especially for "pure" vertices 
+                # that are all Yang, all Yin, or all Tao
+                if key >= 1000 and key < 2000:  # 3D cube vertices
+                    tao_count = ternary.count("0")
+                    yang_count = ternary.count("1")
+                    yin_count = ternary.count("2")
+                    
+                    # For vertices that are all of one type, make them larger
+                    if tao_count == 3 or yang_count == 3 or yin_count == 3:
+                        radius = base_radius * 1.4
+                    else:
+                        radius = base_radius * 1.2
+                # For 4D tesseract vertices, make them even more distinct
+                elif key >= 2000 and key < 3000:  # 4D tesseract vertices
+                    tao_count = ternary.count("0")
+                    yang_count = ternary.count("1")
+                    yin_count = ternary.count("2")
+                    
+                    # For vertices that are all of one type, make them larger
+                    if tao_count == 4 or yang_count == 4 or yin_count == 4:
+                        radius = base_radius * 1.6
+                    else:
+                        radius = base_radius * 1.3
                 else:
-                    tao_ratio = tao_count / self.dimension
-                    red = int(max(0, (1 - tao_ratio) * 200))
-                    green = int(max(0, tao_ratio * 150))
-                    blue = int(max(0, 100 + tao_ratio * 100))
-                    color = QColor(red, green, blue)
-
-            # Create a gradient for the vertex for a 3D effect
-            gradient = QRadialGradient(x, y, radius)
-
-            # Lighter center, original color at edge
-            lighter_color = QColor(color)
-            lighter_color.setRed(min(255, lighter_color.red() + 50))
-            lighter_color.setGreen(min(255, lighter_color.green() + 50))
-            lighter_color.setBlue(min(255, lighter_color.blue() + 50))
-
-            gradient.setColorAt(0.0, lighter_color)
-            gradient.setColorAt(1.0, color)
-
-            # Draw the vertex with gradient fill
+                    radius = base_radius
+                
+                # Scale with zoom factor
+                radius *= self.zoom_factor
+                
+                # Cache the radius
+                self._grid_radii[key] = radius
+            
+            # Draw the vertex with a gradient fill for 3D effect
+            gradient = QRadialGradient(x, y, radius * 1.2)
+            gradient.setColorAt(0, QColor(255, 255, 255))  # White at center
+            gradient.setColorAt(0.7, color)  # Base color
+            gradient.setColorAt(1, color.darker(150))  # Darker at edge
+            
+            # Draw the filled circle
             painter.setBrush(QBrush(gradient))
-            painter.setPen(QPen(Qt.GlobalColor.black, 1))
-            painter.drawEllipse(QPointF(x, y), radius, radius)
-
-            # Add a small highlight for 3D effect
-            highlight_size = radius * 0.3
-            highlight_offset = radius * 0.2
-
-            highlight_gradient = QRadialGradient(
-                x - highlight_offset, y - highlight_offset, highlight_size
-            )
-            highlight_gradient.setColorAt(0.0, QColor(255, 255, 255, 180))
-            highlight_gradient.setColorAt(1.0, QColor(255, 255, 255, 0))
-
-            painter.setBrush(QBrush(highlight_gradient))
             painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(QPointF(x, y), radius, radius)
+            
+            # Draw highlight to enhance 3D effect
+            highlight_size = radius * 0.4
+            highlight_offset = radius * 0.25
+            highlight_color = QColor(255, 255, 255, 180)  # Semi-transparent white
+            
+            painter.setBrush(QBrush(highlight_color))
             painter.drawEllipse(
                 QPointF(x - highlight_offset, y - highlight_offset),
                 highlight_size,
-                highlight_size,
+                highlight_size
             )
+            
+            # Draw a small indicator of the ternary value for 3D cube vertices
+            if key >= 1000 and key < 2000 and radius > 10:  # 3D cube vertices and reasonably sized
+                # For 3D cube, we draw the ternary digits in a triangular formation
+                digit_radius = radius * 0.25
+                
+                ternary_digits = ternary[-3:]  # Take the last three digits for 3D
+                
+                # Draw each ternary digit as a colored circle
+                for idx, digit in enumerate(ternary_digits):
+                    # Position digits in a triangular formation inside the vertex
+                    if idx == 0:  # First digit at top
+                        dx, dy = 0, -digit_radius * 1.5
+                    elif idx == 1:  # Second digit at bottom left
+                        dx, dy = -digit_radius * 1.5, digit_radius * 1.5
+                    else:  # Third digit at bottom right
+                        dx, dy = digit_radius * 1.5, digit_radius * 1.5
+                    
+                    # Color based on the ternary value
+                    if digit == '0':  # Tao
+                        painter.setBrush(QBrush(QColor(0, 180, 0)))
+                    elif digit == '1':  # Yang
+                        painter.setBrush(QBrush(QColor(220, 0, 0)))
+                    else:  # Yin
+                        painter.setBrush(QBrush(QColor(0, 0, 220)))
+                    
+                    # Draw the digit indicator
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.drawEllipse(QPointF(x + dx, y + dy), digit_radius, digit_radius)
+                    
+                    # For larger vertices, add digit labels
+                    if radius > 20:
+                        painter.setPen(QPen(QColor(255, 255, 255)))
+                        font = painter.font()
+                        font.setPointSizeF(digit_radius * 1.2)
+                        painter.setFont(font)
+                        painter.drawText(
+                            QRectF(
+                                x + dx - digit_radius,
+                                y + dy - digit_radius,
+                                digit_radius * 2,
+                                digit_radius * 2
+                            ),
+                            Qt.AlignmentFlag.AlignCenter,
+                            digit
+                        )
+            
+            # Draw a small indicator of the ternary value for 4D tesseract vertices
+            elif key >= 2000 and key < 3000 and radius > 10:  # 4D tesseract vertices and reasonably sized
+                # For 4D tesseract, we draw the ternary digits in a square formation
+                digit_radius = radius * 0.23
+                
+                ternary_digits = ternary[-4:]  # Take the last four digits for 4D
+                
+                # Draw each ternary digit as a colored circle
+                for idx, digit in enumerate(ternary_digits):
+                    # Position digits in a square formation inside the vertex
+                    if idx == 0:  # Top left
+                        dx, dy = -digit_radius * 1.2, -digit_radius * 1.2
+                    elif idx == 1:  # Top right
+                        dx, dy = digit_radius * 1.2, -digit_radius * 1.2
+                    elif idx == 2:  # Bottom left
+                        dx, dy = -digit_radius * 1.2, digit_radius * 1.2
+                    else:  # Bottom right (idx == 3)
+                        dx, dy = digit_radius * 1.2, digit_radius * 1.2
+                    
+                    # Color based on the ternary value
+                    if digit == '0':  # Tao
+                        painter.setBrush(QBrush(QColor(0, 180, 0)))
+                    elif digit == '1':  # Yang
+                        painter.setBrush(QBrush(QColor(220, 0, 0)))
+                    else:  # Yin
+                        painter.setBrush(QBrush(QColor(0, 0, 220)))
+                    
+                    # Draw the digit indicator
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.drawEllipse(QPointF(x + dx, y + dy), digit_radius, digit_radius)
+                    
+                    # For larger vertices, add digit labels
+                    if radius > 20:
+                        painter.setPen(QPen(QColor(255, 255, 255)))
+                        font = painter.font()
+                        font.setPointSizeF(digit_radius * 1.2)
+                        painter.setFont(font)
+                        painter.drawText(
+                            QRectF(
+                                x + dx - digit_radius,
+                                y + dy - digit_radius,
+                                digit_radius * 2,
+                                digit_radius * 2
+                            ),
+                            Qt.AlignmentFlag.AlignCenter,
+                            digit
+                        )
+                        
+            # Skip drawing for performance reasons if dimension is large and we have many positions
+            elif self.dimension > 4 and len(positions) > 100:
+                pass
 
     def _draw_labels(
         self, painter: QPainter, positions: Dict[int, Tuple[float, float]]
     ) -> None:
         """
-        Draw labels for each position in the grid.
+        Draw the labels for each position in the grid.
 
         Args:
             painter: The QPainter to use
             positions: The positions to use for drawing
         """
-        painter.setPen(QPen(Qt.GlobalColor.black))
+        if not self.show_labels:
+            return
 
-        # Calculate the appropriate font size based on dimension and cell size
-        font_size = max(7, min(11, int(self.cell_size / 6.5)))
+        # Ensure _grid_radii is initialized
+        if not hasattr(self, '_grid_radii') or self._grid_radii is None:
+            self._grid_radii = {}
 
-        # Adjust font size for higher dimensions (smaller text for more nodes)
-        if self.dimension >= 4:
-            font_size = max(6, font_size - (self.dimension - 3))
-
-        font = QFont("Arial", font_size, QFont.Weight.Bold)
-        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 98)
-        painter.setFont(font)
-
-        # Track label positions to avoid overlaps
-        label_rects = []
-
-        # Sort keys by decimal value for a consistent drawing order
+        # Initialize list to track drawn label rectangles
+        drawn_rects = []
+        
+        # Access ternary values if available
+        ternary_values = getattr(self, '_ternary_values', {})
+        
+        # Get sorted keys to ensure consistent drawing order
         sorted_keys = sorted(positions.keys())
-
+        
         for key in sorted_keys:
             x, y = positions[key]
-
-            # Get the vertex radius
-            radius = self._grid_radii.get(key, self.cell_size * 0.25)
-
-            ternary = decimal_to_ternary(key).zfill(self.dimension)
-            tao_count = ternary.count("0")
-
-            # Create label text
-            if self.dimension <= 3:
-                # Show both decimal and ternary for 2D and 3D
-                label = f"{key} ({ternary})"
+            
+            # Get ternary representation - either from stored values or calculate it
+            if key in ternary_values:
+                ternary = ternary_values[key]
             else:
-                # Only show decimal for higher dimensions to save space
-                label = f"{key}"
+                ternary = decimal_to_ternary(key).zfill(self.dimension)
+            
+            # Get Tao count for coloring
+            tao_count = ternary.count('0')
+            yang_count = ternary.count('1')
+            yin_count = ternary.count('2')
+            
+            # Create the label text based on dimension and value
+            if self.dimension == 3 and key in ternary_values:
+                # For 3D, only show ternary if available
+                label_text = f"{ternary}"
+            elif self.dimension in [2, 3]:
+                # For 2D and 3D cases, show both decimal and ternary
+                if key >= 1000:  # 3D cube vertex
+                    decimal_value = key - 1000
+                else:
+                    decimal_value = key
+                label_text = f"{decimal_value} ({ternary})"
+            elif self.dimension == 4 and key in ternary_values and key >= 2000:
+                # For 4D tesseract vertices, format differently
+                decimal_value = key - 2000
+                # Display in a compact 2x2 format to show the 4D orientation
+                # First find the binary representation (0-15)
+                binary = format(decimal_value, '04b')
+                label_text = f"{decimal_value}\n{binary}\n{ternary}"
+            else:
+                # For higher dimensions, just show decimal to keep it simple
+                label_text = str(key)
+            
+            # Calculate position - below the vertex
+            label_x = x
+            label_y = y + self.cell_size * self.label_offset_y
 
-            # Adjust label size based on cell size and dimension
-            label_width = max(40, min(120, self.cell_size * 0.9))
-            label_height = max(14, min(30, self.cell_size * 0.25))
-
-            # Position the label - adjust based on Tao count
-            y_offset = radius + self.label_offset_y * self.cell_size
-            text_rect = QRectF(
-                x - label_width / 2, y + y_offset, label_width, label_height
+            # Get width and height for the label background
+            font_metrics = painter.fontMetrics()
+            lines = label_text.split('\n')
+            text_width = max(font_metrics.horizontalAdvance(line) for line in lines)
+            text_height = font_metrics.height() * len(lines)
+            
+            # Add padding around the text
+            padding = 6 if len(lines) > 1 else 4
+            rect_width = text_width + padding * 2
+            rect_height = text_height + padding * 2
+            
+            # Create label rectangle
+            label_rect = QRectF(
+                label_x - rect_width / 2,
+                label_y - padding,
+                rect_width,
+                rect_height
             )
-
-            # Check for overlaps
-            overlap = False
-            for rect in label_rects:
-                if rect.intersects(text_rect):
-                    overlap = True
+            
+            # Check for overlap with previously drawn labels and adjust if needed
+            overlap = True
+            max_adjustments = 10
+            adjustments = 0
+            
+            original_y = label_rect.y()
+            
+            while overlap and adjustments < max_adjustments:
+                overlap = False
+                for rect in drawn_rects:
+                    if label_rect.intersects(rect):
+                        overlap = True
+                        # Move this label down slightly to avoid overlap
+                        label_rect.moveTop(label_rect.y() + rect_height * 0.4)
+                        adjustments += 1
+                        break
+                
+                # Avoid moving too far from the original position
+                if label_rect.y() > original_y + rect_height * 2:
                     break
+            
+            # For 4D vertices, color the label background based on ternary pattern
+            if key >= 2000 and key < 3000 and key in ternary_values:  # 4D tesseract vertex
+                # Blend colors based on Yang/Yin/Tao counts
+                tao_ratio = tao_count / 4
+                yang_ratio = yang_count / 4
+                yin_ratio = yin_count / 4
+                
+                # Create a pastel version of the ternary color blend
+                red = int(180 * yang_ratio + 230 * (1 - yang_ratio))
+                green = int(180 * tao_ratio + 230 * (1 - tao_ratio))
+                blue = int(180 * yin_ratio + 230 * (1 - yin_ratio))
+                
+                bg_color = QColor(red, green, blue, 230)
+                border_color = QColor(min(red-50, 255), min(green-50, 255), min(blue-50, 255), 220)
+            # For 3D vertices, color the label background based on ternary pattern
+            elif key >= 1000 and key < 2000 and key in ternary_values:  # 3D cube vertex
+                # Blend colors based on Yang/Yin/Tao counts
+                tao_ratio = tao_count / 3
+                yang_ratio = yang_count / 3
+                yin_ratio = yin_count / 3
+                
+                # Create a pastel version of the ternary color blend
+                red = int(180 * yang_ratio + 230 * (1 - yang_ratio))
+                green = int(180 * tao_ratio + 230 * (1 - tao_ratio))
+                blue = int(180 * yin_ratio + 230 * (1 - yin_ratio))
+                
+                bg_color = QColor(red, green, blue, 230)
+                border_color = QColor(min(red-50, 255), min(green-50, 255), min(blue-50, 255), 220)
+            else:
+                # Default label styling for other dimensions
+                bg_color = self.label_bg_color
+                border_color = self.label_border_color
 
-            # Only draw if not overlapping
-            if not overlap:
-                # Adjust background color based on Tao count
-                bg_opacity = 180 + min(50, tao_count * 10)
-
-                # Draw with a semi-transparent background for readability
-                painter.fillRect(text_rect, QColor(255, 255, 255, bg_opacity))
-
-                # Add a border, with color indicating Tao count
-                border_color = QColor(
-                    max(50, 130 - tao_count * 20),
-                    min(120, 40 + tao_count * 15),
-                    min(130, 70 + tao_count * 10),
-                    200,
-                )
-                painter.setPen(QPen(border_color, 0.8))
-                painter.drawRect(text_rect)
-
-                # Draw text
-                painter.setPen(QPen(Qt.GlobalColor.black))
-                painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, label)
-
-                # Store label rect to check for future overlaps
-                label_rects.append(text_rect)
+            # Draw label background
+            painter.setBrush(QBrush(bg_color))
+            painter.setPen(QPen(border_color, 1.0))
+            painter.drawRoundedRect(label_rect, 4, 4)
+            
+            # Draw the text
+            painter.setPen(QPen(Qt.GlobalColor.black))
+            if '\n' in label_text:
+                # Multi-line text (for 4D tesseract)
+                y_offset = label_rect.y() + padding
+                for line in lines:
+                    text_rect = QRectF(
+                        label_rect.x(),
+                        y_offset,
+                        label_rect.width(),
+                        font_metrics.height()
+                    )
+                    painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, line)
+                    y_offset += font_metrics.height()
+            else:
+                # Single line text
+                painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, label_text)
+            
+            # Add to the list of drawn rectangles
+            drawn_rects.append(label_rect)
 
     def _highlight_current_ternary(
         self, painter: QPainter, positions: Dict[int, Tuple[float, float]]
@@ -1028,6 +1887,10 @@ class PlanarExpansionVisualizer(QWidget):
 
         # Get the position
         x, y = positions[decimal]
+        
+        # Ensure _grid_radii is initialized
+        if not hasattr(self, '_grid_radii') or self._grid_radii is None:
+            self._grid_radii = {}
         
         # Get the vertex radius
         radius = self._grid_radii.get(decimal, self.cell_size * 0.25)
@@ -1087,64 +1950,55 @@ class PlanarExpansionVisualizer(QWidget):
         self.update()
 
     def zoom_in(self) -> None:
-        """Zoom in by a fixed amount."""
-        self.zoom_factor = min(self.max_zoom, self.zoom_factor * 1.2)
+        """Zoom in on the visualization."""
+        self.zoom_factor = min(self.zoom_factor * 1.2, self.max_zoom)
         self.update()
 
     def zoom_out(self) -> None:
-        """Zoom out by a fixed amount."""
-        self.zoom_factor = max(self.min_zoom, self.zoom_factor / 1.2)
+        """Zoom out of the visualization."""
+        self.zoom_factor = max(self.zoom_factor / 1.2, self.min_zoom)
         self.update()
 
     # Mouse event handlers for pan and zoom
     def mousePressEvent(self, event) -> None:
         """Handle mouse press event for panning."""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.panning = True
-            self.last_mouse_pos = event.position()
+            self.dragging = True
+            self.last_click_position = event.position()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event) -> None:
         """Handle mouse release event for panning."""
         if event.button() == Qt.MouseButton.LeftButton:
-            self.panning = False
+            self.dragging = False
             self.setCursor(Qt.CursorShape.ArrowCursor)
         super().mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
         """Handle mouse move event for panning."""
-        if self.panning and self.last_mouse_pos is not None:
-            delta = event.position() - self.last_mouse_pos
+        if self.dragging and self.last_click_position is not None:
+            delta = event.position() - self.last_click_position
             self.pan_offset_x += delta.x()
             self.pan_offset_y += delta.y()
-            self.last_mouse_pos = event.position()
+            self.last_click_position = event.position()
             self.update()
         super().mouseMoveEvent(event)
 
     def wheelEvent(self, event) -> None:
-        """Handle wheel event for zooming."""
-        # Get mouse position for zoom origin
-        mouse_pos = event.position()
-
-        # Calculate mouse position relative to current pan offset
-        mouse_x = (mouse_pos.x() - self.pan_offset_x) / self.zoom_factor
-        mouse_y = (mouse_pos.y() - self.pan_offset_y) / self.zoom_factor
-
-        # Calculate zoom factor change
-        delta = event.angleDelta().y()
-        zoom_change = 1.1 if delta > 0 else 0.9
-
-        old_zoom = self.zoom_factor
-        self.zoom_factor *= zoom_change
-        self.zoom_factor = max(self.min_zoom, min(self.max_zoom, self.zoom_factor))
-
-        # Adjust pan offset to keep point under mouse stable
-        if old_zoom != self.zoom_factor:
-            self.pan_offset_x = mouse_pos.x() - mouse_x * self.zoom_factor
-            self.pan_offset_y = mouse_pos.y() - mouse_y * self.zoom_factor
-            self.update()
-
+        """Handle mouse wheel events for zooming."""
+        # Delta is typically +/- 120, normalize it
+        delta = event.angleDelta().y() / 120.0
+        
+        # Apply zoom
+        if delta > 0:
+            # Zoom in
+            self.zoom_factor = min(self.zoom_factor * (1.0 + 0.1 * delta), self.max_zoom)
+        else:
+            # Zoom out
+            self.zoom_factor = max(self.zoom_factor / (1.0 - 0.1 * delta), self.min_zoom)
+            
+        self.update()
         super().wheelEvent(event)
 
     def set_x_rotation(self, angle: int) -> None:
@@ -1248,10 +2102,10 @@ class PlanarExpansionVisualizer(QWidget):
         y_offset += 15
 
         # During transitions, show simplified info
-        if self._transitioning:
-            painter.drawText(20, y_offset, "Transitioning between dimensions...")
+        if self._animating:
+            painter.drawText(20, y_offset, "Animating between dimensions...")
             y_offset += 15
-            painter.drawText(20, y_offset, f"Progress: {self._transition_progress:.2f}")
+            painter.drawText(20, y_offset, f"Progress: {self._animation_progress:.2f}")
             y_offset += 15
             if hasattr(self, "_start_dimension"):
                 painter.drawText(
@@ -1297,7 +2151,7 @@ class PlanarExpansionVisualizer(QWidget):
             y_offset += 15
 
         # Only show vertex position data if verbosity > 1
-        if self.debug_verbosity > 1 and not self._transitioning and vertex_count < 30:
+        if self.debug_verbosity > 1 and not self._animating and vertex_count < 30:
             painter.drawText(20, y_offset, "Vertex Positions:")
             y_offset += 15
 
@@ -1314,16 +2168,22 @@ class PlanarExpansionVisualizer(QWidget):
         if not self._grid_positions:
             return
 
+        # For a 3D cube, we don't need to remap - we're already using the correct ternary representation
+        if self.dimension == 3:
+            if self.debug_mode and self.debug_verbosity > 1 and not self._animating:
+                print("Using direct ternary mapping for 3D cube (no remapping needed)")
+            return
+
+        # For other dimensions, use the existing logic
         # Create a new positions dict to hold the ternary mappings
         ternary_positions = {}
         ternary_3d_points = {}
 
         # Determine if we're visualizing pure Yang trigrams (all 1s)
-        # This can be determined from the ternary_value if set or from the explicit flag
         pure_yang_mode = self.pure_yang_mode or (self.ternary_value and all(digit == '1' for digit in self.ternary_value))
         
         # For debugging
-        if self.debug_mode and pure_yang_mode and not self._transitioning:
+        if self.debug_mode and pure_yang_mode and not self._animating:
             print("\nPure Yang Mode detected - mapping all vertices to Yang (1) values")
 
         # For each binary vertex, create a ternary equivalent
@@ -1356,8 +2216,8 @@ class PlanarExpansionVisualizer(QWidget):
 
     def set_debug_mode(self, enable: bool) -> None:
         """
-        Enable or disable debug mode.
-
+        Set the debug mode.
+        
         Args:
             enable: Whether to enable debug mode
         """
@@ -1374,6 +2234,43 @@ class PlanarExpansionVisualizer(QWidget):
         self.debug_verbosity = max(0, min(2, level))  # Clamp between 0-2
         self.update()
 
+    def _calculate_conrune(self, ternary_value: str) -> str:
+        """
+        Calculate the conrune of a ternary value.
+
+        Args:
+            ternary_value: The ternary value to calculate the conrune for
+
+        Returns:
+            The conrune of the ternary value
+        """
+        # Conrune transformation: 1->2, 2->1
+        return ''.join('2' if d == '1' else '1' if d == '2' else '0' for d in ternary_value)
+    
+    def _calculate_transition(self, start_ternary: str, end_ternary: str) -> str:
+        """
+        Calculate the transition between two ternary values.
+
+        Args:
+            start_ternary: The starting ternary value
+            end_ternary: The ending ternary value
+
+        Returns:
+            The transition value
+        """
+        result = []
+        for a, b in zip(start_ternary, end_ternary):
+            if a == b:
+                result.append(a)
+            else:
+                # For transitions, use the transition digit representing the change
+                if (a == '1' and b == '2') or (a == '2' and b == '1'):
+                    result.append('0')  # Transition between Yang and Yin is Tao
+                elif a == '0' or b == '0':
+                    # Tao transitions with Yang or Yin
+                    result.append('1' if b == '2' else '2')
+        return ''.join(result)
+
 
 class PlanarExpansionPanel(QFrame):
     """
@@ -1383,337 +2280,254 @@ class PlanarExpansionPanel(QFrame):
     def __init__(self, parent=None):
         """Initialize the planar expansion panel."""
         super().__init__(parent)
-
-        # Set up the main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(5)  # Reduced spacing from 10 to 5
-
-        # Create title
+        
+        # Set up the layout
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Create a title label
         title_label = QLabel("Planar Expansion Visualizer")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-        main_layout.addWidget(title_label)
-
-        # Create description
-        description = QLabel(
-            "This visualizer shows hypercubes in different dimensions (2D-6D), "
-            "displaying the correct geometric structure with proper vertex mapping."
-        )
-        description.setWordWrap(True)
-        description.setStyleSheet("font-size: 12px;")
-        description.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(description)
-
-        # Create a tab widget to organize controls and save vertical space
-        controls_tab = QTabWidget()
-        controls_tab.setTabPosition(QTabWidget.TabPosition.North)
-        controls_tab.setDocumentMode(True)
-
-        # Tab 1: Basic controls
-        basic_controls = QWidget()
-        basic_layout = QVBoxLayout(basic_controls)
-        basic_layout.setSpacing(3)  # Tight spacing
-
-        # Ternary input
-        input_layout = QHBoxLayout()
-        self.ternary_input = QLineEdit()
-        self.ternary_input.setPlaceholderText("Enter ternary number (e.g. 120)")
-        self.ternary_input.setText("0")
-        self.ternary_input.textChanged.connect(self._validate_input)
-
-        # Display button
-        self.display_button = QPushButton("Visualize")
-        self.display_button.clicked.connect(self._update_visualization)
-
-        input_layout.addWidget(QLabel("Ternary:"))
-        input_layout.addWidget(self.ternary_input)
-        input_layout.addWidget(self.display_button)
-
-        basic_layout.addLayout(input_layout)
-
+        self.main_layout.addWidget(title_label)
+        
+        # Create the visualizer
+        self.visualizer = PlanarExpansionVisualizer(self)
+        
+        # Create a horizontal layout for dimension selection and input
+        self.input_layout = QHBoxLayout()
+        
         # Dimension selector
-        dimension_layout = QHBoxLayout()
-
-        dimension_layout.addWidget(QLabel("Dimension:"))
-
         self.dimension_selector = QComboBox()
-        for dim in range(2, 7):
-            self.dimension_selector.addItem(f"{dim}D", dim)
-        self.dimension_selector.setCurrentIndex(1)  # Default to 3D
+        self.dimension_selector.addItems(["2D (Planar)", "3D (Cube)", "4D (Tesseract)"])
+        self.dimension_selector.setCurrentIndex(1)  # Start with 3D
         self.dimension_selector.currentIndexChanged.connect(self._change_dimension)
-
-        dimension_layout.addWidget(self.dimension_selector)
-        basic_layout.addLayout(dimension_layout)
-
-        # Display options in a horizontal layout to save space
-        options_layout = QHBoxLayout()
-
-        # Checkboxes for display options
-        self.show_labels_checkbox = QPushButton("Show Labels")
-        self.show_labels_checkbox.setCheckable(True)
-        self.show_labels_checkbox.setChecked(True)
-        self.show_labels_checkbox.clicked.connect(self._toggle_labels)
-
-        self.show_tao_lines_checkbox = QPushButton("Show Tao Lines")
-        self.show_tao_lines_checkbox.setCheckable(True)
-        self.show_tao_lines_checkbox.setChecked(True)
-        self.show_tao_lines_checkbox.clicked.connect(self._toggle_tao_lines)
-
-        self.show_grid_checkbox = QPushButton("Show Grid")
-        self.show_grid_checkbox.setCheckable(True)
-        self.show_grid_checkbox.setChecked(True)
-        self.show_grid_checkbox.clicked.connect(self._toggle_grid)
-
-        self.debug_mode_checkbox = QPushButton("Debug Mode")
-        self.debug_mode_checkbox.setCheckable(True)
-        self.debug_mode_checkbox.setChecked(False)
-        self.debug_mode_checkbox.clicked.connect(self._toggle_debug)
-        self.debug_mode_checkbox.setStyleSheet(
-            "QPushButton:checked { background-color: #ffcc66; }"
-        )
-
-        # Add Pure Yang Mode toggle
-        self.pure_yang_mode_checkbox = QPushButton("Pure Yang Mode")
-        self.pure_yang_mode_checkbox.setCheckable(True)
-        self.pure_yang_mode_checkbox.setChecked(False)
-        self.pure_yang_mode_checkbox.clicked.connect(self._toggle_pure_yang_mode)
-        self.pure_yang_mode_checkbox.setStyleSheet(
-            "QPushButton:checked { background-color: #ff8080; }"
-        )
+        self.input_layout.addWidget(QLabel("Dimension:"))
+        self.input_layout.addWidget(self.dimension_selector)
         
-        options_layout.addWidget(self.show_labels_checkbox)
-        options_layout.addWidget(self.show_tao_lines_checkbox)
-        options_layout.addWidget(self.show_grid_checkbox)
-        options_layout.addWidget(self.debug_mode_checkbox)
+        # Ternary input field
+        self.ternary_input = QLineEdit()
+        self.ternary_input.setPlaceholderText("Enter ternary value")
+        self.ternary_input.textChanged.connect(self._validate_input)
+        self.input_layout.addWidget(QLabel("Value:"))
+        self.input_layout.addWidget(self.ternary_input)
         
-        # Add Pure Yang Mode to a second row to avoid crowding
-        yang_mode_layout = QHBoxLayout()
-        yang_mode_layout.addWidget(self.pure_yang_mode_checkbox)
-        yang_mode_layout.addStretch()  # Push the button to the left
+        # Add the input layout to the main layout
+        self.main_layout.addLayout(self.input_layout)
         
-        basic_layout.addLayout(options_layout)
-        basic_layout.addLayout(yang_mode_layout)
-
-        # Add zoom and pan controls
-        zoom_layout = QHBoxLayout()
-
-        # Zoom buttons
-        self.zoom_in_btn = QPushButton("Zoom +")
-        self.zoom_in_btn.setToolTip("Zoom in (or use mouse wheel)")
-        self.zoom_in_btn.clicked.connect(self._zoom_in)
-
-        self.zoom_out_btn = QPushButton("Zoom -")
-        self.zoom_out_btn.setToolTip("Zoom out (or use mouse wheel)")
-        self.zoom_out_btn.clicked.connect(self._zoom_out)
-
-        self.reset_view_btn = QPushButton("Reset View")
-        self.reset_view_btn.setToolTip("Reset zoom and pan to default")
-        self.reset_view_btn.clicked.connect(self._reset_view)
-
-        zoom_layout.addWidget(self.zoom_in_btn)
-        zoom_layout.addWidget(self.zoom_out_btn)
-        zoom_layout.addWidget(self.reset_view_btn)
-
-        basic_layout.addLayout(zoom_layout)
-
-        # Add navigation help text
-        nav_label = QLabel("Drag to pan, mouse wheel to zoom")
-        nav_label.setStyleSheet("font-size: 10px; color: #666;")
-        basic_layout.addWidget(nav_label, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Tab 2: Rotation controls
-        rotation_controls = QWidget()
-        rotation_layout = QVBoxLayout(rotation_controls)
-
-        # 3D Rotation controls
-        self.rotation_group = QFrame()
-        self.rotation_group.setFrameStyle(QFrame.Shape.StyledPanel)
-        self.rotation_group.setStyleSheet(
-            "background-color: #f0f0f8; border-radius: 5px; padding: 5px;"
-        )
-        rotation_inner_layout = QVBoxLayout(self.rotation_group)
-
-        rotation_title = QLabel("3D Rotation Controls")
-        rotation_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        rotation_title.setStyleSheet("font-weight: bold;")
-        rotation_inner_layout.addWidget(rotation_title)
-
+        # Add the visualizer to the main layout
+        self.main_layout.addWidget(self.visualizer)
+        
+        # Create a layout for visualization controls
+        self.controls_layout = QHBoxLayout()
+        
+        # Toggle buttons for various display options
+        self.labels_toggle = QCheckBox("Show Labels")
+        self.labels_toggle.setChecked(True)
+        self.labels_toggle.stateChanged.connect(self._toggle_labels)
+        self.controls_layout.addWidget(self.labels_toggle)
+        
+        self.tao_lines_toggle = QCheckBox("Show Tao Lines")
+        self.tao_lines_toggle.setChecked(True)
+        self.tao_lines_toggle.stateChanged.connect(self._toggle_tao_lines)
+        self.controls_layout.addWidget(self.tao_lines_toggle)
+        
+        self.grid_toggle = QCheckBox("Show Grid")
+        self.grid_toggle.setChecked(True)
+        self.grid_toggle.stateChanged.connect(self._toggle_grid)
+        self.controls_layout.addWidget(self.grid_toggle)
+        
+        self.debug_toggle = QCheckBox("Debug Mode")
+        self.debug_toggle.setChecked(False)
+        self.debug_toggle.stateChanged.connect(self._toggle_debug)
+        self.controls_layout.addWidget(self.debug_toggle)
+        
+        self.pure_yang_toggle = QCheckBox("Pure Yang Mode")
+        self.pure_yang_toggle.setChecked(False)
+        self.pure_yang_toggle.stateChanged.connect(self._toggle_pure_yang_mode)
+        self.controls_layout.addWidget(self.pure_yang_toggle)
+        
+        # Add tesseract style toggle button - only enabled when in 4D mode
+        self.tesseract_style_toggle = QPushButton("Switch 4D Style")
+        self.tesseract_style_toggle.setEnabled(False)  # Disabled until 4D is selected
+        self.tesseract_style_toggle.clicked.connect(self._toggle_tesseract_style)
+        self.controls_layout.addWidget(self.tesseract_style_toggle)
+        
+        # Add the controls layout to the main layout
+        self.main_layout.addLayout(self.controls_layout)
+        
+        # Create a layout for zoom controls
+        self.zoom_layout = QHBoxLayout()
+        
+        # Zoom controls
+        zoom_in_button = QPushButton("+")
+        zoom_in_button.setFixedSize(30, 30)
+        zoom_in_button.clicked.connect(self._zoom_in)
+        self.zoom_layout.addWidget(zoom_in_button)
+        
+        zoom_out_button = QPushButton("-")
+        zoom_out_button.setFixedSize(30, 30)
+        zoom_out_button.clicked.connect(self._zoom_out)
+        self.zoom_layout.addWidget(zoom_out_button)
+        
+        reset_button = QPushButton("Reset View")
+        reset_button.clicked.connect(self._reset_view)
+        self.zoom_layout.addWidget(reset_button)
+        
+        # Add the zoom layout to the main layout
+        self.main_layout.addLayout(self.zoom_layout)
+        
+        # Create a layout for rotation controls (only active for 3D and 4D)
+        self.rotation_layout = QGridLayout()
+        
         # X rotation
-        x_rotation_layout = QHBoxLayout()
-        x_rotation_layout.addWidget(QLabel("X:"))
+        self.rotation_layout.addWidget(QLabel("X Rotation:"), 0, 0)
         self.x_rotation_slider = QSlider(Qt.Orientation.Horizontal)
         self.x_rotation_slider.setRange(0, 360)
         self.x_rotation_slider.setValue(30)
-        self.x_rotation_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.x_rotation_slider.setTickInterval(45)
         self.x_rotation_slider.valueChanged.connect(self._x_rotation_changed)
-        x_rotation_layout.addWidget(self.x_rotation_slider)
-        self.x_rotation_value = QLabel("30°")
-        x_rotation_layout.addWidget(
-            self.x_rotation_value, 0, Qt.AlignmentFlag.AlignRight
-        )
-        rotation_inner_layout.addLayout(x_rotation_layout)
-
+        self.rotation_layout.addWidget(self.x_rotation_slider, 0, 1)
+        
         # Y rotation
-        y_rotation_layout = QHBoxLayout()
-        y_rotation_layout.addWidget(QLabel("Y:"))
+        self.rotation_layout.addWidget(QLabel("Y Rotation:"), 1, 0)
         self.y_rotation_slider = QSlider(Qt.Orientation.Horizontal)
         self.y_rotation_slider.setRange(0, 360)
         self.y_rotation_slider.setValue(30)
-        self.y_rotation_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.y_rotation_slider.setTickInterval(45)
         self.y_rotation_slider.valueChanged.connect(self._y_rotation_changed)
-        y_rotation_layout.addWidget(self.y_rotation_slider)
-        self.y_rotation_value = QLabel("30°")
-        y_rotation_layout.addWidget(
-            self.y_rotation_value, 0, Qt.AlignmentFlag.AlignRight
-        )
-        rotation_inner_layout.addLayout(y_rotation_layout)
-
+        self.rotation_layout.addWidget(self.y_rotation_slider, 1, 1)
+        
         # Z rotation
-        z_rotation_layout = QHBoxLayout()
-        z_rotation_layout.addWidget(QLabel("Z:"))
+        self.rotation_layout.addWidget(QLabel("Z Rotation:"), 2, 0)
         self.z_rotation_slider = QSlider(Qt.Orientation.Horizontal)
         self.z_rotation_slider.setRange(0, 360)
         self.z_rotation_slider.setValue(0)
-        self.z_rotation_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.z_rotation_slider.setTickInterval(45)
         self.z_rotation_slider.valueChanged.connect(self._z_rotation_changed)
-        z_rotation_layout.addWidget(self.z_rotation_slider)
-        self.z_rotation_value = QLabel("0°")
-        z_rotation_layout.addWidget(
-            self.z_rotation_value, 0, Qt.AlignmentFlag.AlignRight
-        )
-        rotation_inner_layout.addLayout(z_rotation_layout)
-
+        self.rotation_layout.addWidget(self.z_rotation_slider, 2, 1)
+        
         # Reset rotation button
-        reset_rotation_btn = QPushButton("Reset Rotation")
-        reset_rotation_btn.clicked.connect(self._reset_rotation)
-        rotation_inner_layout.addWidget(
-            reset_rotation_btn, 0, Qt.AlignmentFlag.AlignCenter
-        )
-
-        rotation_layout.addWidget(self.rotation_group)
-
-        # Add tabs to tab widget
-        controls_tab.addTab(basic_controls, "Basic Controls")
-        controls_tab.addTab(rotation_controls, "Rotation")
-
-        # Add the tab widget to main layout
-        main_layout.addWidget(controls_tab)
-
-        # Create visualizer in a scroll area
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setMinimumHeight(650)  # Increased from 500 to 650
-        scroll_area.setMinimumWidth(600)  # Set minimum width
-
-        # Create container widget with layout to center the visualizer
-        container = QWidget()
-        container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Create the visualizer widget
-        self.visualizer = PlanarExpansionVisualizer()
-        self.visualizer.setMinimumSize(580, 580)  # Increased from 500x500 to 580x580
-        container_layout.addWidget(self.visualizer)
-
-        # Set the container as the scroll area widget
-        scroll_area.setWidget(container)
-
-        main_layout.addWidget(scroll_area, 1)  # Give it a stretch factor of 1
-
-        # Set frame style
-        self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
-        self.setStyleSheet("QFrame { background-color: #f5f5f5; border-radius: 5px; }")
-
-        # Force initial visualization update after a short delay to ensure proper sizing
-        QTimer.singleShot(100, self._update_visualization)
+        reset_rotation_button = QPushButton("Reset Rotation")
+        reset_rotation_button.clicked.connect(self._reset_rotation)
+        self.rotation_layout.addWidget(reset_rotation_button, 3, 0, 1, 2)
+        
+        # Add the rotation layout to the main layout
+        self.main_layout.addLayout(self.rotation_layout)
+        
+        # Initialize any other attributes that might be used elsewhere
+        self.pan_offset_x = 0
+        self.pan_offset_y = 0
+        
+        # Set the initial dimension
+        self._change_dimension(1)  # 3D cube
 
     def _validate_input(self) -> None:
         """Validate the ternary input and update UI accordingly."""
-        text = self.ternary_input.text()
-        valid = all(digit in "012" for digit in text) if text else True
-
-        if valid:
+        # Get the current text
+        text = self.ternary_input.text().strip()
+        
+        # If the text is empty, clear any error styling and return
+        if not text:
             self.ternary_input.setStyleSheet("")
-            self.display_button.setEnabled(True)
+            return
+            
+        # Get the current dimension
+        dimension = self.dimension_selector.currentIndex() + 2  # 0->2D, 1->3D, 2->4D
+        
+        # Check if the text contains only valid ternary digits (0, 1, 2)
+        is_valid = all(c in "012" for c in text)
+        
+        # Apply appropriate styling
+        if is_valid:
+            # Valid input - clear error styling
+            self.ternary_input.setStyleSheet("")
+            
+            # Auto-update visualization when input is valid
+            self._update_visualization()
         else:
-            self.ternary_input.setStyleSheet("background-color: #ffdddd;")
-            self.display_button.setEnabled(False)
+            # Invalid input - apply error styling
+            self.ternary_input.setStyleSheet("background-color: #ffcccc;")
+            
+        # Optionally truncate if longer than the current dimension
+        if len(text) > dimension:
+            self.ternary_input.setText(text[:dimension])
 
     def _update_visualization(self) -> None:
-        """Update the visualizer with the current input value."""
-        text = self.ternary_input.text()
-        if text and all(digit in "012" for digit in text):
-            self.visualizer.set_ternary(text)
+        """Update the visualization based on current input values."""
+        # Get the ternary value from the input field
+        ternary_value = self.ternary_input.text().strip()
+        
+        # Only update if we have a valid ternary value
+        if ternary_value:
+            # Update the visualizer
+            self.visualizer.set_ternary(ternary_value)
+        
+        # Force a repaint
+        self.visualizer.update()
 
     def _change_dimension(self, index):
-        """Change the dimension of the visualization."""
-        dimension = self.dimension_selector.currentData()
-
-        # Show rotation controls for all dimensions, not just 3D
-        self.rotation_group.setVisible(True)
-
-        # Update title of rotation group based on dimension
-        rotation_title = self.rotation_group.findChild(QLabel)
-        if rotation_title:
-            rotation_title.setText(f"{dimension}D Rotation Controls")
-
-        # Update ternary input length hint
-        self.ternary_input.setPlaceholderText(
-            f"Enter ternary number (e.g. {'0' * dimension})"
-        )
-
-        # Ensure ternary input has the right length
-        current_text = self.ternary_input.text()
-        if len(current_text) > dimension:
-            self.ternary_input.setText(current_text[:dimension])
-
-        # Update visualizer
+        """Handle dimension change from the combo box."""
+        # Map index to dimension
+        dimension = index + 2  # 0->2D, 1->3D, 2->4D
+        
+        # Update the visualizer
         self.visualizer.set_dimension(dimension)
+        
+        # Enable/disable rotation controls based on dimension
+        rotation_enabled = dimension > 2
+        if hasattr(self, 'rotation_layout'):
+            for i in range(self.rotation_layout.rowCount()):
+                for j in range(self.rotation_layout.columnCount()):
+                    item = self.rotation_layout.itemAtPosition(i, j)
+                    if item and item.widget():
+                        item.widget().setEnabled(rotation_enabled)
+        
+        # Enable/disable tesseract style toggle based on dimension
+        if hasattr(self, 'tesseract_style_toggle'):
+            self.tesseract_style_toggle.setEnabled(dimension == 4)
+            
+            # Update the button text based on current style
+            if dimension == 4:
+                if hasattr(self.visualizer, 'cube_within_cube_style') and self.visualizer.cube_within_cube_style:
+                    self.tesseract_style_toggle.setText("Switch to 4D Projection")
+                else:
+                    self.tesseract_style_toggle.setText("Switch to Cube-in-Cube")
 
     def _toggle_labels(self) -> None:
         """Toggle the display of labels."""
-        show = self.show_labels_checkbox.isChecked()
+        show = self.labels_toggle.isChecked()
         self.visualizer.toggle_labels(show)
 
     def _toggle_tao_lines(self) -> None:
         """Toggle the display of Tao lines."""
-        show = self.show_tao_lines_checkbox.isChecked()
+        show = self.tao_lines_toggle.isChecked()
         self.visualizer.toggle_tao_lines(show)
 
     def _toggle_grid(self) -> None:
         """Toggle the display of the grid."""
-        show = self.show_grid_checkbox.isChecked()
+        show = self.grid_toggle.isChecked()
         self.visualizer.toggle_grid(show)
 
     def _toggle_debug(self) -> None:
         """Toggle the debug information display."""
-        enabled = self.debug_mode_checkbox.isChecked()
+        enabled = self.debug_toggle.isChecked()
         self.visualizer.toggle_debug_mode(enabled)
 
         # Update button appearance
         if enabled:
-            self.debug_mode_checkbox.setText("Debug Mode (ON)")
+            self.debug_toggle.setText("Debug Mode (ON)")
         else:
-            self.debug_mode_checkbox.setText("Debug Mode")
+            self.debug_toggle.setText("Debug Mode")
 
     def _toggle_pure_yang_mode(self) -> None:
         """Toggle pure Yang mode."""
-        enabled = self.pure_yang_mode_checkbox.isChecked()
+        enabled = self.pure_yang_toggle.isChecked()
         self.visualizer.toggle_pure_yang_mode(enabled)
 
         # Update button appearance
         if enabled:
-            self.pure_yang_mode_checkbox.setText("Pure Yang Mode (ON)")
-            self.pure_yang_mode_checkbox.setToolTip("All vertices shown as Yang (red)")
+            self.pure_yang_toggle.setText("Pure Yang Mode (ON)")
+            self.pure_yang_toggle.setToolTip("All vertices shown as Yang (red)")
         else:
-            self.pure_yang_mode_checkbox.setText("Pure Yang Mode")
-            self.pure_yang_mode_checkbox.setToolTip("Show normal ternary coloring")
+            self.pure_yang_toggle.setText("Pure Yang Mode")
+            self.pure_yang_toggle.setToolTip("Show normal ternary coloring")
 
     # Add methods to handle zoom and pan buttons
     def _zoom_in(self) -> None:
@@ -1725,33 +2539,77 @@ class PlanarExpansionPanel(QFrame):
         self.visualizer.zoom_out()
 
     def _reset_view(self) -> None:
-        """Reset the view to default zoom and pan."""
+        """Reset the view to the default settings."""
         self.visualizer.reset_view()
 
     def _x_rotation_changed(self, value):
-        """Handle X rotation slider change."""
-        self.x_rotation_value.setText(f"{value}°")
+        """Handle changes to the X rotation slider."""
         self.visualizer.set_x_rotation(value)
+        # Update display label if exists
+        if hasattr(self, 'x_rotation_value'):
+            self.x_rotation_value.setText(f"{value}°")
 
     def _y_rotation_changed(self, value):
-        """Handle Y rotation slider change."""
-        self.y_rotation_value.setText(f"{value}°")
+        """Handle changes to the Y rotation slider."""
         self.visualizer.set_y_rotation(value)
+        # Update display label if exists
+        if hasattr(self, 'y_rotation_value'):
+            self.y_rotation_value.setText(f"{value}°")
 
     def _z_rotation_changed(self, value):
-        """Handle Z rotation slider change."""
-        self.z_rotation_value.setText(f"{value}°")
+        """Handle changes to the Z rotation slider."""
         self.visualizer.set_z_rotation(value)
+        # Update display label if exists
+        if hasattr(self, 'z_rotation_value'):
+            self.z_rotation_value.setText(f"{value}°")
 
     def _reset_rotation(self):
-        """Reset all rotation angles to default values."""
+        """Reset all rotation angles to their default values."""
         self.x_rotation_slider.setValue(30)
         self.y_rotation_slider.setValue(30)
         self.z_rotation_slider.setValue(0)
-
         self.visualizer.set_x_rotation(30)
         self.visualizer.set_y_rotation(30)
         self.visualizer.set_z_rotation(0)
+
+    def _toggle_tesseract_style(self) -> None:
+        """Toggle the tesseract visualization style between cube-within-cube and 4D projection."""
+        if hasattr(self.visualizer, 'toggle_tesseract_style'):
+            self.visualizer.toggle_tesseract_style()
+            
+            # Update button text to reflect current style
+            if hasattr(self.visualizer, 'cube_within_cube_style') and self.visualizer.cube_within_cube_style:
+                self.tesseract_style_toggle.setText("Switch to 4D Projection")
+            else:
+                self.tesseract_style_toggle.setText("Switch to Cube-in-Cube")
+                
+    def _change_dimension(self, index):
+        """Handle dimension change from the combo box."""
+        # Map index to dimension
+        dimension = index + 2  # 0->2D, 1->3D, 2->4D
+        
+        # Update the visualizer
+        self.visualizer.set_dimension(dimension)
+        
+        # Enable/disable rotation controls based on dimension
+        rotation_enabled = dimension > 2
+        if hasattr(self, 'rotation_layout'):
+            for i in range(self.rotation_layout.rowCount()):
+                for j in range(self.rotation_layout.columnCount()):
+                    item = self.rotation_layout.itemAtPosition(i, j)
+                    if item and item.widget():
+                        item.widget().setEnabled(rotation_enabled)
+        
+        # Enable/disable tesseract style toggle based on dimension
+        if hasattr(self, 'tesseract_style_toggle'):
+            self.tesseract_style_toggle.setEnabled(dimension == 4)
+            
+            # Update the button text based on current style
+            if dimension == 4:
+                if hasattr(self.visualizer, 'cube_within_cube_style') and self.visualizer.cube_within_cube_style:
+                    self.tesseract_style_toggle.setText("Switch to 4D Projection")
+                else:
+                    self.tesseract_style_toggle.setText("Switch to Cube-in-Cube")
 
 
 # Testing code
@@ -1762,6 +2620,6 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     panel = PlanarExpansionPanel()
-    panel.resize(800, 600)
+    panel.resize(900, 1000)  # Increased from 800x600 to 900x1000
     panel.show()
     sys.exit(app.exec())

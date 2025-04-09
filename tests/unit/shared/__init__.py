@@ -1,1 +1,1 @@
-"""Shared module tests.""" 
+"""Shared module tests."""

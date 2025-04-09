@@ -7,6 +7,4 @@ from typing import List
 
 from .gematria_window import GematriaWindow
 
-__all__: List[str] = [
-    'GematriaWindow'
-] 
+__all__: List[str] = ["GematriaWindow"]

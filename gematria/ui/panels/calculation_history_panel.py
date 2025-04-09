@@ -40,6 +40,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSplitter,
@@ -56,6 +57,13 @@ from shared.services.service_locator import ServiceLocator
 from shared.services.tag_service import TagService
 from shared.ui.widgets.common_widgets import CollapsibleBox, ColorSquare
 from shared.ui.widgets.panel import Panel
+
+# Import the TQ analysis service for sending numbers to Quadset Analysis
+try:
+    from tq.services import tq_analysis_service
+    TQ_AVAILABLE = True
+except ImportError:
+    TQ_AVAILABLE = False
 
 
 class TagWidget(QWidget):
@@ -174,15 +182,19 @@ class CalculationListItem(QWidget):
         # Get the formatted method name using the parent panel's helper method
         method_name = "Unknown"
         if hasattr(parent, "format_calculation_type") and parent.format_calculation_type:
-            method_name = parent.format_calculation_type(calculation.calculation_type)
-        else:
-            # Fallback method formatting if parent doesn't have the helper method
-            if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
-                method_name = calculation.custom_method_name
-            elif hasattr(calculation.calculation_type, "name"):
-                method_name = calculation.calculation_type.name.replace("_", " ").title()
-            elif isinstance(calculation.calculation_type, str):
-                method_name = calculation.calculation_type.replace("_", " ").title()
+            try:
+                method_name = parent.format_calculation_type(calculation.calculation_type)
+            except Exception:
+                # Fallback in case of any errors with the parent's method
+                pass
+                
+        # Fallback method formatting if parent doesn't have the helper method
+        if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
+            method_name = calculation.custom_method_name
+        elif hasattr(calculation.calculation_type, "name"):
+            method_name = calculation.calculation_type.name.replace("_", " ").title()
+        elif isinstance(calculation.calculation_type, str):
+            method_name = calculation.calculation_type.replace("_", " ").title()
 
         method = QLabel(f"<b>Method:</b> {method_name}")
         bottom_row.addWidget(method)
@@ -384,7 +396,7 @@ class CalculationDetailWidget(QWidget):
         # Try to use the parent panel's formatting method if available
         if hasattr(self.parent(), "format_calculation_type"):
             try:
-                return self.parent().format_calculation_type(calculation.calculation_type)
+                method_name = self.parent().format_calculation_type(calculation.calculation_type)
             except Exception:
                 # Fallback in case of any errors with the parent's method
                 pass
@@ -396,19 +408,11 @@ class CalculationDetailWidget(QWidget):
         try:
             # Custom method name takes precedence if it exists
             if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
-                return calculation.custom_method_name
-
-            # Next, check calculation_type
-            if hasattr(calculation, "calculation_type"):
-                calc_type = calculation.calculation_type
-
-                # Handle enum type with name attribute
-                if hasattr(calc_type, "name"):
-                    return calc_type.name.replace("_", " ").title()
-
-                # Handle string type
-                if isinstance(calc_type, str):
-                    return calc_type.replace("_", " ").title()
+                method_name = calculation.custom_method_name
+            elif hasattr(calculation.calculation_type, "name"):
+                method_name = calculation.calculation_type.name.replace("_", " ").title()
+            elif isinstance(calculation.calculation_type, str):
+                method_name = calculation.calculation_type.replace("_", " ").title()
         except AttributeError:
             # Handle any attribute access errors
             pass
@@ -711,6 +715,10 @@ class CalculationHistoryPanel(Panel):
         self.calculation_list.setAlternatingRowColors(True)
         self.calculation_list.currentItemChanged.connect(self._on_calculation_selected)
         self.calculation_list.itemDoubleClicked.connect(self._on_calculation_details)
+        
+        # Add context menu to calculation list
+        self.calculation_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.calculation_list.customContextMenuRequested.connect(self._show_context_menu)
 
         # Details panel
         self.details_panel = QWidget()
@@ -1013,3 +1021,104 @@ class CalculationHistoryPanel(Panel):
                 
         except Exception as e:
             logger.error(f"Error loading calculations: {e}")
+
+    def _show_context_menu(self, position):
+        """Show context menu for calculation list item.
+
+        Args:
+            position: Position where menu should be shown
+        """
+        # Get the item at the position
+        item = self.calculation_list.itemAt(position)
+        if not item:
+            return
+            
+        # Create context menu
+        menu = QMenu(self)
+        
+        # Get calculation data
+        calc_id = item.data(Qt.ItemDataRole.UserRole)
+        calculation = self.calculation_service.get_calculation(calc_id)
+        if not calculation:
+            return
+
+        # Add menu items
+        view_action = menu.addAction("View Details")
+        view_action.triggered.connect(lambda: self._on_calculation_details(item))
+        
+        delete_action = menu.addAction("Delete")
+        delete_action.triggered.connect(lambda: self._on_delete_specific_calculation(calc_id))
+        
+        # Add "Send to Quadset Analysis" option if TQ is available
+        if TQ_AVAILABLE:
+            # Check if the calculation result is a valid integer
+            can_send_to_tq = False
+            try:
+                int(calculation.result_value)
+                can_send_to_tq = True
+            except (ValueError, TypeError):
+                pass
+                
+            tq_action = menu.addAction("Send to Quadset Analysis")
+            tq_action.setEnabled(can_send_to_tq)
+            if can_send_to_tq:
+                tq_action.triggered.connect(lambda: self._send_to_quadset_analysis(calculation))
+            else:
+                tq_action.setToolTip("Only integer values can be sent to Quadset Analysis")
+        
+        # Show menu at the requested position
+        menu.exec(self.calculation_list.viewport().mapToGlobal(position))
+        
+    def _on_delete_specific_calculation(self, calc_id):
+        """Delete a specific calculation by ID.
+
+        Args:
+            calc_id: ID of the calculation to delete
+        """
+        calculation = self.calculation_service.get_calculation(calc_id)
+        if not calculation:
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete this calculation?\n\n{calculation.input_text}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        
+        if confirm == QMessageBox.StandardButton.Yes:
+            try:
+                self.calculation_service.delete_calculation(calc_id)
+                self._on_refresh()  # Reload the list after deletion
+            except Exception as e:
+                logger.error(f"Error deleting calculation: {e}")
+                
+    def _send_to_quadset_analysis(self, calculation):
+        """Send calculation result to TQ Quadset Analysis.
+
+        Args:
+            calculation: The calculation to send to Quadset Analysis
+        """
+        if not calculation or not TQ_AVAILABLE:
+            return
+            
+        try:
+            # Convert the result to an integer
+            value = int(calculation.result_value)
+            
+            # Open the TQ Grid with this number
+            tq_analysis_service.get_instance().open_quadset_analysis(value)
+            
+        except (ValueError, TypeError):
+            QMessageBox.warning(
+                self,
+                "Invalid Value",
+                "Only integer values can be sent to Quadset Analysis."
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred while opening Quadset Analysis: {str(e)}"
+            )

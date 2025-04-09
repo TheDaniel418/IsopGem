@@ -12,11 +12,11 @@ from gematria.ui.dialogs.tag_selection_dialog import TagSelectionDialog
 from gematria.ui.dialogs.edit_tags_window import EditTagsWindow
 
 __all__ = [
-    "WordAbacusWindow", 
+    "WordAbacusWindow",
     "WordAbacusWidget",
     "CalculationHistoryPanel",
     "TagManagementPanel",
     "SaveCalculationDialog",
     "TagSelectionDialog",
-    "EditTagsWindow"
+    "EditTagsWindow",
 ]

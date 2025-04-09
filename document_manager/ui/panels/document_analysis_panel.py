@@ -52,6 +52,13 @@ from gematria.services.gematria_service import GematriaService
 from shared.ui.components.message_box import MessageBox
 from shared.ui.widgets.panel import Panel
 
+# Import the TQ analysis service for sending numbers to Quadset Analysis
+try:
+    from tq.services import tq_analysis_service
+    TQ_AVAILABLE = True
+except ImportError:
+    TQ_AVAILABLE = False
+
 
 class DocumentAnalysisPanel(Panel):
     """Panel for analyzing documents from a gematric perspective."""
@@ -886,9 +893,31 @@ class DocumentAnalysisPanel(Panel):
                     lambda: self._save_to_database(selected_text, value)
                 )
                 menu.addAction(save_action)
+                
+                # Add action to send to Quadset Analysis if TQ is available and value is an integer
+                if TQ_AVAILABLE:
+                    # Only add the option if the value is a valid integer
+                    # (should always be the case with gematria values, but check to be safe)
+                    try:
+                        int_value = int(value)
+                        tq_action = QAction(f"Send {int_value} to Quadset Analysis", self)
+                        tq_action.triggered.connect(lambda: self._send_to_quadset_analysis(int_value))
+                        menu.addAction(tq_action)
+                    except (ValueError, TypeError):
+                        pass
 
             except Exception:
                 pass
+                
+            # Check if the selection is a pure number that can be sent to Quadset Analysis
+            if TQ_AVAILABLE and selected_text.strip().isdigit():
+                try:
+                    int_value = int(selected_text.strip())
+                    tq_action = QAction(f"Send {int_value} to Quadset Analysis", self)
+                    tq_action.triggered.connect(lambda: self._send_to_quadset_analysis(int_value))
+                    menu.addAction(tq_action)
+                except (ValueError, TypeError):
+                    pass
 
             # Add separator
             menu.addSeparator()
@@ -1013,3 +1042,29 @@ class DocumentAnalysisPanel(Panel):
                     )
             except Exception as e:
                 MessageBox.error(self, "Error", f"An error occurred: {str(e)}")
+
+    def _send_to_quadset_analysis(self, value: int) -> None:
+        """Send a value to the TQ Quadset Analysis tool.
+        
+        Args:
+            value: Integer value to analyze in the TQ Grid
+        """
+        if not TQ_AVAILABLE:
+            MessageBox.warning(
+                self,
+                "Feature Unavailable",
+                "The TQ module is not available in this installation."
+            )
+            return
+            
+        try:
+            # Open the TQ Grid with this number
+            tq_analysis_service.get_instance().open_quadset_analysis(value)
+            
+        except Exception as e:
+            logger.error(f"Error opening quadset analysis: {e}")
+            MessageBox.error(
+                self,
+                "Error",
+                f"An error occurred while opening Quadset Analysis: {str(e)}"
+            )

@@ -1,0 +1,11 @@
+"""
+UI panels for the document manager pillar.
+
+This module provides panel classes for document management UI.
+"""
+
+from document_manager.ui.panels.document_browser_panel import DocumentBrowserPanel
+from document_manager.ui.panels.document_analysis_panel import DocumentAnalysisPanel
+from document_manager.ui.panels.document_manager_panel import DocumentManagerPanel
+
+__all__ = ["DocumentBrowserPanel", "DocumentAnalysisPanel", "DocumentManagerPanel"]

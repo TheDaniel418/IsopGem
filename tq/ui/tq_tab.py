@@ -26,7 +26,11 @@ from PyQt6.QtWidgets import (
 from shared.ui.window_management import TabManager, WindowManager
 from tq.services import tq_analysis_service
 from tq.ui.widgets.ternary_visualizer import TernaryVisualizerPanel
-from tq.ui.widgets.planar_expansion_visualizer import PlanarExpansionPanel
+from tq.ui.widgets.planar_expansion_visualizer import PlanarExpansionVisualizer
+from tq.ui.panels.cosmic_force_panel import CosmicForceAnalysisPanel
+from tq.ui.panels.tq_grid_panel import TQGridPanel
+from tq.ui.panels.number_properties_panel import NumberPropertiesPanel
+from tq.ui.panels.pair_finder_panel import PairFinderPanel
 
 
 class TernaryDigit:
@@ -373,7 +377,7 @@ class TQTab(QWidget):
         # Elemental Analysis button
         elemental_btn = QPushButton("Elemental Analysis")
         elemental_btn.setToolTip("Analyze elemental components")
-        # elemental_btn.clicked.connect(lambda: self._open_elemental_analysis())
+        elemental_btn.clicked.connect(self._open_cosmic_force_analysis)
         button_layout.addWidget(elemental_btn)
 
         # Chart Creator button
@@ -387,6 +391,24 @@ class TQTab(QWidget):
         visualizer_btn.setToolTip("Visualize and transform ternary numbers")
         visualizer_btn.clicked.connect(self._open_ternary_visualizer)
         button_layout.addWidget(visualizer_btn)
+
+        # Ternary Transition button
+        transition_btn = QPushButton("Ternary Transition")
+        transition_btn.setToolTip("Calculate transitions between ternary numbers")
+        transition_btn.clicked.connect(self._open_ternary_transition)
+        button_layout.addWidget(transition_btn)
+
+        # Series Transition button
+        series_btn = QPushButton("Series Transition")
+        series_btn.setToolTip("Calculate transitions between series of numbers")
+        series_btn.clicked.connect(self._open_series_transition)
+        button_layout.addWidget(series_btn)
+
+        # Pair Finder button
+        pair_finder_btn = QPushButton("Pair Finder")
+        pair_finder_btn.setToolTip("Find pairs of numbers with specific properties")
+        pair_finder_btn.clicked.connect(self._open_pair_finder)
+        button_layout.addWidget(pair_finder_btn)
 
         # Add stretch to push buttons to the left
         button_layout.addStretch()
@@ -561,10 +583,52 @@ class TQTab(QWidget):
 
     def _open_planar_expansion(self) -> None:
         """Open the planar expansion visualizer panel in a new window."""
-        planar_panel = PlanarExpansionPanel()
+        planar_panel = PlanarExpansionVisualizer()
         self.window_manager.open_window(
             "planar_expansion",
             planar_panel,
             "Planar Expansion Visualizer",
+            (800, 600),
+        )
+        
+    def _open_ternary_transition(self) -> None:
+        """Open the ternary transition calculator in a new window."""
+        from tq.ui.dialogs.ternary_transition_window import TernaryTransitionWindow
+        transition_window = TernaryTransitionWindow(window_manager=self.window_manager)
+        self.window_manager.open_window(
+            "ternary_transition",
+            transition_window,
+            "Ternary Transition Calculator",
+            (800, 600),
+        )
+
+    def _open_cosmic_force_analysis(self) -> None:
+        """Open the Cosmic Force Analysis panel in a new window."""
+        cosmic_panel = CosmicForceAnalysisPanel()
+        self.window_manager.open_window(
+            "cosmic_force_analysis",
+            cosmic_panel,
+            "Cosmic Force Analysis",
+            (900, 700),
+        )
+
+    def _open_series_transition(self) -> None:
+        """Open the series transition calculator in a new window."""
+        from tq.ui.dialogs.series_transition_window import SeriesTransitionWindow
+        series_window = SeriesTransitionWindow(self)
+        self.window_manager.open_window(
+            "series_transition",
+            series_window,
+            "Series Transition Analysis",
+            (800, 600),
+        )
+
+    def _open_pair_finder(self) -> None:
+        """Open the Pair Finder panel in a new window."""
+        pair_finder_panel = PairFinderPanel()
+        self.window_manager.open_window(
+            "pair_finder",
+            pair_finder_panel,
+            "TQ Pair Finder",
             (800, 600),
         )
