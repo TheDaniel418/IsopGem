@@ -7,16 +7,16 @@ It provides convenient access to utility functions throughout the TQ pillar.
 
 from tq.utils.ternary_converter import (
     decimal_to_ternary,
-    ternary_to_decimal,
     format_ternary,
+    get_ternary_digit_positions,
     split_ternary_digits,
-    get_ternary_digit_positions
+    ternary_to_decimal,
 )
 
 __all__ = [
-    'decimal_to_ternary',
-    'ternary_to_decimal',
-    'format_ternary',
-    'split_ternary_digits',
-    'get_ternary_digit_positions'
+    "decimal_to_ternary",
+    "ternary_to_decimal",
+    "format_ternary",
+    "split_ternary_digits",
+    "get_ternary_digit_positions",
 ]

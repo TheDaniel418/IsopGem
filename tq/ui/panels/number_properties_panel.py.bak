@@ -56,7 +56,7 @@ class PropertySection(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 10)
         self.layout.setSpacing(4)
-        
+
         # Create header
         header = QLabel(title)
         header.setStyleSheet("""
@@ -69,23 +69,23 @@ class PropertySection(QWidget):
             }
         """)
         self.layout.addWidget(header)
-        
+
         # Create grid for properties
         self.grid = QGridLayout()
         self.grid.setContentsMargins(8, 8, 8, 8)
         self.grid.setSpacing(8)
         self.layout.addLayout(self.grid)
-        
+
         self.row = 0
-    
+
     def add_property(self, name: str, value: str) -> None:
         """Add a property to the section."""
         name_label = QLabel(f"{name}:")
         name_label.setStyleSheet("font-weight: 500;")
-        
+
         value_label = QLabel(str(value))
         value_label.setWordWrap(True)
-        
+
         self.grid.addWidget(name_label, self.row, 0)
         self.grid.addWidget(value_label, self.row, 1)
         self.row += 1
@@ -93,15 +93,15 @@ class PropertySection(QWidget):
 
 class PropertiesTab(QWidget):
     """Tab showing properties for a single number."""
-    
+
     def __init__(self):
         super().__init__()
-        
+
         # Create main layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        
+
         # Create scroll area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -113,31 +113,31 @@ class PropertiesTab(QWidget):
             }
         """)
         self.layout.addWidget(scroll)
-        
+
         # Create container for sections
         container = QWidget()
         self.sections_layout = QVBoxLayout(container)
         self.sections_layout.setContentsMargins(16, 16, 16, 16)
         self.sections_layout.setSpacing(16)
         scroll.setWidget(container)
-        
+
         # Create sections
         self.prime = PropertySection("Prime Properties")
         self.factors = PropertySection("Factors")
         self.polygonal = PropertySection("Polygonal Numbers")
         self.centered = PropertySection("Centered Polygonal Numbers")
         self.special = PropertySection("Special Properties")
-        
+
         # Add sections to layout
         self.sections_layout.addWidget(self.prime)
         self.sections_layout.addWidget(self.factors)
         self.sections_layout.addWidget(self.polygonal)
         self.sections_layout.addWidget(self.centered)
         self.sections_layout.addWidget(self.special)
-        
+
         # Add stretch at the end
         self.sections_layout.addStretch()
-    
+
     def update_properties(self, properties: Dict[str, Any]) -> None:
         """Update all properties in the tab."""
         # Clear existing properties
@@ -145,7 +145,7 @@ class PropertiesTab(QWidget):
             for i in reversed(range(section.grid.count())):
                 section.grid.itemAt(i).widget().deleteLater()
             section.row = 0  # Reset row counter
-        
+
         try:
             # Update prime properties
             is_prime = properties.get("is_prime", False)
@@ -154,40 +154,40 @@ class PropertiesTab(QWidget):
                 prime_ordinal = properties.get("prime_ordinal")
                 if prime_ordinal is not None:
                     self.prime.add_property("Prime Index", str(prime_ordinal))
-            
+
             # Update factors
             factors = properties.get("factors", [])
             if factors:
                 factor_str = ", ".join(str(f) for f in sorted(factors))
                 self.factors.add_property("Factors", factor_str)
-                
+
                 # Calculate sum of factors
                 factor_sum = sum(factors)
                 self.factors.add_property("Sum of Factors", str(factor_sum))
-            
+
             # Update polygonal numbers with indices
             for k in range(3, 11):  # Check triangular through decagonal
                 idx = properties.get(f"polygonal_{k}_index")
                 if idx is not None:
-                    shape_name = {3: "Triangular", 4: "Square", 5: "Pentagonal", 
+                    shape_name = {3: "Triangular", 4: "Square", 5: "Pentagonal",
                                 6: "Hexagonal", 7: "Heptagonal", 8: "Octagonal",
                                 9: "Nonagonal", 10: "Decagonal"}[k]
                     self.polygonal.add_property(f"{shape_name}", f"Yes (Index: {idx})")
-            
+
             # Update centered polygonal numbers with indices
             for k in range(3, 11):
                 idx = properties.get(f"centered_{k}_index")
                 if idx is not None:
-                    shape_name = {3: "Centered Triangular", 4: "Centered Square", 
+                    shape_name = {3: "Centered Triangular", 4: "Centered Square",
                                 5: "Centered Pentagonal", 6: "Centered Hexagonal",
                                 7: "Centered Heptagonal", 8: "Centered Octagonal",
                                 9: "Centered Nonagonal", 10: "Centered Decagonal"}[k]
                     self.centered.add_property(f"{shape_name}", f"Yes (Index: {idx})")
-            
+
             # Update special properties
             aliquot_sum = properties.get("aliquot_sum", 0)
             self.special.add_property("Aliquot Sum", str(aliquot_sum))
-            
+
             if properties.get("is_perfect"):
                 self.special.add_property("Perfect Number", "Yes")
             elif properties.get("is_abundant"):
@@ -196,7 +196,7 @@ class PropertiesTab(QWidget):
             elif properties.get("is_deficient"):
                 deficiency = properties.get("number", 0) - aliquot_sum
                 self.special.add_property("Deficient Number", f"Yes (by {deficiency})")
-        
+
         except Exception as e:
             logger.error(f"Error updating properties: {e}")
             # Add a message to the prime section indicating the error
@@ -205,20 +205,20 @@ class PropertiesTab(QWidget):
 
 class NumberPropertiesPanel(QWidget):
     """Panel showing properties for all four TQ Grid numbers."""
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # Get services
         self.number_service = NumberPropertiesService.get_instance()
         self.calculation_service = ServiceLocator.get(CalculationDatabaseService)
         self.search_service = ServiceLocator.get(SearchService)
-        
+
         # Set up layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        
+
         # Create tabs
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet("""
@@ -245,21 +245,21 @@ class NumberPropertiesPanel(QWidget):
                 border-bottom: none;
             }
         """)
-        
+
         # Create property tabs
         self.base_tab = PropertiesTab()
         self.conrune_tab = PropertiesTab()
         self.reversal_tab = PropertiesTab()
         self.reversal_conrune_tab = PropertiesTab()
-        
+
         # Add tabs with initial labels (will be updated with numbers)
         self.tabs.addTab(self.base_tab, "0")
         self.tabs.addTab(self.conrune_tab, "0")
         self.tabs.addTab(self.reversal_tab, "0")
         self.tabs.addTab(self.reversal_conrune_tab, "0")
-        
+
         self.layout.addWidget(self.tabs)
-        
+
         # Track current numbers
         self._current_numbers = {
             "base": 0,
@@ -267,21 +267,21 @@ class NumberPropertiesPanel(QWidget):
             "reversal": 0,
             "reversal_conrune": 0
         }
-    
+
     def set_number(self, number: int) -> None:
         """
         Update properties panel with numbers from the TQ Grid.
-        
+
         Args:
             number: The base number to analyze
         """
         try:
             # Get the TQ Grid service
             grid_service = TQGridService.get_instance()
-            
+
             # Get the current grid display values
             grid = grid_service.get_current_grid()
-            
+
             # Update all tabs with grid values
             self.update_numbers(
                 grid.base_number,
@@ -289,15 +289,15 @@ class NumberPropertiesPanel(QWidget):
                 grid.reversal,
                 grid.reversal_conrune
             )
-            
+
             # Select the base number tab
             self.tabs.setCurrentIndex(0)
-            
+
         except Exception as e:
             logger.error(f"Error in set_number: {e}")
             # Update with error values
             self.update_numbers(number, 0, 0, 0)
-    
+
     def update_numbers(self, base: int, conrune: int, reversal: int, reversal_conrune: int) -> None:
         """Update properties for all four numbers."""
         # Store current numbers
@@ -307,19 +307,19 @@ class NumberPropertiesPanel(QWidget):
             "reversal": reversal,
             "reversal_conrune": reversal_conrune
         }
-        
+
         # Update tab labels with the actual numbers
         self.tabs.setTabText(0, str(base))
         self.tabs.setTabText(1, str(conrune))
         self.tabs.setTabText(2, str(reversal))
         self.tabs.setTabText(3, str(reversal_conrune))
-        
+
         # Get properties for each number
         base_props = self.number_service.get_number_properties(base)
         conrune_props = self.number_service.get_number_properties(conrune)
         reversal_props = self.number_service.get_number_properties(reversal)
         reversal_conrune_props = self.number_service.get_number_properties(reversal_conrune)
-        
+
         # Update each tab
         self.base_tab.update_properties(base_props)
         self.conrune_tab.update_properties(conrune_props)

@@ -8,12 +8,7 @@ import random
 
 from loguru import logger
 from PyQt6.QtCore import QRectF, Qt, QTime, QTimer
-from PyQt6.QtGui import (
-    QColor,
-    QFont,
-    QPainter,
-    QPixmap,
-)
+from PyQt6.QtGui import QColor, QFont, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -25,12 +20,10 @@ from PyQt6.QtWidgets import (
 
 from shared.ui.window_management import TabManager, WindowManager
 from tq.services import tq_analysis_service
-from tq.ui.widgets.ternary_visualizer import TernaryVisualizerPanel
-from tq.ui.widgets.planar_expansion_visualizer import PlanarExpansionVisualizer
 from tq.ui.panels.cosmic_force_panel import CosmicForceAnalysisPanel
-from tq.ui.panels.tq_grid_panel import TQGridPanel
-from tq.ui.panels.number_properties_panel import NumberPropertiesPanel
 from tq.ui.panels.pair_finder_panel import PairFinderPanel
+from tq.ui.widgets.planar_expansion_visualizer import PlanarExpansionVisualizer
+from tq.ui.widgets.ternary_visualizer import TernaryVisualizerPanel
 
 
 class TernaryDigit:
@@ -590,10 +583,11 @@ class TQTab(QWidget):
             "Planar Expansion Visualizer",
             (800, 600),
         )
-        
+
     def _open_ternary_transition(self) -> None:
         """Open the ternary transition calculator in a new window."""
         from tq.ui.dialogs.ternary_transition_window import TernaryTransitionWindow
+
         transition_window = TernaryTransitionWindow(window_manager=self.window_manager)
         self.window_manager.open_window(
             "ternary_transition",
@@ -615,6 +609,7 @@ class TQTab(QWidget):
     def _open_series_transition(self) -> None:
         """Open the series transition calculator in a new window."""
         from tq.ui.dialogs.series_transition_window import SeriesTransitionWindow
+
         series_window = SeriesTransitionWindow(self)
         self.window_manager.open_window(
             "series_transition",

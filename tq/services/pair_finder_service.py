@@ -19,21 +19,22 @@ Related files:
 - tq/models/pair_result.py: Data model for pair analysis results
 """
 
-from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, List
+
 from loguru import logger
 
-from tq.utils.ternary_converter import (
-    decimal_to_ternary,
-    ternary_to_decimal,
-    decimal_to_balanced_ternary,
-)
 from shared.services.number_properties_service import NumberPropertiesService
+from tq.utils.ternary_converter import (
+    decimal_to_balanced_ternary,
+    decimal_to_ternary,
+)
 
 
 @dataclass
 class PairResult:
     """Result of a pair analysis."""
+
     number1: int
     number2: int
     ternary1: str
@@ -47,50 +48,50 @@ class PairResult:
 
 class PairFinderService:
     """Service for finding and analyzing pairs of numbers."""
-    
+
     _instance = None
-    
+
     @classmethod
-    def get_instance(cls) -> 'PairFinderService':
+    def get_instance(cls) -> "PairFinderService":
         """Get the singleton instance."""
         if cls._instance is None:
             cls._instance = PairFinderService()
         return cls._instance
-    
+
     def __init__(self):
         """Initialize the service."""
         self._properties_service = NumberPropertiesService.get_instance()
         logger.debug("PairFinderService initialized")
-    
+
     def find_pairs(self, start: int, end: int, relationship: str) -> List[PairResult]:
         """Find pairs of numbers within a range that satisfy a relationship.
-        
+
         Args:
             start: Start of range (inclusive)
             end: End of range (inclusive)
             relationship: Type of relationship to look for
-            
+
         Returns:
             List of PairResult objects for matching pairs
         """
         pairs = []
-        
+
         for n1 in range(start, end + 1):
             for n2 in range(n1, end + 1):  # Start from n1 to avoid duplicates
                 if self._check_relationship(n1, n2, relationship):
                     pair = self.analyze_pair(n1, n2, relationship)
                     pairs.append(pair)
-        
+
         return pairs
-    
+
     def analyze_pair(self, n1: int, n2: int, relationship: str) -> PairResult:
         """Analyze a pair of numbers and their relationship.
-        
+
         Args:
             n1: First number
             n2: Second number
             relationship: Type of relationship between the numbers
-            
+
         Returns:
             PairResult object with analysis details
         """
@@ -103,17 +104,17 @@ class PairFinderService:
             balanced2=decimal_to_balanced_ternary(n2),
             properties1=self._properties_service.get_number_properties(n1),
             properties2=self._properties_service.get_number_properties(n2),
-            relationship=relationship
+            relationship=relationship,
         )
-    
+
     def _check_relationship(self, n1: int, n2: int, relationship: str) -> bool:
         """Check if two numbers satisfy a specific relationship.
-        
+
         Args:
             n1: First number
             n2: Second number
             relationship: Type of relationship to check
-            
+
         Returns:
             True if the numbers satisfy the relationship
         """
@@ -122,11 +123,13 @@ class PairFinderService:
         elif relationship == "complementary":
             t1 = decimal_to_ternary(n1)
             t2 = decimal_to_ternary(n2)
-            return len(t1) == len(t2) and all(int(d1) + int(d2) == 2 for d1, d2 in zip(t1, t2))
+            return len(t1) == len(t2) and all(
+                int(d1) + int(d2) == 2 for d1, d2 in zip(t1, t2)
+            )
         elif relationship == "mirror":
             t1 = decimal_to_ternary(n1)
             t2 = decimal_to_ternary(n2)
             return t1 == t2[::-1]
         else:
             logger.warning(f"Unknown relationship type: {relationship}")
-            return False 
+            return False
