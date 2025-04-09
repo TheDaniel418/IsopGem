@@ -54,7 +54,7 @@ class SQLiteCalculationRepository:
             List[CalculationResult]: All calculations
         """
         query = """
-            SELECT id, input_text, result_value, calculation_type, custom_method_name, 
+            SELECT id, input_text, result_value, calculation_type, custom_method_name,
                    created_at, favorite, notes
             FROM calculations
             ORDER BY created_at DESC
@@ -138,7 +138,7 @@ class SQLiteCalculationRepository:
             sort_order = "DESC"  # Default to DESC if invalid
 
         query = f"""
-            SELECT id, input_text, result_value, calculation_type, custom_method_name, 
+            SELECT id, input_text, result_value, calculation_type, custom_method_name,
                    created_at, favorite, notes
             FROM calculations
             ORDER BY {sort_by} {sort_order}

@@ -1,14 +1,14 @@
 import os
-import io  # For in-memory buffer
-from PyQt6.QtWidgets import (
-    QMenu,
-    QFileDialog,
-    QMessageBox,
-    QInputDialog,
-)  # Added QInputDialog
-from PyQt6.QtGui import QImage, QTextImageFormat, QTextFrameFormat
-from PyQt6.QtCore import QObject, pyqtSignal, Qt, QBuffer
+
 from PIL import Image  # Import Pillow
+from PyQt6.QtCore import QBuffer, QObject, Qt, pyqtSignal
+from PyQt6.QtGui import QImage, QTextImageFormat
+from PyQt6.QtWidgets import (  # Added QInputDialog
+    QFileDialog,
+    QInputDialog,
+    QMenu,
+    QMessageBox,
+)
 
 # Import DEFAULT_DIR from document_manager (consider a better place later)
 try:
@@ -87,7 +87,7 @@ class ImageManager(QObject):
                 # Load the image using Qt
                 qimage = QImage(file_path)
                 if qimage.isNull():
-                    print(f"Failed to load image with QImage, trying fallback method")
+                    print("Failed to load image with QImage, trying fallback method")
                     # Fallback to raw bytes if QImage fails
                     with open(file_path, "rb") as img_file:
                         img_data = img_file.read()
@@ -108,7 +108,8 @@ class ImageManager(QObject):
                     data_uri = f"data:{mime_type};base64,{img_base64}"
                 else:
                     # Convert QImage to base64 data URI
-                    import io, base64
+                    import base64
+                    import io
 
                     buffer = io.BytesIO()
                     qimage = qimage.scaled(

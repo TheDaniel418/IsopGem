@@ -1,14 +1,13 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QTextEdit, QMenu, QInputDialog, QMainWindow
+
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtGui import (
-    QTextTableFormat,
-    QTextCursor,
     QTextTable,
-    QTextCharFormat,
-    QBrush,
     QTextTableCellFormat,
+    QTextTableFormat,
 )
-from PyQt6.QtCore import QObject, pyqtSignal, Qt
+from PyQt6.QtWidgets import QApplication, QInputDialog, QMainWindow, QMenu, QTextEdit
+
 from .table_properties_dialog import TablePropertiesDialog  # Import the dialog
 
 

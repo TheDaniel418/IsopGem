@@ -1,19 +1,19 @@
 import sys
-from PyQt6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QFormLayout,
-    QSpinBox,
-    QComboBox,
-    QDialogButtonBox,
-    QGroupBox,
-    QColorDialog,
-    QPushButton,
-    QLabel,
-    QDoubleSpinBox,
-)
-from PyQt6.QtGui import QTextTableFormat, QBrush, QColor, QTextLength
+
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QBrush, QColor, QTextLength, QTextTableFormat
+from PyQt6.QtWidgets import (
+    QColorDialog,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QGroupBox,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+)
 
 
 class TablePropertiesDialog(QDialog):

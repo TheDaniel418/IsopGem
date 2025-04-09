@@ -14,8 +14,15 @@ Dependencies:
 """
 
 from PyQt6.QtCore import QParallelAnimationGroup, QPropertyAnimation, Qt, pyqtProperty
-from PyQt6.QtWidgets import (QFrame, QToolButton, QScrollArea, QSizePolicy, QWidget,
-                             QVBoxLayout, QLabel, QTextEdit, QGridLayout, QToolTip)
+from PyQt6.QtWidgets import (
+    QFrame,
+    QLabel,
+    QScrollArea,
+    QSizePolicy,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class ColorSquare(QLabel):
@@ -57,7 +64,9 @@ class CollapsibleBox(QWidget):
         # Toggle button
         self.toggle_button = QToolButton()
         self.toggle_button.setStyleSheet("QToolButton { border: none; }")
-        self.toggle_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.toggle_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.toggle_button.setArrowType(Qt.ArrowType.RightArrow)
         self.toggle_button.setText(title)
         self.toggle_button.setCheckable(True)
@@ -68,7 +77,9 @@ class CollapsibleBox(QWidget):
         self.content_area = QScrollArea()
         self.content_area.setMaximumHeight(0)
         self.content_area.setMinimumHeight(0)
-        self.content_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.content_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         self.content_area.setFrameShape(QFrame.Shape.NoFrame)
         self.content_area.setWidgetResizable(True)
 
@@ -160,7 +171,9 @@ class CollapsibleBox(QWidget):
         """
         self.content_area.setMaximumHeight(height)
 
-    collapsible_height = pyqtProperty(int, get_collapsible_height, set_collapsible_height)
+    collapsible_height = pyqtProperty(
+        int, get_collapsible_height, set_collapsible_height
+    )
 
 
 class CollapsibleSection(QWidget):
@@ -188,8 +201,12 @@ class CollapsibleSection(QWidget):
 
         # Toggle button
         self.toggle_button = QToolButton()
-        self.toggle_button.setStyleSheet("QToolButton { border: none; text-align: left; }")
-        self.toggle_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.toggle_button.setStyleSheet(
+            "QToolButton { border: none; text-align: left; }"
+        )
+        self.toggle_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.toggle_button.setArrowType(Qt.ArrowType.RightArrow)
         self.toggle_button.setText(title)
         self.toggle_button.setCheckable(True)
@@ -205,7 +222,9 @@ class CollapsibleSection(QWidget):
         self.content_area = QScrollArea()
         self.content_area.setMaximumHeight(0)
         self.content_area.setMinimumHeight(0)
-        self.content_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.content_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         self.content_area.setFrameShape(QFrame.Shape.NoFrame)
         self.content_area.setWidgetResizable(True)
 
@@ -287,4 +306,6 @@ class CollapsibleSection(QWidget):
         """
         self.content_area.setMaximumHeight(height)
 
-    collapsible_height = pyqtProperty(int, get_collapsible_height, set_collapsible_height)
+    collapsible_height = pyqtProperty(
+        int, get_collapsible_height, set_collapsible_height
+    )

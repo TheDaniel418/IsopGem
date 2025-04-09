@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Callable, Union, Any, cast
+from typing import Any, Callable, Optional, Union, cast
 
 # These imports are used dynamically in the code
 # import base64
@@ -9,49 +9,49 @@ from typing import Optional, Callable, Union, Any, cast
 import numpy as np
 from PIL import (
     Image,
-    ImageFilter,
-    ImageEnhance,
-    ImageOps,
-    ImageDraw,
-    ImageFont,
     ImageChops,
+    ImageDraw,
+    ImageEnhance,
+    ImageFilter,
+    ImageFont,
+    ImageOps,
 )
 from PIL.Image import Resampling
-from PyQt6.QtCore import Qt, QSize, QRect, QPoint, QPointF, pyqtSignal
+from PyQt6.QtCore import QPoint, QPointF, QRect, QSize, Qt, pyqtSignal
 from PyQt6.QtGui import (
-    QPixmap,
-    QImage,
-    QPainter,
-    QMouseEvent,
-    QWheelEvent,
-    QPaintEvent,
-    QResizeEvent,
-    QColor,
     QBrush,
-    QPen,
+    QColor,
     QIcon,
+    QImage,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
     QPalette,
+    QPen,
+    QPixmap,
+    QResizeEvent,
+    QWheelEvent,
 )
 from PyQt6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QFormLayout,
-    QSpinBox,
-    QDialogButtonBox,
-    QGroupBox,
-    QLabel,
     QCheckBox,
-    QPushButton,
     QComboBox,
-    QSlider,
-    QTabWidget,
-    QWidget,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
-    QMessageBox,
-    QLineEdit,
+    QFormLayout,
     QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
     QInputDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSlider,
+    QSpinBox,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 
@@ -465,7 +465,9 @@ class ImageEditorDialog(QDialog):
         if path and path.startswith("data:"):
             try:
                 # Extract the base64 data
-                import re, base64, io
+                import base64
+                import io
+                import re
 
                 data_uri_pattern = r"data:(.*?);base64,(.*)"
                 match = re.match(data_uri_pattern, path)
@@ -500,7 +502,8 @@ class ImageEditorDialog(QDialog):
                     )
 
                     # Create a temporary file to enable editing and saving
-                    import tempfile, os
+                    import os
+                    import tempfile
 
                     temp_dir = tempfile.gettempdir()
 
@@ -1845,7 +1848,8 @@ class ImageEditorDialog(QDialog):
                     mime_type = "image/gif"
 
             # Save to a byte buffer
-            import io, base64
+            import base64
+            import io
 
             buffer = io.BytesIO()
             self.result_image.save(buffer, format=save_format)
@@ -1868,7 +1872,9 @@ class ImageEditorDialog(QDialog):
                 orig_path = self.image_format.name()
                 if orig_path.startswith("data:"):
                     # For data URIs, create a temp directory
-                    import tempfile, os, uuid
+                    import os
+                    import tempfile
+                    import uuid
 
                     temp_dir = tempfile.gettempdir()
                     edit_dir = os.path.join(temp_dir, "edited_images")

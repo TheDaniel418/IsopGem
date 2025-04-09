@@ -6,8 +6,8 @@ It provides access to data models used by the RTF Editor components.
 """
 
 from shared.ui.widgets.rtf_editor.models.document_format import (
-    DocumentFormat,
     AnnotationMetadata,
+    DocumentFormat,
     ImageMetadata,
     TableMetadata,
 )

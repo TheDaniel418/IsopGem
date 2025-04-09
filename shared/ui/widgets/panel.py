@@ -11,9 +11,10 @@ Dependencies:
 - PyQt6: For UI components
 """
 
+from typing import Optional
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
-from typing import Optional
 
 
 class Panel(QWidget):

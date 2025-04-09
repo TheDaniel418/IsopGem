@@ -4,10 +4,9 @@ This module initializes and starts the PyQt6 application.
 """
 
 import sys
-from typing import List, Optional, cast, Union, Dict, Any, Set, Tuple
+from typing import List, Optional, cast
 
 from loguru import logger
-from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QAction, QCloseEvent
 from PyQt6.QtWidgets import (
     QApplication,
@@ -160,33 +159,36 @@ class MainWindow(QMainWindow):
             return
 
         logger.info("Initializing Gematria pillar")
-        
-        # Register services in the ServiceLocator 
-        from gematria.services.calculation_database_service import CalculationDatabaseService
+
+        # Register services in the ServiceLocator
+        from gematria.services.calculation_database_service import (
+            CalculationDatabaseService,
+        )
         from gematria.services.custom_cipher_service import CustomCipherService
         from gematria.services.search_service import SearchService
-        from shared.services.tag_service import TagService
-        from shared.services.service_locator import ServiceLocator
-        from shared.repositories.sqlite_tag_repository import SQLiteTagRepository
         from shared.repositories.tag_repository import TagRepository
-        
+        from shared.services.service_locator import ServiceLocator
+        from shared.services.tag_service import TagService
+
         # Create service instances
         db_service = CalculationDatabaseService()
         custom_cipher_service = CustomCipherService()
-        search_service = SearchService(db_service)  # SearchService depends on CalculationDatabaseService
-        
+        search_service = SearchService(
+            db_service
+        )  # SearchService depends on CalculationDatabaseService
+
         # Get the tag repository from the database service
         tag_repository = db_service.tag_repo
-        
+
         # Create and register the tag service - cast to ensure correct type is passed
         tag_service = TagService(cast(TagRepository, tag_repository))
-        
+
         # Register services
         ServiceLocator.register(CalculationDatabaseService, db_service)
         ServiceLocator.register(CustomCipherService, custom_cipher_service)
         ServiceLocator.register(SearchService, search_service)
         ServiceLocator.register(TagService, tag_service)
-        
+
         # Import and create the GematriaTab
         from gematria.ui.gematria_tab import GematriaTab
 
@@ -258,26 +260,30 @@ class MainWindow(QMainWindow):
         if "tq" not in self.enabled_pillars:
             logger.debug("TQ pillar is disabled")
             return
-        
+
         logger.info("Initializing TQ pillar")
-        
+
         try:
             # First initialize the NumberPropertiesService
             # Use relative import to avoid missing imports error
-            from shared.services.number_properties_service import NumberPropertiesService
+            from shared.services.number_properties_service import (
+                NumberPropertiesService,
+            )
+
             NumberPropertiesService()  # Creates the singleton instance
-            
+
             # Then initialize other services that depend on it
             from tq.services.tq_analysis_service import initialize as init_tq_service
-            
+
             # Initialize TQAnalysisService using the proper initialize function
             self.tq_analysis_service = init_tq_service(self.window_manager)
-            
+
             # Import and create the TQ tab
             from tq.ui.tq_tab import TQTab
+
             tq_tab = TQTab(self.tab_manager, self.window_manager)
             self.tab_manager.addTab(tq_tab, "TQ")
-            
+
             # Log successful initialization
             logger.debug("TQ pillar initialized successfully")
         except Exception as e:
@@ -302,11 +308,11 @@ class MainWindow(QMainWindow):
 
         logger.debug("Opened Database Maintenance window")
 
-    def closeEvent(self, event: 'QCloseEvent') -> None:
+    def closeEvent(self, event: "QCloseEvent") -> None:
         """Handle window close event.
 
         Save window states before closing.
-        
+
         Args:
             event: The close event
         """

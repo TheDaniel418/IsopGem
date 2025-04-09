@@ -6,65 +6,59 @@ free-floating, resizable, focusable, themeable, with min/max/close controls.
 """
 
 from enum import Enum, auto
-from typing import Dict, List, Optional, Set, Tuple, Union, Callable, cast
-
-from PyQt6.QtCore import Qt, QPoint, QSize, QSettings, pyqtSignal, QObject, QTimer
-from PyQt6.QtGui import QIcon, QAction, QCloseEvent, QColor, QPainter, QPen, QBrush
-from PyQt6.QtWidgets import (
-    QMainWindow,
-    QWidget,
-    QDockWidget,
-    QTabWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QToolBar,
-    QLabel,
-    QSizePolicy,
-    QFrame,
-    QMenu,
-    QApplication,
-    QTabBar,
-    QStyleOptionTab,
-    QStyle,
-)
+from typing import Callable, Dict, Optional, Tuple, cast
 
 from loguru import logger
+from PyQt6.QtCore import QObject, QSettings, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QCloseEvent, QColor, QPainter, QPen
+from PyQt6.QtWidgets import (
+    QDockWidget,
+    QHBoxLayout,
+    QMainWindow,
+    QPushButton,
+    QStyle,
+    QStyleOptionTab,
+    QTabBar,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
 from shared.utils.config import get_config
 
 
 class ColoredTabBar(QTabBar):
     """Custom tab bar with colored tabs."""
-    
+
     def __init__(self, parent=None):
         """Initialize the tab bar."""
         super().__init__(parent)
         self.tab_colors = {}  # Maps tab indices to colors
-        
+
     def set_tab_color(self, index, color):
         """Set the color for a specific tab.
-        
+
         Args:
             index: Tab index
             color: Color for the tab (hex string)
         """
         self.tab_colors[index] = color
         self.update()
-        
+
     def paintEvent(self, event):
         """Override paint event to add custom tab colors."""
         painter = QPainter(self)
         option = QStyleOptionTab()
-        
+
         for i in range(self.count()):
             self.initStyleOption(option, i)
-            
+
             # Get tab rectangle area
             rect = self.tabRect(i)
-            
+
             if i in self.tab_colors:
                 color = self.tab_colors[i]
-                
+
                 # Draw differently depending on selected state
                 if self.currentIndex() == i:
                     # Selected tab - full color
@@ -73,13 +67,15 @@ class ColoredTabBar(QTabBar):
                     painter.setBrush(QBrush(QColor(color)))
                     painter.drawRoundedRect(rect, 4, 4)
                     painter.restore()
-                    
+
                     # Draw text in white
                     painter.save()
                     painter.setPen(QPen(QColor("white")))
                     # Center text
                     text_rect = rect.adjusted(8, 4, -8, -4)
-                    painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, self.tabText(i))
+                    painter.drawText(
+                        text_rect, Qt.AlignmentFlag.AlignCenter, self.tabText(i)
+                    )
                     painter.restore()
                 else:
                     # Unselected tab - lighter version with color bar on top
@@ -89,47 +85,51 @@ class ColoredTabBar(QTabBar):
                     painter.setPen(Qt.PenStyle.NoPen)
                     painter.setBrush(QBrush(QColor(light_color)))
                     painter.drawRoundedRect(rect, 4, 4)
-                    
+
                     # Color bar on top
                     top_bar_rect = rect.adjusted(0, 0, 0, -rect.height() + 3)
                     painter.setBrush(QBrush(QColor(color)))
                     painter.drawRect(top_bar_rect)
                     painter.restore()
-                    
+
                     # Black text
                     painter.save()
                     painter.setPen(QPen(QColor("black")))
                     # Center text
                     text_rect = rect.adjusted(8, 4, -8, -4)
-                    painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, self.tabText(i))
+                    painter.drawText(
+                        text_rect, Qt.AlignmentFlag.AlignCenter, self.tabText(i)
+                    )
                     painter.restore()
             else:
                 # Default tab rendering for tabs without color
-                self.style().drawControl(QStyle.ControlElement.CE_TabBarTab, option, painter, self)
-                
+                self.style().drawControl(
+                    QStyle.ControlElement.CE_TabBarTab, option, painter, self
+                )
+
     def _lighten_color(self, hex_color: str, factor: float = 0.7) -> str:
         """Lighten a color by the given factor.
-        
+
         Args:
             hex_color: Hex color code (e.g. #RRGGBB)
             factor: Factor to lighten by (0-1)
-            
+
         Returns:
             Lightened hex color
         """
         # Remove the '#' if present
-        hex_color = hex_color.lstrip('#')
-        
+        hex_color = hex_color.lstrip("#")
+
         # Convert to RGB
         r = int(hex_color[0:2], 16)
         g = int(hex_color[2:4], 16)
         b = int(hex_color[4:6], 16)
-        
+
         # Lighten
         r = int(r + (255 - r) * factor)
         g = int(g + (255 - g) * factor)
         b = int(b + (255 - b) * factor)
-        
+
         # Convert back to hex
         return f"#{r:02x}{g:02x}{b:02x}"
 
@@ -165,7 +165,7 @@ class TabManager(QTabWidget):
         self.setTabsClosable(False)  # Tabs are permanent
         self.setMovable(False)  # Tabs order is fixed
         self.setDocumentMode(True)  # Cleaner look
-        
+
         # Replace the default tab bar with our custom one
         self.colored_tab_bar = ColoredTabBar(self)
         self.setTabBar(self.colored_tab_bar)
@@ -174,19 +174,19 @@ class TabManager(QTabWidget):
         self._tab_map: Dict[str, int] = {}
         # Map of tab button IDs to buttons
         self._button_map: Dict[str, Dict[str, QPushButton]] = {}
-        
+
         # Pillar colors map
         self.pillar_colors = {
-            "Gematria": "#673AB7",     # Deep purple
-            "Geometry": "#009688",     # Teal
+            "Gematria": "#673AB7",  # Deep purple
+            "Geometry": "#009688",  # Teal
             "Document Manager": "#FFC107",  # Amber
-            "Astrology": "#1565C0",    # Deep blue
-            "TQ": "#43A047"            # Rich green
+            "Astrology": "#1565C0",  # Deep blue
+            "TQ": "#43A047",  # Rich green
         }
 
         # Apply theme
         self._apply_theme()
-        
+
         # Connect signals for tab color updates
         self.currentChanged.connect(self._update_tab_colors)
 
@@ -196,12 +196,13 @@ class TabManager(QTabWidget):
         colors = config.ui.theme_colors
 
         # Apply basic styling for the tab widget and buttons
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QTabWidget::pane {{
                 border-top: 1px solid #cccccc;
                 background-color: {colors.background};
             }}
-            
+
             QPushButton {{
                 background-color: {colors.background};
                 color: {colors.text};
@@ -211,13 +212,13 @@ class TabManager(QTabWidget):
                 font-weight: normal;
                 min-width: 80px;
             }}
-            
+
             QPushButton:hover {{
                 background-color: #f5f5f5;
                 border: 1px solid {colors.primary};
                 color: {colors.primary};
             }}
-            
+
             QPushButton:pressed {{
                 background-color: #e0e0e0;
                 border: 1px solid {colors.primary};
@@ -226,13 +227,14 @@ class TabManager(QTabWidget):
                 padding-bottom: 5px;
                 padding-right: 11px;
             }}
-            
+
             QPushButton:focus {{
                 border: 2px solid {colors.primary};
                 outline: none;
             }}
-        """)
-        
+        """
+        )
+
         # Wait for tabs to be created before applying colors
         QTimer.singleShot(100, self._update_tab_colors)
 
@@ -244,51 +246,53 @@ class TabManager(QTabWidget):
             if tab_text in self.pillar_colors:
                 color = self.pillar_colors[tab_text]
                 self.colored_tab_bar.set_tab_color(i, color)
-                
+
                 # Also apply matching styles to the buttons in this tab
                 tab_id = f"tab_{i}"
                 if tab_id in self._button_map:
                     container = self.widget(i)
                     if container:
                         # Apply pillar-specific button styles
-                        container.setStyleSheet(f"""
+                        container.setStyleSheet(
+                            f"""
                             QPushButton:hover {{
                                 border-color: {color};
                                 color: {color};
                             }}
-                            
+
                             QPushButton:pressed {{
                                 background-color: {self._lighten_color(color, 0.9)};
                             }}
-                            
+
                             QPushButton:focus {{
                                 border: 2px solid {color};
                             }}
-                        """)
+                        """
+                        )
 
     def _lighten_color(self, hex_color: str, factor: float = 0.7) -> str:
         """Lighten a color by the given factor.
-        
+
         Args:
             hex_color: Hex color code (e.g. #RRGGBB)
             factor: Factor to lighten by (0-1)
-            
+
         Returns:
             Lightened hex color
         """
         # Remove the '#' if present
-        hex_color = hex_color.lstrip('#')
-        
+        hex_color = hex_color.lstrip("#")
+
         # Convert to RGB
         r = int(hex_color[0:2], 16)
         g = int(hex_color[2:4], 16)
         b = int(hex_color[4:6], 16)
-        
+
         # Lighten
         r = int(r + (255 - r) * factor)
         g = int(g + (255 - g) * factor)
         b = int(b + (255 - b) * factor)
-        
+
         # Convert back to hex
         return f"#{r:02x}{g:02x}{b:02x}"
 
@@ -326,31 +330,33 @@ class TabManager(QTabWidget):
         tab_id = f"tab_{index}"
         container.setObjectName(tab_id)
         button_bar.setObjectName(f"{tab_id}_button_bar")
-        
+
         # Store tab info
         self._tab_map[tab_id] = index
         self._button_map[tab_id] = {}
-        
+
         # Apply color to the tab if it matches a pillar
         if title in self.pillar_colors:
             color = self.pillar_colors[title]
             self.colored_tab_bar.set_tab_color(index, color)
-            
+
             # Apply matching styles to the buttons container
-            container.setStyleSheet(f"""
+            container.setStyleSheet(
+                f"""
                 QPushButton:hover {{
                     border-color: {color};
                     color: {color};
                 }}
-                
+
                 QPushButton:pressed {{
                     background-color: {self._lighten_color(color, 0.9)};
                 }}
-                
+
                 QPushButton:focus {{
                     border: 2px solid {color};
                 }}
-            """)
+            """
+            )
 
         return tab_id
 
@@ -382,7 +388,7 @@ class TabManager(QTabWidget):
         # Create the button
         button = QPushButton(text)
         button.setToolTip(tooltip)
-        
+
         # Create an id and set object name for CSS styling
         button_id = f"panel_{text.lower().replace(' ', '_')}"
         button.setObjectName(f"{tab_id}_{button_id}")
@@ -427,7 +433,7 @@ class TabManager(QTabWidget):
         # Create the button
         button = QPushButton(text)
         button.setToolTip(tooltip)
-        
+
         # Create an id and set object name for CSS styling
         button_id = f"window_{text.lower().replace(' ', '_')}"
         button.setObjectName(f"{tab_id}_{button_id}")
@@ -553,14 +559,14 @@ class PanelWidget(QDockWidget):
                 border: 1px solid #cccccc;
                 background-color: {colors.background};
             }}
-            
+
             QDockWidget::title {{
                 text-align: center;
                 background-color: {colors.primary};
                 color: white;
                 padding: 6px;
             }}
-            
+
             QDockWidget::close-button, QDockWidget::float-button {{
                 background-color: {colors.background};
                 border: none;

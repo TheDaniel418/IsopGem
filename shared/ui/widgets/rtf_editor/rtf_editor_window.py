@@ -658,7 +658,7 @@ class RTFEditorWindow(QMainWindow):
                     old_width = old_format.width()
                     old_height = old_format.height()
 
-                    print(f"Found image in next character position")
+                    print("Found image in next character position")
                     # Delete the image character
                     next_char_cursor.deleteChar()
                     image_found = True
@@ -680,7 +680,7 @@ class RTFEditorWindow(QMainWindow):
                         old_width = old_format.width()
                         old_height = old_format.height()
 
-                        print(f"Found image in previous character position")
+                        print("Found image in previous character position")
                         # Delete the image character
                         prev_char_cursor.deleteChar()
                         image_found = True

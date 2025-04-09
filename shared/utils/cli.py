@@ -4,7 +4,6 @@ This module provides the command-line entry point for the application.
 """
 
 import argparse
-import logging
 import os
 import sys
 from enum import Enum

@@ -14,20 +14,20 @@ It provides rich text editing capabilities with full support for formatting,
 tables, images, and custom annotations.
 
 Key components:
-- RTFEditorWindow: Main rich text editor window 
+- RTFEditorWindow: Main rich text editor window
 - DocumentFormat: Model for document serialization and storage
 
 Dependencies:
 - PyQt6: For UI components
 """
 
-from .rtf_editor_window import RTFEditorWindow
-from .format_toolbar import FormatToolBar
-from .table_manager import TableManager
-from .image_manager import ImageManager
-from .zoom_manager import ZoomManager
 from .document_manager import DocumentManager
-from .models import DocumentFormat, AnnotationMetadata, ImageMetadata, TableMetadata
+from .format_toolbar import FormatToolBar
+from .image_manager import ImageManager
+from .models import AnnotationMetadata, DocumentFormat, ImageMetadata, TableMetadata
+from .rtf_editor_window import RTFEditorWindow
+from .table_manager import TableManager
+from .zoom_manager import ZoomManager
 
 # Export main classes
 __all__ = [

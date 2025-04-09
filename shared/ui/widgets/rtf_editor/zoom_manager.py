@@ -1,13 +1,10 @@
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
-    QToolBar,
     QComboBox,
-    QPushButton,
+    QHBoxLayout,
     QToolButton,
     QWidget,
-    QHBoxLayout,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon, QAction
 
 
 class ZoomManager(QWidget):
@@ -186,8 +183,7 @@ class ZoomManager(QWidget):
             scale_factor (float): The factor to scale images by
         """
         try:
-            from PyQt6.QtGui import QTextImageFormat, QTextCursor, QTextDocument
-            from PyQt6.QtCore import Qt
+            from PyQt6.QtGui import QTextCursor, QTextImageFormat
 
             print("Trying to scale images by selection method")
 
@@ -282,10 +278,8 @@ class ZoomManager(QWidget):
         """
         try:
             from PyQt6.QtGui import (
-                QTextImageFormat,
                 QTextCursor,
-                QTextBlock,
-                QTextFragment,
+                QTextImageFormat,
             )
 
             print("Trying to scale images by fragment method")

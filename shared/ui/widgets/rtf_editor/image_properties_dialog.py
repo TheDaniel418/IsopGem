@@ -1,22 +1,23 @@
 # src/ui/components/rtf_editor/image_properties_dialog.py
-import sys
-import os
 import base64
-import re
 import io
+import os
+import re
+import sys
+
+from PIL import Image  # Use Pillow to get original dimensions accurately
+from PyQt6.QtCore import QByteArray, Qt
+from PyQt6.QtGui import QPixmap, QTextImageFormat
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDialog,
-    QVBoxLayout,
-    QFormLayout,
-    QSpinBox,
     QDialogButtonBox,
+    QFormLayout,
     QGroupBox,
     QLabel,
-    QCheckBox,
+    QSpinBox,
+    QVBoxLayout,
 )
-from PyQt6.QtGui import QTextImageFormat, QPixmap, QImage
-from PyQt6.QtCore import Qt, QSize, QByteArray
-from PIL import Image  # Use Pillow to get original dimensions accurately
 
 
 class ImagePropertiesDialog(QDialog):
