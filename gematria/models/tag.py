@@ -19,9 +19,9 @@ Related files:
 - gematria/ui/panels/calculation_history_panel.py: Displays tags in the UI
 """
 
-from typing import Dict, Optional
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Dict, Optional
 
 from pydantic import BaseModel, Field
 

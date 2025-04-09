@@ -19,15 +19,14 @@ Related files:
 - gematria/ui/panels/tag_management_panel.py: Tag management panel included in the main panel
 """
 
-from typing import Dict, List, Optional
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QPushButton, QSplitter
-from PyQt6.QtCore import Qt
+from typing import Optional
 
 from loguru import logger
+from PyQt6.QtWidgets import QTabWidget, QVBoxLayout, QWidget
 
-from gematria.ui.panels.word_abacus_panel import WordAbacusPanel
 from gematria.ui.panels.calculation_history_panel import CalculationHistoryPanel
 from gematria.ui.panels.tag_management_panel import TagManagementPanel
+from gematria.ui.panels.word_abacus_panel import WordAbacusPanel
 
 
 class MainPanel(QWidget):

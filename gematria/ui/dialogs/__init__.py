@@ -17,14 +17,14 @@ Related files:
 - gematria/ui/__init__.py: Imports from this module
 """
 
-from gematria.ui.dialogs.word_abacus_window import WordAbacusWindow
-from gematria.ui.dialogs.gematria_help_dialog import GematriaHelpDialog
 from gematria.ui.dialogs.create_tag_dialog import CreateTagDialog
+from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
+from gematria.ui.dialogs.edit_tags_window import EditTagsWindow
+from gematria.ui.dialogs.gematria_help_dialog import GematriaHelpDialog
+from gematria.ui.dialogs.import_word_list_dialog import ImportWordListDialog
 from gematria.ui.dialogs.save_calculation_dialog import SaveCalculationDialog
 from gematria.ui.dialogs.tag_selection_dialog import TagSelectionDialog
-from gematria.ui.dialogs.edit_tags_window import EditTagsWindow
-from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
-from gematria.ui.dialogs.import_word_list_dialog import ImportWordListDialog
+from gematria.ui.dialogs.word_abacus_window import WordAbacusWindow
 
 __all__ = [
     "WordAbacusWindow",

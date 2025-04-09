@@ -18,28 +18,25 @@ Related files:
 - shared/services/tag_service.py: Service for tag operations
 """
 
-import uuid
 from typing import List, Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
+    QColorDialog,
     QDialog,
-    QVBoxLayout,
+    QGroupBox,
     QHBoxLayout,
+    QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QLabel,
-    QPushButton,
-    QColorDialog,
-    QLineEdit,
     QMessageBox,
-    QGroupBox,
-    QWidget,
+    QPushButton,
     QTextEdit,
+    QVBoxLayout,
 )
 
-from loguru import logger
 from shared.models.tag import Tag
 from shared.services.service_locator import ServiceLocator
 from shared.services.tag_service import TagService
@@ -47,7 +44,7 @@ from shared.services.tag_service import TagService
 
 class TagSelectionDialog(QDialog):
     """Dialog for selecting and managing tags."""
-    
+
     def __init__(self, selected_tag_ids: List[str] = None, parent=None):
         """
         Initialize the dialog with optional pre-selected tags.
@@ -70,7 +67,7 @@ class TagSelectionDialog(QDialog):
 
         # Load tags from service
         self._load_tags()
-        
+
         # Set window properties
         self.resize(500, 400)
         self.setModal(True)
@@ -84,89 +81,91 @@ class TagSelectionDialog(QDialog):
         # Tag list
         tag_group = QGroupBox("Available Tags")
         tag_layout = QVBoxLayout(tag_group)
-        
+
         self.tag_list = QListWidget()
         self.tag_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         tag_layout.addWidget(self.tag_list)
-        
+
         layout.addWidget(tag_group)
-        
+
         # Tag management buttons
         button_layout = QHBoxLayout()
-        
+
         self.create_tag_button = QPushButton("Create New Tag")
         self.create_tag_button.clicked.connect(self._on_create_tag)
         button_layout.addWidget(self.create_tag_button)
-        
+
         self.edit_tag_button = QPushButton("Edit Selected Tag")
         self.edit_tag_button.clicked.connect(self._on_edit_tag)
         button_layout.addWidget(self.edit_tag_button)
-        
+
         self.delete_tag_button = QPushButton("Delete Selected Tag")
         self.delete_tag_button.clicked.connect(self._on_delete_tag)
         button_layout.addWidget(self.delete_tag_button)
-        
+
         layout.addLayout(button_layout)
-        
+
         # Dialog buttons
         dialog_buttons = QHBoxLayout()
-        
+
         ok_button = QPushButton("OK")
         ok_button.clicked.connect(self.accept)
         dialog_buttons.addWidget(ok_button)
-        
+
         cancel_button = QPushButton("Cancel")
         cancel_button.clicked.connect(self.reject)
         dialog_buttons.addWidget(cancel_button)
-        
+
         layout.addLayout(dialog_buttons)
-        
+
     def _load_tags(self):
         """Load tags from service and populate the list widget."""
         # Clear existing items
         self.tag_list.clear()
-        
+
         # Get all tags
         tags = self.tag_service.get_all_tags()
-        
+
         # Add tags to list widget
         for tag in tags:
             item = QListWidgetItem(tag.name)
             item.setData(Qt.ItemDataRole.UserRole, tag)
-            
+
             # Set background color to match tag color
             item.setBackground(QColor(tag.color))
-            
+
             # Set text color for better contrast
             color = QColor(tag.color)
-            brightness = 0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()
+            brightness = (
+                0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()
+            )
             text_color = QColor("black") if brightness > 128 else QColor("white")
             item.setForeground(text_color)
-            
+
             # Add tooltip with description if available
             if tag.description:
                 item.setToolTip(tag.description)
-            
+
             self.tag_list.addItem(item)
-            
+
             # Select if in the initial selected list
             if tag.id in self.selected_tag_ids:
                 item.setSelected(True)
-                
+
     def _get_selected_tag(self) -> Optional[Tag]:
         """
         Get the currently selected tag from the list.
-        
+
         Returns:
             The selected tag or None if no tag is selected
         """
         selected_items = self.tag_list.selectedItems()
         if not selected_items:
             return None
-        
+
         # Use the first selected item
         return selected_items[0].data(Qt.ItemDataRole.UserRole)
-        
+
     def _on_create_tag(self):
         """Handle create tag button click."""
         # Create tag input dialog
@@ -176,11 +175,11 @@ class TagSelectionDialog(QDialog):
             name = dialog.name_edit.text().strip()
             color = dialog.color
             description = dialog.description_edit.toPlainText().strip()
-            
+
             if not name:
                 QMessageBox.warning(self, "Invalid Input", "Tag name cannot be empty.")
                 return
-            
+
             # Create tag
             tag = self.tag_service.create_tag(name, color, description)
             if tag:
@@ -189,7 +188,7 @@ class TagSelectionDialog(QDialog):
                 self._load_tags()
             else:
                 QMessageBox.warning(self, "Error", "Failed to create tag.")
-                
+
     def _on_edit_tag(self):
         """Handle edit tag button click."""
         tag = self._get_selected_tag()
@@ -204,23 +203,23 @@ class TagSelectionDialog(QDialog):
             name = dialog.name_edit.text().strip()
             color = dialog.color
             description = dialog.description_edit.toPlainText().strip()
-            
+
             if not name:
                 QMessageBox.warning(self, "Invalid Input", "Tag name cannot be empty.")
                 return
-            
+
             # Update tag
             tag.name = name
             tag.color = color
             tag.description = description
-            
+
             success = self.tag_service.update_tag(tag)
             if success:
                 # Reload tags
                 self._load_tags()
             else:
                 QMessageBox.warning(self, "Error", "Failed to update tag.")
-                
+
     def _on_delete_tag(self):
         """Handle delete tag button click."""
         tag = self._get_selected_tag()
@@ -230,13 +229,13 @@ class TagSelectionDialog(QDialog):
 
         # Confirm deletion
         reply = QMessageBox.question(
-            self, 
-            "Confirm Deletion", 
+            self,
+            "Confirm Deletion",
             f"Are you sure you want to delete the tag '{tag.name}'?\n\nThis will remove it from all entities it is associated with.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
-            QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        
+
         if reply == QMessageBox.StandardButton.Yes:
             # Delete tag
             success = self.tag_service.delete_tag(tag.id)
@@ -244,12 +243,12 @@ class TagSelectionDialog(QDialog):
                 # Remove from selected IDs if present
                 if tag.id in self.selected_tag_ids:
                     self.selected_tag_ids.remove(tag.id)
-                
+
                 # Reload tags
                 self._load_tags()
             else:
                 QMessageBox.warning(self, "Error", "Failed to delete tag.")
-                
+
     def accept(self):
         """Handle OK button click."""
         # Update selected tag IDs
@@ -259,13 +258,13 @@ class TagSelectionDialog(QDialog):
             if item.isSelected():
                 tag = item.data(Qt.ItemDataRole.UserRole)
                 self.selected_tag_ids.append(tag.id)
-        
+
         super().accept()
 
 
 class TagInputDialog(QDialog):
     """Dialog for creating or editing a tag."""
-    
+
     def __init__(self, tag: Optional[Tag] = None, parent=None):
         """
         Initialize the dialog with optional existing tag data.
@@ -276,7 +275,7 @@ class TagInputDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle("Tag Details")
-        
+
         # Set initial values
         self.tag = tag
         self.color = tag.color if tag else "#3498db"  # Default to a pleasant blue
@@ -289,7 +288,7 @@ class TagInputDialog(QDialog):
             self.name_edit.setText(tag.name)
             self.description_edit.setText(tag.description)
             self._update_color_preview()
-        
+
         # Set window properties
         self.resize(400, 300)
         self.setModal(True)
@@ -304,43 +303,43 @@ class TagInputDialog(QDialog):
         name_layout = QHBoxLayout()
         name_label = QLabel("Name:")
         name_layout.addWidget(name_label)
-        
+
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText("Enter tag name")
         name_layout.addWidget(self.name_edit)
-        
+
         layout.addLayout(name_layout)
-        
+
         # Color field
         color_layout = QHBoxLayout()
         color_label = QLabel("Color:")
         color_layout.addWidget(color_label)
-        
+
         self.color_preview = QLabel()
         self.color_preview.setFixedSize(24, 24)
         self._update_color_preview()
         color_layout.addWidget(self.color_preview)
-        
+
         color_button = QPushButton("Select Color")
         color_button.clicked.connect(self._on_select_color)
         color_layout.addWidget(color_button)
-        
+
         layout.addLayout(color_layout)
-        
+
         # Description field
         layout.addWidget(QLabel("Description:"))
-        
+
         self.description_edit = QTextEdit()
         self.description_edit.setPlaceholderText("Enter tag description (optional)")
         layout.addWidget(self.description_edit)
-        
+
         # Dialog buttons
         button_layout = QHBoxLayout()
 
         ok_button = QPushButton("OK")
         ok_button.clicked.connect(self.accept)
         button_layout.addWidget(ok_button)
-        
+
         cancel_button = QPushButton("Cancel")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
@@ -349,8 +348,10 @@ class TagInputDialog(QDialog):
 
     def _update_color_preview(self):
         """Update the color preview label with the selected color."""
-        self.color_preview.setStyleSheet(f"background-color: {self.color}; border: 1px solid gray;")
-        
+        self.color_preview.setStyleSheet(
+            f"background-color: {self.color}; border: 1px solid gray;"
+        )
+
     def _on_select_color(self):
         """Handle select color button click."""
         color = QColorDialog.getColor(QColor(self.color), self, "Select Tag Color")

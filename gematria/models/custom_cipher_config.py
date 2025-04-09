@@ -6,9 +6,9 @@ This module defines the data model for custom gematria cipher configurations.
 import hashlib
 import re
 from enum import Enum
-from typing import Dict, Optional, Any, Set
+from typing import Any, Dict
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 class LanguageType(str, Enum):

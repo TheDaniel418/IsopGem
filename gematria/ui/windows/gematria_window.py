@@ -19,13 +19,13 @@ Related files:
 """
 
 from typing import Optional
-from PyQt6.QtWidgets import QMainWindow, QTabWidget, QVBoxLayout, QWidget, QDockWidget
-from PyQt6.QtCore import Qt
 
 from loguru import logger
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QWidget
 
-from shared.ui.window_management import TabManager, WindowManager
 from gematria.ui.gematria_tab import GematriaTab
+from shared.ui.window_management import TabManager, WindowManager
 
 
 class GematriaWindow(QMainWindow):

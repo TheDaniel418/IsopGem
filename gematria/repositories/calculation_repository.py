@@ -17,15 +17,14 @@ Dependencies:
 
 Related files:
 - gematria/models/calculation_result.py: Data model for calculation results
-- gematria/services/calculation_database_service.py: Uses this repository 
+- gematria/services/calculation_database_service.py: Uses this repository
 - gematria/repositories/tag_repository.py: Companion repository for tag data
 """
 
-import os
 import json
-from typing import Dict, List, Optional, Set, Any, Union, cast
-from datetime import datetime
+import os
 from pathlib import Path
+from typing import List, Optional, Set, Union
 
 from loguru import logger
 

@@ -6,32 +6,30 @@ for calculating gematria values.
 
 from typing import Optional
 
+from loguru import logger
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
-    QScrollArea,
-    QPushButton,
-    QHBoxLayout,
-    QDialog,
-    QLabel,
 )
-from loguru import logger
 
 from gematria.models.calculation_result import CalculationResult
-from gematria.models.calculation_type import CalculationType
-from gematria.ui.widgets.word_abacus_widget import WordAbacusWidget
-from gematria.models.custom_cipher_config import CustomCipherConfig
 from gematria.services.calculation_database_service import CalculationDatabaseService
-from gematria.services.gematria_service import GematriaService
 from gematria.services.custom_cipher_service import CustomCipherService
+from gematria.services.gematria_service import GematriaService
 from gematria.services.history_service import HistoryService
+from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
 
 # Import the actual dialog classes - we use these in type annotations and code
 from gematria.ui.dialogs.gematria_help_dialog import GematriaHelpDialog
-from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
-from gematria.ui.dialogs.save_calculation_dialog import SaveCalculationDialog
 from gematria.ui.dialogs.import_word_list_dialog import ImportWordListDialog
+from gematria.ui.dialogs.save_calculation_dialog import SaveCalculationDialog
+from gematria.ui.widgets.word_abacus_widget import WordAbacusWidget
 
 
 class WordAbacusPanel(QWidget):

@@ -14,11 +14,11 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
 )
 
 from gematria.models.calculation_result import CalculationResult
@@ -30,6 +30,7 @@ from gematria.ui.dialogs.edit_tags_window import EditTagsWindow
 # Import the TQ analysis service for sending numbers to Quadset Analysis
 try:
     from tq.services import tq_analysis_service
+
     TQ_AVAILABLE = True
 except ImportError:
     TQ_AVAILABLE = False
@@ -200,15 +201,17 @@ class CalculationDetailWidget(QWidget):
             self.calculation
         )
         self.tags_label.setText(", ".join(tag_names) if tag_names else "No tags")
-        
+
         # Enable/disable TQ Analysis button based on whether the result is a valid integer
-        if TQ_AVAILABLE and hasattr(self, 'tq_analysis_btn'):
+        if TQ_AVAILABLE and hasattr(self, "tq_analysis_btn"):
             try:
                 int(self.calculation.result_value)
                 self.tq_analysis_btn.setEnabled(True)
             except (ValueError, TypeError):
                 self.tq_analysis_btn.setEnabled(False)
-                self.tq_analysis_btn.setToolTip("Only integer values can be sent to Quadset Analysis")
+                self.tq_analysis_btn.setToolTip(
+                    "Only integer values can be sent to Quadset Analysis"
+                )
 
     def _on_favorite_toggled(self, checked: bool) -> None:
         """Handle toggling the favorite status.
@@ -296,23 +299,23 @@ class CalculationDetailWidget(QWidget):
         """Send the calculation result to the TQ Quadset Analysis (TQ Grid)."""
         if not self.calculation or not TQ_AVAILABLE:
             return
-            
+
         try:
             # Convert the result to an integer
             value = int(self.calculation.result_value)
-            
+
             # Open the TQ Grid with this number
             tq_analysis_service.get_instance().open_quadset_analysis(value)
-            
+
         except (ValueError, TypeError):
             QMessageBox.warning(
                 self,
                 "Invalid Value",
-                "Only integer values can be sent to Quadset Analysis."
+                "Only integer values can be sent to Quadset Analysis.",
             )
         except Exception as e:
             QMessageBox.critical(
                 self,
                 "Error",
-                f"An error occurred while opening Quadset Analysis: {str(e)}"
+                f"An error occurred while opening Quadset Analysis: {str(e)}",
             )

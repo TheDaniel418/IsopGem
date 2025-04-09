@@ -3,29 +3,27 @@
 This module provides a panel for managing tags used to organize gematria calculations.
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
+
+from loguru import logger
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
-    QPushButton,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMessageBox,
-    QDialog,
-    QFormLayout,
-    QLineEdit,
+    QPushButton,
     QTextEdit,
-    QComboBox,
-    QFrame,
-    QSizePolicy,
-    QInputDialog,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QIcon, QPixmap
-
-from loguru import logger
 
 from gematria.models.tag import Tag
 from gematria.services.calculation_database_service import CalculationDatabaseService

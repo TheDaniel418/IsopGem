@@ -4,46 +4,43 @@ This module provides a dialog for creating and editing custom gematria ciphers.
 """
 
 from typing import (
-    Dict,
-    Optional,
-    List,
     Any,
+    Dict,
+    List,
+    Optional,
     Union,
-    Set,
     cast,
-    TypeVar,
-    Generic,
-    Callable,
 )
-from PyQt6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QFormLayout,
-    QGroupBox,
-    QLabel,
-    QLineEdit,
-    QTextEdit,
-    QComboBox,
-    QCheckBox,
-    QPushButton,
-    QScrollArea,
-    QWidget,
-    QMessageBox,
-    QGridLayout,
-    QTableWidget,
-    QTableWidgetItem,
-    QSpinBox,
-    QTabWidget,
-    QListWidget,
-    QListWidgetItem,
-)
-from PyQt6.QtCore import Qt, pyqtSignal
 
 from loguru import logger
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from gematria.models.calculation_type import CalculationType
 from gematria.models.custom_cipher_config import CustomCipherConfig, LanguageType
 from gematria.services.custom_cipher_service import CustomCipherService
-from gematria.models.calculation_type import CalculationType
 from gematria.services.gematria_service import GematriaService
 
 # Define method type as a union of CalculationType and CustomCipherConfig

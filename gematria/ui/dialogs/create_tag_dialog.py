@@ -19,23 +19,21 @@ Related files:
 - gematria/models/tag.py: Provides the data model for tags
 """
 
-from typing import Optional, List, Dict
 
+from loguru import logger
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
+    QColorDialog,
     QDialog,
-    QVBoxLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
-    QColorDialog,
     QMessageBox,
+    QPushButton,
     QTextEdit,
+    QVBoxLayout,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
-
-from loguru import logger
 
 from gematria.models.tag import Tag
 from gematria.services.calculation_database_service import CalculationDatabaseService

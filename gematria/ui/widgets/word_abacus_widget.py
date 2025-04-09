@@ -19,36 +19,29 @@ Related files:
 - gematria/ui/dialogs/custom_cipher_dialog.py: For managing custom ciphers
 """
 
-from typing import Dict, List, Optional, Union, Any, cast, Tuple, Set
+from typing import Dict, List, Optional, Union, cast
+
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QComboBox,
     QLineEdit,
     QPushButton,
     QTableWidget,
-    QHeaderView,
     QTableWidgetItem,
-    QSizePolicy,
-    QStyle,
-    QMenu,
-    QGridLayout,
-    QApplication,
-    QFrame,
-    QGroupBox,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QAction, QCursor
 
-from loguru import logger
-
-from gematria.models.calculation_type import CalculationType
 from gematria.models.calculation_result import CalculationResult
+from gematria.models.calculation_type import CalculationType
 from gematria.models.custom_cipher_config import CustomCipherConfig, LanguageType
-from gematria.services.gematria_service import GematriaService
 from gematria.services.custom_cipher_service import CustomCipherService
+from gematria.services.gematria_service import GematriaService
 from gematria.services.history_service import HistoryService
 from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
 

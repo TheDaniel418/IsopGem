@@ -5,8 +5,8 @@ This module provides a standalone window for the Gematria Word Abacus.
 
 from typing import Optional
 
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 from loguru import logger
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 
 from gematria.models.calculation_result import CalculationResult
 from gematria.ui.panels.word_abacus_panel import WordAbacusPanel

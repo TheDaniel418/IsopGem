@@ -15,39 +15,41 @@ Dependencies:
 - gematria.models.calculation_result: Data model for calculation results
 """
 
-from typing import List, Dict, Optional
+from typing import List
+
 from gematria.models.calculation_result import CalculationResult
 from gematria.services.calculation_database_service import CalculationDatabaseService
 
+
 class SearchService:
     """Service for searching gematria calculations and results."""
-    
+
     def __init__(self, calculation_db: CalculationDatabaseService):
         """Initialize the search service.
-        
+
         Args:
             calculation_db: The calculation database service to use for searches
         """
         self.calculation_db = calculation_db
-        
+
     def search_by_number(self, number: int) -> List[CalculationResult]:
         """Search for gematria calculations by number.
-        
+
         Args:
             number: The number to search for
-            
+
         Returns:
             List of calculation results matching the number
         """
         criteria = {"value": number}
         return self.calculation_db.search_calculations(criteria)
-    
+
     def search_by_text(self, text: str) -> List[CalculationResult]:
         """Search for gematria calculations by Hebrew text.
-        
+
         Args:
             text: The Hebrew text to search for
-            
+
         Returns:
             List of calculation results matching the text
         """

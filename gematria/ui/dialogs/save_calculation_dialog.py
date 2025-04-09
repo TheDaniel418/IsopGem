@@ -3,24 +3,21 @@
 This module provides a dialog for saving calculations with tags, notes, and favorite status.
 """
 
-from typing import Dict, List, Optional, Set
+
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDialog,
-    QVBoxLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QTextEdit,
-    QCheckBox,
-    QGroupBox,
-    QWidget,
-    QMessageBox,
     QListWidget,
     QListWidgetItem,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt
-
-from loguru import logger
 
 from gematria.models.tag import Tag
 from gematria.services.calculation_database_service import CalculationDatabaseService
@@ -273,7 +270,6 @@ class SaveCalculationDialog(QDialog):
     def _select_tags(self):
         """Open the tag selection interface."""
         # Import here to avoid circular imports
-        from gematria.ui.panels.tag_management_panel import TagEditDialog
 
         # Create a list to store selected tags
         selected_tags = set(self.selected_tags)

@@ -6,17 +6,16 @@ This module provides a dialog with detailed explanations of gematria calculation
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
+    QFrame,
     QHBoxLayout,
-    QTabWidget,
-    QWidget,
-    QScrollArea,
     QLabel,
     QPushButton,
+    QScrollArea,
+    QTabWidget,
     QTextBrowser,
-    QFrame,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QFont
 
 
 class GematriaHelpDialog(QDialog):
@@ -377,14 +376,14 @@ class GematriaHelpDialog(QDialog):
         <h3>Trigrammaton Qabalah Background</h3>
         <p>The Trigrammaton Qabalah (TQ) is a modern qabalistic system developed by R. Leo Gillis (Rama L. Gillis).
         It is based on Aleister Crowley's 1907 work "Liber Trigrammaton" (Liber 27), which presents a cosmology
-        based on 27 three-line figures called trigrams. Crowley called it "the ultimate foundation of the highest 
+        based on 27 three-line figures called trigrams. Crowley called it "the ultimate foundation of the highest
         theoretical qabalah".</p>
-        
+
         <h3>Trigrams and Base-3 System</h3>
         <p>The system uses 27 trigrams that can be assigned numerical values in base-3 notation, allowing the trigrams
-        to represent all numbers from 0 to 26. Gillis mapped the 26 letters of the English alphabet to these trigrams, 
+        to represent all numbers from 0 to 26. Gillis mapped the 26 letters of the English alphabet to these trigrams,
         creating a system specifically designed for English language analysis.</p>
-        
+
         <p>The trigrams are organized as follows:</p>
         <ul>
             <li>Each trigram consists of three lines</li>
@@ -392,11 +391,11 @@ class GematriaHelpDialog(QDialog):
             <li>The 27 trigrams represent a complete cycle of creation according to Crowley's cosmology</li>
             <li>The trigrams can be arranged on a "Cube of Space" representing cosmic geometry</li>
         </ul>
-        
+
         <h3>Philosophy and Design Principles</h3>
         <p>The T.Q. system attributes Hermetic categories, letters of the English alphabet, and Tarot trumps to the trigrams.
         This creates a comprehensive system for English gematria that has deep connections to Thelemic philosophy.</p>
-        
+
         <p>Key aspects of the system include:</p>
         <ul>
             <li><b>English-Centric:</b> Specifically designed for working with English text</li>
@@ -405,7 +404,7 @@ class GematriaHelpDialog(QDialog):
             <li><b>Thelemic Framework:</b> Provides insights into Crowley's Book of the Law (Liber AL vel Legis)</li>
             <li><b>Cipher Decoding:</b> Claimed to unlock various ciphers in Crowley's works</li>
         </ul>
-        
+
         <h3>Applications of TQ</h3>
         <p>According to Gillis, the Trigrammaton Qabalah serves multiple purposes:</p>
         <ul>
@@ -416,15 +415,15 @@ class GematriaHelpDialog(QDialog):
             <li>Understanding sacred geometry and the Cube of Space</li>
             <li>Working with magic squares and other mathematical structures</li>
         </ul>
-        
+
         <h3>Publications and Development</h3>
         <p>Gillis published his research in "The Book of Mutations" (originally in 1996, revised in 2002),
-        which represents over a dozen years of research into the system. The work includes extensive charts, 
+        which represents over a dozen years of research into the system. The work includes extensive charts,
         hexagram graphics, and detailed explanations of the English Qabalah system and its applications.</p>
-        
+
         <h3>TQ in Modern Practice</h3>
-        <p>Today, TQ continues to be used by practitioners of Thelema and others interested in 
-        English-language mystical systems. It provides a bridge between traditional qabalistic 
+        <p>Today, TQ continues to be used by practitioners of Thelema and others interested in
+        English-language mystical systems. It provides a bridge between traditional qabalistic
         methods and modern English-language magical practices, particularly for those working
         within the Thelemic tradition.</p>
         """
@@ -465,16 +464,16 @@ class GematriaHelpDialog(QDialog):
             """
         <h3>What is Gematria?</h3>
         <p>Gematria is a system of assigning numerical values to letters and words. It has roots in ancient Hebrew traditions and has been used for biblical interpretation, mysticism, and analysis of sacred texts.</p>
-        
+
         <h3>What is Isopsophy?</h3>
         <p>Isopsophy is the Greek equivalent of gematria. It assigns numerical values to Greek letters and was used in ancient Greek texts, poetry, and religious writings.</p>
-        
+
         <h3>Why Use These Methods?</h3>
         <p>These calculation methods provide tools for textual analysis, finding connections between words and concepts, and exploring patterns in sacred texts. They have been used by scholars, mystics, and religious traditions for centuries.</p>
-        
+
         <h3>Historical Context</h3>
         <p>The practice of assigning numerical values to letters dates back thousands of years. In Hebrew tradition, gematria became an important tool in Kabbalistic study, while in Greek culture, isopsophy was used in various contexts including poetry, philosophy, and religious inscriptions.</p>
-        
+
         <h3>Modern Applications</h3>
         <p>Today, these methods continue to be used for textual analysis, comparative studies, and as tools for deeper understanding of ancient texts. They provide a unique perspective on the relationship between language and number.</p>
         """

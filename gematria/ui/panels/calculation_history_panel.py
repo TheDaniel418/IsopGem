@@ -61,6 +61,7 @@ from shared.ui.widgets.panel import Panel
 # Import the TQ analysis service for sending numbers to Quadset Analysis
 try:
     from tq.services import tq_analysis_service
+
     TQ_AVAILABLE = True
 except ImportError:
     TQ_AVAILABLE = False
@@ -181,15 +182,23 @@ class CalculationListItem(QWidget):
 
         # Get the formatted method name using the parent panel's helper method
         method_name = "Unknown"
-        if hasattr(parent, "format_calculation_type") and parent.format_calculation_type:
+        if (
+            hasattr(parent, "format_calculation_type")
+            and parent.format_calculation_type
+        ):
             try:
-                method_name = parent.format_calculation_type(calculation.calculation_type)
+                method_name = parent.format_calculation_type(
+                    calculation.calculation_type
+                )
             except Exception:
                 # Fallback in case of any errors with the parent's method
                 pass
-                
+
         # Fallback method formatting if parent doesn't have the helper method
-        if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
+        if (
+            hasattr(calculation, "custom_method_name")
+            and calculation.custom_method_name
+        ):
             method_name = calculation.custom_method_name
         elif hasattr(calculation.calculation_type, "name"):
             method_name = calculation.calculation_type.name.replace("_", " ").title()
@@ -396,21 +405,28 @@ class CalculationDetailWidget(QWidget):
         # Try to use the parent panel's formatting method if available
         if hasattr(self.parent(), "format_calculation_type"):
             try:
-                method_name = self.parent().format_calculation_type(calculation.calculation_type)
+                method_name = self.parent().format_calculation_type(
+                    calculation.calculation_type
+                )
             except Exception:
                 # Fallback in case of any errors with the parent's method
                 pass
-                
+
         # Default fallback value
         method_name = "Unknown"
 
         # Use defensive programming to avoid crashes and unreachable code
         try:
             # Custom method name takes precedence if it exists
-            if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
+            if (
+                hasattr(calculation, "custom_method_name")
+                and calculation.custom_method_name
+            ):
                 method_name = calculation.custom_method_name
             elif hasattr(calculation.calculation_type, "name"):
-                method_name = calculation.calculation_type.name.replace("_", " ").title()
+                method_name = calculation.calculation_type.name.replace(
+                    "_", " "
+                ).title()
             elif isinstance(calculation.calculation_type, str):
                 method_name = calculation.calculation_type.replace("_", " ").title()
         except AttributeError:
@@ -715,10 +731,14 @@ class CalculationHistoryPanel(Panel):
         self.calculation_list.setAlternatingRowColors(True)
         self.calculation_list.currentItemChanged.connect(self._on_calculation_selected)
         self.calculation_list.itemDoubleClicked.connect(self._on_calculation_details)
-        
+
         # Add context menu to calculation list
-        self.calculation_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.calculation_list.customContextMenuRequested.connect(self._show_context_menu)
+        self.calculation_list.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.calculation_list.customContextMenuRequested.connect(
+            self._show_context_menu
+        )
 
         # Details panel
         self.details_panel = QWidget()
@@ -834,39 +854,42 @@ class CalculationHistoryPanel(Panel):
 
             self.details_title.setText(f"Calculation: {calculation.input_text}")
             self.details_value.setText(f"Result: {calculation.result_value}")
-            self.details_method.setText(f"Method: {self.format_calculation_type(calculation.calculation_type)}")
+            self.details_method.setText(
+                f"Method: {self.format_calculation_type(calculation.calculation_type)}"
+            )
 
-            if hasattr(calculation, 'tags') and calculation.tags:
+            if hasattr(calculation, "tags") and calculation.tags:
                 self.details_tags.setText(f"Tags: {', '.join(calculation.tags)}")
             else:
                 self.details_tags.setText("Tags: None")
 
-            if hasattr(calculation, 'notes') and calculation.notes:
+            if hasattr(calculation, "notes") and calculation.notes:
                 self.details_notes.setText(f"Notes: {calculation.notes}")
             else:
                 self.details_notes.setText("Notes: None")
-                
+
     def format_calculation_type(self, calculation_type):
         """Format calculation type for display.
-        
+
         Args:
             calculation_type: The calculation type to format
-            
+
         Returns:
             A human-readable string representation of the calculation type
         """
         # Handle the case when calculation_type is None
         if calculation_type is None:
             return "Unknown"
-            
+
         # Handle the case when it's a CalculationType enum
         if hasattr(calculation_type, "name"):
             return calculation_type.name.replace("_", " ").title()
-            
+
         # Handle the case when it's a custom method (string)
         if isinstance(calculation_type, str):
             # Try to convert number strings to readable method names
             from gematria.models.calculation_type import CalculationType
+
             try:
                 # If it's a string that represents an integer, try to convert to enum
                 if calculation_type.isdigit():
@@ -876,20 +899,21 @@ class CalculationHistoryPanel(Panel):
                             return ct.name.replace("_", " ").title()
             except (ValueError, AttributeError):
                 pass
-                
+
             # If we couldn't convert to enum, just format the string
             return calculation_type.replace("_", " ").title()
-            
+
         # Handle case when it's an integer
         if isinstance(calculation_type, int):
             from gematria.models.calculation_type import CalculationType
+
             for ct in CalculationType:
                 if ct.value == calculation_type:
                     return ct.name.replace("_", " ").title()
-                    
+
         # Fallback case - just convert to string
         return str(calculation_type)
-        
+
     def _on_calculation_details(self, item):
         """Open the details dialog for the selected calculation."""
         if not item:
@@ -948,18 +972,18 @@ class CalculationHistoryPanel(Panel):
         # Load tags for filtering
         self.tag_combo.clear()
         self.tag_combo.addItem("All Tags", None)
-        
+
         try:
             tags = self.calculation_service.get_all_tags()
             for tag in tags:
                 self.tag_combo.addItem(tag.name, tag.id)
         except Exception as e:
             logger.error(f"Error loading tags: {e}")
-            
+
         # Load calculation methods for filtering
         self.method_combo.clear()
         self.method_combo.addItem("All Methods", None)
-        
+
         # Get unique calculation methods from the database
         try:
             methods = self.calculation_service.get_distinct_calculation_types()
@@ -976,49 +1000,60 @@ class CalculationHistoryPanel(Panel):
         self.selected_calculation = None
         self.view_details_button.setEnabled(False)
         self.delete_button.setEnabled(False)
-        
+
         try:
             # Get the search term
-            search_term = self.search_box.text().strip() if self.search_box.text() else None
-            
+            search_term = (
+                self.search_box.text().strip() if self.search_box.text() else None
+            )
+
             # Calculate offset for pagination
             offset = self.current_page * self.page_size
-            
+
             # Get calculations with filters
-            calculations, self.total_calculations = self.calculation_service.get_filtered_calculations(
+            (
+                calculations,
+                self.total_calculations,
+            ) = self.calculation_service.get_filtered_calculations(
                 search_term=search_term,
                 tag_id=self.filter_tag,
                 calculation_type=self.filter_method,
                 favorites_only=self.favorites_only,
                 limit=self.page_size,
-                offset=offset
+                offset=offset,
             )
-            
+
             # Update the pagination information
-            total_pages = (self.total_calculations + self.page_size - 1) // self.page_size
+            total_pages = (
+                self.total_calculations + self.page_size - 1
+            ) // self.page_size
             if total_pages == 0:
                 total_pages = 1
-                
+
             self.page_label.setText(f"Page {self.current_page + 1} of {total_pages}")
             self.prev_button.setEnabled(self.current_page > 0)
             self.next_button.setEnabled(self.current_page < total_pages - 1)
-            
+
             # Display the results count
             if self.total_calculations == 0:
                 self.details_title.setText("No calculations found")
             elif self.total_calculations == 1:
                 self.details_title.setText("1 calculation found")
             else:
-                self.details_title.setText(f"{self.total_calculations} calculations found")
-            
+                self.details_title.setText(
+                    f"{self.total_calculations} calculations found"
+                )
+
             # Populate the list
             for calc in calculations:
                 # Format the display text to include the proper method name
                 formatted_method = self.format_calculation_type(calc.calculation_type)
-                item = QListWidgetItem(f"{calc.input_text} = {calc.result_value} ({formatted_method})")
+                item = QListWidgetItem(
+                    f"{calc.input_text} = {calc.result_value} ({formatted_method})"
+                )
                 item.setData(Qt.ItemDataRole.UserRole, calc.id)
                 self.calculation_list.addItem(item)
-                
+
         except Exception as e:
             logger.error(f"Error loading calculations: {e}")
 
@@ -1032,10 +1067,10 @@ class CalculationHistoryPanel(Panel):
         item = self.calculation_list.itemAt(position)
         if not item:
             return
-            
+
         # Create context menu
         menu = QMenu(self)
-        
+
         # Get calculation data
         calc_id = item.data(Qt.ItemDataRole.UserRole)
         calculation = self.calculation_service.get_calculation(calc_id)
@@ -1045,10 +1080,12 @@ class CalculationHistoryPanel(Panel):
         # Add menu items
         view_action = menu.addAction("View Details")
         view_action.triggered.connect(lambda: self._on_calculation_details(item))
-        
+
         delete_action = menu.addAction("Delete")
-        delete_action.triggered.connect(lambda: self._on_delete_specific_calculation(calc_id))
-        
+        delete_action.triggered.connect(
+            lambda: self._on_delete_specific_calculation(calc_id)
+        )
+
         # Add "Send to Quadset Analysis" option if TQ is available
         if TQ_AVAILABLE:
             # Check if the calculation result is a valid integer
@@ -1058,17 +1095,21 @@ class CalculationHistoryPanel(Panel):
                 can_send_to_tq = True
             except (ValueError, TypeError):
                 pass
-                
+
             tq_action = menu.addAction("Send to Quadset Analysis")
             tq_action.setEnabled(can_send_to_tq)
             if can_send_to_tq:
-                tq_action.triggered.connect(lambda: self._send_to_quadset_analysis(calculation))
+                tq_action.triggered.connect(
+                    lambda: self._send_to_quadset_analysis(calculation)
+                )
             else:
-                tq_action.setToolTip("Only integer values can be sent to Quadset Analysis")
-        
+                tq_action.setToolTip(
+                    "Only integer values can be sent to Quadset Analysis"
+                )
+
         # Show menu at the requested position
         menu.exec(self.calculation_list.viewport().mapToGlobal(position))
-        
+
     def _on_delete_specific_calculation(self, calc_id):
         """Delete a specific calculation by ID.
 
@@ -1086,14 +1127,14 @@ class CalculationHistoryPanel(Panel):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
-        
+
         if confirm == QMessageBox.StandardButton.Yes:
             try:
                 self.calculation_service.delete_calculation(calc_id)
                 self._on_refresh()  # Reload the list after deletion
             except Exception as e:
                 logger.error(f"Error deleting calculation: {e}")
-                
+
     def _send_to_quadset_analysis(self, calculation):
         """Send calculation result to TQ Quadset Analysis.
 
@@ -1102,23 +1143,23 @@ class CalculationHistoryPanel(Panel):
         """
         if not calculation or not TQ_AVAILABLE:
             return
-            
+
         try:
             # Convert the result to an integer
             value = int(calculation.result_value)
-            
+
             # Open the TQ Grid with this number
             tq_analysis_service.get_instance().open_quadset_analysis(value)
-            
+
         except (ValueError, TypeError):
             QMessageBox.warning(
                 self,
                 "Invalid Value",
-                "Only integer values can be sent to Quadset Analysis."
+                "Only integer values can be sent to Quadset Analysis.",
             )
         except Exception as e:
             QMessageBox.critical(
                 self,
                 "Error",
-                f"An error occurred while opening Quadset Analysis: {str(e)}"
+                f"An error occurred while opening Quadset Analysis: {str(e)}",
             )

@@ -21,10 +21,10 @@ Related files:
 - gematria/repositories/calculation_repository.py: Companion repository for calculation data
 """
 
-import os
 import json
+import os
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 from loguru import logger
 
