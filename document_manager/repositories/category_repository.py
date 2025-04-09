@@ -14,7 +14,7 @@ Dependencies:
 
 import json
 import sqlite3
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from loguru import logger
 

@@ -8,7 +8,7 @@ Key components:
 - DocumentManagerPillar: Main pillar class for document management functionality
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 class DocumentManagerPillar:

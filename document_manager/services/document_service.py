@@ -21,7 +21,7 @@ import shutil
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Tuple, Union
 
 import fitz  # PyMuPDF
 from docx import Document as DocxDocument
@@ -924,8 +924,8 @@ class DocumentService:
                 # For QGemDocuments, size can change due to HTML formatting - don't warn
                 if document.file_type == DocumentType.QTDOC:
                     # Update size silently without warnings
-                    if hasattr(document, 'html_content') and document.html_content:
-                        document.size_bytes = len(document.html_content.encode('utf-8'))
+                    if hasattr(document, "html_content") and document.html_content:
+                        document.size_bytes = len(document.html_content.encode("utf-8"))
                 elif document.file_path.exists():
                     actual_size = file_path.stat().st_size
                     if (
@@ -1013,7 +1013,7 @@ class DocumentService:
         if (
             document.content and len(document.content) > 10 * 1024 * 1024
         ):  # 10 MB of text
-            return False, f"Extracted text size exceeds maximum allowed (10 MB)"
+            return False, "Extracted text size exceeds maximum allowed (10 MB)"
 
         # All validation passed
         return True, None

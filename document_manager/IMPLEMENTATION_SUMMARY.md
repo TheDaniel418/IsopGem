@@ -131,4 +131,4 @@ The Document Manager can be tested at different levels:
 
 ## Conclusion
 
-The Document Manager pillar provides a solid foundation for document management within IsopGem. Its clean architecture makes it maintainable and extensible, allowing for future enhancements and integrations with other parts of the application. 
+The Document Manager pillar provides a solid foundation for document management within IsopGem. Its clean architecture makes it maintainable and extensible, allowing for future enhancements and integrations with other parts of the application.

@@ -13,15 +13,14 @@ Dependencies:
 - document_manager.ui.dialogs: For document viewers and category management
 """
 
-from PyQt6.QtCore import Qt
+from typing import Optional
+
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
-from typing import Optional
 
 from document_manager.ui.dialogs.category_manager_dialog import CategoryManagerDialog
 from document_manager.ui.dialogs.document_viewer_dialog import DocumentViewerDialog
 from document_manager.ui.panels.document_browser_panel import DocumentBrowserPanel
-from document_manager.ui.panels.document_analysis_panel import DocumentAnalysisPanel
 
 
 class DocumentManagerPanel(QWidget):

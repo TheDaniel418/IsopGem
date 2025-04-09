@@ -16,14 +16,11 @@ Dependencies:
 
 import os
 import subprocess
-import sys
 from typing import Any, Optional
-from datetime import datetime
-from pathlib import Path
 
 from loguru import logger
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon, QTextCursor, QTextOption
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -36,8 +33,6 @@ from PyQt6.QtWidgets import (
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
-    QFileDialog,
 )
 
 from document_manager.services.category_service import CategoryService

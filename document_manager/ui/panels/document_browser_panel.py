@@ -689,16 +689,22 @@ class DocumentBrowserPanel(Panel):
             # Get the current document from the editor
             if hasattr(editor, "document_manager") and editor.document_manager:
                 try:
-                    document_content_to_save = editor.document_manager.get_document_format()
-                    logger.debug(f"Captured content for document {document_id} before window closes")
+                    document_content_to_save = (
+                        editor.document_manager.get_document_format()
+                    )
+                    logger.debug(
+                        f"Captured content for document {document_id} before window closes"
+                    )
                 except Exception as e:
                     logger.error(f"Error capturing document content before close: {e}")
 
-        # Connect to the editor's closeEvent 
+        # Connect to the editor's closeEvent
         old_close_event = editor.closeEvent
+
         def new_close_event(event):
             capture_content_before_close()
             old_close_event(event)
+
         editor.closeEvent = new_close_event
 
         # Open RTF editor window
@@ -715,7 +721,9 @@ class DocumentBrowserPanel(Panel):
                     # Use the content captured before window was destroyed
                     if document_content_to_save:
                         # Save document back to database
-                        qgem_document_service.save_document_format(document_content_to_save)
+                        qgem_document_service.save_document_format(
+                            document_content_to_save
+                        )
                         # Refresh document browser
                         self._refresh()
                         logger.info(f"Saved changes to document {document_id}")

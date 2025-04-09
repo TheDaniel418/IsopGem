@@ -77,7 +77,7 @@ documents = doc_service.batch_import_documents(
 
 # Import all documents from a directory with category assignment
 documents = doc_service.import_documents_from_directory(
-    '/path/to/documents', 
+    '/path/to/documents',
     recursive=True,
     max_workers=4,
     category_id=category_id
@@ -110,7 +110,7 @@ research_category = cat_service.create_category("Research", description="Researc
 
 # Create a subcategory
 papers_category = cat_service.create_category(
-    "Papers", 
+    "Papers",
     description="Published papers",
     parent_id=research_category.id
 )
@@ -162,4 +162,4 @@ layout.addWidget(document_panel)
 Install dependencies with:
 ```bash
 pip install PyMuPDF python-docx odfpy pydantic
-``` 
+```

@@ -17,10 +17,11 @@ Dependencies:
 """
 
 import re
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Tuple
 
-from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QAction, QColor, QFont, QTextCursor, QTextCharFormat
+from loguru import logger
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QAction, QColor, QTextCharFormat, QTextCursor
 from PyQt6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -29,24 +30,18 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMenu,
+    QMessageBox,
     QPushButton,
-    QScrollArea,
     QSpinBox,
     QSplitter,
     QTextEdit,
-    QToolButton,
-    QTreeWidget,
-    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
 )
-from loguru import logger
 
 from document_manager.models.document import Document
-from document_manager.models.document_category import DocumentCategory
-from document_manager.services.document_service import DocumentService
 from document_manager.services.category_service import CategoryService
+from document_manager.services.document_service import DocumentService
 from gematria.models.calculation_type import CalculationType
 from gematria.services.gematria_service import GematriaService
 from shared.ui.components.message_box import MessageBox
@@ -55,6 +50,7 @@ from shared.ui.widgets.panel import Panel
 # Import the TQ analysis service for sending numbers to Quadset Analysis
 try:
     from tq.services import tq_analysis_service
+
     TQ_AVAILABLE = True
 except ImportError:
     TQ_AVAILABLE = False
@@ -227,13 +223,13 @@ class DocumentAnalysisPanel(Panel):
         self.method_combo.addItem("TQ Method", CalculationType.TQ_ENGLISH)
 
         method_layout.addWidget(self.method_combo)
-        
+
         # Default to TQ Method since documents are typically in English
         # Find the index of the TQ Method and set it as default
         tq_index = self.method_combo.findData(CalculationType.TQ_ENGLISH)
         if tq_index >= 0:
             self.method_combo.setCurrentIndex(tq_index)
-            
+
         calc_layout.addLayout(method_layout)
 
         # Calculate selection button and result in same row
@@ -893,28 +889,34 @@ class DocumentAnalysisPanel(Panel):
                     lambda: self._save_to_database(selected_text, value)
                 )
                 menu.addAction(save_action)
-                
+
                 # Add action to send to Quadset Analysis if TQ is available and value is an integer
                 if TQ_AVAILABLE:
                     # Only add the option if the value is a valid integer
                     # (should always be the case with gematria values, but check to be safe)
                     try:
                         int_value = int(value)
-                        tq_action = QAction(f"Send {int_value} to Quadset Analysis", self)
-                        tq_action.triggered.connect(lambda: self._send_to_quadset_analysis(int_value))
+                        tq_action = QAction(
+                            f"Send {int_value} to Quadset Analysis", self
+                        )
+                        tq_action.triggered.connect(
+                            lambda: self._send_to_quadset_analysis(int_value)
+                        )
                         menu.addAction(tq_action)
                     except (ValueError, TypeError):
                         pass
 
             except Exception:
                 pass
-                
+
             # Check if the selection is a pure number that can be sent to Quadset Analysis
             if TQ_AVAILABLE and selected_text.strip().isdigit():
                 try:
                     int_value = int(selected_text.strip())
                     tq_action = QAction(f"Send {int_value} to Quadset Analysis", self)
-                    tq_action.triggered.connect(lambda: self._send_to_quadset_analysis(int_value))
+                    tq_action.triggered.connect(
+                        lambda: self._send_to_quadset_analysis(int_value)
+                    )
                     menu.addAction(tq_action)
                 except (ValueError, TypeError):
                     pass
@@ -1045,7 +1047,7 @@ class DocumentAnalysisPanel(Panel):
 
     def _send_to_quadset_analysis(self, value: int) -> None:
         """Send a value to the TQ Quadset Analysis tool.
-        
+
         Args:
             value: Integer value to analyze in the TQ Grid
         """
@@ -1053,18 +1055,18 @@ class DocumentAnalysisPanel(Panel):
             MessageBox.warning(
                 self,
                 "Feature Unavailable",
-                "The TQ module is not available in this installation."
+                "The TQ module is not available in this installation.",
             )
             return
-            
+
         try:
             # Open the TQ Grid with this number
             tq_analysis_service.get_instance().open_quadset_analysis(value)
-            
+
         except Exception as e:
             logger.error(f"Error opening quadset analysis: {e}")
             MessageBox.error(
                 self,
                 "Error",
-                f"An error occurred while opening Quadset Analysis: {str(e)}"
+                f"An error occurred while opening Quadset Analysis: {str(e)}",
             )

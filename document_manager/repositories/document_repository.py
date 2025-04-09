@@ -16,10 +16,9 @@ Dependencies:
 import json
 import os
 import sqlite3
-import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, cast
+from typing import Dict, List, Optional, Tuple, Union
 
 from loguru import logger
 
@@ -343,7 +342,7 @@ class DocumentRepository:
 
         # Execute the main query with pagination
         query_sql = f"""
-        SELECT * FROM documents 
+        SELECT * FROM documents
         WHERE {where_clause}
         ORDER BY creation_date DESC
         LIMIT ? OFFSET ?
