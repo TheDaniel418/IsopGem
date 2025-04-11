@@ -31,6 +31,7 @@ from PyQt6.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
     QWidget,
+    QMessageBox,
 )
 
 from astrology.models.chart import NatalChart
@@ -361,17 +362,32 @@ class BirthChartWidget(QWidget):
     def _open_chart_in_browser(self):
         """Open the current chart in the browser using kerykeion."""
         if not self.current_chart:
+            QMessageBox.warning(self, "No Chart Available", "No chart is available to open in the browser.")
             logger.warning("No chart available to open in browser")
             return
 
         try:
-            # Generate the SVG and open it in the browser
-            self.kerykeion_service.generate_chart_svg(
+            # Let Kerykeion handle opening the chart in the browser
+            svg_path = self.kerykeion_service.generate_chart_svg(
                 chart=self.current_chart, open_in_browser=True
             )
-            logger.debug(f"Opened chart for {self.current_chart.name} in browser")
+            
+            if not svg_path:
+                QMessageBox.warning(
+                    self, 
+                    "Chart Generation Failed", 
+                    "Failed to generate chart SVG file."
+                )
+                return
+                
+            logger.debug(f"Opened chart for {self.current_chart.name} in browser, SVG at: {svg_path}")
         except Exception as e:
             logger.error(f"Error opening chart in browser: {e}")
+            QMessageBox.warning(
+                self, 
+                "Browser Error", 
+                f"There was an error opening the chart in the browser: {str(e)}"
+            )
 
     def _show_houses_tab(self):
         """Debug method to switch to the Houses tab."""

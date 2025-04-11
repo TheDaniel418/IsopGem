@@ -126,56 +126,50 @@ class KerykeionService:
         Returns:
             Path to the generated SVG file
         """
-        # Create a kerykeion subject from the chart data
-        subject = AstrologicalSubject(
-            name=chart.name,
-            year=chart.birth_date.year,
-            month=chart.birth_date.month,
-            day=chart.birth_date.day,
-            hour=chart.birth_date.hour,
-            minute=chart.birth_date.minute,
-            city="Custom",  # We're providing coordinates directly
-            nation="",
-            lat=chart.latitude,
-            lng=chart.longitude,
-            tz_str=chart.timezone,
-        )
+        try:
+            # Create a kerykeion subject from the chart data
+            subject = AstrologicalSubject(
+                name=chart.name,
+                year=chart.birth_date.year,
+                month=chart.birth_date.month,
+                day=chart.birth_date.day,
+                hour=chart.birth_date.hour,
+                minute=chart.birth_date.minute,
+                city="Custom",  # We're providing coordinates directly
+                nation="",
+                lat=chart.latitude,
+                lng=chart.longitude,
+                tz_str=chart.timezone,
+            )
 
-        # Create the chart
-        kerykeion_chart = KerykeionChartSVG(subject)
-
-        # Generate the SVG
-        kerykeion_chart.makeSVG()
-
-        # The default path where kerykeion saves the file
-        default_path = f"/home/daniel/{subject.name} - Natal Chart.svg"
-
-        # If output_path is specified and the file exists at the default location, move it
-        if output_path and os.path.exists(default_path):
-            # Create the directory if it doesn't exist
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            # Move the file to the specified path
-            os.rename(default_path, output_path)
-            logger.debug(f"Chart SVG moved from {default_path} to {output_path}")
-
+            # Create the chart
+            kerykeion_chart = KerykeionChartSVG(subject)
+            
+            # Generate the SVG - this saves to a default location in /home/daniel
+            kerykeion_chart.makeSVG()
+            
+            # Default path where Kerykeion saves the chart
+            svg_path = f"/home/daniel/{subject.name} - Natal Chart.svg"
+            
+            # If the chart exists and we want a different location, move it
+            if output_path and os.path.exists(svg_path) and output_path != svg_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                os.rename(svg_path, output_path)
+                logger.debug(f"Moved chart from {svg_path} to {output_path}")
+                svg_path = output_path
+                
             # Open in browser if requested
-            if open_in_browser:
-                file_url = f"file://{output_path}"
+            if open_in_browser and os.path.exists(svg_path):
+                file_url = f"file://{os.path.abspath(svg_path)}"
                 logger.debug(f"Opening chart in browser: {file_url}")
                 webbrowser.open(file_url)
-
-            return output_path
-
-        # Otherwise return the default path
-        logger.debug(f"Chart SVG generated at {default_path}")
-
-        # Open in browser if requested
-        if open_in_browser:
-            file_url = f"file://{default_path}"
-            logger.debug(f"Opening chart in browser: {file_url}")
-            webbrowser.open(file_url)
-
-        return default_path
+                
+            logger.debug(f"Chart generated at: {svg_path}")
+            return svg_path if os.path.exists(svg_path) else ""
+            
+        except Exception as e:
+            logger.error(f"Error generating chart SVG: {e}")
+            return ""
 
     def _extract_planets(self, subject: AstrologicalSubject) -> List[Planet]:
         """Extract planet data from a kerykeion subject.

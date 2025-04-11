@@ -1,27 +1,29 @@
 """
-Purpose: Creates and manages astrological charts.
+Purpose: Provides services for astrological chart creation and calculations.
 
 This file is part of the astrology pillar and serves as a service component.
-It provides functionality to create and manage different types of astrological
-charts, including natal charts, transit charts, and composite charts.
+It provides functionality to create various types of astrological charts,
+including natal, transit, and composite charts, and to perform calculations on them.
 
 Key components:
 - ChartService: Service for creating and managing astrological charts
+- calculate_aspects: Function to calculate aspects between planets
+- identify_aspect_patterns: Function to identify aspect patterns
 
 Dependencies:
-- Python typing: For type hint annotations
-- datetime: For date and time handling
-- astrology.models: For astrological data models
-- astrology.services: For other astrological services
+- astrology.models: For chart and aspect data models
+- astrology.services.kerykeion_service: For accessing Kerykeion library
 """
 
-from datetime import datetime
-from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, cast
 
 from loguru import logger
 
+from astrology.models.aspect import Aspect, AspectPattern
 from astrology.models.chart import (
     Chart,
+    ChartType,
     CompositeChart,
     NatalChart,
     TransitChart,
@@ -29,15 +31,17 @@ from astrology.models.chart import (
 from astrology.models.zodiac import HouseSystem
 from astrology.services.kerykeion_service import KerykeionService
 
+T = TypeVar('T', bound='ChartService[Any]')
 
-class ChartService:
+class ChartService(Generic[T]):
     """Service for creating and managing astrological charts."""
 
     # Singleton instance
-    _instance = None
+    _instance: Optional[T] = None
+    kerykeion_service: KerykeionService
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls: Type[T]) -> T:
         """Get the singleton instance of the service.
 
         Returns:
@@ -45,9 +49,9 @@ class ChartService:
         """
         if cls._instance is None:
             cls._instance = cls()
-        return cls._instance
+        return cast(T, cls._instance)
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the chart service."""
         # Create kerykeion service
         self.kerykeion_service = KerykeionService()
@@ -116,13 +120,36 @@ class ChartService:
             perspective_type=perspective_type,
         )
 
-        # Add additional information to the chart
-        chart.location_name = location_name
-        chart.house_system = house_system
+        # Convert Chart to NatalChart
+        natal_chart = cast(NatalChart, chart)
+        
+        # Only set birth_time_known if the chart is indeed a NatalChart
+        if isinstance(chart, NatalChart):
+            natal_chart.birth_time_known = birth_time_known
+        elif not hasattr(chart, "birth_time_known"):
+            # If it's just a base Chart, convert it to a NatalChart
+            natal_chart = NatalChart(
+                name=chart.name,
+                type=ChartType.NATAL,
+                date=chart.date,
+                kerykeion_subject=chart.kerykeion_subject,
+                latitude=chart.latitude,
+                longitude=chart.longitude,
+                location_name=chart.location_name,
+                planets=chart.planets,
+                houses=chart.houses,
+                aspects=chart.aspects,
+                house_system=chart.house_system,
+                birth_date=birth_date,
+                birth_time_known=birth_time_known
+            )
+
+        # Add location name and house system explicitly
+        natal_chart.location_name = location_name
+        natal_chart.house_system = house_system
 
         logger.debug(f"Created natal chart for {name} using kerykeion")
-
-        return chart
+        return natal_chart
 
     def create_transit_chart(
         self,
@@ -147,29 +174,27 @@ class ChartService:
             The created transit chart
         """
         # Use reference chart location if not provided
-        if latitude is None:
-            latitude = reference_chart.latitude
-        if longitude is None:
-            longitude = reference_chart.longitude
-        if location_name is None:
-            location_name = reference_chart.location_name
+        chart_latitude = latitude if latitude is not None else reference_chart.latitude
+        chart_longitude = longitude if longitude is not None else reference_chart.longitude
+        chart_location = location_name if location_name is not None else reference_chart.location_name
+
+        if chart_latitude is None or chart_longitude is None:
+            raise ValueError("No valid latitude/longitude available from reference chart")
 
         # Create the chart
         chart = TransitChart(
             name=name,
             date=date,
-            latitude=latitude,
-            longitude=longitude,
-            location_name=location_name,
+            latitude=chart_latitude,
+            longitude=chart_longitude,
+            location_name=chart_location,
             house_system=reference_chart.house_system,
             reference_chart=reference_chart,
         )
 
-        # Use kerykeion service to create a new chart for the transit date
         # Get the timezone string
         try:
             import tzlocal
-
             timezone_str = str(tzlocal.get_localzone())
         except Exception:
             timezone_str = "UTC"
@@ -195,8 +220,8 @@ class ChartService:
         transit_data = self.kerykeion_service.create_natal_chart(
             name=name,
             birth_date=date,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=chart_latitude,
+            longitude=chart_longitude,
             timezone_str=timezone_str,
             house_system=house_system_code,
         )
@@ -227,7 +252,7 @@ class ChartService:
         date1 = chart1.date
         date2 = chart2.date
         days_diff = (date2 - date1).days / 2
-        midpoint_date = date1 + datetime.timedelta(days=days_diff)
+        midpoint_date = date1 + timedelta(days=days_diff)
 
         # Calculate midpoint location (simplified)
         latitude = (
@@ -265,22 +290,41 @@ class ChartService:
         chart: Chart,
         major_only: bool = False,
         custom_orbs: Optional[Dict[str, float]] = None,
-    ) -> List:
+    ) -> List[Aspect]:
         """Calculate aspects in a chart.
 
         Args:
             chart: The chart to calculate aspects for
-            major_only: Whether to only calculate major aspects
+            major_only: Whether to only calculate major aspects  
             custom_orbs: Custom orbs for aspects
 
         Returns:
             List of aspects
         """
-        # Kerykeion calculates aspects automatically
-        # We just need to return the aspects from the chart
-        return chart.aspects if hasattr(chart, "aspects") else []
+        # Convert zodiac.Aspect objects to aspect.Aspect objects
+        raw_aspects = chart.aspects if hasattr(chart, "aspects") else []
+        converted_aspects: List[Aspect] = []
+        
+        for raw_aspect in raw_aspects:
+            # Create Aspect object with required fields
+            aspect = Aspect(
+                body1=raw_aspect.planet1,
+                body2=raw_aspect.planet2,
+                aspect_type=raw_aspect.aspect_type,
+                angle=raw_aspect.angle,
+                orb=raw_aspect.orb,
+                exact_angle=raw_aspect.angle,
+                applying=False  # Default value since Kerykeion doesn't provide this
+            )
+            converted_aspects.append(aspect)
+            
+        return converted_aspects
 
-    def identify_aspect_patterns(self, chart: Chart, aspects: List) -> List:
+    def identify_aspect_patterns(
+        self, 
+        chart: Chart,
+        aspects: List[Aspect]
+    ) -> List[AspectPattern]:
         """Identify aspect patterns in a chart.
 
         Args:
@@ -290,8 +334,7 @@ class ChartService:
         Returns:
             List of aspect patterns
         """
-        # Aspect pattern identification is not supported by kerykeion
-        # This would need to be implemented separately
+        # Aspect pattern identification is not implemented yet
         logger.warning(
             "Aspect pattern identification is not implemented with kerykeion yet"
         )
