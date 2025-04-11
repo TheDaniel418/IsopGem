@@ -25,12 +25,15 @@ Related files:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, TYPE_CHECKING
 
 from loguru import logger
 
-from gematria.models.calculation_result import CalculationResult
-from gematria.models.calculation_type import CalculationType
+# Import models using TYPE_CHECKING to avoid circular imports
+if TYPE_CHECKING:
+    from gematria.models.calculation_result import CalculationResult
+    from gematria.models.calculation_type import CalculationType
+
 from shared.repositories.database import Database
 
 
@@ -46,13 +49,16 @@ class SQLiteCalculationRepository:
         self.db = Database(data_dir)
         logger.debug("SQLiteCalculationRepository initialized")
 
-    def get_all_calculations(self) -> List[CalculationResult]:
+    def get_all_calculations(self) -> List["CalculationResult"]:
         """
         Get all calculations from the database.
 
         Returns:
             List[CalculationResult]: All calculations
         """
+        # Import here to avoid circular imports at module level
+        from gematria.models.calculation_result import CalculationResult
+
         query = """
             SELECT id, input_text, result_value, calculation_type, custom_method_name,
                    created_at, favorite, notes
@@ -110,7 +116,7 @@ class SQLiteCalculationRepository:
         limit: int = 50,
         sort_by: str = "created_at",
         sort_order: str = "DESC",
-    ) -> List[CalculationResult]:
+    ) -> List["CalculationResult"]:
         """
         Get a paginated list of calculations with sorting.
 
@@ -158,6 +164,8 @@ class SQLiteCalculationRepository:
                 tags = self._get_tags_for_calculation(cursor, calculation_id)
 
                 # Create CalculationResult object
+                from gematria.models.calculation_result import CalculationResult
+
                 calculation = CalculationResult(
                     id=calculation_id,
                     input_text=row[1],
@@ -194,7 +202,7 @@ class SQLiteCalculationRepository:
             methods = [row[0] for row in rows]
             return methods
 
-    def get_calculation(self, calculation_id: str) -> Optional[CalculationResult]:
+    def get_calculation(self, calculation_id: str) -> Optional["CalculationResult"]:
         """Get a specific calculation result by ID.
 
         Args:
@@ -219,7 +227,7 @@ class SQLiteCalculationRepository:
         logger.debug(f"Calculation with ID {calculation_id} not found")
         return None
 
-    def save_calculation(self, calculation: CalculationResult) -> bool:
+    def save_calculation(self, calculation: "CalculationResult") -> bool:
         """Save a calculation to the database.
 
         Args:
@@ -336,7 +344,7 @@ class SQLiteCalculationRepository:
             logger.error(f"Failed to delete calculation: {e}")
             return False
 
-    def find_calculations_by_tag(self, tag_id: str) -> List[CalculationResult]:
+    def find_calculations_by_tag(self, tag_id: str) -> List["CalculationResult"]:
         """Find calculations by tag ID.
 
         Args:
@@ -357,7 +365,7 @@ class SQLiteCalculationRepository:
         rows = self.db.query_all(query, (tag_id,))
         return [self._row_to_calculation(row) for row in rows]
 
-    def find_calculations_by_text(self, text: str) -> List[CalculationResult]:
+    def find_calculations_by_text(self, text: str) -> List["CalculationResult"]:
         """Find all calculations containing the specified text.
 
         Args:
@@ -379,7 +387,7 @@ class SQLiteCalculationRepository:
         rows = self.db.query_all(query, (search_param, search_param))
         return [self._row_to_calculation(row) for row in rows]
 
-    def find_calculations_by_value(self, value: int) -> List[CalculationResult]:
+    def find_calculations_by_value(self, value: int) -> List["CalculationResult"]:
         """Find all calculations with the specified result value.
 
         Args:
@@ -401,8 +409,8 @@ class SQLiteCalculationRepository:
         return [self._row_to_calculation(row) for row in rows]
 
     def find_calculations_by_method(
-        self, method: Union[CalculationType, str]
-    ) -> List[CalculationResult]:
+        self, method: Union["CalculationType", str]
+    ) -> List["CalculationResult"]:
         """Find all calculations using a specific calculation method.
 
         Args:
@@ -411,7 +419,7 @@ class SQLiteCalculationRepository:
         Returns:
             List of calculation results using the specified method
         """
-        if isinstance(method, CalculationType):
+        if isinstance(method, "CalculationType"):
             # Convert enum value to string for database lookup
             method_str = self._calculation_type_to_str(method)
             query = """
@@ -437,7 +445,7 @@ class SQLiteCalculationRepository:
 
         return [self._row_to_calculation(row) for row in rows]
 
-    def find_favorites(self) -> List[CalculationResult]:
+    def find_favorites(self) -> List["CalculationResult"]:
         """Find all favorite calculations.
 
         Returns:
@@ -455,7 +463,7 @@ class SQLiteCalculationRepository:
         rows = self.db.query_all(query)
         return [self._row_to_calculation(row) for row in rows]
 
-    def find_recent_calculations(self, limit: int = 10) -> List[CalculationResult]:
+    def find_recent_calculations(self, limit: int = 10) -> List["CalculationResult"]:
         """Find the most recent calculations.
 
         Args:
@@ -486,7 +494,9 @@ class SQLiteCalculationRepository:
         rows = self.db.query_all(query)
         return {row["result_value"] for row in rows}
 
-    def search_calculations(self, criteria: Dict[str, Any]) -> List[CalculationResult]:
+    def search_calculations(
+        self, criteria: Dict[str, Any]
+    ) -> List["CalculationResult"]:
         """Search for calculations based on multiple criteria.
 
         Args:
@@ -547,7 +557,7 @@ class SQLiteCalculationRepository:
 
         if "calculation_type" in criteria:
             calc_type = criteria["calculation_type"]
-            if isinstance(calc_type, CalculationType):
+            if isinstance(calc_type, "CalculationType"):
                 where_clauses.append("c.calculation_type = ?")
                 params.append(self._calculation_type_to_str(calc_type))
             else:
@@ -595,24 +605,24 @@ class SQLiteCalculationRepository:
         rows = self.db.query_all(query, tuple(params))
         return [self._row_to_calculation(row) for row in rows]
 
-    def _row_to_calculation(self, row: Dict[str, Any]) -> CalculationResult:
+    def _row_to_calculation(self, row: Dict[str, Any]) -> "CalculationResult":
         """Convert a database row to a CalculationResult object.
 
         Args:
-            row: Database row dictionary
+            row: Dictionary containing database row data
 
         Returns:
             CalculationResult instance
         """
-        # Convert calculation type
-        calculation_type = self._str_to_calculation_type(row["calculation_type"])
+        # Import here to avoid circular imports
+        from gematria.models.calculation_result import CalculationResult
 
-        # Parse tags (comma-separated list)
-        tag_ids = []
-        if row["tag_ids"] and row["tag_ids"] != "":
-            tag_ids = row["tag_ids"].split(",")
+        # Get tags for this calculation
+        tags = []
+        if "tag_ids" in row and row["tag_ids"]:
+            tags = row["tag_ids"].split(",")
 
-        # Convert created_at
+        # Convert timestamp string to datetime if needed
         created_at = row["created_at"]
         if isinstance(created_at, str):
             created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
@@ -620,17 +630,17 @@ class SQLiteCalculationRepository:
         return CalculationResult(
             id=row["id"],
             input_text=row["input_text"],
-            calculation_type=calculation_type,
-            custom_method_name=row["custom_method_name"],
             result_value=row["result_value"],
-            favorite=bool(row["favorite"]),
-            notes=row["notes"],
-            tags=tag_ids,
+            calculation_type=self._str_to_calculation_type(row["calculation_type"]),
+            custom_method_name=row.get("custom_method_name"),
             timestamp=created_at,
+            favorite=bool(row.get("favorite", 0)),
+            notes=row.get("notes", ""),
+            tags=tags,
         )
 
     def _calculation_type_to_str(
-        self, calculation_type: Union[CalculationType, str]
+        self, calculation_type: Union["CalculationType", str]
     ) -> str:
         """Convert a CalculationType enum to a string for storage.
 
@@ -640,23 +650,33 @@ class SQLiteCalculationRepository:
         Returns:
             String representation
         """
+        # Import here to avoid circular imports
+        from gematria.models.calculation_type import CalculationType
+
         if isinstance(calculation_type, CalculationType):
             return str(calculation_type.value)
         return calculation_type
 
-    def _str_to_calculation_type(self, type_str: str) -> Union[CalculationType, str]:
+    def _str_to_calculation_type(self, type_str: str) -> Union["CalculationType", str]:
         """Convert a string to a CalculationType enum.
 
         Args:
-            type_str: String representation of a calculation type
+            type_str: String representation of calculation type
 
         Returns:
-            CalculationType enum or string if not a valid enum
+            CalculationType enum if valid, or the original string if not
         """
+        # Import here to avoid circular imports
+        from gematria.models.calculation_type import CalculationType
+
         try:
-            # Try to convert to int and then to enum
-            value = int(type_str)
-            return CalculationType(value)
+            try:
+                # Try direct enum lookup by name
+                return CalculationType[type_str]
+            except (KeyError, TypeError):
+                # Try to convert to int and then to enum
+                value = int(type_str)
+                return CalculationType(value)
         except (ValueError, TypeError):
             # If not a valid enum value, return as-is
             return type_str

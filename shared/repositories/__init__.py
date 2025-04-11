@@ -1,9 +1,10 @@
 """Shared repositories package initialization."""
 
 from shared.repositories.database import Database
-from shared.repositories.sqlite_calculation_repository import (
-    SQLiteCalculationRepository,
-)
-from shared.repositories.sqlite_tag_repository import SQLiteTagRepository
+# Remove circular imports
+# from shared.repositories.sqlite_calculation_repository import SQLiteCalculationRepository
+# from shared.repositories.sqlite_tag_repository import SQLiteTagRepository
 
-__all__ = ["Database", "SQLiteTagRepository", "SQLiteCalculationRepository"]
+# Only include non-circular imports
+__all__ = ["Database"]
+# "SQLiteCalculationRepository" and "SQLiteTagRepository" removed to avoid circular dependencies

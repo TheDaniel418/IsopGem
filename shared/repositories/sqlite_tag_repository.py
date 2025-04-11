@@ -24,11 +24,13 @@ Related files:
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 from loguru import logger
 
-from gematria.models.tag import Tag
+# Import Tag in a way that avoids circular imports
+if TYPE_CHECKING:
+    from gematria.models.tag import Tag
 from shared.repositories.database import Database
 
 
@@ -44,7 +46,7 @@ class SQLiteTagRepository:
         self.db = Database(data_dir)
         logger.debug("SQLiteTagRepository initialized")
 
-    def get_all_tags(self) -> List[Tag]:
+    def get_all_tags(self) -> List["Tag"]:
         """Get all saved tags.
 
         Returns:
@@ -60,7 +62,7 @@ class SQLiteTagRepository:
         logger.debug(f"Retrieved {len(tags)} tags")
         return tags
 
-    def get_tag(self, tag_id: str) -> Optional[Tag]:
+    def get_tag(self, tag_id: str) -> Optional["Tag"]:
         """Get a tag by ID.
 
         Args:
@@ -78,7 +80,7 @@ class SQLiteTagRepository:
         logger.debug(f"Tag with ID {tag_id} not found")
         return None
 
-    def create_tag(self, tag: Tag) -> bool:
+    def create_tag(self, tag: "Tag") -> bool:
         """Create a new tag.
 
         Args:
@@ -110,7 +112,7 @@ class SQLiteTagRepository:
             logger.error(f"Failed to create tag: {e}")
             return False
 
-    def update_tag(self, tag: Tag) -> bool:
+    def update_tag(self, tag: "Tag") -> bool:
         """Update an existing tag.
 
         Args:
@@ -166,12 +168,15 @@ class SQLiteTagRepository:
             logger.error(f"Failed to delete tag: {e}")
             return False
 
-    def create_default_tags(self) -> List[Tag]:
+    def create_default_tags(self) -> List["Tag"]:
         """Create default tags if none exist.
 
         Returns:
             List of created default tags
         """
+        # Import Tag here to avoid circular imports
+        from gematria.models.tag import Tag
+
         default_tags = [
             Tag(
                 name="Important",
@@ -208,7 +213,7 @@ class SQLiteTagRepository:
         logger.debug(f"Created {len(created_tags)} default tags")
         return created_tags
 
-    def _row_to_tag(self, row: Dict[str, Any]) -> Tag:
+    def _row_to_tag(self, row: Dict[str, Any]) -> "Tag":
         """Convert a database row to a Tag instance.
 
         Args:
@@ -217,6 +222,9 @@ class SQLiteTagRepository:
         Returns:
             Tag instance
         """
+        # Import Tag here to avoid circular imports
+        from gematria.models.tag import Tag
+
         # Ensure created_at is a valid datetime, defaulting to now if not available
         created_at_value = row.get("created_at")
         if isinstance(created_at_value, datetime):
