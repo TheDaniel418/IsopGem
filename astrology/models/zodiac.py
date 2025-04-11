@@ -228,3 +228,25 @@ class Aspect(BaseModel):
         return (
             f"{self.planet1} {self.aspect_type} {self.planet2} (Orb: {self.orb:.2f}°)"
         )
+
+
+class AspectPattern(BaseModel):
+    """Class representing a pattern of aspects between planets."""
+
+    name: str  # E.g., Grand Trine, T-Square, Yod
+    aspects: List[Aspect]  # The aspects forming this pattern
+    planets: List[str]  # The planets involved in this pattern
+    
+    # Additional properties
+    description: Optional[str] = None  # Description of what this pattern means
+    power: Optional[float] = None  # Strength/potency of the pattern (0-10)
+    keywords: List[str] = Field(default_factory=list)
+    
+    def __str__(self) -> str:
+        """Get a string representation of the aspect pattern.
+
+        Returns:
+            String representation
+        """
+        planet_str = ", ".join(self.planets)
+        return f"{self.name} involving {planet_str}"
