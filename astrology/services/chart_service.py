@@ -31,7 +31,8 @@ from astrology.models.chart import (
 from astrology.models.zodiac import HouseSystem
 from astrology.services.kerykeion_service import KerykeionService
 
-T = TypeVar('T', bound='ChartService[Any]')
+T = TypeVar("T", bound="ChartService[Any]")
+
 
 class ChartService(Generic[T]):
     """Service for creating and managing astrological charts."""
@@ -104,10 +105,11 @@ class ChartService(Generic[T]):
         # Get the timezone string
         try:
             import tzlocal
-
             timezone_str = str(tzlocal.get_localzone())
-        except Exception:
+            logger.debug(f"Using timezone {timezone_str} for chart creation")
+        except Exception as e:
             timezone_str = "UTC"
+            logger.warning(f"Error getting local timezone, using UTC: {e}")
 
         # Use kerykeion service to create the chart
         chart = self.kerykeion_service.create_natal_chart(
@@ -122,7 +124,7 @@ class ChartService(Generic[T]):
 
         # Convert Chart to NatalChart
         natal_chart = cast(NatalChart, chart)
-        
+
         # Only set birth_time_known if the chart is indeed a NatalChart
         if isinstance(chart, NatalChart):
             natal_chart.birth_time_known = birth_time_known
@@ -141,12 +143,15 @@ class ChartService(Generic[T]):
                 aspects=chart.aspects,
                 house_system=chart.house_system,
                 birth_date=birth_date,
-                birth_time_known=birth_time_known
+                birth_time_known=birth_time_known,
             )
 
         # Add location name and house system explicitly
         natal_chart.location_name = location_name
         natal_chart.house_system = house_system
+        
+        # Explicitly set the timezone on the chart
+        natal_chart.timezone = timezone_str
 
         logger.debug(f"Created natal chart for {name} using kerykeion")
         return natal_chart
@@ -175,11 +180,19 @@ class ChartService(Generic[T]):
         """
         # Use reference chart location if not provided
         chart_latitude = latitude if latitude is not None else reference_chart.latitude
-        chart_longitude = longitude if longitude is not None else reference_chart.longitude
-        chart_location = location_name if location_name is not None else reference_chart.location_name
+        chart_longitude = (
+            longitude if longitude is not None else reference_chart.longitude
+        )
+        chart_location = (
+            location_name
+            if location_name is not None
+            else reference_chart.location_name
+        )
 
         if chart_latitude is None or chart_longitude is None:
-            raise ValueError("No valid latitude/longitude available from reference chart")
+            raise ValueError(
+                "No valid latitude/longitude available from reference chart"
+            )
 
         # Create the chart
         chart = TransitChart(
@@ -195,6 +208,7 @@ class ChartService(Generic[T]):
         # Get the timezone string
         try:
             import tzlocal
+
             timezone_str = str(tzlocal.get_localzone())
         except Exception:
             timezone_str = "UTC"
@@ -295,7 +309,7 @@ class ChartService(Generic[T]):
 
         Args:
             chart: The chart to calculate aspects for
-            major_only: Whether to only calculate major aspects  
+            major_only: Whether to only calculate major aspects
             custom_orbs: Custom orbs for aspects
 
         Returns:
@@ -304,7 +318,7 @@ class ChartService(Generic[T]):
         # Convert zodiac.Aspect objects to aspect.Aspect objects
         raw_aspects = chart.aspects if hasattr(chart, "aspects") else []
         converted_aspects: List[Aspect] = []
-        
+
         for raw_aspect in raw_aspects:
             # Create Aspect object with required fields
             aspect = Aspect(
@@ -314,16 +328,14 @@ class ChartService(Generic[T]):
                 angle=raw_aspect.angle,
                 orb=raw_aspect.orb,
                 exact_angle=raw_aspect.angle,
-                applying=False  # Default value since Kerykeion doesn't provide this
+                applying=False,  # Default value since Kerykeion doesn't provide this
             )
             converted_aspects.append(aspect)
-            
+
         return converted_aspects
 
     def identify_aspect_patterns(
-        self, 
-        chart: Chart,
-        aspects: List[Aspect]
+        self, chart: Chart, aspects: List[Aspect]
     ) -> List[AspectPattern]:
         """Identify aspect patterns in a chart.
 

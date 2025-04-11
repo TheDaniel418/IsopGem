@@ -26,12 +26,12 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QSplitter,
     QTabWidget,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
 )
 
 from astrology.models.chart import NatalChart
@@ -362,11 +362,24 @@ class BirthChartWidget(QWidget):
     def _open_chart_in_browser(self):
         """Open the current chart in the browser using kerykeion."""
         if not self.current_chart:
-            QMessageBox.warning(self, "No Chart Available", "No chart is available to open in the browser.")
+            QMessageBox.warning(
+                self,
+                "No Chart Available",
+                "No chart is available to open in the browser.",
+            )
             logger.warning("No chart available to open in browser")
             return
 
         try:
+            # Make sure the chart has timezone information
+            if not hasattr(self.current_chart, 'timezone') or not self.current_chart.timezone:
+                try:
+                    import tzlocal
+                    self.current_chart.timezone = str(tzlocal.get_localzone())
+                except Exception:
+                    self.current_chart.timezone = "UTC"
+                logger.debug(f"Set timezone to {self.current_chart.timezone} for browser chart")
+                
             # Let Kerykeion handle opening the chart in the browser
             svg_path = self.kerykeion_service.generate_chart_svg(
                 chart=self.current_chart, open_in_browser=True
@@ -380,13 +393,15 @@ class BirthChartWidget(QWidget):
                 )
                 return
                 
-            logger.debug(f"Opened chart for {self.current_chart.name} in browser, SVG at: {svg_path}")
+            logger.debug(
+                f"Opened chart for {self.current_chart.name} in browser, SVG at: {svg_path}"
+            )
         except Exception as e:
-            logger.error(f"Error opening chart in browser: {e}")
+            logger.error(f"Error opening chart in browser: {e}", exc_info=True)
             QMessageBox.warning(
-                self, 
-                "Browser Error", 
-                f"There was an error opening the chart in the browser: {str(e)}"
+                self,
+                "Browser Error",
+                f"There was an error opening the chart in the browser: {str(e)}",
             )
 
     def _show_houses_tab(self):

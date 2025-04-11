@@ -127,6 +127,10 @@ class KerykeionService:
             Path to the generated SVG file
         """
         try:
+            # Make sure we have a timezone string
+            timezone_str = chart.timezone if hasattr(chart, 'timezone') and chart.timezone else 'UTC'
+            logger.debug(f"Using timezone: {timezone_str} for chart generation")
+            
             # Create a kerykeion subject from the chart data
             subject = AstrologicalSubject(
                 name=chart.name,
@@ -139,36 +143,49 @@ class KerykeionService:
                 nation="",
                 lat=chart.latitude,
                 lng=chart.longitude,
-                tz_str=chart.timezone,
+                tz_str=timezone_str,
             )
 
             # Create the chart
             kerykeion_chart = KerykeionChartSVG(subject)
-            
+
             # Generate the SVG - this saves to a default location in /home/daniel
+            logger.debug(f"Generating SVG for {chart.name}...")
             kerykeion_chart.makeSVG()
-            
+
             # Default path where Kerykeion saves the chart
             svg_path = f"/home/daniel/{subject.name} - Natal Chart.svg"
             
+            if os.path.exists(svg_path):
+                logger.debug(f"SVG Generated Correctly in: {svg_path}")
+            else:
+                logger.warning(f"Expected SVG file not found at {svg_path}")
+                # Try to find the file with a glob pattern
+                import glob
+                possible_files = glob.glob(f"/home/daniel/*Natal Chart.svg")
+                if possible_files:
+                    svg_path = possible_files[0]
+                    logger.debug(f"Found alternative SVG at: {svg_path}")
+
             # If the chart exists and we want a different location, move it
             if output_path and os.path.exists(svg_path) and output_path != svg_path:
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 os.rename(svg_path, output_path)
                 logger.debug(f"Moved chart from {svg_path} to {output_path}")
                 svg_path = output_path
-                
+
             # Open in browser if requested
             if open_in_browser and os.path.exists(svg_path):
                 file_url = f"file://{os.path.abspath(svg_path)}"
                 logger.debug(f"Opening chart in browser: {file_url}")
                 webbrowser.open(file_url)
-                
-            logger.debug(f"Chart generated at: {svg_path}")
+            elif open_in_browser:
+                logger.error(f"Cannot open chart in browser - file not found at {svg_path}")
+
             return svg_path if os.path.exists(svg_path) else ""
-            
+
         except Exception as e:
-            logger.error(f"Error generating chart SVG: {e}")
+            logger.error(f"Error generating chart SVG: {e}", exc_info=True)
             return ""
 
     def _extract_planets(self, subject: AstrologicalSubject) -> List[Planet]:

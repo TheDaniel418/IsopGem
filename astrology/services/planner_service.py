@@ -587,16 +587,33 @@ class PlannerService:
         Returns:
             Chart object
         """
-        # Create a chart for the event
-        chart = self.chart_service.create_natal_chart(
-            name=event.title,
-            birth_date=event.start_time,
-            latitude=location.latitude,
-            longitude=location.longitude,
-            location_name=location.display_name,
-            birth_time_known=True  # Explicitly set birth_time_known
-        )
-        return chart
+        try:
+            # Get the timezone string
+            try:
+                import tzlocal
+                timezone_str = str(tzlocal.get_localzone())
+                logger.debug(f"Using local timezone for chart: {timezone_str}")
+            except Exception as e:
+                logger.warning(f"Could not get local timezone, using UTC: {e}")
+                timezone_str = "UTC"
+                
+            # Create a chart for the event
+            chart = self.chart_service.create_natal_chart(
+                name=event.title,
+                birth_date=event.start_time,
+                latitude=location.latitude,
+                longitude=location.longitude,
+                location_name=location.display_name,
+                birth_time_known=True,  # Explicitly set birth_time_known
+            )
+            
+            # Explicitly set the timezone
+            chart.timezone = timezone_str
+            
+            return chart
+        except Exception as e:
+            logger.error(f"Error creating chart from planner event: {e}", exc_info=True)
+            raise
 
     def get_moon_phases_for_month(self, year: int, month: int) -> List[PlannerEvent]:
         """Get moon phases for a specific month.
