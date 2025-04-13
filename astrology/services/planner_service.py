@@ -29,6 +29,7 @@ from astrology.services.location_service import Location
 # Import our astronomical calculators
 from astrology.services.moon_phase_calculator import MoonPhaseCalculator
 from shared.repositories.database import Database
+from astrology.repositories.astrological_events_repository import AstrologicalEventsRepository
 
 
 class PlannerService:
@@ -311,6 +312,13 @@ class PlannerService:
                         end_time=phase.get("timestamp", date_as_datetime)
                         + timedelta(hours=1),  # Set a 1-hour duration for display
                         color="#9370DB",  # Medium purple color for planetary phases
+                        metadata={
+                            'precise_time': phase.get("timestamp", date_as_datetime),
+                            'body_name': phase.get("body_name"),
+                            'phase_type': phase.get("phase_type"),
+                            'elongation_degree': phase.get("elongation_degree"),
+                            'zodiac_sign': phase.get("zodiac_sign")
+                        }
                     )
                     events.append(event)
                 logger.debug(
@@ -597,10 +605,22 @@ class PlannerService:
                 logger.warning(f"Could not get local timezone, using UTC: {e}")
                 timezone_str = "UTC"
                 
+            # Use precise time from metadata if available, otherwise use the display time
+            birth_date = event.start_time
+            if event.metadata and 'precise_time' in event.metadata:
+                precise_time = event.metadata['precise_time']
+                if isinstance(precise_time, datetime):
+                    birth_date = precise_time
+                    logger.debug(f"Using precise time from metadata: {birth_date}")
+                else:
+                    logger.warning(f"Precise time in metadata is not a datetime: {precise_time}")
+            else:
+                logger.debug(f"No precise time in metadata, using display time: {birth_date}")
+                
             # Create a chart for the event
             chart = self.chart_service.create_natal_chart(
                 name=event.title,
-                birth_date=event.start_time,
+                birth_date=birth_date,
                 latitude=location.latitude,
                 longitude=location.longitude,
                 location_name=location.display_name,
@@ -657,20 +677,34 @@ class PlannerService:
             aspect_time = aspect["time"]
             if isinstance(aspect_time, datetime):
                 # Use the time from the datetime object directly
-                event_time = aspect_time
+                precise_time = aspect_time
             else:
                 # Fallback in case it's just a time object
-                event_time = datetime.combine(date, aspect_time)
+                precise_time = datetime.combine(date, aspect_time)
+                
+            # Round to the nearest hour for display
+            display_time = precise_time.replace(minute=0, second=0, microsecond=0)
+            if precise_time.minute >= 30:
+                display_time = display_time + timedelta(hours=1)
+                
             events.append(
                 PlannerEvent(
                     title=f"{body1} {aspect_type} {body2}",
                     description=f"{body1} {aspect_type} {body2} at {body1_degree:.1f}° {body1_sign}",
                     event_type=EventType.PLANETARY_ASPECT,
-                    start_time=event_time,
+                    start_time=display_time,  # Display-friendly time
                     color=aspect["color"],
+                    metadata={
+                        'precise_time': precise_time,  # Store exact calculated time
+                        'body1': body1,
+                        'body2': body2,
+                        'aspect_type': aspect_type,
+                        'body1_sign': body1_sign,
+                        'body1_degree': body1_degree
+                    }
                 )
             )
-            logger.debug(f"Added aspect: {body1} {aspect_type} {body2} at {event_time}")
+            logger.debug(f"Added aspect: {body1} {aspect_type} {body2} at {precise_time} (display: {display_time})")
         logger.debug(f"Found {len(events)} planetary aspects for {date}")
         return events
 
@@ -827,38 +861,58 @@ class PlannerService:
         Returns:
             List of eclipse events
         """
-        # Calculate eclipse events for the date
         events = []
-        # For now, we'll just add placeholder events
-        # In a real implementation, we would calculate actual eclipse events
-        # Add Solar Eclipse
-        if date.month == 4 and date.day == 20:
-            eclipse_time = datetime.combine(date, datetime.min.time()) + timedelta(
-                hours=8
-            )
-            events.append(
-                PlannerEvent(
-                    title="Total Solar Eclipse",
-                    description="Total Solar Eclipse at 0° Taurus",
+        try:
+            # Use the repository from the calculator
+            repository = self.astrological_event_calculator.repository
+            
+            # Get start and end of the day
+            start_date = datetime.combine(date, datetime.min.time())
+            end_date = datetime.combine(date, datetime.max.time())
+            
+            # Get eclipse events for this date
+            eclipses = repository.get_eclipses(start_date=start_date, end_date=end_date)
+            
+            # Convert eclipse data to PlannerEvent objects
+            for eclipse_data in eclipses:
+                timestamp, eclipse_type, sun_position, moon_position, sun_zodiac, moon_zodiac = eclipse_data
+                
+                # Create appropriate title and description based on eclipse type
+                if eclipse_type.lower().startswith('solar'):
+                    title = f"{eclipse_type} Eclipse"
+                    description = f"{eclipse_type} Eclipse at {sun_position:.1f}° {sun_zodiac}"
+                    color = "#000080"  # Navy for solar eclipses
+                else:  # Lunar eclipse
+                    title = f"{eclipse_type} Eclipse"
+                    description = f"{eclipse_type} Eclipse at {moon_position:.1f}° {moon_zodiac}"
+                    color = "#4B0082"  # Indigo for lunar eclipses
+                
+                # Create the event with precise time in metadata
+                # For planner display, we use a rounded time to the nearest hour
+                display_time = timestamp.replace(minute=0, second=0, microsecond=0)
+                if timestamp.minute >= 30:
+                    display_time = display_time + timedelta(hours=1)
+                
+                eclipse_event = PlannerEvent(
+                    title=title,
+                    description=description,
                     event_type=EventType.ECLIPSE,
-                    start_time=eclipse_time,
-                    color="#000080",  # Navy
+                    start_time=display_time,  # Display-friendly time
+                    color=color,
+                    metadata={
+                        'precise_time': timestamp,  # Store exact calculated time
+                        'eclipse_type': eclipse_type,
+                        'sun_position': sun_position,
+                        'moon_position': moon_position,
+                        'sun_zodiac': sun_zodiac,
+                        'moon_zodiac': moon_zodiac
+                    }
                 )
-            )
-        # Add Lunar Eclipse
-        if date.month == 10 and date.day == 14:
-            eclipse_time = datetime.combine(date, datetime.min.time()) + timedelta(
-                hours=20
-            )
-            events.append(
-                PlannerEvent(
-                    title="Partial Lunar Eclipse",
-                    description="Partial Lunar Eclipse at 21° Aries",
-                    event_type=EventType.ECLIPSE,
-                    start_time=eclipse_time,
-                    color="#4B0082",  # Indigo
-                )
-            )
+                events.append(eclipse_event)
+                
+        except Exception as e:
+            logger.error(f"Error retrieving eclipse events: {str(e)}")
+            
         return events
 
     def get_venus_cycle_events(self, date: datetime.date) -> List[PlannerEvent]:

@@ -77,25 +77,29 @@ class SQLitePlannerRepository:
         self.database.execute(query)
 
         # Create index for faster date-based lookups
-        self.database.execute("""
-        CREATE INDEX IF NOT EXISTS idx_planner_events_start_time 
+        self.database.execute(
+            """
+        CREATE INDEX IF NOT EXISTS idx_planner_events_start_time
         ON planner_events(start_time)
-        """)
-        
+        """
+        )
+
     def _migrate_database(self) -> None:
         """Perform database migrations if needed."""
         # Check if location columns exist
         try:
             # Try to get columns in planner_settings table
-            pragma_result = self.database.query_all("PRAGMA table_info(planner_settings)")
-            
+            pragma_result = self.database.query_all(
+                "PRAGMA table_info(planner_settings)"
+            )
+
             # Extract column names
-            column_names = [row['name'] for row in pragma_result]
-            
+            column_names = [row["name"] for row in pragma_result]
+
             # Check if location columns are missing
-            if 'default_location_name' not in column_names:
+            if "default_location_name" not in column_names:
                 logger.info("Migrating planner_settings table to add location columns")
-                
+
                 # Add location columns with ALTER TABLE statements
                 with self.database.transaction() as conn:
                     migrations = [
@@ -105,12 +109,12 @@ class SQLitePlannerRepository:
                         "ALTER TABLE planner_settings ADD COLUMN default_location_longitude REAL;",
                         "ALTER TABLE planner_settings ADD COLUMN default_location_country TEXT;",
                         "ALTER TABLE planner_settings ADD COLUMN default_location_state TEXT;",
-                        "ALTER TABLE planner_settings ADD COLUMN default_location_city TEXT;"
+                        "ALTER TABLE planner_settings ADD COLUMN default_location_city TEXT;",
                     ]
-                    
+
                     for migration in migrations:
                         conn.execute(migration)
-                
+
                 logger.info("Migration completed successfully")
         except Exception as e:
             logger.error(f"Error during database migration: {e}")
@@ -134,15 +138,18 @@ class SQLitePlannerRepository:
                     event.start_time.isoformat(),
                     event.end_time.isoformat() if event.end_time else None,
                     event.color,
-                    1 if event.repeats_yearly else 0
+                    1 if event.repeats_yearly else 0,
                 )
 
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT OR REPLACE INTO planner_events (
                         id, title, description, event_type, start_time,
                         end_time, color, repeats_yearly
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, params)
+                """,
+                    params,
+                )
                 return True
         except Exception as e:
             logger.error(f"Error saving event: {e}", exc_info=True)
@@ -159,20 +166,25 @@ class SQLitePlannerRepository:
         """
         try:
             # Query for both exact date matches and yearly repeating events
-            rows = self.database.query_all("""
+            rows = self.database.query_all(
+                """
                 SELECT * FROM planner_events
                 WHERE date(start_time) = ?
-                OR (repeats_yearly = 1 
+                OR (repeats_yearly = 1
                     AND strftime('%m-%d', start_time) = strftime('%m-%d', ?))
                 ORDER BY start_time
-            """, (date.isoformat(), date.isoformat()))
+            """,
+                (date.isoformat(), date.isoformat()),
+            )
 
             return [self._row_to_event(row) for row in rows]
         except Exception as e:
             logger.error(f"Error getting events: {e}", exc_info=True)
             return []
 
-    def get_events_for_month(self, year: int, month: int) -> Dict[int, List[PlannerEvent]]:
+    def get_events_for_month(
+        self, year: int, month: int
+    ) -> Dict[int, List[PlannerEvent]]:
         """Get events for a specific month.
 
         Args:
@@ -184,12 +196,15 @@ class SQLitePlannerRepository:
         """
         try:
             # Query for events in the specified month and yearly repeating events
-            rows = self.database.query_all("""
+            rows = self.database.query_all(
+                """
                 SELECT * FROM planner_events
                 WHERE (strftime('%Y-%m', start_time) = ?
                 OR repeats_yearly = 1)
                 ORDER BY start_time
-            """, (f"{year:04d}-{month:02d}",))
+            """,
+                (f"{year:04d}-{month:02d}",),
+            )
 
             events_by_day = {}
             for row in rows:
@@ -214,26 +229,26 @@ class SQLitePlannerRepository:
             PlannerEvent object
         """
         # Parse start_time and ensure it's naive
-        start_time = datetime.fromisoformat(row['start_time'])
+        start_time = datetime.fromisoformat(row["start_time"])
         if start_time.tzinfo is not None:
             start_time = start_time.replace(tzinfo=None)
 
         # Parse end_time if present and ensure it's naive
         end_time = None
-        if row['end_time']:
-            end_time = datetime.fromisoformat(row['end_time'])
+        if row["end_time"]:
+            end_time = datetime.fromisoformat(row["end_time"])
             if end_time.tzinfo is not None:
                 end_time = end_time.replace(tzinfo=None)
 
         return PlannerEvent(
-            id=row['id'],
-            title=row['title'],
-            description=row['description'],
-            event_type=EventType[row['event_type']],
+            id=row["id"],
+            title=row["title"],
+            description=row["description"],
+            event_type=EventType[row["event_type"]],
             start_time=start_time,
             end_time=end_time,
-            color=row['color'],
-            repeats_yearly=bool(row['repeats_yearly'])
+            color=row["color"],
+            repeats_yearly=bool(row["repeats_yearly"]),
         )
 
     def delete_event(self, event_id: str) -> bool:
@@ -264,15 +279,16 @@ class SQLitePlannerRepository:
         """
         try:
             row = self.database.query_one(
-                "SELECT * FROM planner_events WHERE id = ?", 
-                (event_id,)
+                "SELECT * FROM planner_events WHERE id = ?", (event_id,)
             )
             return self._row_to_event(row) if row else None
         except Exception as e:
             logger.error(f"Error getting event: {e}", exc_info=True)
             return None
 
-    def get_events_in_range(self, start_date: datetime, end_date: datetime) -> List[PlannerEvent]:
+    def get_events_in_range(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[PlannerEvent]:
         """Get events within a date range.
 
         Args:
@@ -284,19 +300,22 @@ class SQLitePlannerRepository:
         """
         try:
             # Query for events in date range and yearly repeating events
-            rows = self.database.query_all("""
+            rows = self.database.query_all(
+                """
                 SELECT * FROM planner_events
                 WHERE (date(start_time) BETWEEN ? AND ?)
-                OR (repeats_yearly = 1 
-                    AND strftime('%m-%d', start_time) BETWEEN 
+                OR (repeats_yearly = 1
+                    AND strftime('%m-%d', start_time) BETWEEN
                         strftime('%m-%d', ?) AND strftime('%m-%d', ?))
                 ORDER BY start_time
-            """, (
-                start_date.isoformat(), 
-                end_date.isoformat(),
-                start_date.isoformat(),
-                end_date.isoformat()
-            ))
+            """,
+                (
+                    start_date.isoformat(),
+                    end_date.isoformat(),
+                    start_date.isoformat(),
+                    end_date.isoformat(),
+                ),
+            )
 
             return [self._row_to_event(row) for row in rows]
         except Exception as e:
@@ -328,7 +347,7 @@ class SQLitePlannerRepository:
         try:
             rows = self.database.query_all(
                 "SELECT * FROM planner_events WHERE event_type = ? ORDER BY start_time",
-                (event_type.name,)
+                (event_type.name,),
             )
             return [self._row_to_event(row) for row in rows]
         except Exception as e:
@@ -346,12 +365,15 @@ class SQLitePlannerRepository:
         """
         try:
             with self.database.transaction() as conn:
-                cursor = conn.execute("""
-                    DELETE FROM planner_events 
-                    WHERE repeats_yearly = 0 
+                cursor = conn.execute(
+                    """
+                    DELETE FROM planner_events
+                    WHERE repeats_yearly = 0
                     AND date(start_time) < ?
-                """, (before_date.isoformat(),))
+                """,
+                    (before_date.isoformat(),),
+                )
                 return cursor.rowcount
         except Exception as e:
             logger.error(f"Error clearing old events: {e}", exc_info=True)
-            return 0 
+            return 0
