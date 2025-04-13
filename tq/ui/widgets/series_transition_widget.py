@@ -183,12 +183,16 @@ class NumberPairWidget(QWidget):
         """Look up the result number in the database."""
         try:
             number = int(number_text)
+            import uuid
+
             from tq.ui.dialogs.number_database_window import NumberDatabaseWindow
 
             parent = self.window()
             if parent and hasattr(parent, "window_manager"):
-                window_id = f"number_database_{number}"
-                parent.window_manager.open_window(
+                base_id = f"number_database_{number}"
+                window_id = f"{base_id}_{uuid.uuid4().hex[:8]}"
+                parent.window_manager.open_multi_window(
+                    base_id,
                     window_id,
                     NumberDatabaseWindow(number),
                     f"Number Database: {number}",
@@ -526,12 +530,16 @@ class SeriesTransitionWidget(QWidget):
         """Look up a number in the database."""
         try:
             number = int(number_text)
+            import uuid
+
             from tq.ui.dialogs.number_database_window import NumberDatabaseWindow
 
             parent = self.window()
             if parent and hasattr(parent, "window_manager"):
-                window_id = f"number_database_{number}"
-                parent.window_manager.open_window(
+                base_id = f"number_database_{number}"
+                window_id = f"{base_id}_{uuid.uuid4().hex[:8]}"
+                parent.window_manager.open_multi_window(
+                    base_id,
                     window_id,
                     NumberDatabaseWindow(number),
                     f"Number Database: {number}",

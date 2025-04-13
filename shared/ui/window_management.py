@@ -607,8 +607,16 @@ class AuxiliaryWindow(QMainWindow):
             parent: Parent widget
             flags: Window flags
         """
+        # Set window flags to ensure this window stays on top of the main window
+        # but doesn't stay on top of all windows from other applications
+        flags = flags | Qt.WindowType.WindowStaysOnTopHint
+
         super().__init__(parent, flags)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        from loguru import logger
+
+        logger.debug(f"Created auxiliary window '{title}' with StaysOnTop flag")
 
         # Store window ID for lookup during cleanup
         self.window_id = ""
@@ -640,14 +648,19 @@ class AuxiliaryWindow(QMainWindow):
         Args:
             widget: Widget to set as content
         """
-        # Clear existing layout
+        from loguru import logger
+
+        logger.debug(f"Setting content for window {self.windowTitle()}")
+
+        if not widget:
+            logger.error("Attempted to set None as window content")
+            return
+        # Clear existing layout without hiding widgets
+        # This respects that widgets might be used in other windows
         while self.main_layout.count():
             item = self.main_layout.takeAt(0)
-            if item.widget():
-                # Instead of setParent(None), use the proper removeWidget method
-                self.main_layout.removeWidget(item.widget())
-                # Then hide the widget
-                item.widget().hide()
+            # Just remove the item from the layout without hiding it
+            # This allows the widget to be shown in another window if needed
 
         # Ensure the widget has a minimum size for visibility
         if widget.minimumSize().width() == 0 and widget.minimumSize().height() == 0:
@@ -656,8 +669,12 @@ class AuxiliaryWindow(QMainWindow):
         # Add the widget to the layout
         self.main_layout.addWidget(widget)
 
-        # Make sure the widget is visible
+        # Make sure the widget is visible but don't force focus
+        # This respects the focus-based window management approach
         widget.setVisible(True)
+
+        # Log successful content setting
+        logger.debug(f"Successfully set content for window {self.windowTitle()}")
 
         # Update the layout
         self.central_widget.setLayout(self.main_layout)
@@ -782,16 +799,17 @@ class WindowManager(QObject):
             # Check if the window is valid before returning it
             window = self._auxiliary_windows[window_id]
             if window.isVisible():
-                # If the window already exists, return it and bring it to front
-                window.show()
-                window.raise_()
+                # If the window already exists, return it without forcing it to front
+                # This respects the focus-based window management approach
+                logger.debug(f"Window {window_id} already exists and is visible")
                 return window
             else:
                 # Window reference exists but window might be invalid - remove it
                 self._auxiliary_windows.pop(window_id, None)
 
-        # Create a new window
-        window = AuxiliaryWindow(title, self._main_window)
+        # Create a new window without parent to make it independent
+        # This prevents it from being forced behind the main window
+        window = AuxiliaryWindow(title, None)
 
         # Store the window ID in the window for reference
         window.window_id = window_id
@@ -952,32 +970,110 @@ class WindowManager(QObject):
     def open_window(
         self, window_id: str, widget: QWidget, title: str, size=None
     ) -> AuxiliaryWindow:
-        """Open or create a window and set its content.
+        """Open a standalone window containing the provided widget.
 
         Args:
             window_id: Unique identifier for the window
-            widget: Widget to use as the window content
-            title: Title of the window
-            size: Optional tuple of (width, height) for window size
+            widget: Widget to display in the window
+            title: Window title
+            size: Optional tuple of (width, height) for initial window size
 
         Returns:
-            The window widget
+            The created auxiliary window
         """
-        # Get or create the window
-        window = self.create_auxiliary_window(window_id, title)
+        # Check if window already exists
+        existing_window = self.get_auxiliary_window(window_id)
+        if existing_window:
+            # Configure the existing window and bring it to front
+            existing_window.set_content(widget)
+            self.configure_window(existing_window)
+            logger.debug(
+                f"Reusing existing window with ID: {window_id}, title: {title}"
+            )
+            return existing_window
 
-        # Set its content
+        # Create a new window
+        window = self.create_auxiliary_window(window_id, title)
         window.set_content(widget)
 
-        # Set window size if specified
-        if size is not None:
+        # Set window size if provided
+        if size and len(size) == 2:
             window.resize(size[0], size[1])
 
-        # Show and raise the window
-        window.show()
-        window.raise_()
+        # Show the window and ensure proper z-order
+        self.configure_window(window)
+        logger.debug(f"Opening window with ID: {window_id}, title: {title}")
 
         return window
+
+    def open_multi_window(
+        self, base_window_id: str, widget: QWidget, title: str, size=None
+    ) -> AuxiliaryWindow:
+        """Open a standalone window with a unique ID to allow multiple instances.
+
+        Args:
+            base_window_id: Base identifier for the window (will be made unique)
+            widget: Widget to display in the window
+            title: Window title
+            size: Optional tuple of (width, height) for initial window size
+
+        Returns:
+            The created auxiliary window
+        """
+        import uuid
+
+        # Generate a unique window ID to allow multiple instances
+        unique_window_id = f"{base_window_id}_{uuid.uuid4().hex[:8]}"
+
+        # Create a new window with the unique ID
+        window = self.create_auxiliary_window(unique_window_id, title)
+        window.set_content(widget)
+
+        # Set window size if provided
+        if size and len(size) == 2:
+            window.resize(size[0], size[1])
+
+        # Show the window and ensure proper z-order
+        self.configure_window(window)
+        logger.debug(
+            f"Opening multi-instance window with ID: {unique_window_id}, title: {title}"
+        )
+
+        return window
+
+    def configure_window(self, window: AuxiliaryWindow) -> None:
+        """Apply standard configuration to ensure proper window behavior.
+
+        Sets consistent window flags and ensures the window appears on top
+        with proper focus.
+
+        Args:
+            window: The window to configure
+        """
+        # Apply standard flags for proper window behavior
+        window.setWindowFlags(
+            window.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowStaysOnTopHint
+        )
+
+        # Ensure proper focus and z-order
+        window.show()
+        window.raise_()
+        window.activateWindow()
+
+        # Use a short delay to ensure proper z-ordering after other events
+        QTimer.singleShot(100, lambda: self._delayed_focus(window))
+
+    def _delayed_focus(self, window: AuxiliaryWindow) -> None:
+        """Apply delayed focus to ensure window appears on top.
+
+        Args:
+            window: The window to focus
+        """
+        if window and window.isVisible():
+            window.raise_()
+            window.activateWindow()
 
     def _on_window_destroyed(self, window_id: str) -> None:
         """Handle window destruction.

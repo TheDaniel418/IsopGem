@@ -24,6 +24,7 @@ Related files:
 - tq/utils/ternary_transition.py: Core transition functionality
 """
 
+import uuid
 from typing import Tuple
 
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -389,8 +390,9 @@ class TernaryTransitionWidget(QWidget):
             parent = self.window()
             if parent and hasattr(parent, "window_manager"):
                 # If we can get the window manager from the parent, use it
-                window_id = f"number_database_{number}"
-                parent.window_manager.open_window(
+                base_id = f"number_database_{number}"
+                window_id = f"{base_id}_{uuid.uuid4().hex[:8]}"
+                parent.window_manager.open_multi_window(
                     window_id,
                     NumberDatabaseWindow(number),
                     f"Number Database: {number}",

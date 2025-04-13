@@ -546,16 +546,6 @@ class TQTab(QWidget):
         # Ensure the canvas is on top after a short delay
         QTimer.singleShot(200, self._ensure_canvas_on_top)
 
-    def _open_ternary_visualizer(self) -> None:
-        """Open the ternary digit visualizer panel in a new window."""
-        visualizer_panel = TernaryVisualizerPanel()
-        self.window_manager.open_window(
-            "ternary_visualizer",
-            visualizer_panel,
-            "Ternary Digit Visualizer",
-            (400, 600),
-        )
-
     def _open_tq_grid(self) -> None:
         """Open the TQ Grid panel in a new window."""
         # Use the analysis service instead of directly creating the panel
@@ -576,54 +566,58 @@ class TQTab(QWidget):
 
     def _open_planar_expansion(self) -> None:
         """Open the planar expansion visualizer panel in a new window."""
-        planar_panel = PlanarExpansionVisualizer()
-        self.window_manager.open_window(
-            "planar_expansion",
-            planar_panel,
-            "Planar Expansion Visualizer",
-            (800, 600),
+        panel = PlanarExpansionVisualizer()
+        self.window_manager.open_multi_window(
+            "tq_planar_expansion", panel, "Planar Expansion Visualizer", (800, 600)
         )
 
     def _open_ternary_transition(self) -> None:
         """Open the ternary transition calculator in a new window."""
         from tq.ui.dialogs.ternary_transition_window import TernaryTransitionWindow
 
-        transition_window = TernaryTransitionWindow(window_manager=self.window_manager)
-        self.window_manager.open_window(
-            "ternary_transition",
-            transition_window,
+        # Create instance with window manager
+        window_content = TernaryTransitionWindow(window_manager=self.window_manager)
+
+        # Open as multi-window to allow multiple instances
+        self.window_manager.open_multi_window(
+            "tq_ternary_transition",
+            window_content,
             "Ternary Transition Calculator",
             (800, 600),
         )
 
     def _open_cosmic_force_analysis(self) -> None:
         """Open the Cosmic Force Analysis panel in a new window."""
-        cosmic_panel = CosmicForceAnalysisPanel()
-        self.window_manager.open_window(
-            "cosmic_force_analysis",
-            cosmic_panel,
-            "Cosmic Force Analysis",
-            (900, 700),
+        panel = CosmicForceAnalysisPanel()
+        self.window_manager.open_multi_window(
+            "tq_cosmic_force_analysis", panel, "Cosmic Force Analysis", (900, 700)
         )
 
     def _open_series_transition(self) -> None:
         """Open the series transition calculator in a new window."""
         from tq.ui.dialogs.series_transition_window import SeriesTransitionWindow
 
-        series_window = SeriesTransitionWindow(self)
-        self.window_manager.open_window(
-            "series_transition",
-            series_window,
+        # Create instance with parent
+        window_content = SeriesTransitionWindow(parent=self)
+
+        # Open as multi-window to allow multiple instances
+        self.window_manager.open_multi_window(
+            "tq_series_transition",
+            window_content,
             "Series Transition Analysis",
             (800, 600),
         )
 
     def _open_pair_finder(self) -> None:
         """Open the Pair Finder panel in a new window."""
-        pair_finder_panel = PairFinderPanel()
-        self.window_manager.open_window(
-            "pair_finder",
-            pair_finder_panel,
-            "TQ Pair Finder",
-            (800, 600),
+        panel = PairFinderPanel()
+        self.window_manager.open_multi_window(
+            "tq_pair_finder", panel, "TQ Pair Finder", (800, 600)
+        )
+
+    def _open_ternary_visualizer(self) -> None:
+        """Open the ternary digit visualizer panel in a new window."""
+        panel = TernaryVisualizerPanel()
+        self.window_manager.open_multi_window(
+            "tq_ternary_visualizer", panel, "Ternary Digit Visualizer", (400, 600)
         )

@@ -14,10 +14,12 @@ Dependencies:
 - tq.utils.ternary_converter: For number system conversions
 - tq.utils.ternary_transition: For ternary transformations
 - tq.ui.panels.tq_grid_panel: For the TQ Grid visualization widget
+- shared.ui.window_management: For window handling
 
 Related files:
 - tq/ui/tq_tab.py: Main tab that can launch these analysis tools
 - tq/ui/panels/tq_grid_panel.py: The TQ Grid panel implementation
+- shared/ui/window_management.py: Core window management system
 """
 
 from typing import Optional
@@ -66,8 +68,7 @@ class TQAnalysisService(QObject):
         """Open the TQ Grid (Quadset Analysis) for a specific number.
 
         This will create a new window with the TQ Grid panel pre-populated
-        with the specified number, or focus an existing window if one
-        already exists for this number.
+        with the specified number.
 
         Args:
             number: The decimal number to analyze
@@ -75,17 +76,11 @@ class TQAnalysisService(QObject):
         Returns:
             The TQ Grid panel instance
         """
-        # Check if a panel for this number already exists
-        window_id = f"tq_grid_{number}"
+        # Create a unique ID for this instance
+        import uuid
 
-        # If window already exists, bring it to front and return
-        existing_window = self.window_manager.get_auxiliary_window(window_id)
-        if existing_window and existing_window.isVisible():
-            existing_window.show()
-            existing_window.raise_()
-
-            # Return the existing panel
-            return self._active_quadset_panels.get(number)
+        instance_id = uuid.uuid4().hex[:8]
+        window_id = f"tq_grid_{number}_{instance_id}"
 
         # Create a new panel
         grid_panel = TQGridPanel()
@@ -94,30 +89,33 @@ class TQAnalysisService(QObject):
         grid_panel.number_input.setText(str(number))
         grid_panel._process_number()  # Process the number immediately
 
-        # Open the window
-        window = self.window_manager.open_window(
-            window_id, grid_panel, f"TQ Grid Explorer - {number}", (1000, 800)
+        # Open the window through the central window manager
+        window = self.window_manager.open_multi_window(
+            "tq_grid",  # Use base ID - open_multi_window will make it unique
+            grid_panel,
+            f"TQ Grid Explorer - {number}",
+            (1000, 800),
         )
 
-        # Store reference to the panel
-        self._active_quadset_panels[number] = grid_panel
+        # Store reference to the panel with the unique window ID
+        self._active_quadset_panels[window_id] = grid_panel
 
         # Connect to window close event to clean up reference
-        window.destroyed.connect(lambda: self._cleanup_panel(number))
+        window.destroyed.connect(lambda: self._cleanup_panel(window_id))
 
         # Emit signal that we opened a quadset analysis
         self.quadset_analysis_opened.emit(number)
 
         return grid_panel
 
-    def _cleanup_panel(self, number: int) -> None:
+    def _cleanup_panel(self, window_id: str) -> None:
         """Clean up panel reference when its window is closed.
 
         Args:
-            number: The number associated with the panel
+            window_id: The unique window ID associated with the panel
         """
-        if number in self._active_quadset_panels:
-            del self._active_quadset_panels[number]
+        if window_id in self._active_quadset_panels:
+            del self._active_quadset_panels[window_id]
 
 
 # Singleton instance to be created during application initialization
