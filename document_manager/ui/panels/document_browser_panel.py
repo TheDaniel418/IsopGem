@@ -671,9 +671,94 @@ class DocumentBrowserPanel(Panel):
 
         if not current_parent or not hasattr(current_parent, "window_manager"):
             logger.error("Cannot find window manager to open RTF editor")
-            MessageBox.error(self, "Error", "Cannot open RTF editor window.")
-            return
-
+            
+            # Fallback to a standalone RTF editor window if window_manager is not available
+            try:
+                # Fallback: Create RTF editor directly
+                editor = RTFEditorWindow(parent=self)
+                
+                # Set up the document in the editor
+                if editor.document_manager:
+                    try:
+                        success = editor.document_manager.load_document_format(doc_format)
+                        if not success:
+                            logger.error(f"Failed to load document format for {document_id}")
+                            MessageBox.error(self, "Error", "Failed to load document for editing")
+                            editor.close()
+                            return
+                    except Exception as e:
+                        logger.error(f"Error loading document format: {e}")
+                        MessageBox.error(self, "Error", f"Error loading document: {e}")
+                        editor.close()
+                        return
+                else:
+                    logger.error("RTF Editor does not have a document manager")
+                    MessageBox.error(self, "Error", "RTF Editor initialization failed")
+                    editor.close()
+                    return
+                
+                # Set a proper window title showing we're editing the document
+                editor.setWindowTitle(f"Edit Document - {qgem_document.name}")
+                
+                # Connect to document saved signal if available
+                if hasattr(editor, "document_saved"):
+                    editor.document_saved.connect(
+                        lambda doc: self._refresh()
+                    )
+                
+                # Make the editor window modal to ensure changes are captured
+                editor.setWindowModality(Qt.WindowModality.ApplicationModal)
+                
+                # Set up content capture on close, similar to the original implementation
+                document_content_to_save = None
+                
+                def capture_content_before_close():
+                    nonlocal document_content_to_save
+                    # Get the current document from the editor
+                    if hasattr(editor, "document_manager") and editor.document_manager:
+                        try:
+                            document_content_to_save = editor.document_manager.get_document_format()
+                            logger.debug(f"Captured content for document {document_id} before window closes (fallback mode)")
+                            
+                            # In fallback mode, save the document immediately when closing
+                            if document_content_to_save:
+                                try:
+                                    # Document ID is already in the document_content_to_save object
+                                    success = qgem_document_service.save_document_format(
+                                        document_content_to_save
+                                    )
+                                    if success:
+                                        logger.info(f"Document {document_id} saved successfully from RTF editor (fallback mode)")
+                                        # Trigger a refresh of the document list
+                                        self._refresh()
+                                    else:
+                                        logger.error(f"Failed to save document {document_id} from RTF editor (fallback mode)")
+                                except Exception as e:
+                                    logger.error(f"Error saving document {document_id} from RTF editor (fallback mode): {e}")
+                                    MessageBox.error(self, "Error", f"Unable to save document changes: {e}")
+                        except Exception as e:
+                            logger.error(f"Error capturing document content before close (fallback mode): {e}")
+                
+                # Connect to the editor's closeEvent
+                old_close_event = editor.closeEvent
+                
+                def new_close_event(event):
+                    capture_content_before_close()
+                    old_close_event(event)
+                
+                editor.closeEvent = new_close_event
+                
+                # Show the editor
+                editor.show()
+                
+                # Log that we're using fallback method
+                logger.info(f"Using fallback method to edit document {document_id} in RTF editor")
+                return
+            except Exception as e:
+                logger.error(f"Fallback RTF editor creation failed: {e}")
+                MessageBox.error(self, "Error", f"Cannot open RTF editor: {e}")
+                return
+            
         # Get the window manager
         window_manager = getattr(current_parent, "window_manager")
 
@@ -720,15 +805,26 @@ class DocumentBrowserPanel(Panel):
                 try:
                     # Use the content captured before window was destroyed
                     if document_content_to_save:
-                        # Save document back to database
-                        qgem_document_service.save_document_format(
-                            document_content_to_save
-                        )
-                        # Refresh document browser
-                        self._refresh()
-                        logger.info(f"Saved changes to document {document_id}")
+                        try:
+                            # Save document back to database
+                            success = qgem_document_service.save_document_format(
+                                document_content_to_save
+                            )
+                            if success:
+                                # Refresh document browser
+                                self._refresh()
+                                logger.info(f"Saved changes to document {document_id}")
+                            else:
+                                logger.error(f"Failed to save document {document_id} from RTF editor")
+                        except Exception as e:
+                            logger.error(f"Error saving document changes: {e}")
+                            # Show error message if we're still able to access UI
+                            try:
+                                MessageBox.error(self, "Save Error", f"Unable to save document changes: {e}")
+                            except:
+                                pass  # If UI is no longer accessible, just log the error
                 except Exception as e:
-                    logger.error(f"Error saving document changes: {e}")
+                    logger.error(f"Error handling editor closed event: {e}")
 
         # Connect to window closed signal
         window_manager.window_closed.connect(on_editor_closed)
