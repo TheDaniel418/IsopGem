@@ -75,9 +75,19 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-3. Install development dependencies:
+3. Install dependencies using the main requirements file:
+```bash
+pip install -r requirements.txt
+```
+
+Alternative installation options:
+- For development with linting tools: 
 ```bash
 pip install -r requirements/dev.txt
+```
+- For running tests: 
+```bash
+pip install -r requirements/test.txt
 ```
 
 4. Install the package in development mode:

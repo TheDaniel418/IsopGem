@@ -1,0 +1,53 @@
+# IsopGem Requirements
+# Main requirements file for easy installation
+
+# Core dependencies
+PyQt6==6.6.1
+pyyaml==6.0.1
+pydantic==2.6.1
+python-dotenv==1.0.1
+loguru==0.7.2
+
+# Data handling
+numpy==1.26.3
+pandas==2.2.0
+
+# Database
+sqlite3worker>=1.1.0
+
+# Document processing
+PyMuPDF>=1.21.0  # For PDF processing
+python-docx>=0.8.11  # For DOCX processing
+odfpy>=1.4.1  # For LibreOffice documents
+
+# Astronomy/Astrology
+pyswisseph>=2.10.0  # Swiss Ephemeris for astronomical calculations
+skyfield>=1.45.0  # Astronomical calculations
+ephem>=4.1.4  # PyEphem for accurate astronomical calculations
+
+# Mathematics
+sympy>=1.12.0  # Symbolic mathematics for number properties
+
+# Utilities
+tqdm==4.66.1
+pytz==2023.4
+pillow==10.2.0
+typing-extensions>=4.8.0  # Extended typing support
+
+# Type checking and linting - uncomment if needed for development
+# mypy==1.8.0
+# black==23.12.1
+# isort==5.13.2
+# flake8==7.0.0
+# pre-commit==3.6.0
+
+# Testing - uncomment if needed for testing
+# pytest==7.4.4
+# pytest-qt==4.2.0
+# pytest-cov==4.1.0
+
+# Optional: Install development tools
+# -r requirements/dev.txt
+
+# Optional: Install testing tools
+# -r requirements/test.txt 
