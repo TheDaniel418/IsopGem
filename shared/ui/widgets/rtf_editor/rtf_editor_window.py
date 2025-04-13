@@ -36,9 +36,15 @@ class RTFEditorWindow(QMainWindow):
     """Main RTF editor window with full editing capabilities."""
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        # Set window flags to ensure this window stays on top
+        flags = Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint
+        super().__init__(parent, flags)
+        
         self.setWindowTitle("RTF Editor")
         self.resize(800, 600)
+        
+        # Enable delete on close to ensure proper cleanup
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize components
         self.setup_ui()

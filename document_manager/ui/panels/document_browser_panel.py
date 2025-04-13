@@ -17,7 +17,7 @@ Dependencies:
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -700,6 +700,13 @@ class DocumentBrowserPanel(Panel):
                 # Set a proper window title showing we're editing the document
                 editor.setWindowTitle(f"Edit Document - {qgem_document.name}")
                 
+                # Apply window flags to ensure it stays on top similar to WindowManager.configure_window()
+                editor.setWindowFlags(
+                    editor.windowFlags()
+                    | Qt.WindowType.Window
+                    | Qt.WindowType.WindowStaysOnTopHint
+                )
+                
                 # Connect to document saved signal if available
                 if hasattr(editor, "document_saved"):
                     editor.document_saved.connect(
@@ -753,9 +760,14 @@ class DocumentBrowserPanel(Panel):
                 
                 editor.closeEvent = new_close_event
 
-                # Show the editor
+                # Show the editor with proper focus management similar to WindowManager
                 editor.show()
-
+                editor.raise_()
+                editor.activateWindow()
+                
+                # Implement delayed focus like WindowManager._delayed_focus
+                QTimer.singleShot(100, lambda: self._delayed_focus_fallback(editor))
+                
                 # Log that we're using fallback method
                 logger.info(
                     f"Using fallback method to edit document {document_id} in RTF editor"
@@ -903,3 +915,14 @@ class DocumentBrowserPanel(Panel):
                     "Delete Failed",
                     "Failed to delete the document. Please try again.",
                 )
+
+    # Helper method to handle delayed focus for fallback windows
+    def _delayed_focus_fallback(self, window):
+        """Apply delayed focus to fallback windows to ensure they stay on top.
+        
+        Args:
+            window: The window to focus
+        """
+        if window and window.isVisible():
+            window.raise_()
+            window.activateWindow()
