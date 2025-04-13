@@ -7,6 +7,7 @@ import sys
 from typing import List, Optional, cast
 
 from loguru import logger
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QCloseEvent
 from PyQt6.QtWidgets import (
     QApplication,
@@ -27,7 +28,11 @@ class MainWindow(QMainWindow):
 
     def __init__(self) -> None:
         """Initialize the main window."""
-        super().__init__()
+        # Initialize with flags that ensure it doesn't stay on top
+        flags = Qt.WindowType.Window & ~Qt.WindowType.WindowStaysOnTopHint
+        super().__init__(None, flags)
+
+        logger.debug("Main window configured with normal window flags")
 
         config = get_config()
         window_config = config.ui.window
@@ -307,6 +312,9 @@ class MainWindow(QMainWindow):
         )
 
         logger.debug("Opened Database Maintenance window")
+
+    # Window management is now handled through window flags
+    # No need for custom window positioning methods
 
     def closeEvent(self, event: "QCloseEvent") -> None:
         """Handle window close event.

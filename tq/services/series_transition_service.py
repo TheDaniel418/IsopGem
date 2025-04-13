@@ -21,7 +21,7 @@ Related files:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 from loguru import logger
 from PyQt6.QtCore import QObject
@@ -33,9 +33,28 @@ from tq.utils.ternary_converter import decimal_to_ternary
 from tq.utils.ternary_transition import TernaryTransition
 
 
+class NumberProperties(TypedDict):
+    """Type definition for number properties dictionary."""
+    factors: List[int]
+    prime_factors: List[int]
+    is_prime: bool
+    is_perfect: bool
+    is_abundant: bool
+    is_deficient: bool
+    aliquot_sum: int
+
+
 @dataclass
 class SeriesTransitionResult:
-    """Result of a series transition calculation."""
+    """Result of a series transition calculation.
+    
+    Attributes:
+        transitions: List of transitions between consecutive pairs in decimal
+        transition_ternaries: List of transitions in ternary string form
+        transition_sum: Sum of all transitions
+        closed_loop_sum: Sum including transition from first to last number
+        amalgam: Transition between sum of numbers and sum of differences
+    """
 
     transitions: List[int]  # List of transitions between consecutive pairs (decimal)
     transition_ternaries: List[str]  # List of transitions in ternary form
@@ -47,14 +66,14 @@ class SeriesTransitionResult:
 class SeriesTransitionService(QObject):
     """Service for calculating series transitions."""
 
-    _instance = None
+    _instance: Optional["SeriesTransitionService"] = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the service."""
         super().__init__()
         self.transition = TernaryTransition()
         self.number_service = NumberPropertiesService.get_instance()
-        self.window = None
+        self.window: Optional[SeriesTransitionWindow] = None
 
     @classmethod
     def get_instance(cls) -> "SeriesTransitionService":
@@ -66,18 +85,25 @@ class SeriesTransitionService(QObject):
             logger.debug("Registered SeriesTransitionService with ServiceLocator")
         return cls._instance
 
-    def get_window(self):
-        """Get or create the Series Transitions window."""
+    def get_window(self) -> SeriesTransitionWindow:
+        """Get or create the Series Transitions window.
+        
+        Returns:
+            The SeriesTransitionWindow instance.
+        """
         if self.window is None:
             self.window = SeriesTransitionWindow()
         return self.window
 
-    def set_series_numbers(self, numbers: List[int]):
+    def set_series_numbers(self, numbers: List[int]) -> None:
         """Set the series numbers and show the window.
 
         Args:
             numbers: List of numbers to set in pairs. Must be an even number of values
                     as they will be processed as pairs (a1,b1,a2,b2,...).
+
+        Raises:
+            ValueError: If the length of numbers is not even.
         """
         logger.debug(f"SeriesTransitionService: Setting series numbers {numbers}")
 
@@ -113,7 +139,10 @@ class SeriesTransitionService(QObject):
 
         Returns:
             SeriesTransitionResult containing transitions and their properties,
-            or None if an error occurs
+            or None if an error occurs.
+
+        Raises:
+            ValueError: If less than 2 numbers are provided.
         """
         if len(numbers) < 2:
             logger.error("Need at least 2 numbers for series transitions")
@@ -121,8 +150,8 @@ class SeriesTransitionService(QObject):
 
         try:
             # Calculate transitions between pairs (not consecutive numbers)
-            transitions = []
-            transition_ternaries = []
+            transitions: List[int] = []
+            transition_ternaries: List[str] = []
             for i in range(0, len(numbers), 2):
                 if i + 1 >= len(numbers):
                     break
@@ -186,7 +215,7 @@ class SeriesTransitionService(QObject):
 
     def get_transition_properties(
         self, result: SeriesTransitionResult
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> Dict[str, NumberProperties]:
         """Get number properties for all significant numbers in the result.
 
         Args:

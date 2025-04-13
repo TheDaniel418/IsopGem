@@ -165,7 +165,7 @@ class WordAbacusWidget(QWidget):
         self._calc_button.setStyleSheet(
             "background-color: #3498db; color: white; font-weight: bold; padding: 8px 16px;"
         )
-        self._calc_button.clicked.connect(self._calculate)
+        # Connection to _calculate is handled in _connect_signals
         self._calc_button.setEnabled(False)  # Disabled until text is entered
 
         self._result_label = QLabel("Result: ")
@@ -408,6 +408,9 @@ class WordAbacusWidget(QWidget):
 
     def _calculate(self) -> None:
         """Handle calculate button click."""
+        from loguru import logger
+        logger.debug("WordAbacusWidget._calculate called")
+
         input_text = self._input_field.text().strip()
         if not input_text:
             return
@@ -418,11 +421,13 @@ class WordAbacusWidget(QWidget):
 
         # Perform calculation
         result_value = self._calculation_service.calculate(input_text, calc_type)
+        print(f"Calculation result: {input_text} = {result_value}")
 
         # Update result display
         self._result_value.setText(str(result_value))
 
         # Create calculation result and add to history
+        from loguru import logger
         method_name = self._method_combo.currentText()
         if isinstance(calc_type, CustomCipherConfig):
             # For custom ciphers, we need to handle the history differently
@@ -440,17 +445,27 @@ class WordAbacusWidget(QWidget):
                 result_value=result_value,
             )
 
+        logger.debug(f"Created calculation result with ID: {result.id}")
+
+        # Add to in-memory history service (for the history table in this widget)
+        # This is the same history service instance that was passed from the panel
         self._history_service.add_calculation(result)
 
         # Update history table
         self._update_history_table()
 
         # Emit signal with calculation result
+        # This will be caught by the WordAbacusPanel which will store the calculation
+        # and re-emit the signal for the MainPanel to switch to the history tab
         self.calculation_performed.emit(result)
 
     def _update_history_table(self) -> None:
         """Update the history table with the latest calculations."""
+        from loguru import logger
+        logger.debug("WordAbacusWidget._update_history_table called")
+
         history = self._history_service.get_history()
+        logger.debug(f"Got {len(history)} items from history service")
 
         # Clear existing rows
         self._history_table.setRowCount(0)
@@ -459,6 +474,7 @@ class WordAbacusWidget(QWidget):
         for i, calc in enumerate(history):
             self._history_table.insertRow(i)
             display_dict = calc.to_display_dict()
+            logger.debug(f"Adding row {i} to history table: {calc.input_text} = {calc.result_value} (ID: {calc.id})")
 
             for j, column in enumerate(["Input", "Method", "Result", "Time", "Notes"]):
                 item = QTableWidgetItem(display_dict[column])
@@ -466,6 +482,7 @@ class WordAbacusWidget(QWidget):
 
         # Resize columns to content
         self._history_table.resizeColumnsToContents()
+        logger.debug(f"History table updated with {self._history_table.rowCount()} rows")
 
     def clear_history(self) -> None:
         """Clear the calculation history."""

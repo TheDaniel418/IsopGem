@@ -14,13 +14,13 @@ Dependencies:
 
 from loguru import logger
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
 from astrology.services.location_service import Location
 from astrology.ui.widgets.location_search_widget import LocationSearchWidget
 
 
-class LocationSearchWindow(QMainWindow):
+class LocationSearchWindow(QDialog):
     """Standalone window for location search."""
 
     # Signal emitted when a location is selected
@@ -38,12 +38,8 @@ class LocationSearchWindow(QMainWindow):
         self.setWindowTitle("Location Search")
         self.setMinimumSize(800, 600)
 
-        # Set up central widget
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
         # Create layout
-        layout = QVBoxLayout(central_widget)
+        layout = QVBoxLayout(self)
 
         # Create location search widget
         self.location_search_widget = LocationSearchWidget()
@@ -63,8 +59,8 @@ class LocationSearchWindow(QMainWindow):
         # Emit signal
         self.location_selected.emit(location)
 
-        # Close window
-        self.close()
+        # Accept the dialog to close it and return accept status
+        self.accept()
 
     def set_content(self, widget):
         """Set the content widget of the window.

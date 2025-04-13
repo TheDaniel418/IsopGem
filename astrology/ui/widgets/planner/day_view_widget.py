@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from loguru import logger
 from PyQt6.QtCore import QDate, Qt, QTime, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -252,8 +252,13 @@ class HourSection(QFrame):
             # Create event widget
             event_widget = QFrame()
             event_widget.setFrameShape(QFrame.Shape.StyledPanel)
+            # Calculate text color based on background brightness
+            color = QColor(event.color)
+            brightness = (color.red() * 299 + color.green() * 587 + color.blue() * 114) / 1000
+            text_color = "black" if brightness > 128 else "white"
+
             event_widget.setStyleSheet(
-                f"background-color: {event.color}; color: white; border-radius: 5px;"
+                f"background-color: {event.color}; color: {text_color}; border-radius: 5px;"
             )
 
             event_layout = QVBoxLayout(event_widget)
@@ -287,10 +292,12 @@ class HourSection(QFrame):
 
             # Create View Chart button
             view_chart_button = QPushButton("View Chart")
+
+            # Use the same text color for the button
             view_chart_button.setStyleSheet(
                 "background-color: rgba(255, 255, 255, 0.2); "
-                "color: white; "
-                "border: 1px solid white; "
+                f"color: {text_color}; "
+                f"border: 1px solid {text_color}; "
                 "border-radius: 3px; "
                 "padding: 3px;"
             )
@@ -349,6 +356,9 @@ class DayViewWidget(QWidget):
         # Current date
         self.current_date = QDate.currentDate()
 
+        # Settings
+        self.show_minor_aspects = True
+
         # Initialize UI
         self._init_ui()
 
@@ -396,6 +406,15 @@ class DayViewWidget(QWidget):
         self.add_event_button.clicked.connect(self._add_event)
         action_layout.addWidget(self.add_event_button)
 
+        # Minor aspects checkbox
+        self.minor_aspects_checkbox = QCheckBox("Show Minor Aspects")
+        self.minor_aspects_checkbox.setChecked(self.show_minor_aspects)
+        self.minor_aspects_checkbox.stateChanged.connect(self._toggle_minor_aspects)
+        action_layout.addWidget(self.minor_aspects_checkbox)
+
+        # Add spacer to push settings button to the right
+        action_layout.addStretch(1)
+
         # Settings button
         self.settings_button = QPushButton("Settings")
         self.settings_button.clicked.connect(self._show_settings)
@@ -429,11 +448,9 @@ class DayViewWidget(QWidget):
         date = datetime(
             self.current_date.year(), self.current_date.month(), self.current_date.day()
         ).date()
-        user_events = self.planner_service.get_events_for_date(date)
-        astro_events = self.planner_service.get_all_astrological_events_for_date(date)
-
-        # Combine events
-        all_events = user_events + astro_events
+        
+        # Get all events for the date (including both user events and astronomical events)
+        all_events = self.planner_service.get_events_for_date(date)
 
         # Organize events by hour
         events_by_hour = {}
@@ -643,32 +660,43 @@ class DayViewWidget(QWidget):
         # Get current settings
         settings = self.planner_service.get_settings()
 
-        # Create location search window
+        # Create location search window as a properly modal dialog
         location_window = LocationSearchWindow(parent_dialog)
+        
+        # Set modality and stay-on-top flags
+        location_window.setWindowModality(Qt.WindowModality.ApplicationModal)
+        location_window.setWindowFlags(
+            location_window.windowFlags() | 
+            Qt.WindowType.Dialog | 
+            Qt.WindowType.WindowStaysOnTopHint
+        )
 
-        # Connect location selected signal
+        # Store the location in a list to use in the callback
+        # This is necessary since we can't use a direct callback with exec()
+        selected_location = [None]
+        
         def on_location_selected(location):
-            # Update settings
-            settings.default_location = location
+            selected_location[0] = location
+            # Store the location but don't close - dialog will close with exec()
+        
+        # Connect signal
+        location_window.location_search_widget.location_selected.connect(on_location_selected)
+        
+        # Show as a modal dialog - this blocks until the dialog is closed
+        result = location_window.exec_() if hasattr(location_window, 'exec_') else location_window.exec()
+        
+        # Process the selected location after dialog closes
+        if selected_location[0]:
+            # Update settings with the selected location
+            settings.default_location = selected_location[0]
 
             # Save settings
             if self.planner_service.save_settings(settings):
                 # Update location label
-                self.location_label.setText(location.display_name)
-                logger.debug(f"Default location set to {location.display_name}")
-
-                # Close the location window
-                location_window.close()
+                self.location_label.setText(selected_location[0].display_name)
+                logger.debug(f"Default location set to {selected_location[0].display_name}")
             else:
                 QMessageBox.warning(parent_dialog, "Error", "Failed to save location.")
-
-        # Connect signal
-        location_window.location_search_widget.location_selected.connect(
-            on_location_selected
-        )
-
-        # Show window
-        location_window.show()
 
     def set_date(self, date: QDate):
         """Set the current date.
@@ -687,3 +715,13 @@ class DayViewWidget(QWidget):
             Current date
         """
         return self.current_date
+
+    def _toggle_minor_aspects(self, state):
+        """Toggle showing minor aspects.
+
+        Args:
+            state: Checkbox state
+        """
+        self.show_minor_aspects = state == Qt.CheckState.Checked.value
+        logger.debug(f"Minor aspects toggled: {self.show_minor_aspects}")
+        self._update_view()

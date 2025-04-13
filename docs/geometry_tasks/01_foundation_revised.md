@@ -1,0 +1,271 @@
+# Chapter 1: Foundation and Basic Framework
+
+This chapter focuses on establishing the foundational architecture and basic UI framework for the Sacred Geometry Explorer window that will open from the existing "Sacred Geometry" button in the Geometry tab.
+
+## Tasks
+
+### 1.1 Create Sacred Geometry Explorer Module Structure
+
+**Description:** Set up the basic module structure for the Sacred Geometry Explorer.
+
+**Subtasks:**
+1. Create the `geometry/ui/sacred_geometry` directory structure
+2. Set up the necessary `__init__.py` files
+3. Create the main `explorer.py` file for the Sacred Geometry Explorer
+4. Set up the basic imports and dependencies
+5. Create placeholder files for major components
+
+**Acceptance Criteria:**
+- Module structure is properly set up
+- All necessary `__init__.py` files are in place
+- Main `explorer.py` file is created
+- Basic imports and dependencies are set up
+- Placeholder files for major components are created
+
+**Dependencies:** None
+
+---
+
+### 1.2 Implement Sacred Geometry Explorer Window
+
+**Description:** Create the main Sacred Geometry Explorer window class.
+
+**Subtasks:**
+1. Implement `SacredGeometryExplorer` class that inherits from `QWidget`
+2. Set up the basic layout structure (toolbar area, canvas area, properties panel)
+3. Implement window initialization and configuration
+4. Connect the window to the existing "Sacred Geometry" button in the Geometry tab
+5. Add basic window management functionality
+
+**Acceptance Criteria:**
+- `SacredGeometryExplorer` class is implemented
+- Basic layout structure is set up
+- Window initializes and configures properly
+- Window opens when the "Sacred Geometry" button is clicked
+- Window management functionality works correctly
+
+**Dependencies:** 1.1
+
+---
+
+### 1.3 Implement Canvas Framework
+
+**Description:** Create the canvas framework that will serve as the main construction area.
+
+**Subtasks:**
+1. Implement a `GeometryCanvas` class using `QGraphicsView` and `QGraphicsScene`
+2. Set up coordinate system with proper scaling and origin
+3. Implement basic navigation controls (zoom, pan)
+4. Add grid display with customizable spacing
+5. Implement basic mouse interaction handling
+
+**Acceptance Criteria:**
+- Canvas displays with proper coordinate system
+- User can zoom in/out and pan the view
+- Grid displays correctly and scales with zoom level
+- Basic mouse interactions (click, drag) are captured
+- Canvas is properly integrated into the Explorer window
+
+**Dependencies:** 1.2
+
+---
+
+### 1.4 Create Geometry Object Model
+
+**Description:** Design and implement the core object model for geometric entities.
+
+**Subtasks:**
+1. Create base `GeometricObject` class with common properties and methods
+2. Implement derived classes for basic objects (Point, Line, Circle)
+3. Design the object hierarchy with proper inheritance
+4. Implement serialization/deserialization for geometric objects
+5. Create factory methods for object creation
+
+**Acceptance Criteria:**
+- Object model supports all basic geometric entities
+- Objects can be created, modified, and deleted
+- Object properties can be accessed and modified
+- Objects can be serialized and deserialized
+- Factory methods create objects correctly
+
+**Dependencies:** None
+
+---
+
+### 1.5 Implement Object Rendering System
+
+**Description:** Create the rendering system for displaying geometric objects on the canvas.
+
+**Subtasks:**
+1. Implement `GraphicsItem` classes for each geometric object type
+2. Create mapping between model objects and their visual representations
+3. Implement styling system for objects (color, line style, etc.)
+4. Add selection highlighting and handles
+5. Ensure proper z-ordering of objects
+
+**Acceptance Criteria:**
+- All geometric objects render correctly on the canvas
+- Object styling (color, line style) works properly
+- Selected objects show appropriate highlighting
+- Objects maintain proper visual layering
+- Rendering system integrates with the canvas framework
+
+**Dependencies:** 1.3, 1.4
+
+---
+
+### 1.6 Create Tool System Framework
+
+**Description:** Implement the framework for geometric construction tools.
+
+**Subtasks:**
+1. Design the tool system architecture
+2. Create base `GeometryTool` class with common functionality
+3. Implement tool selection mechanism
+4. Create tool state management system
+5. Implement basic mouse event handling for tools
+
+**Acceptance Criteria:**
+- Tool system architecture is in place
+- Tools can be selected and activated
+- Active tool receives mouse events
+- Tool state is properly managed
+- Tool system integrates with the canvas framework
+
+**Dependencies:** 1.3
+
+---
+
+### 1.7 Implement Properties Panel
+
+**Description:** Create the properties panel for viewing and editing object properties.
+
+**Subtasks:**
+1. Design the properties panel UI
+2. Implement property editors for common properties (coordinates, radius, etc.)
+3. Create the connection between selected objects and the properties panel
+4. Implement property change handling and object updating
+5. Add support for multi-object selection properties
+
+**Acceptance Criteria:**
+- Properties panel displays properties of selected objects
+- Properties can be edited through the panel
+- Changes in properties are immediately reflected in the objects
+- Panel updates when selection changes
+- Multi-object selection properties are handled correctly
+
+**Dependencies:** 1.4, 1.5
+
+---
+
+### 1.8 Create Command System for Undo/Redo
+
+**Description:** Implement a command-based system for undo/redo functionality.
+
+**Subtasks:**
+1. Design the command pattern implementation
+2. Create base `GeometryCommand` class
+3. Implement command history management
+4. Create commands for basic operations (create, modify, delete)
+5. Add undo/redo UI controls
+
+**Acceptance Criteria:**
+- All operations are recorded as commands
+- Undo/redo functionality works correctly
+- Command history is properly managed
+- UI provides access to undo/redo operations
+- Command system integrates with the object model
+
+**Dependencies:** 1.4
+
+---
+
+### 1.9 Implement Basic File Operations
+
+**Description:** Add support for saving and loading geometry constructions.
+
+**Subtasks:**
+1. Design the file format for geometry constructions
+2. Implement save functionality
+3. Implement load functionality
+4. Add "New Construction" functionality
+5. Create file operation UI controls
+
+**Acceptance Criteria:**
+- Constructions can be saved to files
+- Saved constructions can be loaded
+- New constructions can be created
+- UI provides access to file operations
+- File operations integrate with the object model
+
+**Dependencies:** 1.4, 1.8
+
+---
+
+### 1.10 Create Basic Toolbar
+
+**Description:** Implement the basic toolbar with tool selection buttons.
+
+**Subtasks:**
+1. Design the toolbar UI
+2. Create tool button widgets with icons
+3. Implement tool selection logic
+4. Organize tools into categories
+5. Add tooltips and keyboard shortcuts
+
+**Acceptance Criteria:**
+- Toolbar displays with proper organization
+- Tool buttons have appropriate icons
+- Selecting a tool activates it
+- Tools are organized into logical categories
+- Tooltips and shortcuts work correctly
+
+**Dependencies:** 1.6
+
+---
+
+### 1.11 Connect to Existing Geometry Tab
+
+**Description:** Connect the Sacred Geometry Explorer to the existing "Sacred Geometry" button in the Geometry tab.
+
+**Subtasks:**
+1. Implement the `_open_sacred_geometry` method in the `GeometryTab` class
+2. Create the connection between the button and the method
+3. Implement proper window creation and management
+4. Add error handling for window creation
+5. Ensure proper focus management
+
+**Acceptance Criteria:**
+- Sacred Geometry Explorer opens when the button is clicked
+- Window is created and managed properly
+- Error handling prevents crashes
+- Focus management follows the application's focus-based approach
+- Explorer window integrates with the application's window management system
+
+**Dependencies:** 1.2
+
+---
+
+### 1.12 Integrate Components and Test Foundation
+
+**Description:** Integrate all foundation components and perform comprehensive testing.
+
+**Subtasks:**
+1. Connect all components (canvas, tools, properties panel)
+2. Implement event propagation between components
+3. Test all basic functionality
+4. Fix any integration issues
+5. Optimize performance if needed
+
+**Acceptance Criteria:**
+- All components work together seamlessly
+- Events propagate correctly between components
+- Basic functionality works as expected
+- Integration issues are resolved
+- Performance is acceptable
+
+**Dependencies:** 1.1 through 1.11
+
+## Next Chapter
+
+Once the foundation is complete, proceed to [Chapter 2: Basic Geometric Tools](02_basic_tools.md).

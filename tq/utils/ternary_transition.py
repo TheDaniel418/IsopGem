@@ -20,11 +20,12 @@ Related files:
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple, TypeAlias, Union, cast
 
-
-# Type alias for transition mapping
-TransitionMap = Dict[Tuple[int, int], int]
+# Type aliases for clarity and type safety
+TernaryDigit = Literal[0, 1, 2]
+TernaryPair = Tuple[TernaryDigit, TernaryDigit]
+TransitionMap = Dict[TernaryPair, TernaryDigit]
 
 
 class TernaryTransition:
@@ -51,14 +52,17 @@ class TernaryTransition:
     }
 
     # Conrune transformation mapping: 0→0, 1→2, 2→1
-    CONRUNE_MAP = {"0": "0", "1": "2", "2": "1"}
+    CONRUNE_MAP: Dict[str, str] = {"0": "0", "1": "2", "2": "1"}
 
-    def __init__(self, transition_map: Optional[TransitionMap] = None):
+    def __init__(self, transition_map: Optional[TransitionMap] = None) -> None:
         """
         Initialize the TernaryTransition with a transition map.
 
         Args:
             transition_map: Custom transition map (defaults to the standard Taoist map)
+
+        Raises:
+            ValueError: If the transition map is invalid
         """
         self.transition_map = transition_map or self.DEFAULT_MAP
         self._validate_transition_map()
@@ -71,7 +75,9 @@ class TernaryTransition:
         Raises:
             ValueError: If the transition map is invalid
         """
-        required_pairs = [(i, j) for i in range(3) for j in range(3)]
+        required_pairs: List[TernaryPair] = [
+            cast(TernaryPair, (i, j)) for i in range(3) for j in range(3)
+        ]
 
         # Check that all required pairs are in the map
         for pair in required_pairs:
@@ -80,7 +86,7 @@ class TernaryTransition:
 
         # Check that all values are valid ternary digits
         for pair, value in self.transition_map.items():
-            if not (isinstance(value, int) and 0 <= value <= 2):
+            if not isinstance(value, int) or value not in (0, 1, 2):
                 raise ValueError(
                     f"Invalid transition value for {pair}: {value} "
                     f"(must be 0, 1, or 2)"
@@ -102,7 +108,7 @@ class TernaryTransition:
         Raises:
             ValueError: If the rule string is invalid
         """
-        transition_map = {}
+        transition_map: TransitionMap = {}
         rules = rule_string.split(",")
 
         pattern = re.compile(r"([0-2])([0-2]):([0-2])")
@@ -144,14 +150,18 @@ class TernaryTransition:
         second_padded = second.zfill(max_length)
 
         # Apply transitions for each digit pair
-        result_digits = []
+        result_digits: List[str] = []
         for a, b in zip(first_padded, second_padded):
             try:
-                pair = (int(a), int(b))
+                a_int = int(a)
+                b_int = int(b)
+                if not (0 <= a_int <= 2 and 0 <= b_int <= 2):
+                    raise ValueError(f"Digit pair out of range: ({a_int}, {b_int})")
+                pair = cast(TernaryPair, (a_int, b_int))
                 result_digits.append(str(self.transition_map[pair]))
             except KeyError:
                 raise KeyError(
-                    f"Transition pair {pair} not found in transition map. This may indicate an incomplete transition map."
+                    f"Transition pair ({a_int}, {b_int}) not found in transition map. This may indicate an incomplete transition map."
                 )
 
         return "".join(result_digits)
@@ -177,7 +187,7 @@ class TernaryTransition:
         if iterations < 1:
             raise ValueError("Iterations must be a positive integer")
 
-        results = []
+        results: List[Tuple[str, str, str]] = []
         current_first = first
         current_second = second
 
@@ -216,7 +226,7 @@ class TernaryTransition:
             KeyError: If a digit pair is not found in the transition map
             RuntimeError: If no cycle is found within max_iterations
         """
-        seen_states = {}
+        seen_states: Dict[Tuple[str, str], int] = {}
         current_first = first
         current_second = second
 
@@ -230,7 +240,7 @@ class TernaryTransition:
                 cycle_length = i - cycle_start
 
                 # Reconstruct the cycle
-                cycle = []
+                cycle: List[Tuple[str, str, str]] = []
                 temp_first, temp_second = first, second
 
                 # Run to the start of the cycle
@@ -297,7 +307,7 @@ class TernaryTransition:
         """
         self._validate_ternary_input(ternary_str)
 
-        transformed_digits = []
+        transformed_digits: List[str] = []
         for digit in ternary_str:
             try:
                 transformed_digits.append(self.CONRUNE_MAP[digit])

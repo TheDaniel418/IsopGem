@@ -5,12 +5,9 @@ This file is part of the astrology pillar and serves as a model component.
 It provides data structures for planner events and settings.
 """
 
-from datetime import datetime
-from enum import Enum, auto
-from typing import Dict, List, Optional, Any
 import uuid
+from enum import Enum
 
-from astrology.services.location_service import Location
 
 
 class EventType(Enum):

@@ -30,9 +30,11 @@ from loguru import logger
 from gematria.models.calculation_result import CalculationResult
 from gematria.models.calculation_type import CalculationType
 from gematria.models.tag import Tag
+
 # Import repositories directly to avoid circular imports
-from shared.repositories.database import Database
-from shared.repositories.sqlite_calculation_repository import SQLiteCalculationRepository
+from shared.repositories.sqlite_calculation_repository import (
+    SQLiteCalculationRepository,
+)
 from shared.repositories.sqlite_tag_repository import SQLiteTagRepository
 
 
@@ -427,17 +429,23 @@ class CalculationDatabaseService:
         # Handle custom cipher method filtering
         if "custom_method_name" in criteria and criteria["custom_method_name"]:
             # Log the custom method name we're searching for
-            logger.debug(f"Filtering by custom method name: {criteria['custom_method_name']}")
+            logger.debug(
+                f"Filtering by custom method name: {criteria['custom_method_name']}"
+            )
 
             filtered_results = []
             for calc in results:
                 # Check if this is a custom cipher calculation
-                if (hasattr(calc, "custom_method_name") and calc.custom_method_name):
+                if hasattr(calc, "custom_method_name") and calc.custom_method_name:
                     # Log for debugging
-                    logger.debug(f"Comparing with calculation: {calc.input_text}, method: {calc.custom_method_name}")
+                    logger.debug(
+                        f"Comparing with calculation: {calc.input_text}, method: {calc.custom_method_name}"
+                    )
 
                     # Log the actual values for debugging
-                    logger.debug(f"Comparing search term '{criteria['custom_method_name']}' with database value '{calc.custom_method_name}'")
+                    logger.debug(
+                        f"Comparing search term '{criteria['custom_method_name']}' with database value '{calc.custom_method_name}'"
+                    )
 
                     # Check if the custom method name matches (handle both with and without 'Custom: ' prefix)
                     search_term = criteria["custom_method_name"]
@@ -498,7 +506,9 @@ class CalculationDatabaseService:
             elif isinstance(calculation_type, str):
                 # Check if it's a custom cipher method name
                 if calculation_type.startswith("Custom:"):
-                    criteria["custom_method_name"] = calculation_type.replace("Custom: ", "")
+                    criteria["custom_method_name"] = calculation_type.replace(
+                        "Custom: ", ""
+                    )
                 else:
                     criteria["calculation_type"] = calculation_type
         if favorites_only:

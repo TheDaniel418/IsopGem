@@ -12,6 +12,7 @@ from loguru import logger
 from PyQt6.QtCore import QDate, Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -195,7 +196,7 @@ class DayCell(QFrame):
             self.layout.addStretch()
 
     def _get_color_for_event_type(self, event_type: EventType) -> str:
-        """Get color for an event type.
+        """Get the color for an event type.
 
         Args:
             event_type: Event type
@@ -205,12 +206,12 @@ class DayCell(QFrame):
         """
         colors = {
             EventType.MOON_PHASE: "#808080",  # Gray
-            EventType.VOID_OF_COURSE: "#800080",  # Purple
             EventType.PLANETARY_ASPECT: "#FFA500",  # Orange
             EventType.RETROGRADE: "#800000",  # Maroon
             EventType.ECLIPSE: "#000080",  # Navy
             EventType.VENUS_CYCLE: "#00FFFF",  # Cyan
             EventType.USER_EVENT: "#008000",  # Green
+            EventType.PLANETARY_PHASE: "#9370DB",  # Medium purple
         }
         return colors.get(event_type, "#000000")
 
@@ -313,6 +314,9 @@ class MonthlyCalendarWidget(QWidget):
         # Current date
         self.current_date = QDate.currentDate()
 
+        # Settings
+        self.show_minor_aspects = True
+
         # Initialize UI
         self._init_ui()
 
@@ -375,8 +379,35 @@ class MonthlyCalendarWidget(QWidget):
 
         main_layout.addWidget(header_frame)
 
+        # Settings frame
+        settings_frame = QFrame()
+        settings_frame.setStyleSheet(
+            "QFrame {"
+            "    background-color: #F5F5F5;"
+            "    border-radius: 8px;"
+            "    border: 1px solid #E0E0E0;"
+            "    padding: 5px;"
+            "}"
+            "QCheckBox {"
+            "    font-size: 11px;"
+            "}"
+        )
+        settings_layout = QHBoxLayout(settings_frame)
+        settings_layout.setContentsMargins(10, 5, 10, 5)
+
+        # Minor aspects checkbox
+        self.minor_aspects_checkbox = QCheckBox("Show Minor Aspects")
+        self.minor_aspects_checkbox.setChecked(self.show_minor_aspects)
+        self.minor_aspects_checkbox.stateChanged.connect(self._toggle_minor_aspects)
+        settings_layout.addWidget(self.minor_aspects_checkbox)
+
+        # Add spacer to push checkbox to the left
+        settings_layout.addStretch(1)
+
+        main_layout.addWidget(settings_frame)
+
         # Add some spacing
-        main_layout.addSpacing(10)
+        main_layout.addSpacing(5)
 
         # Day of week headers
         days_frame = QFrame()
@@ -512,7 +543,9 @@ class MonthlyCalendarWidget(QWidget):
 
         # Get events for the month
         events_by_day = self.planner_service.get_events_for_month(
-            self.current_date.year(), self.current_date.month()
+            self.current_date.year(),
+            self.current_date.month(),
+            include_minor_aspects=self.show_minor_aspects
         )
 
         # Add moon phases
@@ -650,3 +683,13 @@ class MonthlyCalendarWidget(QWidget):
             Current date
         """
         return self.current_date
+
+    def _toggle_minor_aspects(self, state):
+        """Toggle showing minor aspects.
+
+        Args:
+            state: Checkbox state
+        """
+        self.show_minor_aspects = state == Qt.CheckState.Checked.value
+        logger.debug(f"Minor aspects toggled: {self.show_minor_aspects}")
+        self._update_calendar()

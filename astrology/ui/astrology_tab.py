@@ -22,10 +22,14 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QMessageBox,
 )
 
 from astrology.ui.dialogs.birth_chart_window import BirthChartWindow
 from astrology.ui.dialogs.planner_window import PlannerWindow
+from astrology.ui.dialogs.cycle_calculator_window import CycleCalculatorWindow
+from astrology.ui.dialogs.astrological_database_manager import AstrologicalDatabaseManager
+from shared.repositories.database import Database
 from shared.ui.window_management import TabManager, WindowManager
 
 
@@ -157,6 +161,54 @@ class AstrologyTab(QWidget):
             "planner_chart", birth_chart_window, f"Chart: {chart.name}"
         )
 
+    def _open_cycle_calculator(self):
+        """Open the cosmic cycle calculator window."""
+        # Create the cycle calculator window
+        cycle_calculator_window = CycleCalculatorWindow()
+
+        # Connect chart requested signal
+        cycle_calculator_window.chart_requested.connect(self._on_chart_requested_from_cycle_calculator)
+
+        # Open it in a window
+        self.window_manager.open_window(
+            "cycle_calculator", cycle_calculator_window, "Cosmic Cycle Calculator"
+        )
+
+    def _on_chart_requested_from_cycle_calculator(self, chart):
+        """Handle chart request from the cycle calculator.
+
+        Args:
+            chart: Chart to display
+        """
+        # Create a birth chart window with the chart
+        birth_chart_window = BirthChartWindow()
+        birth_chart_window.set_chart(chart)
+
+        # Open it in a window
+        self.window_manager.open_window(
+            "cycle_chart", birth_chart_window, f"Chart: {chart.name}"
+        )
+
+    def _open_database_manager(self):
+        """Open the astrological database manager dialog."""
+        try:
+            # Get the database instance
+            database = Database.get_instance()
+            
+            # Create the database manager dialog
+            db_manager = AstrologicalDatabaseManager(database, self)
+            
+            # Show the dialog
+            db_manager.exec()
+        except Exception as e:
+            logger.error(f"Error opening database manager: {e}", exc_info=True)
+            # Show error message to user
+            QMessageBox.critical(
+                self,
+                "Database Manager Error",
+                f"Could not open database manager: {str(e)}"
+        )
+
     def _init_ui(self) -> None:
         """Initialize the UI components."""
         # Main layout for the tab
@@ -194,11 +246,11 @@ class AstrologyTab(QWidget):
         birth_chart_btn.clicked.connect(self._open_birth_chart)
         button_layout.addWidget(birth_chart_btn)
 
-        # Transit Calculator button
-        transit_btn = QPushButton("Transit Calculator")
-        transit_btn.setToolTip("Calculate planetary transits")
-        # transit_btn.clicked.connect(lambda: self._open_transit_calculator())
-        button_layout.addWidget(transit_btn)
+        # Cycle Calculator button (renamed from Transit Calculator)
+        cycle_btn = QPushButton("Cycle Calculator")
+        cycle_btn.setToolTip("Search for cosmic cycles and planetary patterns")
+        cycle_btn.clicked.connect(self._open_cycle_calculator)
+        button_layout.addWidget(cycle_btn)
 
         # Zodiac Explorer button
         zodiac_btn = QPushButton("Zodiac Explorer")
@@ -211,6 +263,12 @@ class AstrologyTab(QWidget):
         planner_btn.setToolTip("Open the astrological daily planner")
         planner_btn.clicked.connect(self._open_planner)
         button_layout.addWidget(planner_btn)
+        
+        # Database Manager button
+        db_manager_btn = QPushButton("Database Manager")
+        db_manager_btn.setToolTip("Manage the astrological events database")
+        db_manager_btn.clicked.connect(self._open_database_manager)
+        button_layout.addWidget(db_manager_btn)
 
         # Add stretch to push buttons to the left
         button_layout.addStretch()

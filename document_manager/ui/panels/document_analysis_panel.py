@@ -763,10 +763,11 @@ class DocumentAnalysisPanel(Panel):
 
     def _search_by_phrase_value(self) -> None:
         """Search for consecutive words with a specific combined gematria value."""
+        # Validate document is loaded
         if not self.current_document or not self.current_document.content:
             return
 
-        # Get parameters
+        # Get the search value and method
         target_value = self.value_search_input.value()
         method = self.method_combo.currentData()
 
@@ -775,69 +776,160 @@ class DocumentAnalysisPanel(Panel):
         self.results_list.clear()
         self.value_search_results = []
 
+        # Extract content
         content = self.current_document.content
-
-        # Split content into words with their positions
-        words = []
-        for match in re.finditer(r"\b\w+\b", content):
-            words.append((match.group(0), match.start(), match.end()))
-
+        
+        # Compile the regex pattern once (more efficient)
+        word_pattern = re.compile(r"\b\w+\b")
+        
+        # Find all words with their positions
+        words_with_positions = [
+            (match.group(0), match.start(), match.end())
+            for match in word_pattern.finditer(content)
+        ]
+        
+        # Create highlight format for matches
+        highlight_format = QTextCharFormat()
+        highlight_format.setBackground(QColor(255, 255, 0, 100))  # Light yellow
+        
+        # Track matches to avoid duplicates
         matches = []
-
-        # Check all possible consecutive word sequences
-        for start_idx in range(len(words)):
-            # Start with 2 words (single words are already covered by regular search)
-            if start_idx >= len(words) - 1:
-                continue
-
-            phrase_start = words[start_idx][1]
-
-            # Keep adding words until we exceed the target value or run out of words
-            for current_idx in range(start_idx + 1, len(words)):
-                # Check if words are still consecutive (allow for small gaps)
-                prev_word_end = words[current_idx - 1][2]
-                current_word_start = words[current_idx][1]
-
-                gap = current_word_start - prev_word_end
-                if gap > 20:  # Maximum gap (spaces, punctuation) allowed between words
-                    break
-
-                # Get the complete text from first to current word
-                phrase_end = words[current_idx][2]
-                current_phrase = content[phrase_start:phrase_end]
-
-                # Skip if it's too short (less than 3 characters)
-                if len(current_phrase) < 3:
-                    continue
-
-                # Calculate gematria value
+        
+        # Maximum allowed gap between consecutive words (in characters)
+        max_gap = 20
+        
+        # Cache for word gematria values to avoid recalculating
+        word_values_cache = {}
+        
+        # Process all possible consecutive word sequences
+        for i in range(len(words_with_positions)):
+            # Start with the first word and its value
+            word = words_with_positions[i][0]
+            phrase_start = words_with_positions[i][1]
+            
+            # Use cache for word value calculation
+            if word not in word_values_cache:
                 try:
-                    phrase_value = self.gematria_service.calculate(
-                        current_phrase, method
-                    )
-
-                    # If we've hit the target value exactly, store the match
-                    if phrase_value == target_value:
-                        matches.append(
-                            (current_phrase, phrase_start, phrase_end, phrase_value)
-                        )
-
-                    # Optimization: if the value exceeds the target significantly, stop adding words
-                    if phrase_value > target_value * 2:
-                        break
-
+                    # Check if the word is a number
+                    if word.isdigit():
+                        word_values_cache[word] = int(word)
+                    else:
+                        # Extract numbers from word (like "AI10" -> "AI" + 10)
+                        number_sum = 0
+                        text_without_numbers = ""
+                        j = 0
+                        while j < len(word):
+                            if word[j].isdigit():
+                                # Found a digit, extract the full number
+                                num_start = j
+                                while j < len(word) and word[j].isdigit():
+                                    j += 1
+                                # Add the number to our sum
+                                number = int(word[num_start:j])
+                                number_sum += number
+                            else:
+                                # Add non-digit characters to the clean text
+                                text_without_numbers += word[j]
+                                j += 1
+                                
+                        # Calculate gematria value for the text without numbers
+                        if text_without_numbers.strip():
+                            text_value = self.gematria_service.calculate(
+                                text_without_numbers, method
+                            )
+                        else:
+                            text_value = 0
+                            
+                        # Add the number sum to get total value
+                        word_values_cache[word] = text_value + number_sum
                 except Exception as e:
-                    logger.error(f"Error calculating phrase value: {e}")
-                    continue
-
-        # Store search results for later reference
+                    logger.error(f"Error calculating value for word '{word}': {e}")
+                    word_values_cache[word] = 0
+            
+            # Check if single word matches target value
+            phrase_value = word_values_cache[word]
+            if phrase_value == target_value:
+                phrase_text = word
+                phrase_end = words_with_positions[i][2]
+                
+                # Only add if not a duplicate
+                if (phrase_text, phrase_start, phrase_end, phrase_value) not in matches:
+                    matches.append((phrase_text, phrase_start, phrase_end, phrase_value))
+            
+            # If single word exceeds target by too much, skip multi-word phrases
+            if phrase_value > target_value * 2:
+                continue
+                
+            # Try adding more words to the phrase
+            current_phrase = [word]
+            current_value = phrase_value
+            
+            for j in range(i + 1, len(words_with_positions)):
+                # Check if words are too far apart
+                prev_end = words_with_positions[j-1][2]
+                curr_start = words_with_positions[j][1]
+                
+                if curr_start - prev_end > max_gap:
+                    break  # Words too far apart
+                    
+                # Add the next word to phrase
+                next_word = words_with_positions[j][0]
+                current_phrase.append(next_word)
+                
+                # Get and cache word value if needed
+                if next_word not in word_values_cache:
+                    try:
+                        if next_word.isdigit():
+                            word_values_cache[next_word] = int(next_word)
+                        else:
+                            # Calculate word value using the same logic as above
+                            number_sum = 0
+                            text_without_numbers = ""
+                            k = 0
+                            while k < len(next_word):
+                                if next_word[k].isdigit():
+                                    num_start = k
+                                    while k < len(next_word) and next_word[k].isdigit():
+                                        k += 1
+                                    number = int(next_word[num_start:k])
+                                    number_sum += number
+                                else:
+                                    text_without_numbers += next_word[k]
+                                    k += 1
+                                    
+                            if text_without_numbers.strip():
+                                text_value = self.gematria_service.calculate(
+                                    text_without_numbers, method
+                                )
+                            else:
+                                text_value = 0
+                                
+                            word_values_cache[next_word] = text_value + number_sum
+                    except Exception as e:
+                        logger.error(f"Error calculating value for word '{next_word}': {e}")
+                        word_values_cache[next_word] = 0
+                
+                # Add to phrase value
+                current_value += word_values_cache[next_word]
+                
+                # If we've exceeded the target, no point continuing this phrase
+                if current_value > target_value * 1.5 and target_value > 0:
+                    break
+                    
+                # Check if we hit the target value exactly
+                if current_value == target_value:
+                    phrase_text = " ".join(current_phrase)
+                    phrase_end = words_with_positions[j][2]
+                    
+                    # Only add if not a duplicate
+                    if (phrase_text, phrase_start, phrase_end, current_value) not in matches:
+                        matches.append((phrase_text, phrase_start, phrase_end, current_value))
+        
+        # Store search results for later reference - maintain format expected by other methods
         self.value_search_results = [(text, pos) for text, pos, _, _ in matches]
-
-        # Highlight matches
+        
+        # Highlight matches and populate results list
         if matches:
-            highlight_format = QTextCharFormat()
-            highlight_format.setBackground(QColor(255, 255, 0, 100))  # Light yellow
-
             for phrase_text, start_pos, end_pos, phrase_value in matches:
                 # Create a cursor at the specific position
                 cursor = self.text_edit.textCursor()
@@ -857,9 +949,7 @@ class DocumentAnalysisPanel(Panel):
                 context = content[start_context:end_context].replace("\n", " ")
 
                 # Add to results list
-                item = QListWidgetItem(
-                    f"{phrase_text} ({phrase_value}): ...{context}..."
-                )
+                item = QListWidgetItem(f"{phrase_text} ({phrase_value}): ...{context}...")
                 item.setData(Qt.ItemDataRole.UserRole, start_pos)
                 self.results_list.addItem(item)
 
@@ -868,9 +958,7 @@ class DocumentAnalysisPanel(Panel):
                 f"Found {len(matches)} phrase matches for value {target_value}"
             )
         else:
-            self.results_label.setText(
-                f"No phrase matches found for value {target_value}"
-            )
+            self.results_label.setText(f"No phrase matches found for value {target_value}")
 
     def _search_by_text(self):
         """Search for text in the document."""

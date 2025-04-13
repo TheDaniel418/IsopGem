@@ -111,6 +111,7 @@ class WordAbacusPanel(QWidget):
         scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
 
         # Create the Word Abacus widget
+        # Pass our history service to ensure we're using the same instance
         self.word_abacus_widget = WordAbacusWidget(
             calculation_service=self._gematria_service,
             custom_cipher_service=self._custom_cipher_service,
@@ -136,6 +137,9 @@ class WordAbacusPanel(QWidget):
         Args:
             result: The calculation result
         """
+        from loguru import logger
+        logger.debug(f"WordAbacusPanel._on_calculation_performed called with result ID: {result.id}")
+
         # Store the current calculation
         self._current_calculation = result
 
@@ -143,7 +147,9 @@ class WordAbacusPanel(QWidget):
         if self._save_button:
             self._save_button.setEnabled(True)
 
-        # Re-emit the signal
+        # Re-emit the signal to notify parent components
+        # This is needed for the MainPanel to switch to the history tab
+        logger.debug(f"Re-emitting calculation_performed signal with result ID: {result.id}")
         self.calculation_performed.emit(result)
 
     def _show_help_dialog(self) -> None:
@@ -216,13 +222,38 @@ class WordAbacusPanel(QWidget):
             favorite = save_dialog.is_favorite
 
             # Save to database
-            self._gematria_service.calculate_and_save(
-                text=text,
-                calculation_type=self._current_calculation.calculation_type,
-                notes=notes,
-                tags=tags,
-                favorite=favorite,
-            )
+            from loguru import logger
+
+            # Check if this is a custom cipher calculation
+            if hasattr(self._current_calculation, "custom_method_name") and self._current_calculation.custom_method_name:
+                logger.debug(f"Saving custom cipher calculation with method: {self._current_calculation.custom_method_name}")
+
+                # For custom ciphers, we need to pass the custom_method_name
+                # Get the custom method name, removing 'Custom: ' prefix if present
+                custom_method_name = self._current_calculation.custom_method_name
+                if custom_method_name.startswith("Custom: "):
+                    custom_method_name = custom_method_name[8:]
+
+                logger.debug(f"Saving with custom method name: {custom_method_name}")
+
+                self._gematria_service.calculate_and_save(
+                    text=text,
+                    calculation_type="CUSTOM_CIPHER",  # Use the special string identifier
+                    notes=notes,
+                    tags=tags,
+                    favorite=favorite,
+                    value=value,  # Pass the pre-calculated value
+                    custom_method_name=custom_method_name  # Pass the clean custom method name
+                )
+            else:
+                # For standard calculation types
+                self._gematria_service.calculate_and_save(
+                    text=text,
+                    calculation_type=self._current_calculation.calculation_type,
+                    notes=notes,
+                    tags=tags,
+                    favorite=favorite,
+                )
 
             logger.debug(f"Saved calculation: {text} = {value}")
 

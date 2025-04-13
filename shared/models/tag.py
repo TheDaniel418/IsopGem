@@ -16,8 +16,8 @@ Related files:
 - shared/repositories/tag_repository.py: Repository for tag persistence
 """
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Set
 
 
 @dataclass
@@ -38,6 +38,15 @@ class Tag:
     
     description: str = ""
     """Optional description of the tag's purpose or meaning"""
+    
+    parent: Optional['Tag'] = None
+    """Parent tag of this tag"""
+    
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    """Metadata associated with this tag"""
+    
+    children: Set['Tag'] = field(default_factory=set)
+    """Child tags of this tag"""
     
     def __eq__(self, other):
         """
@@ -60,4 +69,116 @@ class Tag:
         Returns:
             Hash value based on the tag's ID
         """
-        return hash(self.id) 
+        return hash(self.id)
+
+    def add_child(self, child: 'Tag') -> None:
+        """
+        Add a child tag to this tag.
+
+        Args:
+            child: The tag to add as a child
+        """
+        if child not in self.children:
+            self.children.add(child)
+            child.parent = self
+
+    def remove_child(self, child: 'Tag') -> None:
+        """
+        Remove a child tag from this tag.
+
+        Args:
+            child: The tag to remove
+        """
+        if child in self.children:
+            self.children.remove(child)
+            child.parent = None
+
+    def get_ancestors(self) -> List['Tag']:
+        """
+        Get all ancestor tags in order from immediate parent to root.
+
+        Returns:
+            List of ancestor tags
+        """
+        ancestors: List['Tag'] = []
+        current = self.parent
+        while current is not None:
+            ancestors.append(current)
+            current = current.parent
+        return ancestors
+
+    def get_descendants(self) -> List['Tag']:
+        """
+        Get all descendant tags in depth-first order.
+
+        Returns:
+            List of descendant tags
+        """
+        descendants: List['Tag'] = []
+        for child in self.children:
+            descendants.append(child)
+            descendants.extend(child.get_descendants())
+        return descendants
+
+    def get_siblings(self) -> List['Tag']:
+        """
+        Get all sibling tags (tags with the same parent).
+
+        Returns:
+            List of sibling tags
+        """
+        if self.parent is None:
+            return []
+        return [tag for tag in self.parent.children if tag != self]
+
+    def is_ancestor_of(self, other: 'Tag') -> bool:
+        """
+        Check if this tag is an ancestor of another tag.
+
+        Args:
+            other: The tag to check
+
+        Returns:
+            True if this tag is an ancestor of the other tag
+        """
+        current = other.parent
+        while current is not None:
+            if current == self:
+                return True
+            current = current.parent
+        return False
+
+    def is_descendant_of(self, other: 'Tag') -> bool:
+        """
+        Check if this tag is a descendant of another tag.
+
+        Args:
+            other: The tag to check
+
+        Returns:
+            True if this tag is a descendant of the other tag
+        """
+        return other.is_ancestor_of(self)
+
+    def get_metadata(self, key: str, default: Any = None) -> Any:
+        """
+        Get metadata value by key.
+
+        Args:
+            key: The metadata key
+            default: Default value if key doesn't exist
+
+        Returns:
+            The metadata value or default
+        """
+        return self.metadata.get(key, default)
+
+    def set_metadata(self, key: str, value: Any) -> None:
+        """
+        Set metadata value by key.
+
+        Args:
+            key: The metadata key
+            value: The value to set
+        """
+        self.metadata[key] = value 

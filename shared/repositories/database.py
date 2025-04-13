@@ -33,8 +33,9 @@ class Database:
     _instance = None
     _lock = threading.Lock()
 
-    def __new__(cls, data_dir: Optional[str] = None):
-        """Implement singleton pattern for database connections.
+    @classmethod
+    def get_instance(cls, data_dir: Optional[str] = None) -> 'Database':
+        """Get the singleton instance of the database.
 
         Args:
             data_dir: Optional directory for database file location
@@ -48,6 +49,17 @@ class Database:
                 instance._initialize(data_dir)
                 cls._instance = instance
             return cls._instance
+
+    def __new__(cls, data_dir: Optional[str] = None):
+        """Implement singleton pattern for database connections.
+
+        Args:
+            data_dir: Optional directory for database file location
+
+        Returns:
+            Database singleton instance
+        """
+        return cls.get_instance(data_dir)
 
     def _initialize(self, data_dir: Optional[str] = None) -> None:
         """Initialize the database.
@@ -277,6 +289,14 @@ class Database:
         CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
         """
         )
+
+    def get_database_path(self) -> str:
+        """Get the path to the SQLite database file.
+
+        Returns:
+            str: Absolute path to the database file
+        """
+        return str(self._db_file)
 
     def close(self) -> None:
         """Close all database connections."""

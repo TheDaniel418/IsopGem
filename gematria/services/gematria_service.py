@@ -375,11 +375,20 @@ class GematriaService:
         """
         # Handle different input types for calculation_type
         if isinstance(calculation_type, str):
+            # Special case for custom ciphers
+            if calculation_type == "CUSTOM_CIPHER":
+                # For custom ciphers, we need the custom_method_name to be set
+                # This should be handled by the calling code
+                logger.debug(f"Received CUSTOM_CIPHER as calculation type")
+                # Return 0 as a fallback value since we can't calculate without the actual cipher
+                return 0
+
             try:
                 calculation_type = CalculationType(calculation_type)
             except ValueError:
                 # If it's not a valid enum value, it might be a custom cipher ID
                 # This would be handled by the calling code that would pass the CustomCipherConfig
+                logger.error(f"Unknown calculation type: {calculation_type}")
                 raise ValueError(f"Unknown calculation type: {calculation_type}")
 
         # Process based on calculation type
@@ -1548,6 +1557,7 @@ class GematriaService:
         tags: Optional[List[str]] = None,
         favorite: bool = False,
         value: Optional[int] = None,
+        custom_method_name: Optional[str] = None,
     ) -> CalculationResult:
         """Calculate the gematria value and save the result.
 
@@ -1569,13 +1579,19 @@ class GematriaService:
 
         # Handle CustomCipherConfig as calculation type
         calc_type: Union[CalculationType, str] = CalculationType.MISPAR_HECHRACHI
-        custom_method_name: Optional[str] = None
+        method_name: Optional[str] = custom_method_name  # Use the provided custom_method_name if available
 
         if isinstance(calculation_type, CustomCipherConfig):
-            # Use a default enum type but set the custom method name
-            custom_method_name = calculation_type.name
+            # Use a special string type for custom ciphers and set the custom method name
+            calc_type = "CUSTOM_CIPHER"
+            method_name = calculation_type.name
+        elif isinstance(calculation_type, str) and calculation_type == "CUSTOM_CIPHER":
+            # If we're already using the CUSTOM_CIPHER string, make sure we have a custom_method_name
+            if not method_name:
+                logger.warning("Saving a CUSTOM_CIPHER calculation without a custom_method_name")
         else:
             calc_type = calculation_type
+            method_name = None  # Reset method_name for standard calculation types
 
         # Create a new calculation result
         result = CalculationResult(
@@ -1585,7 +1601,7 @@ class GematriaService:
             notes=notes,
             tags=tags or [],
             favorite=favorite,
-            custom_method_name=custom_method_name,
+            custom_method_name=method_name,
         )
 
         # Save to database

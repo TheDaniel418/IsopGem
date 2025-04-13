@@ -14,11 +14,22 @@ Dependencies:
 
 import json
 import sqlite3
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TypedDict, Any, cast
 
 from loguru import logger
 
 from document_manager.models.document_category import DocumentCategory
+
+
+class CategoryRow(TypedDict):
+    """Type definition for category database row."""
+    id: str
+    name: str
+    color: str
+    description: Optional[str]
+    parent_id: Optional[str]
+    icon: Optional[str]
+    metadata: Optional[str]  # JSON string
 
 
 class CategoryRepository:
@@ -81,7 +92,7 @@ class CategoryRepository:
         conn.row_factory = sqlite3.Row
         return conn
 
-    def _category_to_row(self, category: DocumentCategory) -> Dict:
+    def _category_to_row(self, category: DocumentCategory) -> CategoryRow:
         """Convert DocumentCategory object to database row.
 
         Args:
@@ -109,17 +120,16 @@ class CategoryRepository:
         Returns:
             DocumentCategory object
         """
-        # Parse JSON data
-        metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+        metadata_str = row["metadata"]
+        metadata: Dict[str, Any] = json.loads(metadata_str) if metadata_str else {}
 
-        # Create category object
         return DocumentCategory(
-            id=row["id"],
-            name=row["name"],
-            color=row["color"],
-            description=row["description"],
-            parent_id=row["parent_id"],
-            icon=row["icon"],
+            id=str(row["id"]),
+            name=str(row["name"]),
+            color=str(row["color"]),
+            description=cast(Optional[str], row["description"]),
+            parent_id=cast(Optional[str], row["parent_id"]),
+            icon=cast(Optional[str], row["icon"]),
             metadata=metadata,
         )
 

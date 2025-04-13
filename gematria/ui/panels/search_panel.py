@@ -39,18 +39,18 @@ from shared.ui.window_management import WindowManager
 
 class TagItemDelegate(QStyledItemDelegate):
     """Custom delegate for rendering tags in a table cell."""
-    
+
     def __init__(self, parent=None):
         """Initialize the delegate.
-        
+
         Args:
             parent: The parent widget
         """
         super().__init__(parent)
-        
+
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: Any) -> None:
         """Paint the tags with custom styling.
-        
+
         Args:
             painter: The painter to use
             option: The style options
@@ -58,48 +58,48 @@ class TagItemDelegate(QStyledItemDelegate):
         """
         # Get the tag data from the model
         tag_data = index.data(Qt.ItemDataRole.UserRole)
-        
+
         if not tag_data or not isinstance(tag_data, list) or len(tag_data) == 0:
             # Fall back to standard rendering if there are no tags
             super().paint(painter, option, index)
             return
-            
+
         # Draw the background
         painter.save()
         painter.fillRect(option.rect, option.palette.base())
-        
+
         # Start from the left side of the cell with a small margin
         x_pos = option.rect.left() + 4
         y_pos = option.rect.top() + 2
-        
+
         # Draw each tag as a colored rectangle with text
         for tag in tag_data:
             if not tag or not isinstance(tag, dict):
                 continue
-                
+
             tag_name = tag.get('name', '')
             tag_color = tag.get('color', '#cccccc')
-            
+
             if not tag_name:
                 continue
-            
+
             # Calculate the width of the tag text
             text_width = painter.fontMetrics().horizontalAdvance(tag_name) + 8
-            
+
             # Create a rounded rectangle for the tag
             tag_rect = QRect(x_pos, y_pos, text_width, option.rect.height() - 4)
-            
+
             # Don't draw if it won't fit in the visible area
             if tag_rect.right() > option.rect.right() - 4:
                 # Draw ellipsis if more tags exist but don't fit
                 painter.drawText(option.rect.right() - 12, y_pos + painter.fontMetrics().height(), "...")
                 break
-            
+
             # Draw the tag background
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(QColor(tag_color)))
             painter.drawRoundedRect(tag_rect, 3, 3)
-            
+
             # Draw the tag text in white or black depending on the background color
             color = QColor(tag_color)
             # Use white text for dark backgrounds, black for light backgrounds
@@ -107,31 +107,31 @@ class TagItemDelegate(QStyledItemDelegate):
                 painter.setPen(QPen(QColor("white")))
             else:
                 painter.setPen(QPen(QColor("black")))
-                
+
             painter.drawText(
-                tag_rect, 
-                Qt.AlignmentFlag.AlignCenter, 
+                tag_rect,
+                Qt.AlignmentFlag.AlignCenter,
                 tag_name
             )
-            
+
             # Move x position for the next tag
             x_pos += text_width + 4
-        
+
         painter.restore()
-        
+
     def sizeHint(self, option: QStyleOptionViewItem, index: Any) -> QSize:
         """Calculate the size hint for the cell.
-        
+
         Args:
             option: The style options
             index: The model index
-            
+
         Returns:
             The suggested size for the cell
         """
         # Get the standard size hint
         size = super().sizeHint(option, index)
-        
+
         # Make it a bit taller to accommodate the tags
         return QSize(size.width(), size.height() + 4)
 
@@ -331,11 +331,11 @@ class SearchPanel(QWidget):
         self.results_table.itemSelectionChanged.connect(self._on_result_selected)
         # Connect double-click to view details in a separate window
         self.results_table.itemDoubleClicked.connect(self._open_detail_window)
-        
+
         # Set the tag item delegate for the Tags column
         self.tag_delegate = TagItemDelegate(self.results_table)
         self.results_table.setItemDelegateForColumn(3, self.tag_delegate)
-        
+
         # Make the rows a bit taller to accommodate the tags
         self.results_table.verticalHeader().setDefaultSectionSize(30)
 
@@ -383,12 +383,15 @@ class SearchPanel(QWidget):
                 for custom_method in custom_methods:
                     custom_method_obj: CustomCipherConfig = custom_method
                     # Store the custom method name as a string, not as a CalculationType
-                    self.method_combo.addItem(
-                        f"Custom: {custom_method_obj.name}", custom_method_obj.name
-                    )
+                    # Important: We store just the name (without 'Custom: ' prefix) as the data
+                    # but display it with the prefix in the UI
+                    display_name = f"Custom: {custom_method_obj.name}"
+                    self.method_combo.addItem(display_name, custom_method_obj.name)
 
     def _perform_search(self) -> None:
         """Perform search based on current criteria."""
+        from loguru import logger
+        logger.debug("Performing search in SearchPanel")
         criteria: Dict[str, Any] = {}
 
         # Text criteria
@@ -423,10 +426,23 @@ class SearchPanel(QWidget):
         method_idx = self.method_combo.currentIndex()
         if method_idx > 0:
             method_data = self.method_combo.currentData()
+            method_text = self.method_combo.currentText()
+            logger.debug(f"Selected method: {method_text}, data type: {type(method_data)}, value: {method_data}")
+
             if isinstance(method_data, CalculationType):
+                logger.debug(f"Adding standard calculation type filter: {method_data}")
                 criteria["calculation_type"] = method_data
             elif isinstance(method_data, str):
-                criteria["custom_method_name"] = method_data
+                # For custom ciphers, the method_text will have 'Custom: ' prefix but method_data might not
+                # Make sure we're consistent with how we store and search for custom method names
+                if method_text.startswith("Custom: "):
+                    # Use the display name without the prefix for searching
+                    clean_name = method_data
+                    logger.debug(f"Adding custom cipher filter (from data): {clean_name}")
+                    criteria["custom_method_name"] = clean_name
+                else:
+                    logger.debug(f"Adding custom cipher filter: {method_data}")
+                    criteria["custom_method_name"] = method_data
 
         # Other filters
         if self.favorites_only.isChecked():
@@ -439,7 +455,9 @@ class SearchPanel(QWidget):
             criteria["has_notes"] = True
 
         # Perform search
+        logger.debug(f"Sending search criteria to calculation_db_service: {criteria}")
         results = self.calculation_db_service.search_calculations(criteria)
+        logger.debug(f"Search returned {len(results)} results")
         self._display_results(results)
 
     def _clear_search(self) -> None:
@@ -491,7 +509,7 @@ class SearchPanel(QWidget):
             # Tags column
             tags_item = QTableWidgetItem()
             tag_display_list = []  # List for the delegate to use for drawing
-            
+
             if hasattr(result, 'tags') and result.tags:
                 try:
                     # Get full tag objects so we can display tag names
@@ -504,16 +522,16 @@ class SearchPanel(QWidget):
                                 'color': tag.color,
                                 'id': tag.id
                             })
-                            
+
                     # Create a plain text representation for fallback and tooltip
                     tag_names = [tag['name'] for tag in tag_display_list]
                     plain_text = ", ".join(tag_names) if tag_names else ""
                     tags_item.setText(plain_text)
                     tags_item.setToolTip(plain_text)
-                    
+
                 except Exception as e:
                     logger.error(f"Error getting tag data: {e}")
-            
+
             # Store the tag data for the delegate to use
             tags_item.setData(Qt.ItemDataRole.UserRole, tag_display_list)
             self.results_table.setItem(i, 3, tags_item)
@@ -539,11 +557,11 @@ class SearchPanel(QWidget):
         # Handle the case when calculation_type is None
         if calculation.calculation_type is None:
             return "Unknown"
-            
+
         # Handle the case when it's a CalculationType enum
         if hasattr(calculation.calculation_type, "name"):
             return calculation.calculation_type.name.replace("_", " ").title()
-            
+
         # Handle the case when it's a custom method (string)
         if isinstance(calculation.calculation_type, str):
             # Try to convert number strings to readable method names
@@ -556,16 +574,16 @@ class SearchPanel(QWidget):
                             return ct.name.replace("_", " ").title()
             except (ValueError, AttributeError):
                 pass
-                
+
             # If we couldn't convert to enum, just format the string
             return calculation.calculation_type.replace("_", " ").title()
-            
+
         # Handle case when it's an integer
         if isinstance(calculation.calculation_type, int):
             for ct in CalculationType:
                 if ct.value == calculation.calculation_type:
                     return ct.name.replace("_", " ").title()
-                    
+
         # Fallback case - just convert to string
         return str(calculation.calculation_type)
 
