@@ -23,6 +23,7 @@ from loguru import logger
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QColor, QTextCharFormat, QTextCursor
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QLabel,
@@ -267,22 +268,37 @@ class DocumentAnalysisPanel(Panel):
         search_layout.addWidget(search_header)
 
         # Value search
-        value_search_layout = QHBoxLayout()
-        value_search_layout.setSpacing(4)  # Tighter spacing
-        value_search_layout.addWidget(QLabel("Value:"), 0)  # No stretch
+        value_search_layout = QVBoxLayout()
+        value_search_layout.setSpacing(3)
+
+        value_search_header = QLabel("Search by Value")
+        value_search_header.setStyleSheet("font-weight: bold; font-size: 11px;")
+        value_search_layout.addWidget(value_search_header)
+
+        # Input and search button
+        value_search_input_layout = QHBoxLayout()
+        value_search_input_layout.setSpacing(4)
 
         self.value_search_input = QSpinBox()
         self.value_search_input.setRange(1, 9999)
         self.value_search_input.setValue(26)
-        value_search_layout.addWidget(self.value_search_input)
+        value_search_input_layout.addWidget(self.value_search_input, 1)
 
         self.search_value_btn = QPushButton("Search")
-        self.search_value_btn.setMaximumWidth(60)  # Narrower button
-        self.search_value_btn.setEnabled(False)
+        self.search_value_btn.setMaximumWidth(60)
         self.search_value_btn.clicked.connect(self._search_by_value)
-        value_search_layout.addWidget(self.search_value_btn)
+        value_search_input_layout.addWidget(self.search_value_btn)
 
-        search_layout.addLayout(value_search_layout)
+        value_search_layout.addLayout(value_search_input_layout)
+
+        # Add phrase search mode toggle
+        self.phrase_search_mode = QCheckBox("Search for phrases")
+        self.phrase_search_mode.setToolTip(
+            "Search for consecutive words that match the target value"
+        )
+        value_search_layout.addWidget(self.phrase_search_mode)
+
+        tools_layout.addLayout(value_search_layout)
 
         # Text search
         text_search_layout = QHBoxLayout()
@@ -631,6 +647,11 @@ class DocumentAnalysisPanel(Panel):
         if not self.current_document or not self.current_document.content:
             return
 
+        # Check if we should use phrase search mode
+        if self.phrase_search_mode and self.phrase_search_mode.isChecked():
+            self._search_by_phrase_value()
+            return
+
         # Get parameters
         target_value = self.value_search_input.value()
         method = self.method_combo.currentData()
@@ -739,6 +760,117 @@ class DocumentAnalysisPanel(Panel):
             )
         else:
             self.results_label.setText(f"No matches found for value {target_value}")
+
+    def _search_by_phrase_value(self) -> None:
+        """Search for consecutive words with a specific combined gematria value."""
+        if not self.current_document or not self.current_document.content:
+            return
+
+        # Get parameters
+        target_value = self.value_search_input.value()
+        method = self.method_combo.currentData()
+
+        # Clear previous highlights and results
+        self._clear_highlights()
+        self.results_list.clear()
+        self.value_search_results = []
+
+        content = self.current_document.content
+
+        # Split content into words with their positions
+        words = []
+        for match in re.finditer(r"\b\w+\b", content):
+            words.append((match.group(0), match.start(), match.end()))
+
+        matches = []
+
+        # Check all possible consecutive word sequences
+        for start_idx in range(len(words)):
+            # Start with 2 words (single words are already covered by regular search)
+            if start_idx >= len(words) - 1:
+                continue
+
+            phrase_start = words[start_idx][1]
+
+            # Keep adding words until we exceed the target value or run out of words
+            for current_idx in range(start_idx + 1, len(words)):
+                # Check if words are still consecutive (allow for small gaps)
+                prev_word_end = words[current_idx - 1][2]
+                current_word_start = words[current_idx][1]
+
+                gap = current_word_start - prev_word_end
+                if gap > 20:  # Maximum gap (spaces, punctuation) allowed between words
+                    break
+
+                # Get the complete text from first to current word
+                phrase_end = words[current_idx][2]
+                current_phrase = content[phrase_start:phrase_end]
+
+                # Skip if it's too short (less than 3 characters)
+                if len(current_phrase) < 3:
+                    continue
+
+                # Calculate gematria value
+                try:
+                    phrase_value = self.gematria_service.calculate(
+                        current_phrase, method
+                    )
+
+                    # If we've hit the target value exactly, store the match
+                    if phrase_value == target_value:
+                        matches.append(
+                            (current_phrase, phrase_start, phrase_end, phrase_value)
+                        )
+
+                    # Optimization: if the value exceeds the target significantly, stop adding words
+                    if phrase_value > target_value * 2:
+                        break
+
+                except Exception as e:
+                    logger.error(f"Error calculating phrase value: {e}")
+                    continue
+
+        # Store search results for later reference
+        self.value_search_results = [(text, pos) for text, pos, _, _ in matches]
+
+        # Highlight matches
+        if matches:
+            highlight_format = QTextCharFormat()
+            highlight_format.setBackground(QColor(255, 255, 0, 100))  # Light yellow
+
+            for phrase_text, start_pos, end_pos, phrase_value in matches:
+                # Create a cursor at the specific position
+                cursor = self.text_edit.textCursor()
+                cursor.setPosition(start_pos)
+                cursor.movePosition(
+                    QTextCursor.MoveOperation.Right,
+                    QTextCursor.MoveMode.KeepAnchor,
+                    end_pos - start_pos,
+                )
+
+                # Apply highlight
+                cursor.mergeCharFormat(highlight_format)
+
+                # Get some context
+                start_context = max(0, start_pos - 10)
+                end_context = min(len(content), end_pos + 10)
+                context = content[start_context:end_context].replace("\n", " ")
+
+                # Add to results list
+                item = QListWidgetItem(
+                    f"{phrase_text} ({phrase_value}): ...{context}..."
+                )
+                item.setData(Qt.ItemDataRole.UserRole, start_pos)
+                self.results_list.addItem(item)
+
+            # Update results label
+            self.results_label.setText(
+                f"Found {len(matches)} phrase matches for value {target_value}"
+            )
+        else:
+            self.results_label.setText(
+                f"No phrase matches found for value {target_value}"
+            )
 
     def _search_by_text(self):
         """Search for text in the document."""

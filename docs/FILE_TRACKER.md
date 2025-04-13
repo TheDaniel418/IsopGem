@@ -1,59 +1,61 @@
 # IsopGem File Tracker
 
-This document tracks all the files in the IsopGem project, their purpose, and their status.
+This document provides a centralized overview of all files in the IsopGem project, organized by directory structure. Each entry includes the file path and a brief description of its purpose.
 
-## Recently Changed Files
-
-| Path | Description | Last Modified | Change Type |
-| ---- | ----------- | ------------ | ----------- |
-| shared/services/number_properties_service.py | Enhanced with support for general k-gonal numbers and centered polygonal numbers | 2025-04-08 | Modified |
-| tq/ui/widgets/number_properties_panel.py | Updated to display general polygonal numbers and centered polygonal numbers | 2025-04-08 | Modified |
-| shared/utils/app.py | Fixed initialization order for NumberPropertiesService and CustomCipherService | 2025-04-08 | Modified |
-| gematria/services/calculation_database_service.py | Non-singleton service used by NumberPropertiesPanel | 2025-04-08 | Referenced |
-| gematria/services/custom_cipher_service.py | Non-singleton service used by NumberPropertiesPanel | 2025-04-08 | Referenced |
-| shared/utils/app.py | Simplified Astrology and TQ pillars - kept tabs but removed buttons | 2025-04-06 | Modified |
-| shared/utils/app.py | Simplified Geometry pillar - kept tab but removed buttons | 2025-04-06 | Modified |
-| shared/ui/widgets/rtf_editor/rtf_editor_adapter.py | Removed adapter layer for direct RTFEditorWindow usage | 2025-04-06 | Removed |
-| shared/ui/widgets/editor.py | Removed abstraction layer in favor of direct RTFEditorWindow usage | 2025-04-06 | Removed |
-| shared/ui/widgets/rtf_editor/test_rtf_editor_adapter.py | Removed test for adapter class | 2025-04-06 | Removed |
-| shared/ui/widgets/rtf_editor/__init__.py | Updated to remove references to deleted adapter | 2025-04-06 | Modified |
-| test_editor.py | Updated to use RTFEditorWindow directly | 2025-04-06 | Modified |
-| document_manager/ui/document_tab.py | Updated to use RTFEditorWindow directly | 2025-04-06 | Modified |
-| shared/ui/widgets/rtf_editor/models/* | Moved and standardized document format models to RTF editor | 2023-11-02 | Added |
-| shared/ui/widgets/qgem_editor/* | Removed in favor of RTFEditor implementation | 2023-11-02 | Removed |
-| document_manager/models/qgem_document.py | Updated import for DocumentFormat | 2023-11-02 | Modified |
-| document_manager/services/qgem_document_service.py | Updated import for DocumentFormat | 2023-11-02 | Modified |
-| shared/utils/app.py | Removed old document window methods now handled by DocumentTab | 2023-11-01 | Modified |
-| document_manager/ui/panels/document_manager_panel.py | Standardized window opening methods using open_window | 2023-11-01 | Modified |
-| shared/utils/app.py | Updated to use DocumentTab class instead of tab_manager.add_window_button | 2023-10-31 | Modified |
-| document_manager/ui/__init__.py | Updated to export DocumentTab class | 2023-10-31 | Modified |
-| document_manager/__init__.py | Added DocumentTab to exports | 2023-10-31 | Modified |
-| document_manager/ui/panels/document_manager_panel.py | Moved from ui/ to ui/panels/ to follow proper directory structure | 2023-10-30 | Moved |
-| shared/ui/widgets/rtf_editor/* | Added stable rich text editor with table and image handling | 2023-10-29 | Added |
-| test_rtf_editor.py | Added test script for the RTF editor | 2023-10-29 | Added |
-| gematria/ui/panels/search_panel.py | Fixed unreachable statement MyPy error in _find_window_manager method | 2023-10-28 | Fixed |
-| shared/ui/dialogs/database_maintenance_window.py | Fixed database stats by replacing get_favorites() with find_favorites() and other type safety improvements | 2023-10-28 | Fixed |
-| shared/repositories/database.py | Fixed cursor return type in Database class for better type checking with MyPy | 2023-10-28 | Fixed |
-| shared/repositories/sqlite_tag_repository.py | Improved created_at handling for Tag creation to fix type errors | 2023-10-28 | Fixed |
-| shared/repositories/sqlite_calculation_repository.py | Fixed timestamp vs created_at property usage in save_calculation method | 2023-10-28 | Fixed |
-| gematria/ui/dialogs/edit_tags_window.py | Improved tag editing with Apply button and better tag selection workflow | 2023-10-27 | Enhanced |
-| gematria/ui/dialogs/tag_selection_dialog.py | Enhanced for better communication of selected tags | 2023-10-27 | Enhanced |
-| shared/services/calculation_database_service.py | Updated to use SQLite repositories | 2023-10-26 | Modified |
-| docs/architecture/MODEL_CHANGES.md | Updated documentation on calculation and tag models | 2023-10-25 | Updated |
-| docs/architecture/DATABASE_DESIGN.md | Added documentation for SQLite database schema | 2023-10-25 | Added |
-| shared/ui/widgets/rtf_editor/rtf_editor_window.py | Removed placeholder text from RTF Editor | 2025-04-06 | Modified |
-| shared/ui/widgets/rtf_editor/rtf_editor_adapter.py | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
-| shared/ui/widgets/editor.py | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
-| document_manager/services/qgem_document_service.py | Improved error handling and type checking in service methods | 2025-04-07 | Modified |
-| document_manager/models/qgem_document.py | Fixed field mappings and type handling in document conversion | 2025-04-07 | Modified |
-| shared/ui/widgets/rtf_editor/models/* | Added models directory for RTF editor components | 2025-04-06 | Added |
-| shared/ui/widgets/qgem_editor/* | Removed in favor of RTFEditor implementation | 2025-04-06 | Removed |
-| tq/ui/widgets/ternary_visualizer.py | Created ternary digit visualizer for displaying base-3 numbers with PNG images | 2025-04-06 | Added |
-| tq/utils/ternary_transition.py | Implemented Ternary Transition System for transforming ternary numbers | 2025-04-06 | Added |
-| tq/utils/ternary_converter.py | Added utilities for converting between decimal and ternary number systems | 2025-04-06 | Added |
-| tq/ui/tq_tab.py | Added ternary visualizer button to TQ tab | 2025-04-06 | Modified |
-| tq/ui/widgets/__init__.py | Added package initialization for TQ UI widgets | 2025-04-06 | Added |
-| tq/ui/widgets/tq_grid_panel.py | Added panel for displaying TQ Grid with base numbers and their transformations, including conrune and ternary digit reversal | 2025-04-06 | Added |
+## Recently Changed
+| File | Description | Date | Change Type |
+|---|----|---|---|
+| `shared/services/number_properties_service.py` | Enhanced service with support for general k-gonal numbers and centered polygonal numbers, including efficient caching and comprehensive number analysis capabilities | 2025-04-08 | Modified |
+| `shared/ui/widgets/rtf_editor/*` | Comprehensive restructuring of RTF editor components with improved document management, table handling, and image editing capabilities | 2025-04-08 | Modified/Added |
+| `tq/ui/widgets/ternary_visualizer.py` | New component for visualizing base-3 numbers using PNG images, enhancing the TQ functionality | 2025-04-08 | Added |
+| `shared/ui/widgets/rtf_editor/models/document_format.py` | New model defining structure for rich text documents with support for annotations, images, and tables | 2025-04-08 | Added |
+| `tq/ui/widgets/number_properties_panel.py` | Updated to display general polygonal numbers and centered polygonal numbers | 2025-04-08 | Modified |
+| `shared/utils/app.py` | Fixed initialization order for NumberPropertiesService and CustomCipherService | 2025-04-08 | Modified |
+| `gematria/services/calculation_database_service.py` | Non-singleton service used by NumberPropertiesPanel | 2025-04-08 | Referenced |
+| `gematria/services/custom_cipher_service.py` | Non-singleton service used by NumberPropertiesPanel | 2025-04-08 | Referenced |
+| `shared/utils/app.py` | Simplified Astrology and TQ pillars - kept tabs but removed buttons | 2025-04-06 | Modified |
+| `shared/utils/app.py` | Simplified Geometry pillar - kept tab but removed buttons | 2025-04-06 | Modified |
+| `shared/ui/widgets/rtf_editor/rtf_editor_adapter.py` | Removed adapter layer for direct RTFEditorWindow usage | 2025-04-06 | Removed |
+| `shared/ui/widgets/editor.py` | Removed abstraction layer in favor of direct RTFEditorWindow usage | 2025-04-06 | Removed |
+| `shared/ui/widgets/rtf_editor/test_rtf_editor_adapter.py` | Removed test for adapter class | 2025-04-06 | Removed |
+| `shared/ui/widgets/rtf_editor/__init__.py` | Updated to remove references to deleted adapter | 2025-04-06 | Modified |
+| `test_editor.py` | Updated to use RTFEditorWindow directly | 2025-04-06 | Modified |
+| `document_manager/ui/document_tab.py` | Updated to use RTFEditorWindow directly | 2025-04-06 | Modified |
+| `shared/ui/widgets/rtf_editor/models/*` | Moved and standardized document format models to RTF editor | 2023-11-02 | Added |
+| `shared/ui/widgets/qgem_editor/*` | Removed in favor of RTFEditor implementation | 2023-11-02 | Removed |
+| `document_manager/models/qgem_document.py` | Updated import for DocumentFormat | 2023-11-02 | Modified |
+| `document_manager/services/qgem_document_service.py` | Updated import for DocumentFormat | 2023-11-02 | Modified |
+| `shared/utils/app.py` | Removed old document window methods now handled by DocumentTab | 2023-11-01 | Modified |
+| `document_manager/ui/panels/document_manager_panel.py` | Standardized window opening methods using open_window | 2023-11-01 | Modified |
+| `shared/utils/app.py` | Updated to use DocumentTab class instead of tab_manager.add_window_button | 2023-10-31 | Modified |
+| `document_manager/ui/__init__.py` | Updated to export DocumentTab class | 2023-10-31 | Modified |
+| `document_manager/__init__.py` | Added DocumentTab to exports | 2023-10-31 | Modified |
+| `document_manager/ui/panels/document_manager_panel.py` | Moved from ui/ to ui/panels/ to follow proper directory structure | 2023-10-30 | Moved |
+| `shared/ui/widgets/rtf_editor/*` | Added stable rich text editor with table and image handling | 2023-10-29 | Added |
+| `test_rtf_editor.py` | Added test script for the RTF editor | 2023-10-29 | Added |
+| `gematria/ui/panels/search_panel.py` | Fixed unreachable statement MyPy error in _find_window_manager method | 2023-10-28 | Fixed |
+| `shared/ui/dialogs/database_maintenance_window.py` | Fixed database stats by replacing get_favorites() with find_favorites() and other type safety improvements | 2023-10-28 | Fixed |
+| `shared/repositories/database.py` | Fixed cursor return type in Database class for better type checking with MyPy | 2023-10-28 | Fixed |
+| `shared/repositories/sqlite_tag_repository.py` | Improved created_at handling for Tag creation to fix type errors | 2023-10-28 | Fixed |
+| `shared/repositories/sqlite_calculation_repository.py` | Fixed timestamp vs created_at property usage in save_calculation method | 2023-10-28 | Fixed |
+| `gematria/ui/dialogs/edit_tags_window.py` | Improved tag editing with Apply button and better tag selection workflow | 2023-10-27 | Enhanced |
+| `gematria/ui/dialogs/tag_selection_dialog.py` | Enhanced for better communication of selected tags | 2023-10-27 | Enhanced |
+| `shared/services/calculation_database_service.py` | Updated to use SQLite repositories | 2023-10-26 | Modified |
+| `docs/architecture/MODEL_CHANGES.md` | Updated documentation on calculation and tag models | 2023-10-25 | Updated |
+| `docs/architecture/DATABASE_DESIGN.md` | Added documentation for SQLite database schema | 2023-10-25 | Added |
+| `shared/ui/widgets/rtf_editor/rtf_editor_window.py` | Removed placeholder text from RTF Editor | 2025-04-06 | Modified |
+| `shared/ui/widgets/rtf_editor/rtf_editor_adapter.py` | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
+| `shared/ui/widgets/editor.py` | Deprecated in favor of using RTFEditorWindow directly | 2025-04-06 | Deprecated |
+| `document_manager/services/qgem_document_service.py` | Improved error handling and type checking in service methods | 2025-04-07 | Modified |
+| `document_manager/models/qgem_document.py` | Fixed field mappings and type handling in document conversion | 2025-04-07 | Modified |
+| `shared/ui/widgets/rtf_editor/models/*` | Added models directory for RTF editor components | 2025-04-06 | Added |
+| `shared/ui/widgets/qgem_editor/*` | Removed in favor of RTFEditor implementation | 2025-04-06 | Removed |
+| `tq/ui/widgets/ternary_visualizer.py` | Created ternary digit visualizer for displaying base-3 numbers with PNG images | 2025-04-06 | Added |
+| `tq/utils/ternary_transition.py` | Implemented Ternary Transition System for transforming ternary numbers | 2025-04-06 | Added |
+| `tq/utils/ternary_converter.py` | Added utilities for converting between decimal and ternary number systems | 2025-04-06 | Added |
+| `tq/ui/tq_tab.py` | Added ternary visualizer button to TQ tab | 2025-04-06 | Modified |
+| `tq/ui/widgets/__init__.py` | Added package initialization for TQ UI widgets | 2025-04-06 | Added |
+| `tq/ui/widgets/tq_grid_panel.py` | Added panel for displaying TQ Grid with base numbers and their transformations, including conrune and ternary digit reversal | 2025-04-06 | Added |
 
 ## Directory Structure
 
@@ -294,94 +296,4 @@ Core shared components, utilities, and services used across multiple pillars.
 - `test_rtf_editor_adapter.py`: Test script for the RTF editor adapter.
 
 ####### /shared/ui/widgets/rtf_editor/models
-- `__init__.py`: Initialization and exports for RTF editor models.
-- `document_format.py`: Document format model defining the structure for rich text documents, including support for annotations, images, and tables.
-
-##### /shared/ui/dialogs
-- `__init__.py`: Initialization and exports for shared UI dialogs.
-- `database_maintenance_window.py`: Window for database maintenance operations including cleaning, finding duplicates, optimization, and backup/restore functionality.
-
-#### /shared/services
-- `__init__.py`: Initialization and exports for shared services.
-- `number_properties_service.py`: Comprehensive service for analyzing number properties including primality, factors, polygonal numbers (triangular, square, pentagonal, hexagonal, and general k-gonal), centered polygonal numbers, and mathematical relationships. Features efficient caching and utilities for ternary operations.
-
-#### /shared/repositories
-- `__init__.py`: Initialization and exports for shared data repositories.
-
-#### /shared/models
-- `__init__.py`: Initialization and exports for shared data models.
-
-#### /shared/utils
-- `__init__.py`: Initialization file for shared utilities.
-- `app.py`: Core application utilities, including application startup and initialization.
-- `cli.py`: Command-line interface utilities for the application, providing command parsing and execution.
-- `config.py`: Configuration management utilities, handling application settings and preferences.
-
-### /docs
-Documentation files for the project.
-
-- `FILE_TRACKER.md`: This file - centralized overview of all files.
-
-### /tests
-Test files for various components of the application.
-
-- `conftest.py`: Test configuration and fixtures for pytest.
-- `__init__.py`: Package initialization for tests.
-- `run_window_test.py`: Script for running window-related tests.
-- `window_verification_test.py`: Tests for verifying window functionality.
-- `test_calculation_db.py`: Test script for checking the calculation database functionality.
-- `test_calculation_history.py`: Test script for checking the calculation history panel functionality.
-- `test_basic_functionality.py`: Basic functionality tests for the application.
-- `test_document.py`: Demonstrates file documentation and tracking rule implementation.
-- `test_pyqt.py`: PyQt test utilities.
-
-#### /tests/unit
-Unit tests for individual components.
-
-- `__init__.py`: Package initialization for unit tests.
-
-##### /tests/unit/shared
-- `__init__.py`: Package initialization for shared component tests.
-
-##### /tests/unit/shared/ui
-- `conftest.py`: Test configuration and fixtures specific to UI testing.
-- `__init__.py`: Package initialization for UI tests.
-- `test_window_mode.py`: Tests for window mode functionality.
-
-##### /tests/unit/shared/utils
-- `test_config.py`: Unit tests for configuration utilities and settings management.
-
-### /config
-Configuration files and settings.
-
-### /requirements
-Project requirements files.
-
-### /scripts
-Utility scripts for development and operations.
-
-### /logs
-Application logs directory.
-
-### /xnotes
-Additional development notes and documentation.
-
-- `__init__.py`: Initialization and exports for development notes.
-
-### Root Files
-- `main.py`: Application entry point.
-- `run_tests.py`: Script for running tests with configuration.
-- `pytest.ini`: Configuration file for pytest testing framework.
-- `pyproject.toml`: Project configuration and dependencies.
-- `setup.py`: Package setup configuration.
-- `README.md`: Project overview and documentation.
-- `test_document.py`: Demonstrates file documentation and tracking rule implementation.
-- `.env`: Environment configuration (should be gitignored in production).
-- `.env.example`: Example environment configuration template.
-- `.gitignore`: Git ignore configuration.
-- `.pre-commit-config.yaml`: Pre-commit hooks configuration.
-- `mypy.ini`: MyPy type checking configuration.
-- `test_pyqt.py`: PyQt test utilities.
-- `test_basic_functionality.py`: Basic functionality tests.
-- `verify_window_mode.py`: Verification script for window mode functionality.
-- `__init__.py`: Root package initialization.
+- `
