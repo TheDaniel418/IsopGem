@@ -29,7 +29,9 @@ class SearchWindow(QMainWindow):
     """Standalone window for gematria search functionality."""
 
     def __init__(
-        self, window_manager: Optional[WindowManager] = None, parent: Optional[QWidget] = None
+        self,
+        window_manager: Optional[WindowManager] = None,
+        parent: Optional[QWidget] = None,
     ) -> None:
         """Initialize the search window.
 
@@ -57,4 +59,4 @@ class SearchWindow(QMainWindow):
         self.search_panel = SearchPanel(db_service, cipher_service, window_manager)
         layout.addWidget(self.search_panel)
 
-        logger.debug("SearchWindow initialized") 
+        logger.debug("SearchWindow initialized")

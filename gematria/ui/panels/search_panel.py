@@ -7,8 +7,16 @@ for calculations based on various criteria.
 from typing import Any, Dict, List, Optional, cast
 
 from loguru import logger
-from PyQt6.QtCore import QRegularExpression, Qt, pyqtSignal, QRect, QSize
-from PyQt6.QtGui import QFont, QIcon, QRegularExpressionValidator, QTextDocument, QPainter, QColor, QBrush, QPen
+from PyQt6.QtCore import QRect, QRegularExpression, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QIcon,
+    QPainter,
+    QPen,
+    QRegularExpressionValidator,
+)
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -20,12 +28,12 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSpinBox,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
-    QStyledItemDelegate,
-    QStyleOptionViewItem,
 )
 
 from gematria.models.calculation_result import CalculationResult
@@ -48,7 +56,9 @@ class TagItemDelegate(QStyledItemDelegate):
         """
         super().__init__(parent)
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: Any) -> None:
+    def paint(
+        self, painter: QPainter, option: QStyleOptionViewItem, index: Any
+    ) -> None:
         """Paint the tags with custom styling.
 
         Args:
@@ -77,8 +87,8 @@ class TagItemDelegate(QStyledItemDelegate):
             if not tag or not isinstance(tag, dict):
                 continue
 
-            tag_name = tag.get('name', '')
-            tag_color = tag.get('color', '#cccccc')
+            tag_name = tag.get("name", "")
+            tag_color = tag.get("color", "#cccccc")
 
             if not tag_name:
                 continue
@@ -92,7 +102,11 @@ class TagItemDelegate(QStyledItemDelegate):
             # Don't draw if it won't fit in the visible area
             if tag_rect.right() > option.rect.right() - 4:
                 # Draw ellipsis if more tags exist but don't fit
-                painter.drawText(option.rect.right() - 12, y_pos + painter.fontMetrics().height(), "...")
+                painter.drawText(
+                    option.rect.right() - 12,
+                    y_pos + painter.fontMetrics().height(),
+                    "...",
+                )
                 break
 
             # Draw the tag background
@@ -108,11 +122,7 @@ class TagItemDelegate(QStyledItemDelegate):
             else:
                 painter.setPen(QPen(QColor("black")))
 
-            painter.drawText(
-                tag_rect,
-                Qt.AlignmentFlag.AlignCenter,
-                tag_name
-            )
+            painter.drawText(tag_rect, Qt.AlignmentFlag.AlignCenter, tag_name)
 
             # Move x position for the next tag
             x_pos += text_width + 4
@@ -391,6 +401,7 @@ class SearchPanel(QWidget):
     def _perform_search(self) -> None:
         """Perform search based on current criteria."""
         from loguru import logger
+
         logger.debug("Performing search in SearchPanel")
         criteria: Dict[str, Any] = {}
 
@@ -427,7 +438,9 @@ class SearchPanel(QWidget):
         if method_idx > 0:
             method_data = self.method_combo.currentData()
             method_text = self.method_combo.currentText()
-            logger.debug(f"Selected method: {method_text}, data type: {type(method_data)}, value: {method_data}")
+            logger.debug(
+                f"Selected method: {method_text}, data type: {type(method_data)}, value: {method_data}"
+            )
 
             if isinstance(method_data, CalculationType):
                 logger.debug(f"Adding standard calculation type filter: {method_data}")
@@ -438,7 +451,9 @@ class SearchPanel(QWidget):
                 if method_text.startswith("Custom: "):
                     # Use the display name without the prefix for searching
                     clean_name = method_data
-                    logger.debug(f"Adding custom cipher filter (from data): {clean_name}")
+                    logger.debug(
+                        f"Adding custom cipher filter (from data): {clean_name}"
+                    )
                     criteria["custom_method_name"] = clean_name
                 else:
                     logger.debug(f"Adding custom cipher filter: {method_data}")
@@ -510,21 +525,19 @@ class SearchPanel(QWidget):
             tags_item = QTableWidgetItem()
             tag_display_list = []  # List for the delegate to use for drawing
 
-            if hasattr(result, 'tags') and result.tags:
+            if hasattr(result, "tags") and result.tags:
                 try:
                     # Get full tag objects so we can display tag names
                     for tag_id in result.tags:
                         tag = self.calculation_db_service.get_tag(tag_id)
                         if tag:
                             # Store tag data for the delegate
-                            tag_display_list.append({
-                                'name': tag.name,
-                                'color': tag.color,
-                                'id': tag.id
-                            })
+                            tag_display_list.append(
+                                {"name": tag.name, "color": tag.color, "id": tag.id}
+                            )
 
                     # Create a plain text representation for fallback and tooltip
-                    tag_names = [tag['name'] for tag in tag_display_list]
+                    tag_names = [tag["name"] for tag in tag_display_list]
                     plain_text = ", ".join(tag_names) if tag_names else ""
                     tags_item.setText(plain_text)
                     tags_item.setToolTip(plain_text)
@@ -551,7 +564,10 @@ class SearchPanel(QWidget):
             Display name for the calculation method
         """
         # Custom method name takes precedence
-        if hasattr(calculation, "custom_method_name") and calculation.custom_method_name:
+        if (
+            hasattr(calculation, "custom_method_name")
+            and calculation.custom_method_name
+        ):
             return f"Custom: {calculation.custom_method_name}"
 
         # Handle the case when calculation_type is None

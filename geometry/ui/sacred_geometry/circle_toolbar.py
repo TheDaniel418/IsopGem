@@ -4,19 +4,15 @@ This module contains the toolbar for the Circle Tool, which provides
 options for creating different types of circles.
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QToolBar,
-    QToolButton,
-    QButtonGroup,
-    QLabel,
-    QDoubleSpinBox,
-    QComboBox,
-)
-from PyQt6.QtGui import QAction, QIcon, QKeySequence
 from loguru import logger
+from PyQt6.QtCore import QSize, pyqtSignal
+from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtWidgets import (
+    QButtonGroup,
+    QDoubleSpinBox,
+    QLabel,
+    QToolBar,
+)
 
 
 class CircleToolbar(QToolBar):
@@ -71,28 +67,28 @@ class CircleToolbar(QToolBar):
             "Create circle by center and point on circumference",
             self.MODE_CENTER_POINT,
             QKeySequence("Ctrl+1"),
-            True  # Default checked
+            True,  # Default checked
         )
 
         self.fixed_radius_action = self._create_mode_button(
             "Fixed Radius",
             "Create circle with fixed radius",
             self.MODE_FIXED_RADIUS,
-            QKeySequence("Ctrl+2")
+            QKeySequence("Ctrl+2"),
         )
 
         self.diameter_action = self._create_mode_button(
             "Diameter",
             "Create circle by diameter (two points)",
             self.MODE_DIAMETER,
-            QKeySequence("Ctrl+3")
+            QKeySequence("Ctrl+3"),
         )
 
         self.three_points_action = self._create_mode_button(
             "Three Points",
             "Create circle through three points",
             self.MODE_THREE_POINTS,
-            QKeySequence("Ctrl+4")
+            QKeySequence("Ctrl+4"),
         )
 
         # Add separator

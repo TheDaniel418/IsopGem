@@ -3,14 +3,15 @@
 This module contains the Circle class that represents a circle in 2D space.
 """
 
-from typing import Dict, Any, List
 import math
+from typing import Any, Dict, List
+
 from PyQt6.QtCore import QPointF, QRectF
 
 from geometry.ui.sacred_geometry.model.base import GeometricObject
 from geometry.ui.sacred_geometry.model.enums import ObjectType
-from geometry.ui.sacred_geometry.model.style import Style
 from geometry.ui.sacred_geometry.model.point import Point
+from geometry.ui.sacred_geometry.model.style import Style
 
 
 class Circle(GeometricObject):
@@ -18,7 +19,15 @@ class Circle(GeometricObject):
 
     object_type = ObjectType.CIRCLE
 
-    def __init__(self, center_x: float = 0, center_y: float = 0, radius: float = 1, name: str = None, style: Style = None, center: Point = None) -> None:
+    def __init__(
+        self,
+        center_x: float = 0,
+        center_y: float = 0,
+        radius: float = 1,
+        name: str = None,
+        style: Style = None,
+        center: Point = None,
+    ) -> None:
         """Initialize a circle.
 
         Args:
@@ -36,7 +45,7 @@ class Circle(GeometricObject):
             self.center_x = center.x
             self.center_y = center.y
             # Add dependency for backward compatibility
-            if hasattr(center, 'id'):
+            if hasattr(center, "id"):
                 self.dependencies.add(center.id)
         else:
             self.center_x = center_x
@@ -51,7 +60,11 @@ class Circle(GeometricObject):
     @property
     def center(self):
         """Get the center point (for backward compatibility)."""
-        if self._center is None or self._center.x != self.center_x or self._center.y != self.center_y:
+        if (
+            self._center is None
+            or self._center.x != self.center_x
+            or self._center.y != self.center_y
+        ):
             self._center = Point(self.center_x, self.center_y)
         return self._center
 
@@ -74,24 +87,24 @@ class Circle(GeometricObject):
     def to_dict(self) -> Dict[str, Any]:
         """Convert the circle to a dictionary for serialization."""
         data = super().to_dict()
-        data.update({
-            "center_x": self.center_x,
-            "center_y": self.center_y,
-            "radius": self.radius
-        })
+        data.update(
+            {
+                "center_x": self.center_x,
+                "center_y": self.center_y,
+                "radius": self.radius,
+            }
+        )
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Circle':
+    def from_dict(cls, data: Dict[str, Any]) -> "Circle":
         """Create a circle from a dictionary."""
         # Handle both new format (center_x, center_y) and old format (center object)
         if "center" in data and data["center"] and isinstance(data["center"], dict):
             # Old format with center point
             center = Point.from_dict(data["center"])
             circle = cls(
-                center=center,
-                radius=data.get("radius", 1),
-                name=data.get("name")
+                center=center, radius=data.get("radius", 1), name=data.get("name")
             )
         else:
             # New format with direct coordinates
@@ -99,7 +112,7 @@ class Circle(GeometricObject):
                 center_x=data.get("center_x", 0),
                 center_y=data.get("center_y", 0),
                 radius=data.get("radius", 1),
-                name=data.get("name")
+                name=data.get("name"),
             )
 
         # Load base class properties
@@ -127,7 +140,7 @@ class Circle(GeometricObject):
             self.center_x - total_radius,
             self.center_y - total_radius,
             total_radius * 2,
-            total_radius * 2
+            total_radius * 2,
         )
 
     def contains_point(self, point: QPointF, tolerance: float = 5.0) -> bool:
@@ -208,7 +221,7 @@ class Circle(GeometricObject):
         else:
             return []
 
-    def _intersect_line(self, line: 'Line') -> List[QPointF]:
+    def _intersect_line(self, line: "Line") -> List[QPointF]:
         """Calculate intersection points with a line."""
         # Get line parameters
         x1, y1 = line.x1, line.y1
@@ -259,14 +272,16 @@ class Circle(GeometricObject):
             result.append(QPointF(x, y))
 
         # Check if second intersection point is within line segment
-        if (0 <= t2 <= 1 or line.line_type != line.line_type.SEGMENT) and abs(t1 - t2) > 1e-10:  # Avoid duplicates
+        if (0 <= t2 <= 1 or line.line_type != line.line_type.SEGMENT) and abs(
+            t1 - t2
+        ) > 1e-10:  # Avoid duplicates
             x = x1 + t2 * dx
             y = y1 + t2 * dy
             result.append(QPointF(x, y))
 
         return result
 
-    def _intersect_circle(self, other: 'Circle') -> List[QPointF]:
+    def _intersect_circle(self, other: "Circle") -> List[QPointF]:
         """Calculate intersection points with another circle."""
         # Get circle parameters
         x1, y1 = self.center_x, self.center_y

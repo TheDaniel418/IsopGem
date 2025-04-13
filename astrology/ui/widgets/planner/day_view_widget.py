@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from loguru import logger
 from PyQt6.QtCore import QDate, Qt, QTime, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -254,7 +254,9 @@ class HourSection(QFrame):
             event_widget.setFrameShape(QFrame.Shape.StyledPanel)
             # Calculate text color based on background brightness
             color = QColor(event.color)
-            brightness = (color.red() * 299 + color.green() * 587 + color.blue() * 114) / 1000
+            brightness = (
+                color.red() * 299 + color.green() * 587 + color.blue() * 114
+            ) / 1000
             text_color = "black" if brightness > 128 else "white"
 
             event_widget.setStyleSheet(
@@ -448,7 +450,7 @@ class DayViewWidget(QWidget):
         date = datetime(
             self.current_date.year(), self.current_date.month(), self.current_date.day()
         ).date()
-        
+
         # Get all events for the date (including both user events and astronomical events)
         all_events = self.planner_service.get_events_for_date(date)
 
@@ -662,29 +664,35 @@ class DayViewWidget(QWidget):
 
         # Create location search window as a properly modal dialog
         location_window = LocationSearchWindow(parent_dialog)
-        
+
         # Set modality and stay-on-top flags
         location_window.setWindowModality(Qt.WindowModality.ApplicationModal)
         location_window.setWindowFlags(
-            location_window.windowFlags() | 
-            Qt.WindowType.Dialog | 
-            Qt.WindowType.WindowStaysOnTopHint
+            location_window.windowFlags()
+            | Qt.WindowType.Dialog
+            | Qt.WindowType.WindowStaysOnTopHint
         )
 
         # Store the location in a list to use in the callback
         # This is necessary since we can't use a direct callback with exec()
         selected_location = [None]
-        
+
         def on_location_selected(location):
             selected_location[0] = location
             # Store the location but don't close - dialog will close with exec()
-        
+
         # Connect signal
-        location_window.location_search_widget.location_selected.connect(on_location_selected)
-        
+        location_window.location_search_widget.location_selected.connect(
+            on_location_selected
+        )
+
         # Show as a modal dialog - this blocks until the dialog is closed
-        result = location_window.exec_() if hasattr(location_window, 'exec_') else location_window.exec()
-        
+        result = (
+            location_window.exec_()
+            if hasattr(location_window, "exec_")
+            else location_window.exec()
+        )
+
         # Process the selected location after dialog closes
         if selected_location[0]:
             # Update settings with the selected location
@@ -694,7 +702,9 @@ class DayViewWidget(QWidget):
             if self.planner_service.save_settings(settings):
                 # Update location label
                 self.location_label.setText(selected_location[0].display_name)
-                logger.debug(f"Default location set to {selected_location[0].display_name}")
+                logger.debug(
+                    f"Default location set to {selected_location[0].display_name}"
+                )
             else:
                 QMessageBox.warning(parent_dialog, "Error", "Failed to save location.")
 

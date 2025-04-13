@@ -4,30 +4,30 @@ This module contains the properties panel for the Sacred Geometry Explorer,
 which provides the interface for viewing and editing object properties.
 """
 
-from typing import List, Dict, Any, Optional, Tuple, Set, Union, Callable
-from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
+from typing import List, Tuple
+
+from loguru import logger
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QFormLayout,
-    QLabel,
-    QLineEdit,
-    QDoubleSpinBox,
     QCheckBox,
     QComboBox,
+    QDoubleSpinBox,
+    QFormLayout,
     QGroupBox,
+    QLabel,
+    QLineEdit,
     QScrollArea,
-    QPushButton,
-    QColorDialog,
-    QHBoxLayout,
-    QFrame,
-    QSizePolicy,
-    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QColor, QPalette, QFont
-from loguru import logger
 
-from geometry.ui.sacred_geometry.model import GeometricObject, Point, Line, Circle, Style, ObjectType, LineType
+from geometry.ui.sacred_geometry.model import (
+    Circle,
+    GeometricObject,
+    Line,
+    LineType,
+    Point,
+)
 
 
 class PropertyEditor:
@@ -146,13 +146,23 @@ class TextPropertyEditor(PropertyEditor):
         # Emit property changed signal
         if hasattr(self.widget.parent(), "property_changed"):
             for obj in self.objects:
-                self.widget.parent().property_changed.emit(obj.id, self.property_name, new_value)
+                self.widget.parent().property_changed.emit(
+                    obj.id, self.property_name, new_value
+                )
 
 
 class NumberPropertyEditor(PropertyEditor):
     """Editor for numeric properties."""
 
-    def __init__(self, property_name: str, label: str, min_value: float = -1000, max_value: float = 1000, decimals: int = 2, step: float = 1.0) -> None:
+    def __init__(
+        self,
+        property_name: str,
+        label: str,
+        min_value: float = -1000,
+        max_value: float = 1000,
+        decimals: int = 2,
+        step: float = 1.0,
+    ) -> None:
         """Initialize the number property editor.
 
         Args:
@@ -204,8 +214,8 @@ class NumberPropertyEditor(PropertyEditor):
             if self.get_property_value is not None:
                 values.add(self.get_property_value(obj))
             # Handle nested properties (e.g., 'endpoint1_x')
-            elif '.' in self.property_name:
-                parts = self.property_name.split('.')
+            elif "." in self.property_name:
+                parts = self.property_name.split(".")
                 value = obj
                 for part in parts:
                     if hasattr(value, part):
@@ -241,7 +251,9 @@ class NumberPropertyEditor(PropertyEditor):
             return
 
         # Log the property change
-        logger.debug(f"Property changing: {self.property_name} = {value} for {len(self.objects)} objects")
+        logger.debug(
+            f"Property changing: {self.property_name} = {value} for {len(self.objects)} objects"
+        )
 
         # Update objects
         for obj in self.objects:
@@ -249,32 +261,44 @@ class NumberPropertyEditor(PropertyEditor):
             if self.set_property_value is not None:
                 self.set_property_value(obj, value)
             # Handle nested properties (e.g., 'endpoint1_x')
-            elif '.' in self.property_name:
-                parts = self.property_name.split('.')
+            elif "." in self.property_name:
+                parts = self.property_name.split(".")
                 target = obj
                 for part in parts[:-1]:  # All parts except the last one
                     if hasattr(target, part):
                         target = getattr(target, part)
                     else:
-                        logger.warning(f"Object {obj.__class__.__name__} {obj.id} does not have property {part}")
+                        logger.warning(
+                            f"Object {obj.__class__.__name__} {obj.id} does not have property {part}"
+                        )
                         break
                 else:  # This executes if the for loop completes without a break
                     if hasattr(target, parts[-1]):
-                        logger.debug(f"Setting {obj.__class__.__name__} {obj.id} {self.property_name} = {value}")
+                        logger.debug(
+                            f"Setting {obj.__class__.__name__} {obj.id} {self.property_name} = {value}"
+                        )
                         setattr(target, parts[-1], value)
                     else:
-                        logger.warning(f"Object {obj.__class__.__name__} {obj.id} does not have property {parts[-1]}")
+                        logger.warning(
+                            f"Object {obj.__class__.__name__} {obj.id} does not have property {parts[-1]}"
+                        )
             else:
                 # Direct property
                 if hasattr(obj, self.property_name):
-                    logger.debug(f"Setting {obj.__class__.__name__} {obj.id} {self.property_name} = {value}")
+                    logger.debug(
+                        f"Setting {obj.__class__.__name__} {obj.id} {self.property_name} = {value}"
+                    )
                     setattr(obj, self.property_name, value)
 
         # Emit property changed signal
         if hasattr(self.widget.parent(), "property_changed"):
             for obj in self.objects:
-                logger.debug(f"Emitting property_changed signal for {obj.__class__.__name__} {obj.id}")
-                self.widget.parent().property_changed.emit(obj.id, self.property_name, value)
+                logger.debug(
+                    f"Emitting property_changed signal for {obj.__class__.__name__} {obj.id}"
+                )
+                self.widget.parent().property_changed.emit(
+                    obj.id, self.property_name, value
+                )
 
 
 class BooleanPropertyEditor(PropertyEditor):
@@ -356,7 +380,9 @@ class BooleanPropertyEditor(PropertyEditor):
         # Emit property changed signal
         if hasattr(self.widget.parent(), "property_changed"):
             for obj in self.objects:
-                self.widget.parent().property_changed.emit(obj.id, self.property_name, new_value)
+                self.widget.parent().property_changed.emit(
+                    obj.id, self.property_name, new_value
+                )
 
         # Reset tristate
         self.check_box.setTristate(False)
@@ -369,7 +395,9 @@ class PropertiesPanel(QWidget):
     of selected geometric objects.
     """
 
-    property_changed = pyqtSignal(str, str, object)  # object_id, property_name, new_value
+    property_changed = pyqtSignal(
+        str, str, object
+    )  # object_id, property_name, new_value
 
     def __init__(self, parent=None) -> None:
         """Initialize the properties panel.
@@ -422,9 +450,11 @@ class PropertiesPanel(QWidget):
         if self.current_objects == objects:
             # Just update the existing property editors instead of recreating the panel
             for editor in self.property_editors.values():
-                if hasattr(editor, 'update_widget'):
+                if hasattr(editor, "update_widget"):
                     editor.update_widget()
-            logger.debug(f"Updated existing property editors for {len(objects)} objects")
+            logger.debug(
+                f"Updated existing property editors for {len(objects)} objects"
+            )
             return
 
         # Clear current content
@@ -475,9 +505,15 @@ class PropertiesPanel(QWidget):
         common_layout = QFormLayout(common_group)
 
         # Add common property editors
-        self._add_property_editor(common_layout, TextPropertyEditor("name", "Name"), [obj])
-        self._add_property_editor(common_layout, BooleanPropertyEditor("visible", "Visible"), [obj])
-        self._add_property_editor(common_layout, BooleanPropertyEditor("locked", "Locked"), [obj])
+        self._add_property_editor(
+            common_layout, TextPropertyEditor("name", "Name"), [obj]
+        )
+        self._add_property_editor(
+            common_layout, BooleanPropertyEditor("visible", "Visible"), [obj]
+        )
+        self._add_property_editor(
+            common_layout, BooleanPropertyEditor("locked", "Locked"), [obj]
+        )
 
         # Add common group to layout
         self.content_layout.insertWidget(0, common_group)
@@ -518,10 +554,18 @@ class PropertiesPanel(QWidget):
         line_layout = QFormLayout(line_group)
 
         # Add line property editors using direct property names
-        self._add_property_editor(line_layout, NumberPropertyEditor("endpoint1_x", "Start X"), [line])
-        self._add_property_editor(line_layout, NumberPropertyEditor("endpoint1_y", "Start Y"), [line])
-        self._add_property_editor(line_layout, NumberPropertyEditor("endpoint2_x", "End X"), [line])
-        self._add_property_editor(line_layout, NumberPropertyEditor("endpoint2_y", "End Y"), [line])
+        self._add_property_editor(
+            line_layout, NumberPropertyEditor("endpoint1_x", "Start X"), [line]
+        )
+        self._add_property_editor(
+            line_layout, NumberPropertyEditor("endpoint1_y", "Start Y"), [line]
+        )
+        self._add_property_editor(
+            line_layout, NumberPropertyEditor("endpoint2_x", "End X"), [line]
+        )
+        self._add_property_editor(
+            line_layout, NumberPropertyEditor("endpoint2_y", "End Y"), [line]
+        )
 
         # Add line type selector
         line_type_combo = QComboBox()
@@ -547,7 +591,13 @@ class PropertiesPanel(QWidget):
         style_layout = QFormLayout(style_group)
 
         # Add stroke width editor
-        stroke_width_editor = NumberPropertyEditor("style.stroke_width", "Stroke Width", min_value=0.1, max_value=10.0, step=0.1)
+        stroke_width_editor = NumberPropertyEditor(
+            "style.stroke_width",
+            "Stroke Width",
+            min_value=0.1,
+            max_value=10.0,
+            step=0.1,
+        )
         self._add_property_editor(style_layout, stroke_width_editor, [line])
 
         # Add style group to layout
@@ -556,7 +606,9 @@ class PropertiesPanel(QWidget):
         # Add line group to layout
         self.content_layout.insertWidget(1, line_group)
 
-    def _create_endpoint_property_editor(self, line: Line, endpoint: int, coord: str, label: str) -> QDoubleSpinBox:
+    def _create_endpoint_property_editor(
+        self, line: Line, endpoint: int, coord: str, label: str
+    ) -> QDoubleSpinBox:
         """Create a property editor for a line endpoint coordinate.
 
         Args:
@@ -576,7 +628,7 @@ class PropertiesPanel(QWidget):
 
         # Get the current value
         x, y = line.get_endpoint(endpoint)
-        current_value = x if coord == 'x' else y
+        current_value = x if coord == "x" else y
         spin_box.setValue(current_value)
 
         # Connect value changed signal
@@ -586,7 +638,9 @@ class PropertiesPanel(QWidget):
 
         return spin_box
 
-    def _on_endpoint_changed(self, line: Line, endpoint: int, coord: str, value: float) -> None:
+    def _on_endpoint_changed(
+        self, line: Line, endpoint: int, coord: str, value: float
+    ) -> None:
         """Handle endpoint coordinate change.
 
         Args:
@@ -599,7 +653,7 @@ class PropertiesPanel(QWidget):
         x, y = line.get_endpoint(endpoint)
 
         # Update the appropriate coordinate
-        if coord == 'x':
+        if coord == "x":
             line.move_endpoint(endpoint, value, y)
         else:  # coord == 'y'
             line.move_endpoint(endpoint, x, value)
@@ -632,24 +686,48 @@ class PropertiesPanel(QWidget):
         circle_layout = QFormLayout(circle_group)
 
         # Add circle property editors
-        self._add_property_editor(circle_layout, NumberPropertyEditor("center_x", "Center X"), [circle])
-        self._add_property_editor(circle_layout, NumberPropertyEditor("center_y", "Center Y"), [circle])
-        self._add_property_editor(circle_layout, NumberPropertyEditor("radius", "Radius", min_value=0.1), [circle])
+        self._add_property_editor(
+            circle_layout, NumberPropertyEditor("center_x", "Center X"), [circle]
+        )
+        self._add_property_editor(
+            circle_layout, NumberPropertyEditor("center_y", "Center Y"), [circle]
+        )
+        self._add_property_editor(
+            circle_layout,
+            NumberPropertyEditor("radius", "Radius", min_value=0.1),
+            [circle],
+        )
 
         # Add style properties
         style_group = QGroupBox("Style")
         style_layout = QFormLayout(style_group)
 
         # Add stroke width editor
-        stroke_width_editor = NumberPropertyEditor("style.stroke_width", "Stroke Width", min_value=0.1, max_value=10.0, step=0.1)
+        stroke_width_editor = NumberPropertyEditor(
+            "style.stroke_width",
+            "Stroke Width",
+            min_value=0.1,
+            max_value=10.0,
+            step=0.1,
+        )
         self._add_property_editor(style_layout, stroke_width_editor, [circle])
 
         # Add fill opacity editor - use a custom editor for QColor alpha
-        fill_opacity_editor = NumberPropertyEditor("style.fill_color.alpha()", "Fill Opacity", min_value=0, max_value=255, step=5)
+        fill_opacity_editor = NumberPropertyEditor(
+            "style.fill_color.alpha()",
+            "Fill Opacity",
+            min_value=0,
+            max_value=255,
+            step=5,
+        )
 
         # We need to handle this property specially since QColor.alpha() is a method, not a property
-        fill_opacity_editor.get_property_value = lambda obj: obj.style.fill_color.alpha()
-        fill_opacity_editor.set_property_value = lambda obj, value: obj.style.fill_color.setAlpha(int(value))
+        fill_opacity_editor.get_property_value = (
+            lambda obj: obj.style.fill_color.alpha()
+        )
+        fill_opacity_editor.set_property_value = (
+            lambda obj, value: obj.style.fill_color.setAlpha(int(value))
+        )
 
         self._add_property_editor(style_layout, fill_opacity_editor, [circle])
 
@@ -670,8 +748,12 @@ class PropertiesPanel(QWidget):
         common_layout = QFormLayout(common_group)
 
         # Add common property editors
-        self._add_property_editor(common_layout, BooleanPropertyEditor("visible", "Visible"), objects)
-        self._add_property_editor(common_layout, BooleanPropertyEditor("locked", "Locked"), objects)
+        self._add_property_editor(
+            common_layout, BooleanPropertyEditor("visible", "Visible"), objects
+        )
+        self._add_property_editor(
+            common_layout, BooleanPropertyEditor("locked", "Locked"), objects
+        )
 
         # Add common group to layout
         self.content_layout.insertWidget(0, common_group)
@@ -739,7 +821,12 @@ class PropertiesPanel(QWidget):
         # Add circle group to layout
         self.content_layout.insertWidget(1, circle_group)
 
-    def _add_property_editor(self, layout: QFormLayout, editor: PropertyEditor, objects: List[GeometricObject]) -> None:
+    def _add_property_editor(
+        self,
+        layout: QFormLayout,
+        editor: PropertyEditor,
+        objects: List[GeometricObject],
+    ) -> None:
         """Add a property editor to a layout.
 
         Args:

@@ -379,7 +379,7 @@ class GematriaService:
             if calculation_type == "CUSTOM_CIPHER":
                 # For custom ciphers, we need the custom_method_name to be set
                 # This should be handled by the calling code
-                logger.debug(f"Received CUSTOM_CIPHER as calculation type")
+                logger.debug("Received CUSTOM_CIPHER as calculation type")
                 # Return 0 as a fallback value since we can't calculate without the actual cipher
                 return 0
 
@@ -1579,7 +1579,9 @@ class GematriaService:
 
         # Handle CustomCipherConfig as calculation type
         calc_type: Union[CalculationType, str] = CalculationType.MISPAR_HECHRACHI
-        method_name: Optional[str] = custom_method_name  # Use the provided custom_method_name if available
+        method_name: Optional[
+            str
+        ] = custom_method_name  # Use the provided custom_method_name if available
 
         if isinstance(calculation_type, CustomCipherConfig):
             # Use a special string type for custom ciphers and set the custom method name
@@ -1588,7 +1590,9 @@ class GematriaService:
         elif isinstance(calculation_type, str) and calculation_type == "CUSTOM_CIPHER":
             # If we're already using the CUSTOM_CIPHER string, make sure we have a custom_method_name
             if not method_name:
-                logger.warning("Saving a CUSTOM_CIPHER calculation without a custom_method_name")
+                logger.warning(
+                    "Saving a CUSTOM_CIPHER calculation without a custom_method_name"
+                )
         else:
             calc_type = calculation_type
             method_name = None  # Reset method_name for standard calculation types

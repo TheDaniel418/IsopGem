@@ -273,7 +273,7 @@ This chapter focuses on implementing the fundamental geometric construction tool
 - Constraints are properly maintained
 - Tools perform efficiently
 - User interaction is smooth and intuitive
-- Must attain 100% coverage to ensure a firm basis  
+- Must attain 100% coverage to ensure a firm basis
 
 **Dependencies:** 2.1 through 2.12
 

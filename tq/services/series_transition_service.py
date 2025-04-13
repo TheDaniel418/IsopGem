@@ -21,7 +21,7 @@ Related files:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Dict, List, Optional, TypedDict
 
 from loguru import logger
 from PyQt6.QtCore import QObject
@@ -35,6 +35,7 @@ from tq.utils.ternary_transition import TernaryTransition
 
 class NumberProperties(TypedDict):
     """Type definition for number properties dictionary."""
+
     factors: List[int]
     prime_factors: List[int]
     is_prime: bool
@@ -47,7 +48,7 @@ class NumberProperties(TypedDict):
 @dataclass
 class SeriesTransitionResult:
     """Result of a series transition calculation.
-    
+
     Attributes:
         transitions: List of transitions between consecutive pairs in decimal
         transition_ternaries: List of transitions in ternary string form
@@ -87,7 +88,7 @@ class SeriesTransitionService(QObject):
 
     def get_window(self) -> SeriesTransitionWindow:
         """Get or create the Series Transitions window.
-        
+
         Returns:
             The SeriesTransitionWindow instance.
         """

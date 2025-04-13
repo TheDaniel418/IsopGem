@@ -409,6 +409,7 @@ class WordAbacusWidget(QWidget):
     def _calculate(self) -> None:
         """Handle calculate button click."""
         from loguru import logger
+
         logger.debug("WordAbacusWidget._calculate called")
 
         input_text = self._input_field.text().strip()
@@ -428,6 +429,7 @@ class WordAbacusWidget(QWidget):
 
         # Create calculation result and add to history
         from loguru import logger
+
         method_name = self._method_combo.currentText()
         if isinstance(calc_type, CustomCipherConfig):
             # For custom ciphers, we need to handle the history differently
@@ -462,6 +464,7 @@ class WordAbacusWidget(QWidget):
     def _update_history_table(self) -> None:
         """Update the history table with the latest calculations."""
         from loguru import logger
+
         logger.debug("WordAbacusWidget._update_history_table called")
 
         history = self._history_service.get_history()
@@ -474,7 +477,9 @@ class WordAbacusWidget(QWidget):
         for i, calc in enumerate(history):
             self._history_table.insertRow(i)
             display_dict = calc.to_display_dict()
-            logger.debug(f"Adding row {i} to history table: {calc.input_text} = {calc.result_value} (ID: {calc.id})")
+            logger.debug(
+                f"Adding row {i} to history table: {calc.input_text} = {calc.result_value} (ID: {calc.id})"
+            )
 
             for j, column in enumerate(["Input", "Method", "Result", "Time", "Notes"]):
                 item = QTableWidgetItem(display_dict[column])
@@ -482,7 +487,9 @@ class WordAbacusWidget(QWidget):
 
         # Resize columns to content
         self._history_table.resizeColumnsToContents()
-        logger.debug(f"History table updated with {self._history_table.rowCount()} rows")
+        logger.debug(
+            f"History table updated with {self._history_table.rowCount()} rows"
+        )
 
     def clear_history(self) -> None:
         """Clear the calculation history."""

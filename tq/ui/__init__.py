@@ -20,13 +20,13 @@ try:
     # First check if the module exists before trying to import it
     import importlib.util
     import os
-    
-    spec = importlib.util.find_spec('tq.ui.window_management')
+
+    spec = importlib.util.find_spec("tq.ui.window_management")
     if spec is not None:
         from . import window_management
-        
+
         # Explicitly export the functions
-        __all__ = ['window_management']
+        __all__ = ["window_management"]
 except (ImportError, ModuleNotFoundError):
     # The module might not exist during initial imports
     pass

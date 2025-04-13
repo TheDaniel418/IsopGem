@@ -15,15 +15,7 @@ Dependencies:
 from typing import Optional
 
 from loguru import logger
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import (
-    QMainWindow,
-    QTabWidget,
-    QTextBrowser,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QMainWindow, QTabWidget, QTextBrowser, QVBoxLayout, QWidget
 
 
 class HelpWindow(QMainWindow):
@@ -74,13 +66,13 @@ class HelpWindow(QMainWindow):
         text_browser.setHtml(
             """
             <h1>Gematria Overview</h1>
-            <p>Gematria is a system of assigning numerical values to letters. 
-            It has been used in various cultures, but is most notably associated with 
+            <p>Gematria is a system of assigning numerical values to letters.
+            It has been used in various cultures, but is most notably associated with
             Hebrew and Jewish mysticism.</p>
-            
-            <p>In Hebrew gematria, each letter of the Hebrew alphabet has a numerical value. 
+
+            <p>In Hebrew gematria, each letter of the Hebrew alphabet has a numerical value.
             By summing these values for a word or phrase, one can derive its numerical equivalent.</p>
-            
+
             <h2>Basic Principles</h2>
             <ul>
                 <li>Each Hebrew letter has a numerical value</li>
@@ -88,7 +80,7 @@ class HelpWindow(QMainWindow):
                 <li>Words with the same numerical value may have a mystical connection</li>
                 <li>Various methods exist for calculating gematria values</li>
             </ul>
-            
+
             <h2>IsopGem Features</h2>
             <ul>
                 <li>Multiple calculation methods for Hebrew and English</li>
@@ -112,7 +104,7 @@ class HelpWindow(QMainWindow):
         text_browser.setHtml(
             """
             <h1>Gematria Methods</h1>
-            
+
             <h2>Hebrew Methods</h2>
             <table border="1" cellpadding="5">
                 <tr>
@@ -140,7 +132,7 @@ class HelpWindow(QMainWindow):
                     <td>Sum of all letters in a word plus the word itself</td>
                 </tr>
             </table>
-            
+
             <h2>English Methods</h2>
             <table border="1" cellpadding="5">
                 <tr>
@@ -164,7 +156,7 @@ class HelpWindow(QMainWindow):
                     <td>A=1, B=2, ..., I=9, J=1, ...</td>
                 </tr>
             </table>
-            
+
             <h2>Custom Methods</h2>
             <p>You can create custom cipher methods in the application with your own value assignments.</p>
             """
@@ -184,7 +176,7 @@ class HelpWindow(QMainWindow):
             """
             <h1>Word Abacus</h1>
             <p>The Word Abacus is a specialized calculator for precise gematria calculations.</p>
-            
+
             <h2>Features</h2>
             <ul>
                 <li>Input Hebrew or English text</li>
@@ -193,7 +185,7 @@ class HelpWindow(QMainWindow):
                 <li>Save calculations to history</li>
                 <li>Compare multiple calculations</li>
             </ul>
-            
+
             <h2>How to Use</h2>
             <ol>
                 <li>Enter text in the input field</li>
@@ -201,7 +193,7 @@ class HelpWindow(QMainWindow):
                 <li>Click "Calculate" to see the result</li>
                 <li>Use "Save" to add the calculation to your history</li>
             </ol>
-            
+
             <h2>Tips</h2>
             <ul>
                 <li>Use the letter board to enter Hebrew characters if needed</li>
@@ -225,7 +217,7 @@ class HelpWindow(QMainWindow):
             """
             <h1>Quick Calculator</h1>
             <p>The Quick Calculator provides a streamlined interface for rapid gematria calculations.</p>
-            
+
             <h2>Features</h2>
             <ul>
                 <li>Simplified interface for fast calculations</li>
@@ -233,7 +225,7 @@ class HelpWindow(QMainWindow):
                 <li>Quick save options</li>
                 <li>History integration</li>
             </ul>
-            
+
             <h2>How to Use</h2>
             <ol>
                 <li>Enter text in the input field</li>
@@ -258,7 +250,7 @@ class HelpWindow(QMainWindow):
             """
             <h1>Gematria Search</h1>
             <p>The search functionality allows you to find words, phrases, or numbers with specific gematria values.</p>
-            
+
             <h2>Search Types</h2>
             <ul>
                 <li><b>Value Search</b>: Find words with a specific numerical value</li>
@@ -266,7 +258,7 @@ class HelpWindow(QMainWindow):
                 <li><b>Range Search</b>: Find words within a numerical range</li>
                 <li><b>Pattern Search</b>: Find matching patterns across calculation methods</li>
             </ul>
-            
+
             <h2>Advanced Features</h2>
             <ul>
                 <li>Filter by calculation method</li>
@@ -291,7 +283,7 @@ class HelpWindow(QMainWindow):
             """
             <h1>Calculation History</h1>
             <p>The calculation history feature stores all your saved calculations for future reference.</p>
-            
+
             <h2>Features</h2>
             <ul>
                 <li>View all saved calculations</li>
@@ -301,7 +293,7 @@ class HelpWindow(QMainWindow):
                 <li>Mark calculations as favorites</li>
                 <li>Export calculation history</li>
             </ul>
-            
+
             <h2>How to Use</h2>
             <ol>
                 <li>Save calculations from the Word Abacus or Calculator</li>
@@ -327,7 +319,7 @@ class HelpWindow(QMainWindow):
             """
             <h1>Tags System</h1>
             <p>The tagging system allows you to organize and categorize your calculations.</p>
-            
+
             <h2>Features</h2>
             <ul>
                 <li>Create custom tags with colors</li>
@@ -336,7 +328,7 @@ class HelpWindow(QMainWindow):
                 <li>Manage tag hierarchies</li>
                 <li>Bulk tag operations</li>
             </ul>
-            
+
             <h2>Tag Management</h2>
             <ol>
                 <li>Create tags in the Tag Management window</li>
@@ -348,4 +340,4 @@ class HelpWindow(QMainWindow):
             """
         )
 
-        self.tab_widget.addTab(tab, "Tags") 
+        self.tab_widget.addTab(tab, "Tags")

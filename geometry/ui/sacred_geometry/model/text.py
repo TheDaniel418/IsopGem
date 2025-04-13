@@ -3,14 +3,15 @@
 This module contains the Text class that represents text in 2D space.
 """
 
-from typing import Dict, Any
 import math
+from typing import Any, Dict
+
 from PyQt6.QtCore import QPointF, QRectF
 
 from geometry.ui.sacred_geometry.model.base import GeometricObject
 from geometry.ui.sacred_geometry.model.enums import ObjectType
-from geometry.ui.sacred_geometry.model.style import Style
 from geometry.ui.sacred_geometry.model.point import Point
+from geometry.ui.sacred_geometry.model.style import Style
 
 
 class Text(GeometricObject):
@@ -18,7 +19,13 @@ class Text(GeometricObject):
 
     object_type = ObjectType.TEXT
 
-    def __init__(self, position: Point = None, content: str = "", name: str = None, style: Style = None) -> None:
+    def __init__(
+        self,
+        position: Point = None,
+        content: str = "",
+        name: str = None,
+        style: Style = None,
+    ) -> None:
         """Initialize text.
 
         Args:
@@ -33,28 +40,34 @@ class Text(GeometricObject):
         self.rotation = 0.0  # Rotation angle in degrees
 
         # Add dependencies
-        if position and hasattr(position, 'id'):
+        if position and hasattr(position, "id"):
             self.dependencies.add(position.id)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the text to a dictionary for serialization."""
         data = super().to_dict()
-        data.update({
-            "position": self.position.to_dict() if hasattr(self.position, 'to_dict') else None,
-            "content": self.content,
-            "rotation": self.rotation
-        })
+        data.update(
+            {
+                "position": self.position.to_dict()
+                if hasattr(self.position, "to_dict")
+                else None,
+                "content": self.content,
+                "rotation": self.rotation,
+            }
+        )
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Text':
+    def from_dict(cls, data: Dict[str, Any]) -> "Text":
         """Create text from a dictionary."""
-        position = Point.from_dict(data["position"]) if "position" in data and data["position"] else Point()
+        position = (
+            Point.from_dict(data["position"])
+            if "position" in data and data["position"]
+            else Point()
+        )
 
         text = cls(
-            position=position,
-            content=data.get("content", ""),
-            name=data.get("name")
+            position=position, content=data.get("content", ""), name=data.get("name")
         )
 
         # Set rotation
@@ -93,7 +106,7 @@ class Text(GeometricObject):
             self.position.x - text_width / 2 - padding,
             self.position.y - text_height / 2 - padding,
             text_width + padding * 2,
-            text_height + padding * 2
+            text_height + padding * 2,
         )
 
     def contains_point(self, point: QPointF, tolerance: float = 5.0) -> bool:
@@ -117,7 +130,9 @@ class Text(GeometricObject):
         self.rotation = (self.rotation + angle) % 360
 
         # If center is not at text position, also move the position
-        if center is not None and (center.x() != self.position.x or center.y() != self.position.y):
+        if center is not None and (
+            center.x() != self.position.x or center.y() != self.position.y
+        ):
             self.position.rotate(angle, center)
 
     def scale(self, sx: float, sy: float, center: QPointF = None) -> None:
@@ -165,14 +180,14 @@ class Text(GeometricObject):
             position: New position
         """
         # Remove dependency on old position
-        if hasattr(self.position, 'id'):
+        if hasattr(self.position, "id"):
             self.dependencies.discard(self.position.id)
 
         # Set new position
         self.position = position
 
         # Add dependency on new position
-        if hasattr(position, 'id'):
+        if hasattr(position, "id"):
             self.dependencies.add(position.id)
 
     def get_position(self) -> Point:

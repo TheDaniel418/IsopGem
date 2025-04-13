@@ -46,4 +46,4 @@ class CalculationHistoryWindow(QMainWindow):
         self.history_panel = CalculationHistoryPanel()
         layout.addWidget(self.history_panel)
 
-        logger.debug("CalculationHistoryWindow initialized") 
+        logger.debug("CalculationHistoryWindow initialized")

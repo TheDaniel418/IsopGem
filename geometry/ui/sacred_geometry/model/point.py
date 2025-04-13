@@ -3,8 +3,9 @@
 This module contains the Point class that represents a point in 2D space.
 """
 
-from typing import Dict, Any
 import math
+from typing import Any, Dict
+
 from PyQt6.QtCore import QPointF, QRectF
 
 from geometry.ui.sacred_geometry.model.base import GeometricObject
@@ -17,7 +18,9 @@ class Point(GeometricObject):
 
     object_type = ObjectType.POINT
 
-    def __init__(self, x: float = 0, y: float = 0, name: str = None, style: Style = None) -> None:
+    def __init__(
+        self, x: float = 0, y: float = 0, name: str = None, style: Style = None
+    ) -> None:
         """Initialize a point.
 
         Args:
@@ -33,20 +36,13 @@ class Point(GeometricObject):
     def to_dict(self) -> Dict[str, Any]:
         """Convert the point to a dictionary for serialization."""
         data = super().to_dict()
-        data.update({
-            "x": self.x,
-            "y": self.y
-        })
+        data.update({"x": self.x, "y": self.y})
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Point':
+    def from_dict(cls, data: Dict[str, Any]) -> "Point":
         """Create a point from a dictionary."""
-        point = cls(
-            x=data.get("x", 0),
-            y=data.get("y", 0),
-            name=data.get("name")
-        )
+        point = cls(x=data.get("x", 0), y=data.get("y", 0), name=data.get("name"))
 
         # Load base class properties
         point.id = data.get("id", point.id)
@@ -66,7 +62,12 @@ class Point(GeometricObject):
     def get_bounds(self) -> QRectF:
         """Get the bounding rectangle of the point."""
         half_size = self.style.point_size / 2
-        return QRectF(self.x - half_size, self.y - half_size, self.style.point_size, self.style.point_size)
+        return QRectF(
+            self.x - half_size,
+            self.y - half_size,
+            self.style.point_size,
+            self.style.point_size,
+        )
 
     def contains_point(self, point: QPointF, tolerance: float = 5.0) -> bool:
         """Check if the point contains or is near the given point."""

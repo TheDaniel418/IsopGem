@@ -143,4 +143,4 @@ The astrological database is designed to work with:
 
 - Swiss Ephemeris library for astronomical calculations
 - SQLite database for storage
-- PyQt6 for the user interface components 
+- PyQt6 for the user interface components

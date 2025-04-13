@@ -1,29 +1,35 @@
 """Text input dialog for the Sacred Geometry Explorer."""
 
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
+    QCheckBox,
+    QColorDialog,
     QDialog,
-    QVBoxLayout,
+    QFontComboBox,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QComboBox,
     QSpinBox,
-    QCheckBox,
-    QColorDialog,
-    QFontComboBox,
-    QGroupBox,
+    QVBoxLayout,
 )
-from PyQt6.QtGui import QColor, QFont
-from PyQt6.QtCore import Qt
 
 
 class TextDialog(QDialog):
     """Dialog for entering and formatting text."""
 
-    def __init__(self, parent=None, initial_text="", initial_font_family="Arial",
-                 initial_font_size=12, initial_font_style=0, initial_color=QColor(0, 0, 0),
-                 initial_auto_position=True, is_label=False):
+    def __init__(
+        self,
+        parent=None,
+        initial_text="",
+        initial_font_family="Arial",
+        initial_font_size=12,
+        initial_font_style=0,
+        initial_color=QColor(0, 0, 0),
+        initial_auto_position=True,
+        is_label=False,
+    ):
         """Initialize the text dialog.
 
         Args:
@@ -125,7 +131,9 @@ class TextDialog(QDialog):
             position_layout = QVBoxLayout()
             position_group.setLayout(position_layout)
 
-            self.auto_position_check = QCheckBox("Automatically position relative to object")
+            self.auto_position_check = QCheckBox(
+                "Automatically position relative to object"
+            )
             self.auto_position_check.setChecked(self.auto_position)
             position_layout.addWidget(self.auto_position_check)
 
@@ -208,7 +216,7 @@ class TextDialog(QDialog):
         Returns:
             Whether to automatically position the text
         """
-        if hasattr(self, 'auto_position_check'):
+        if hasattr(self, "auto_position_check"):
             return self.auto_position_check.isChecked()
         return self.auto_position
 

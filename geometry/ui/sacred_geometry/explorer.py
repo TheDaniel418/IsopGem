@@ -5,40 +5,69 @@ which provides a GeoGebra-like environment for exploring and creating
 sacred geometry constructions.
 """
 
+from typing import Any, List
+
 from loguru import logger
-from typing import Optional, List, Dict, Any, Tuple, Set, Union, cast
-import os
-import sys
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QSize
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QCloseEvent, QMouseEvent, QKeyEvent, QColor
+from PyQt6.QtCore import QPointF, Qt, pyqtSignal
+from PyQt6.QtGui import (
+    QAction,
+    QCloseEvent,
+    QColor,
+    QIcon,
+    QKeyEvent,
+    QKeySequence,
+    QMouseEvent,
+)
 from PyQt6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QSplitter,
-    QToolBar,
-    QStatusBar,
-    QLabel,
-    QPushButton,
-    QComboBox,
     QFileDialog,
     QMessageBox,
-    QMenu,
-    QApplication,
-    QFrame,
+    QSplitter,
+    QStatusBar,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
 )
-
-from geometry.ui.sacred_geometry.file_format import save_construction, load_construction
-from shared.ui.window_management import WindowManager
 
 # Import our custom components
 from geometry.ui.sacred_geometry.canvas import GeometryCanvas
+from geometry.ui.sacred_geometry.commands import (
+    CommandHistory,
+    CompoundCommand,
+    CreateObjectCommand,
+    DeleteObjectCommand,
+    ModifyObjectCommand,
+)
+from geometry.ui.sacred_geometry.file_format import load_construction, save_construction
+from geometry.ui.sacred_geometry.model import (
+    Circle,
+    GeometricObject,
+    Line,
+    LineType,
+    Point,
+    Polygon,
+    Style,
+    Text,
+)
 from geometry.ui.sacred_geometry.properties import PropertiesPanel
-# Import tools from tools.py
-from geometry.ui.sacred_geometry.tools import GeometryTool, SelectionTool, PointTool, LineTool, CircleTool, PolygonTool, RegularPolygonTool, IntersectionTool, PerpendicularLineTool, ParallelLineTool, AngleBisectorTool, CompassTool, TextTool
 from geometry.ui.sacred_geometry.text_toolbar import TextToolbar
-from geometry.ui.sacred_geometry.commands import CommandHistory, GeometryCommand, CreateObjectCommand, DeleteObjectCommand, ModifyObjectCommand, CompoundCommand
-from geometry.ui.sacred_geometry.model import GeometricObject, Point, Line, Circle, Polygon, Text, Style, GeometricObjectFactory, LineType
+
+# Import tools from tools.py
+from geometry.ui.sacred_geometry.tools import (
+    AngleBisectorTool,
+    CircleTool,
+    CompassTool,
+    GeometryTool,
+    IntersectionTool,
+    LineTool,
+    ParallelLineTool,
+    PerpendicularLineTool,
+    PointTool,
+    PolygonTool,
+    RegularPolygonTool,
+    SelectionTool,
+    TextTool,
+)
+from shared.ui.window_management import WindowManager
 
 
 class SacredGeometryExplorer(QWidget):
@@ -115,7 +144,9 @@ class SacredGeometryExplorer(QWidget):
         self.text_toolbar.font_size_changed.connect(self._on_text_font_size_changed)
         self.text_toolbar.font_style_changed.connect(self._on_text_font_style_changed)
         self.text_toolbar.text_color_changed.connect(self._on_text_color_changed)
-        self.text_toolbar.auto_position_changed.connect(self._on_text_auto_position_changed)
+        self.text_toolbar.auto_position_changed.connect(
+            self._on_text_auto_position_changed
+        )
         self.text_toolbar.hide()
         main_layout.addWidget(self.text_toolbar)
 
@@ -164,7 +195,9 @@ class SacredGeometryExplorer(QWidget):
     def _init_tools(self) -> None:
         """Initialize the geometric tools."""
         # Group 1: Selection tools
-        self._add_tool_action("selection", SelectionTool(), "Selection", "Select and manipulate objects")
+        self._add_tool_action(
+            "selection", SelectionTool(), "Selection", "Select and manipulate objects"
+        )
 
         # Add separator between selection and basic geometric tools
         self.toolbar.addSeparator()
@@ -174,23 +207,55 @@ class SacredGeometryExplorer(QWidget):
         self._add_tool_action("line", LineTool(), "Line", "Create lines")
         self._add_tool_action("circle", CircleTool(), "Circle", "Create circles")
         self._add_tool_action("polygon", PolygonTool(), "Polygon", "Create polygons")
-        self._add_tool_action("regular_polygon", RegularPolygonTool(), "Regular Polygon", "Create regular polygons")
+        self._add_tool_action(
+            "regular_polygon",
+            RegularPolygonTool(),
+            "Regular Polygon",
+            "Create regular polygons",
+        )
 
         # Add separator between basic and advanced geometric tools
         self.toolbar.addSeparator()
 
         # Group 3: Advanced geometric tools
-        self._add_tool_action("intersection", IntersectionTool(), "Intersection", "Find and mark intersections between objects")
-        self._add_tool_action("perpendicular_line", PerpendicularLineTool(), "Perpendicular Line", "Create perpendicular lines")
-        self._add_tool_action("parallel_line", ParallelLineTool(), "Parallel Line", "Create parallel lines with distance measurement")
-        self._add_tool_action("angle_bisector", AngleBisectorTool(), "Angle Bisector", "Create angle bisectors from points or lines")
-        self._add_tool_action("compass", CompassTool(), "Compass", "Create circles with radius equal to a given distance")
+        self._add_tool_action(
+            "intersection",
+            IntersectionTool(),
+            "Intersection",
+            "Find and mark intersections between objects",
+        )
+        self._add_tool_action(
+            "perpendicular_line",
+            PerpendicularLineTool(),
+            "Perpendicular Line",
+            "Create perpendicular lines",
+        )
+        self._add_tool_action(
+            "parallel_line",
+            ParallelLineTool(),
+            "Parallel Line",
+            "Create parallel lines with distance measurement",
+        )
+        self._add_tool_action(
+            "angle_bisector",
+            AngleBisectorTool(),
+            "Angle Bisector",
+            "Create angle bisectors from points or lines",
+        )
+        self._add_tool_action(
+            "compass",
+            CompassTool(),
+            "Compass",
+            "Create circles with radius equal to a given distance",
+        )
 
         # Add separator between advanced geometric tools and annotation tools
         self.toolbar.addSeparator()
 
         # Group 4: Annotation tools
-        self._add_tool_action("text", TextTool(), "Text", "Add text and labels to the construction")
+        self._add_tool_action(
+            "text", TextTool(), "Text", "Add text and labels to the construction"
+        )
 
         # Add separator between tools and file operations
         self.toolbar.addSeparator()
@@ -263,7 +328,9 @@ class SacredGeometryExplorer(QWidget):
 
         logger.debug("Sacred Geometry Explorer tools initialized")
 
-    def _add_tool_action(self, tool_id: str, tool: GeometryTool, name: str, tooltip: str) -> None:
+    def _add_tool_action(
+        self, tool_id: str, tool: GeometryTool, name: str, tooltip: str
+    ) -> None:
         """Add a tool action to the toolbar.
 
         Args:
@@ -286,10 +353,7 @@ class SacredGeometryExplorer(QWidget):
 
         # Add action to toolbar
         self.toolbar.addAction(action)
-        self.tool_actions[tool_id] = {
-            "action": action,
-            "tool": tool
-        }
+        self.tool_actions[tool_id] = {"action": action, "tool": tool}
 
     def _get_icon_for_tool(self, tool_id: str) -> str:
         """Get the icon name for a tool.
@@ -313,7 +377,7 @@ class SacredGeometryExplorer(QWidget):
             "parallel_line": "draw-parallel",
             "angle_bisector": "draw-angle",
             "compass": "draw-compass",
-            "text": "draw-text"
+            "text": "draw-text",
         }
 
         return icon_map.get(tool_id, "")
@@ -330,7 +394,7 @@ class SacredGeometryExplorer(QWidget):
             self.active_tool["tool"].deactivate()
 
             # Hide any tool-specific toolbars
-            if hasattr(self, 'text_toolbar'):
+            if hasattr(self, "text_toolbar"):
                 self.text_toolbar.hide()
 
         # Activate new tool
@@ -345,7 +409,7 @@ class SacredGeometryExplorer(QWidget):
                 self.canvas.setCursor(self.active_tool["tool"].get_cursor())
 
             # Show tool-specific toolbars
-            if tool_id == 'text' and hasattr(self, 'text_toolbar'):
+            if tool_id == "text" and hasattr(self, "text_toolbar"):
                 self.text_toolbar.show()
 
         logger.debug(f"Activated tool: {tool_id}")
@@ -394,7 +458,9 @@ class SacredGeometryExplorer(QWidget):
             self.active_tool["tool"].mouse_move(event, scene_pos)
         else:
             # Update status bar with coordinates if no tool is active
-            self.status_bar.showMessage(f"Position: ({scene_pos.x():.2f}, {scene_pos.y():.2f})")
+            self.status_bar.showMessage(
+                f"Position: ({scene_pos.x():.2f}, {scene_pos.y():.2f})"
+            )
 
     def _on_canvas_mouse_released(self, event: QMouseEvent, scene_pos: QPointF) -> None:
         """Handle mouse release events from the canvas.
@@ -416,7 +482,7 @@ class SacredGeometryExplorer(QWidget):
         # Handle escape key to cancel tool operation
         if event.key() == Qt.Key.Key_Escape and self.active_tool:
             # Activate selection tool
-            self._activate_tool('selection')
+            self._activate_tool("selection")
             event.accept()
             return
 
@@ -424,7 +490,9 @@ class SacredGeometryExplorer(QWidget):
         if self.active_tool and self.active_tool["tool"].active:
             self.active_tool["tool"].key_press(event)
 
-    def create_point(self, x: float, y: float, name: str = None, style: Style = None) -> Point:
+    def create_point(
+        self, x: float, y: float, name: str = None, style: Style = None
+    ) -> Point:
         """Create a point and add it to the canvas.
 
         Args:
@@ -445,8 +513,16 @@ class SacredGeometryExplorer(QWidget):
 
         return point
 
-    def create_line(self, x1: float, y1: float, x2: float, y2: float, name: str = None,
-                   style: Style = None, line_type: LineType = LineType.SEGMENT) -> Line:
+    def create_line(
+        self,
+        x1: float,
+        y1: float,
+        x2: float,
+        y2: float,
+        name: str = None,
+        style: Style = None,
+        line_type: LineType = LineType.SEGMENT,
+    ) -> Line:
         """Create a line and add it to the canvas.
 
         Args:
@@ -470,7 +546,9 @@ class SacredGeometryExplorer(QWidget):
 
         return line
 
-    def create_circle(self, cx: float, cy: float, radius: float, name: str = None, style: Style = None) -> Circle:
+    def create_circle(
+        self, cx: float, cy: float, radius: float, name: str = None, style: Style = None
+    ) -> Circle:
         """Create a circle and add it to the canvas.
 
         Args:
@@ -492,7 +570,9 @@ class SacredGeometryExplorer(QWidget):
 
         return circle
 
-    def create_polygon(self, vertices: List[Point], name: str = None, style: Style = None) -> Polygon:
+    def create_polygon(
+        self, vertices: List[Point], name: str = None, style: Style = None
+    ) -> Polygon:
         """Create a polygon and add it to the canvas.
 
         Args:
@@ -510,7 +590,9 @@ class SacredGeometryExplorer(QWidget):
         commands = []
 
         # Add commands for vertices that don't exist in the canvas yet
-        existing_vertex_ids = set(obj.id for obj in self.canvas.objects if isinstance(obj, Point))
+        existing_vertex_ids = set(
+            obj.id for obj in self.canvas.objects if isinstance(obj, Point)
+        )
         for vertex in vertices:
             if vertex.id not in existing_vertex_ids:
                 commands.append(CreateObjectCommand(self, vertex))
@@ -523,8 +605,16 @@ class SacredGeometryExplorer(QWidget):
 
         return polygon
 
-    def create_text(self, x: float, y: float, text: str, name: str = None, style: Style = None,
-                   target_object: GeometricObject = None, auto_position: bool = False) -> Text:
+    def create_text(
+        self,
+        x: float,
+        y: float,
+        text: str,
+        name: str = None,
+        style: Style = None,
+        target_object: GeometricObject = None,
+        auto_position: bool = False,
+    ) -> Text:
         """Create a text label and add it to the canvas.
 
         Args:
@@ -550,9 +640,9 @@ class SacredGeometryExplorer(QWidget):
 
         # Store target_object and auto_position in metadata
         if target_object:
-            text_obj.metadata['target_object_id'] = target_object.id
+            text_obj.metadata["target_object_id"] = target_object.id
         if auto_position is not None:
-            text_obj.metadata['auto_position'] = auto_position
+            text_obj.metadata["auto_position"] = auto_position
 
         # Create and execute command
         command = CreateObjectCommand(self, text_obj)
@@ -574,11 +664,15 @@ class SacredGeometryExplorer(QWidget):
         """Remove all geometric objects from the canvas."""
         # Create compound command for all objects
         if self.canvas and self.canvas.objects:
-            commands = [DeleteObjectCommand(self, obj) for obj in self.canvas.objects.copy()]
+            commands = [
+                DeleteObjectCommand(self, obj) for obj in self.canvas.objects.copy()
+            ]
             command = CompoundCommand("Clear All Objects", commands)
             self.command_history.execute(command)
 
-    def modify_object(self, obj: GeometricObject, property_name: str, new_value: Any) -> None:
+    def modify_object(
+        self, obj: GeometricObject, property_name: str, new_value: Any
+    ) -> None:
         """Modify a property of a geometric object.
 
         Args:
@@ -587,29 +681,35 @@ class SacredGeometryExplorer(QWidget):
             new_value: New value for the property
         """
         # Get current value
-        if '.' in property_name:
+        if "." in property_name:
             # Handle nested properties (e.g., 'p1.x')
-            parts = property_name.split('.')
+            parts = property_name.split(".")
             parent_obj = obj
             for part in parts[:-1]:
                 if hasattr(parent_obj, part):
                     parent_obj = getattr(parent_obj, part)
                 else:
-                    logger.warning(f"Object {obj.__class__.__name__} has no attribute {part}")
+                    logger.warning(
+                        f"Object {obj.__class__.__name__} has no attribute {part}"
+                    )
                     return
 
             # Get property from parent object
             if hasattr(parent_obj, parts[-1]):
                 old_value = getattr(parent_obj, parts[-1])
             else:
-                logger.warning(f"Object {parent_obj.__class__.__name__} has no attribute {parts[-1]}")
+                logger.warning(
+                    f"Object {parent_obj.__class__.__name__} has no attribute {parts[-1]}"
+                )
                 return
         else:
             # Get property directly from object
             if hasattr(obj, property_name):
                 old_value = getattr(obj, property_name)
             else:
-                logger.warning(f"Object {obj.__class__.__name__} has no attribute {property_name}")
+                logger.warning(
+                    f"Object {obj.__class__.__name__} has no attribute {property_name}"
+                )
                 return
 
         # Create and execute command
@@ -707,7 +807,11 @@ class SacredGeometryExplorer(QWidget):
             obj: Modified object
         """
         # Update properties panel if this object is selected
-        if obj.selected and self.properties_panel and hasattr(self.properties_panel, 'property_editors'):
+        if (
+            obj.selected
+            and self.properties_panel
+            and hasattr(self.properties_panel, "property_editors")
+        ):
             # Instead of recreating the entire panel, just update the property editors
             # that already exist for this object
             if isinstance(obj, Line):
@@ -719,84 +823,98 @@ class SacredGeometryExplorer(QWidget):
                 x2, y2 = obj.x2, obj.y2
 
                 # Check which endpoint was moved (stored in metadata)
-                moved_endpoint = obj.metadata.get('moved_endpoint', None) if hasattr(obj, 'metadata') else None
+                moved_endpoint = (
+                    obj.metadata.get("moved_endpoint", None)
+                    if hasattr(obj, "metadata")
+                    else None
+                )
                 logger.debug(f"Moved endpoint: {moved_endpoint}")
 
                 if moved_endpoint == 1:
                     # Only update endpoint 1 properties
-                    if 'endpoint1_x' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint1_x']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint1_x" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint1_x"]
+                        if hasattr(editor, "spin_box"):
                             # Directly set the value without triggering the update cycle
                             editor.updating = True
                             editor.spin_box.setValue(x1)
                             editor.updating = False
-                            logger.debug(f"Updated property editor for endpoint1_x to {x1}")
+                            logger.debug(
+                                f"Updated property editor for endpoint1_x to {x1}"
+                            )
 
-                    if 'endpoint1_y' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint1_y']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint1_y" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint1_y"]
+                        if hasattr(editor, "spin_box"):
                             editor.updating = True
                             editor.spin_box.setValue(y1)
                             editor.updating = False
-                            logger.debug(f"Updated property editor for endpoint1_y to {y1}")
+                            logger.debug(
+                                f"Updated property editor for endpoint1_y to {y1}"
+                            )
 
                 elif moved_endpoint == 2:
                     # Only update endpoint 2 properties
-                    if 'endpoint2_x' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint2_x']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint2_x" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint2_x"]
+                        if hasattr(editor, "spin_box"):
                             editor.updating = True
                             editor.spin_box.setValue(x2)
                             editor.updating = False
-                            logger.debug(f"Updated property editor for endpoint2_x to {x2}")
+                            logger.debug(
+                                f"Updated property editor for endpoint2_x to {x2}"
+                            )
 
-                    if 'endpoint2_y' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint2_y']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint2_y" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint2_y"]
+                        if hasattr(editor, "spin_box"):
                             editor.updating = True
                             editor.spin_box.setValue(y2)
                             editor.updating = False
-                            logger.debug(f"Updated property editor for endpoint2_y to {y2}")
+                            logger.debug(
+                                f"Updated property editor for endpoint2_y to {y2}"
+                            )
 
                 else:
                     # If we don't know which endpoint was moved, update both (fallback)
-                    logger.debug(f"No moved_endpoint metadata, updating all properties")
+                    logger.debug("No moved_endpoint metadata, updating all properties")
                     # Update all endpoint properties
-                    if 'endpoint1_x' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint1_x']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint1_x" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint1_x"]
+                        if hasattr(editor, "spin_box"):
                             editor.updating = True
                             editor.spin_box.setValue(x1)
                             editor.updating = False
-                    if 'endpoint1_y' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint1_y']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint1_y" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint1_y"]
+                        if hasattr(editor, "spin_box"):
                             editor.updating = True
                             editor.spin_box.setValue(y1)
                             editor.updating = False
-                    if 'endpoint2_x' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint2_x']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint2_x" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint2_x"]
+                        if hasattr(editor, "spin_box"):
                             editor.updating = True
                             editor.spin_box.setValue(x2)
                             editor.updating = False
-                    if 'endpoint2_y' in self.properties_panel.property_editors:
-                        editor = self.properties_panel.property_editors['endpoint2_y']
-                        if hasattr(editor, 'spin_box'):
+                    if "endpoint2_y" in self.properties_panel.property_editors:
+                        editor = self.properties_panel.property_editors["endpoint2_y"]
+                        if hasattr(editor, "spin_box"):
                             editor.updating = True
                             editor.spin_box.setValue(y2)
                             editor.updating = False
             else:
                 # For other object types, update all property editors
                 for prop_name, editor in self.properties_panel.property_editors.items():
-                    if hasattr(editor, 'update_widget'):
+                    if hasattr(editor, "update_widget"):
                         editor.update_widget()
                         logger.debug(f"Updated property editor for {prop_name}")
 
         logger.debug(f"Object modified: {obj.__class__.__name__} {obj.id}")
 
-    def _on_property_changed(self, object_id: str, property_name: str, new_value: object) -> None:
+    def _on_property_changed(
+        self, object_id: str, property_name: str, new_value: object
+    ) -> None:
         """Handle property changed event.
 
         Args:
@@ -815,7 +933,9 @@ class SacredGeometryExplorer(QWidget):
         if obj:
             # Modify object using command system
             self.modify_object(obj, property_name, new_value)
-            logger.debug(f"Property changed: {obj.__class__.__name__} {object_id}.{property_name} = {new_value}")
+            logger.debug(
+                f"Property changed: {obj.__class__.__name__} {object_id}.{property_name} = {new_value}"
+            )
         else:
             logger.warning(f"Object with ID {object_id} not found")
 
@@ -842,7 +962,9 @@ class SacredGeometryExplorer(QWidget):
             self._update_undo_redo_actions()
 
             # Update status bar
-            self.status_bar.showMessage("Undone: " + self.command_history.get_undo_name())
+            self.status_bar.showMessage(
+                "Undone: " + self.command_history.get_undo_name()
+            )
         else:
             self.status_bar.showMessage("Nothing to undo")
 
@@ -853,7 +975,9 @@ class SacredGeometryExplorer(QWidget):
             self._update_undo_redo_actions()
 
             # Update status bar
-            self.status_bar.showMessage("Redone: " + self.command_history.get_redo_name())
+            self.status_bar.showMessage(
+                "Redone: " + self.command_history.get_redo_name()
+            )
         else:
             self.status_bar.showMessage("Nothing to redo")
 
@@ -884,8 +1008,10 @@ class SacredGeometryExplorer(QWidget):
                 self,
                 "Save Changes",
                 "The current construction has been modified. Do you want to save your changes?",
-                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
             )
 
             if result == QMessageBox.StandardButton.Save:
@@ -923,8 +1049,10 @@ class SacredGeometryExplorer(QWidget):
                 self,
                 "Save Changes",
                 "The current construction has been modified. Do you want to save your changes?",
-                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
             )
 
             if result == QMessageBox.StandardButton.Save:
@@ -941,7 +1069,7 @@ class SacredGeometryExplorer(QWidget):
             self,
             "Open Construction",
             "",
-            f"Sacred Geometry Files (*{self.default_file_extension});;All Files (*)"
+            f"Sacred Geometry Files (*{self.default_file_extension});;All Files (*)",
         )
 
         if not file_path:
@@ -953,9 +1081,7 @@ class SacredGeometryExplorer(QWidget):
         if objects is None:
             # Loading failed
             QMessageBox.critical(
-                self,
-                "Error",
-                f"Failed to load construction from {file_path}"
+                self, "Error", f"Failed to load construction from {file_path}"
             )
             return
 
@@ -1002,7 +1128,9 @@ class SacredGeometryExplorer(QWidget):
                 self.modified = False
 
                 # Update window title
-                self.setWindowTitle(f"Sacred Geometry Explorer - {self.current_file_path}")
+                self.setWindowTitle(
+                    f"Sacred Geometry Explorer - {self.current_file_path}"
+                )
 
                 logger.debug(f"Saved construction to {self.current_file_path}")
                 return True
@@ -1011,7 +1139,7 @@ class SacredGeometryExplorer(QWidget):
                 QMessageBox.critical(
                     self,
                     "Error",
-                    f"Failed to save construction to {self.current_file_path}"
+                    f"Failed to save construction to {self.current_file_path}",
                 )
                 return False
 
@@ -1028,7 +1156,7 @@ class SacredGeometryExplorer(QWidget):
             self,
             "Save Construction As",
             "",
-            f"Sacred Geometry Files (*{self.default_file_extension});;All Files (*)"
+            f"Sacred Geometry Files (*{self.default_file_extension});;All Files (*)",
         )
 
         if not file_path:

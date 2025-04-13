@@ -11,7 +11,9 @@ __all__ = ["SacredGeometryExplorer"]
 # Allow running the module directly
 if __name__ == "__main__":
     import sys
+
     from PyQt6.QtWidgets import QApplication
+
     from shared.ui.window_management import WindowManager
 
     # Create application

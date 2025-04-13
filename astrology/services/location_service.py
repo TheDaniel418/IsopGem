@@ -18,11 +18,10 @@ import json
 import os
 import time
 import urllib.parse
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 
 import requests
 from loguru import logger
-from pydantic import BaseModel
 
 from shared.models.location import Location
 

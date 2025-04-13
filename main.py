@@ -4,8 +4,8 @@
 This is the main entry point for starting the IsopGem application.
 """
 
-import sys
 import os
+import sys
 
 # Set environment variables for debugging
 os.environ["ISOPGEM_ENV"] = "development"
@@ -13,6 +13,7 @@ os.environ["ISOPGEM_LOG_LEVEL"] = "DEBUG"
 
 # Configure logging before importing other modules
 from loguru import logger
+
 logger.remove()  # Remove default handler
 logger.add(
     sys.stderr,

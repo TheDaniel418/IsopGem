@@ -9,7 +9,6 @@ import uuid
 from enum import Enum
 
 
-
 class EventType(Enum):
     """Types of planner events."""
 

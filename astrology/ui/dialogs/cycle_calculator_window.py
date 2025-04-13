@@ -21,18 +21,16 @@ Dependencies:
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
+import pytz
 from loguru import logger
 from PyQt6.QtCore import QDate, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
     QDialog,
     QFormLayout,
-    QFrame,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -46,12 +44,16 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from astrology.models.aspect import AspectType
 from astrology.models.chart import Chart
+from astrology.repositories.astrological_events_repository import (
+    AstrologicalEventsRepository,
+)
+from astrology.services.astrological_event_calculator import (
+    LunarPhaseType,
+    PlanetPhaseType,
+)
 from astrology.services.astrology_calculation_service import AstrologyCalculationService
-from astrology.models.aspect import AspectType, Aspect, AspectInfo
-from astrology.repositories.astrological_events_repository import AstrologicalEventsRepository
-from astrology.services.astrological_event_calculator import LunarPhaseType, PlanetPhaseType
-import pytz
 
 
 class CycleCalculatorWindow(QDialog):
@@ -72,10 +74,14 @@ class CycleCalculatorWindow(QDialog):
         self.calculation_service = AstrologyCalculationService.get_instance()
 
         # Get the repository from the calculation service
-        if hasattr(self.calculation_service, 'repository') and self.calculation_service.repository:
+        if (
+            hasattr(self.calculation_service, "repository")
+            and self.calculation_service.repository
+        ):
             self.repository = self.calculation_service.repository
         else:
             from shared.repositories.database import Database
+
             db = Database.get_instance()
             self.repository = AstrologicalEventsRepository(db)
             # Assign it to the calculation service for future use
@@ -87,11 +93,15 @@ class CycleCalculatorWindow(QDialog):
             # Use default range if not available
             self.min_year = 1900
             self.max_year = 2100
-            logger.warning(f"No calculated data range found in repository. Using defaults: {self.min_year}-{self.max_year}")
+            logger.warning(
+                f"No calculated data range found in repository. Using defaults: {self.min_year}-{self.max_year}"
+            )
         else:
             self.min_year = min_year
             self.max_year = max_year
-            logger.info(f"Available calculation date range: {self.min_year}-{self.max_year}")
+            logger.info(
+                f"Available calculation date range: {self.min_year}-{self.max_year}"
+            )
 
         # Initialize UI
         self._init_ui()
@@ -173,7 +183,9 @@ class CycleCalculatorWindow(QDialog):
         date_range_layout.addWidget(self.end_date_edit)
 
         # Add an info label about available data
-        date_range_info = QLabel(f"<i>Available data range: {self.min_year} to {self.max_year}</i>")
+        date_range_info = QLabel(
+            f"<i>Available data range: {self.min_year} to {self.max_year}</i>"
+        )
         date_range_info.setStyleSheet("color: #666666; font-size: 9pt;")
 
         params_layout.addRow("Date Range:", date_range_layout)
@@ -220,13 +232,35 @@ class CycleCalculatorWindow(QDialog):
 
         # Planet 1 selection
         self.aspect_planet1_combo = QComboBox()
-        for planet in ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"]:
+        for planet in [
+            "Sun",
+            "Moon",
+            "Mercury",
+            "Venus",
+            "Mars",
+            "Jupiter",
+            "Saturn",
+            "Uranus",
+            "Neptune",
+            "Pluto",
+        ]:
             self.aspect_planet1_combo.addItem(planet, planet)
         aspect_layout.addRow("Planet 1:", self.aspect_planet1_combo)
 
         # Planet 2 selection
         self.aspect_planet2_combo = QComboBox()
-        for planet in ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"]:
+        for planet in [
+            "Sun",
+            "Moon",
+            "Mercury",
+            "Venus",
+            "Mars",
+            "Jupiter",
+            "Saturn",
+            "Uranus",
+            "Neptune",
+            "Pluto",
+        ]:
             self.aspect_planet2_combo.addItem(planet, planet)
         self.aspect_planet2_combo.setCurrentIndex(5)  # Default to Jupiter
         aspect_layout.addRow("Planet 2:", self.aspect_planet2_combo)
@@ -296,14 +330,25 @@ class CycleCalculatorWindow(QDialog):
         # Planet selection
         self.retrograde_planet_combo = QComboBox()
         self.retrograde_planet_combo.addItem("All Planets", None)
-        for planet in ["Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"]:
+        for planet in [
+            "Mercury",
+            "Venus",
+            "Mars",
+            "Jupiter",
+            "Saturn",
+            "Uranus",
+            "Neptune",
+            "Pluto",
+        ]:
             self.retrograde_planet_combo.addItem(planet, planet)
         retro_layout.addRow("Planet:", self.retrograde_planet_combo)
 
         # Add a checkbox for showing shadow periods (pre and post retrograde)
         self.retrograde_shadow_check = QCheckBox("Include shadow periods")
         self.retrograde_shadow_check.setChecked(False)
-        self.retrograde_shadow_check.setEnabled(False)  # Disabled for now, to be implemented later
+        self.retrograde_shadow_check.setEnabled(
+            False
+        )  # Disabled for now, to be implemented later
         retro_layout.addRow("", self.retrograde_shadow_check)
 
         # Hide initially
@@ -340,9 +385,15 @@ class CycleCalculatorWindow(QDialog):
         # Results table
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(5)
-        self.results_table.setHorizontalHeaderLabels(["Date", "Time", "Event", "Details", "Position"])
-        self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.results_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.results_table.setHorizontalHeaderLabels(
+            ["Date", "Time", "Event", "Details", "Position"]
+        )
+        self.results_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+        self.results_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
         self.results_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         results_layout.addWidget(self.results_table)
 
@@ -390,7 +441,7 @@ class CycleCalculatorWindow(QDialog):
         self.venus_params.hide()
         self.saturn_pluto_params.hide()
         self.retrograde_params.hide()
-        if hasattr(self, 'lunar_params'):
+        if hasattr(self, "lunar_params"):
             self.lunar_params.hide()
 
         # Show the appropriate parameter widget
@@ -472,7 +523,9 @@ class CycleCalculatorWindow(QDialog):
 
         # Validate date range
         if start_date > end_date:
-            QMessageBox.warning(self, "Invalid Date Range", "Start date must be before end date.")
+            QMessageBox.warning(
+                self, "Invalid Date Range", "Start date must be before end date."
+            )
             return
 
         # Create progress dialog
@@ -505,12 +558,20 @@ class CycleCalculatorWindow(QDialog):
     def _export_results(self):
         """Export search results to a file."""
         # This will be implemented in a future update
-        QMessageBox.information(self, "Not Implemented", "Export functionality will be available in a future update.")
+        QMessageBox.information(
+            self,
+            "Not Implemented",
+            "Export functionality will be available in a future update.",
+        )
 
     def _view_chart_for_selected(self):
         """View chart for the selected event."""
         # This will be implemented in a future update
-        QMessageBox.information(self, "Not Implemented", "Chart viewing functionality will be available in a future update.")
+        QMessageBox.information(
+            self,
+            "Not Implemented",
+            "Chart viewing functionality will be available in a future update.",
+        )
 
     def _search_aspects(self, start_date, end_date, progress):
         """Search for aspects between selected planets.
@@ -527,11 +588,15 @@ class CycleCalculatorWindow(QDialog):
 
         # Update progress
         progress.setValue(10)
-        progress.setLabelText(f"Searching for {target_aspect_type.value} between {planet1} and {planet2}...")
+        progress.setLabelText(
+            f"Searching for {target_aspect_type.value} between {planet1} and {planet2}..."
+        )
 
         try:
             # Convert to Python dates for repository query
-            start_datetime = datetime.combine(start_date.toPyDate(), datetime.min.time())
+            start_datetime = datetime.combine(
+                start_date.toPyDate(), datetime.min.time()
+            )
             end_datetime = datetime.combine(end_date.toPyDate(), datetime.max.time())
 
             # Query aspects directly from the repository
@@ -540,7 +605,7 @@ class CycleCalculatorWindow(QDialog):
                 end_date=end_datetime,
                 planet1=planet1,
                 planet2=planet2,
-                aspect_type=target_aspect_type.value
+                aspect_type=target_aspect_type.value,
             )
 
             # Update progress
@@ -550,19 +615,21 @@ class CycleCalculatorWindow(QDialog):
 
             count = 0
             total = len(aspects)
-            logger.info(f"Found {total} aspects between {planet1} and {planet2} ({target_aspect_type.value})")
+            logger.info(
+                f"Found {total} aspects between {planet1} and {planet2} ({target_aspect_type.value})"
+            )
 
             # Safely get timezone for display
             try:
                 local_tz = datetime.now().astimezone().tzinfo
                 # Handle timezone as a string safely
-                if hasattr(local_tz, 'tzname'):
-                    timezone_name = local_tz.tzname(None) or 'UTC'
+                if hasattr(local_tz, "tzname"):
+                    timezone_name = local_tz.tzname(None) or "UTC"
                 else:
-                    timezone_name = str(local_tz) or 'UTC'
+                    timezone_name = str(local_tz) or "UTC"
             except Exception as e:
                 logger.warning(f"Could not determine local timezone: {e}, using UTC")
-                timezone_name = 'UTC'
+                timezone_name = "UTC"
 
             # Add each aspect to the results table
             for i, aspect in enumerate(aspects):
@@ -574,22 +641,26 @@ class CycleCalculatorWindow(QDialog):
                     break
 
                 # Get the aspect time and convert to local timezone safely
-                aspect_time = aspect['exact_timestamp']
+                aspect_time = aspect["exact_timestamp"]
                 if aspect_time.tzinfo is None:
                     # Localize if time is naive
                     try:
-                        aspect_time = pytz.timezone('UTC').localize(aspect_time)
+                        aspect_time = pytz.timezone("UTC").localize(aspect_time)
                         try:
                             # Try to convert to local timezone
-                            aspect_time = aspect_time.astimezone()  # Use system default timezone
+                            aspect_time = (
+                                aspect_time.astimezone()
+                            )  # Use system default timezone
                         except:
                             # If local timezone conversion fails, stay with UTC
                             pass
                     except Exception as e:
-                        logger.warning(f"Timezone conversion failed: {e}, using original time")
+                        logger.warning(
+                            f"Timezone conversion failed: {e}, using original time"
+                        )
 
                 # Format zodiac positions
-                body1_position = aspect['exact_position1']
+                body1_position = aspect["exact_position1"]
                 zodiac_sign1 = self._get_zodiac_sign_for_position(body1_position)
                 degrees1 = body1_position % 30
 
@@ -599,22 +670,29 @@ class CycleCalculatorWindow(QDialog):
                     time_value=aspect_time.time(),
                     event=f"{planet1} {target_aspect_type.value} {planet2}",
                     details=f"Exact aspect at {round(degrees1, 1)}° {zodiac_sign1}",
-                    position=f"{round(degrees1, 1)}° {zodiac_sign1}"
+                    position=f"{round(degrees1, 1)}° {zodiac_sign1}",
                 )
                 count += 1
 
             # Set final progress and update count
             progress.setValue(100)
             if count == 0:
-                logger.info(f"No matching aspects found in the specified date range")
-                QMessageBox.information(self, "No Results",
-                    f"No {target_aspect_type.value} aspects between {planet1} and {planet2} found in the specified date range.")
+                logger.info("No matching aspects found in the specified date range")
+                QMessageBox.information(
+                    self,
+                    "No Results",
+                    f"No {target_aspect_type.value} aspects between {planet1} and {planet2} found in the specified date range.",
+                )
             else:
                 logger.info(f"Added {count} aspects to the results table")
 
         except Exception as e:
             logger.error(f"Error searching for aspects: {e}", exc_info=True)
-            QMessageBox.warning(self, "Search Error", f"An error occurred while searching for aspects: {e}")
+            QMessageBox.warning(
+                self,
+                "Search Error",
+                f"An error occurred while searching for aspects: {e}",
+            )
 
     def _get_zodiac_sign_for_position(self, position: float) -> str:
         """Get the zodiac sign for a given position in degrees.
@@ -625,8 +703,20 @@ class CycleCalculatorWindow(QDialog):
         Returns:
             Zodiac sign name
         """
-        signs = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-                "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+        signs = [
+            "Aries",
+            "Taurus",
+            "Gemini",
+            "Cancer",
+            "Leo",
+            "Virgo",
+            "Libra",
+            "Scorpio",
+            "Sagittarius",
+            "Capricorn",
+            "Aquarius",
+            "Pisces",
+        ]
         sign_index = int(position / 30) % 12
         return signs[sign_index]
 
@@ -645,7 +735,9 @@ class CycleCalculatorWindow(QDialog):
         cycle_length_days = 365.25 * 8
 
         # Log search parameters
-        logger.debug(f"Analyzing Venus 8-year cycle starting from {start_date}, {num_cycles} cycles")
+        logger.debug(
+            f"Analyzing Venus 8-year cycle starting from {start_date}, {num_cycles} cycles"
+        )
 
         # Update progress
         progress.setValue(10)
@@ -656,7 +748,9 @@ class CycleCalculatorWindow(QDialog):
         start_datetime = datetime.combine(start_date.toPyDate(), datetime.min.time())
 
         # Calculate end date for the analysis
-        end_datetime = start_datetime + timedelta(days=int(cycle_length_days * num_cycles))
+        end_datetime = start_datetime + timedelta(
+            days=int(cycle_length_days * num_cycles)
+        )
 
         # Convert back to QDate for display consistency
         end_date = QDate(end_datetime.year, end_datetime.month, end_datetime.day)
@@ -667,7 +761,7 @@ class CycleCalculatorWindow(QDialog):
             time_value=datetime.min.time(),
             event="Venus Cycle Analysis",
             details=f"Starting point for {num_cycles} cycle analysis",
-            position="N/A"
+            position="N/A",
         )
 
         # Add cycle points
@@ -680,7 +774,7 @@ class CycleCalculatorWindow(QDialog):
                 time_value=datetime.min.time(),
                 event=f"Venus Cycle {i} Completion",
                 details=f"End of {i} complete 8-year cycle{'s' if i > 1 else ''}",
-                position="N/A"
+                position="N/A",
             )
 
             # Update progress - ensure value is an integer
@@ -695,7 +789,7 @@ class CycleCalculatorWindow(QDialog):
             time_value=datetime.min.time(),
             event="Venus Cycle Pattern",
             details="Venus traces a five-pointed star pattern over each 8-year cycle",
-            position="N/A"
+            position="N/A",
         )
 
     def _search_saturn_pluto(self, start_date, end_date, progress):
@@ -712,7 +806,9 @@ class CycleCalculatorWindow(QDialog):
 
         try:
             # Convert QDate to Python datetime
-            start_datetime = datetime.combine(start_date.toPyDate(), datetime.min.time())
+            start_datetime = datetime.combine(
+                start_date.toPyDate(), datetime.min.time()
+            )
             end_datetime = datetime.combine(end_date.toPyDate(), datetime.max.time())
 
             # Query conjunctions directly from the repository
@@ -722,7 +818,7 @@ class CycleCalculatorWindow(QDialog):
                 end_date=end_datetime,
                 planet1="Saturn",
                 planet2="Pluto",
-                aspect_type="conjunction"
+                aspect_type="conjunction",
             )
 
             # Update progress
@@ -741,13 +837,13 @@ class CycleCalculatorWindow(QDialog):
             try:
                 local_tz = datetime.now().astimezone().tzinfo
                 # Handle timezone as a string safely
-                if hasattr(local_tz, 'tzname'):
-                    timezone_name = local_tz.tzname(None) or 'UTC'
+                if hasattr(local_tz, "tzname"):
+                    timezone_name = local_tz.tzname(None) or "UTC"
                 else:
-                    timezone_name = str(local_tz) or 'UTC'
+                    timezone_name = str(local_tz) or "UTC"
             except Exception as e:
                 logger.warning(f"Could not determine local timezone: {e}, using UTC")
-                timezone_name = 'UTC'
+                timezone_name = "UTC"
 
             # Add results to table
             for i, conjunction in enumerate(conjunctions):
@@ -759,22 +855,28 @@ class CycleCalculatorWindow(QDialog):
                     break
 
                 # Get the conjunction time and convert to local timezone safely
-                conjunction_time = conjunction['exact_timestamp']
+                conjunction_time = conjunction["exact_timestamp"]
                 if conjunction_time.tzinfo is None:
                     # Localize if time is naive
                     try:
-                        conjunction_time = pytz.timezone('UTC').localize(conjunction_time)
+                        conjunction_time = pytz.timezone("UTC").localize(
+                            conjunction_time
+                        )
                         try:
                             # Try to convert to local timezone
-                            conjunction_time = conjunction_time.astimezone()  # Use system default timezone
+                            conjunction_time = (
+                                conjunction_time.astimezone()
+                            )  # Use system default timezone
                         except:
                             # If local timezone conversion fails, stay with UTC
                             pass
                     except Exception as e:
-                        logger.warning(f"Timezone conversion failed: {e}, using original time")
+                        logger.warning(
+                            f"Timezone conversion failed: {e}, using original time"
+                        )
 
                 # Format position details
-                position = conjunction['exact_position1']
+                position = conjunction["exact_position1"]
                 zodiac_sign = self._get_zodiac_sign_for_position(position)
                 degrees = position % 30
 
@@ -784,7 +886,7 @@ class CycleCalculatorWindow(QDialog):
                     time_value=conjunction_time.time(),
                     event="Saturn-Pluto Conjunction",
                     details=f"Exact conjunction in {zodiac_sign}",
-                    position=f"{round(degrees, 1)}° {zodiac_sign}"
+                    position=f"{round(degrees, 1)}° {zodiac_sign}",
                 )
                 count += 1
 
@@ -797,22 +899,34 @@ class CycleCalculatorWindow(QDialog):
                             time_value=conjunction_time.time(),
                             event="Historical Context",
                             details=context,
-                            position="N/A"
+                            position="N/A",
                         )
 
             # Set final progress and update count
             progress.setValue(100)
             if count == 0:
-                logger.info(f"No Saturn-Pluto conjunctions found in the specified date range")
-                QMessageBox.information(self, "No Results",
-                    "No Saturn-Pluto conjunctions found in the specified date range.")
+                logger.info(
+                    "No Saturn-Pluto conjunctions found in the specified date range"
+                )
+                QMessageBox.information(
+                    self,
+                    "No Results",
+                    "No Saturn-Pluto conjunctions found in the specified date range.",
+                )
             else:
-                logger.info(f"Added {count} Saturn-Pluto conjunctions to the results table")
+                logger.info(
+                    f"Added {count} Saturn-Pluto conjunctions to the results table"
+                )
 
         except Exception as e:
-            logger.error(f"Error searching for Saturn-Pluto conjunctions: {e}", exc_info=True)
-            QMessageBox.warning(self, "Search Error",
-                f"An error occurred while searching for Saturn-Pluto conjunctions: {e}")
+            logger.error(
+                f"Error searching for Saturn-Pluto conjunctions: {e}", exc_info=True
+            )
+            QMessageBox.warning(
+                self,
+                "Search Error",
+                f"An error occurred while searching for Saturn-Pluto conjunctions: {e}",
+            )
 
     def _search_retrogrades(self, start_date, end_date, progress):
         """Search for retrograde periods.
@@ -823,9 +937,13 @@ class CycleCalculatorWindow(QDialog):
             progress: Progress dialog
         """
         # Get selected planet (or all planets)
-        planet_combo = getattr(self, 'retrograde_planet_combo', None)
+        planet_combo = getattr(self, "retrograde_planet_combo", None)
         selected_planet = planet_combo.currentData() if planet_combo else None
-        planet_name = planet_combo.currentText() if planet_combo and selected_planet else "All Planets"
+        planet_name = (
+            planet_combo.currentText()
+            if planet_combo and selected_planet
+            else "All Planets"
+        )
 
         # Update progress dialog
         progress.setValue(10)
@@ -833,27 +951,29 @@ class CycleCalculatorWindow(QDialog):
 
         try:
             # Convert QDate to Python datetime
-            start_datetime = datetime.combine(start_date.toPyDate(), datetime.min.time())
+            start_datetime = datetime.combine(
+                start_date.toPyDate(), datetime.min.time()
+            )
             end_datetime = datetime.combine(end_date.toPyDate(), datetime.max.time())
 
             # Query retrograde periods from the repository
             # Retrograde periods are stored as planet phases with phase_type "stationary_retrograde" and "stationary_direct"
             retrograde_query = {
-                'start_date': start_datetime,
-                'end_date': end_datetime,
-                'phase_type': PlanetPhaseType.STATIONARY_RETROGRADE.value  # Convert enum to string
+                "start_date": start_datetime,
+                "end_date": end_datetime,
+                "phase_type": PlanetPhaseType.STATIONARY_RETROGRADE.value,  # Convert enum to string
             }
 
             direct_query = {
-                'start_date': start_datetime,
-                'end_date': end_datetime,
-                'phase_type': PlanetPhaseType.STATIONARY_DIRECT.value  # Convert enum to string
+                "start_date": start_datetime,
+                "end_date": end_datetime,
+                "phase_type": PlanetPhaseType.STATIONARY_DIRECT.value,  # Convert enum to string
             }
 
             # Only add body_name if it's not None
             if selected_planet is not None:
-                retrograde_query['body_name'] = selected_planet
-                direct_query['body_name'] = selected_planet
+                retrograde_query["body_name"] = selected_planet
+                direct_query["body_name"] = selected_planet
 
             retrograde_phases = self.repository.get_planet_phases(**retrograde_query)
             direct_phases = self.repository.get_planet_phases(**direct_query)
@@ -866,19 +986,21 @@ class CycleCalculatorWindow(QDialog):
             # Process retrograde stations
             count = 0
             total_events = len(retrograde_phases) + len(direct_phases)
-            logger.info(f"Found {len(retrograde_phases)} retrograde stations and {len(direct_phases)} direct stations")
+            logger.info(
+                f"Found {len(retrograde_phases)} retrograde stations and {len(direct_phases)} direct stations"
+            )
 
             # Safely get timezone for display
             try:
                 local_tz = datetime.now().astimezone().tzinfo
                 # Handle timezone as a string safely
-                if hasattr(local_tz, 'tzname'):
-                    timezone_name = local_tz.tzname(None) or 'UTC'
+                if hasattr(local_tz, "tzname"):
+                    timezone_name = local_tz.tzname(None) or "UTC"
                 else:
-                    timezone_name = str(local_tz) or 'UTC'
+                    timezone_name = str(local_tz) or "UTC"
             except Exception as e:
                 logger.warning(f"Could not determine local timezone: {e}, using UTC")
-                timezone_name = 'UTC'
+                timezone_name = "UTC"
 
             # Add retrograde stations to results
             for i, phase in enumerate(retrograde_phases):
@@ -894,10 +1016,10 @@ class CycleCalculatorWindow(QDialog):
                         break
 
                     # Get the phase time
-                    phase_time = phase['timestamp']
+                    phase_time = phase["timestamp"]
 
                     # Get zodiac sign - handle both string format and numeric format
-                    zodiac_sign_value = phase.get('zodiac_sign')
+                    zodiac_sign_value = phase.get("zodiac_sign")
                     if zodiac_sign_value is not None:
                         if isinstance(zodiac_sign_value, str):
                             # If it's already a string like "Sagittarius", use it directly
@@ -907,13 +1029,15 @@ class CycleCalculatorWindow(QDialog):
                             try:
                                 # Convert to float first to handle different numeric types
                                 zodiac_value_num = float(zodiac_sign_value)
-                                zodiac_sign = self._get_zodiac_sign_for_position(zodiac_value_num * 30)
+                                zodiac_sign = self._get_zodiac_sign_for_position(
+                                    zodiac_value_num * 30
+                                )
                             except (ValueError, TypeError):
                                 zodiac_sign = "Unknown Sign"
                     else:
                         zodiac_sign = "Unknown Sign"
 
-                    planet = phase.get('body_name', "Unknown Planet")
+                    planet = phase.get("body_name", "Unknown Planet")
 
                     # Add to results table
                     self._add_result_to_table(
@@ -921,7 +1045,7 @@ class CycleCalculatorWindow(QDialog):
                         time_value=phase_time.time(),
                         event=f"{planet} Stations Retrograde",
                         details=f"Begins retrograde motion in {zodiac_sign}",
-                        position=f"{zodiac_sign}"
+                        position=f"{zodiac_sign}",
                     )
                     count += 1
                 except Exception as phase_err:
@@ -943,10 +1067,10 @@ class CycleCalculatorWindow(QDialog):
                         break
 
                     # Get the phase time
-                    phase_time = phase['timestamp']
+                    phase_time = phase["timestamp"]
 
                     # Get zodiac sign - handle both string format and numeric format
-                    zodiac_sign_value = phase.get('zodiac_sign')
+                    zodiac_sign_value = phase.get("zodiac_sign")
                     if zodiac_sign_value is not None:
                         if isinstance(zodiac_sign_value, str):
                             # If it's already a string like "Leo", use it directly
@@ -956,13 +1080,15 @@ class CycleCalculatorWindow(QDialog):
                             try:
                                 # Convert to float first to handle different numeric types
                                 zodiac_value_num = float(zodiac_sign_value)
-                                zodiac_sign = self._get_zodiac_sign_for_position(zodiac_value_num * 30)
+                                zodiac_sign = self._get_zodiac_sign_for_position(
+                                    zodiac_value_num * 30
+                                )
                             except (ValueError, TypeError):
                                 zodiac_sign = "Unknown Sign"
                     else:
                         zodiac_sign = "Unknown Sign"
 
-                    planet = phase.get('body_name', "Unknown Planet")
+                    planet = phase.get("body_name", "Unknown Planet")
 
                     # Add to results table
                     self._add_result_to_table(
@@ -970,7 +1096,7 @@ class CycleCalculatorWindow(QDialog):
                         time_value=phase_time.time(),
                         event=f"{planet} Stations Direct",
                         details=f"Resumes forward motion in {zodiac_sign}",
-                        position=f"{zodiac_sign}"
+                        position=f"{zodiac_sign}",
                     )
                     count += 1
                 except Exception as phase_err:
@@ -981,16 +1107,22 @@ class CycleCalculatorWindow(QDialog):
             # Set final progress and update count
             progress.setValue(100)
             if count == 0:
-                logger.info(f"No retrograde periods found in the specified date range")
-                QMessageBox.information(self, "No Results",
-                    f"No retrograde periods for {planet_name} found in the specified date range.")
+                logger.info("No retrograde periods found in the specified date range")
+                QMessageBox.information(
+                    self,
+                    "No Results",
+                    f"No retrograde periods for {planet_name} found in the specified date range.",
+                )
             else:
                 logger.info(f"Added {count} retrograde events to the results table")
 
         except Exception as e:
             logger.error(f"Error searching for retrograde periods: {e}", exc_info=True)
-            QMessageBox.warning(self, "Search Error",
-                f"An error occurred while searching for retrograde periods: {e}")
+            QMessageBox.warning(
+                self,
+                "Search Error",
+                f"An error occurred while searching for retrograde periods: {e}",
+            )
 
     def _search_lunar_phases(self, start_date, end_date, progress):
         """Search for lunar phases.
@@ -1002,7 +1134,9 @@ class CycleCalculatorWindow(QDialog):
         """
         # Get selected phase type, if any
         phase_type = self.lunar_phase_combo.currentData()
-        phase_type_name = self.lunar_phase_combo.currentText() if phase_type else "All Lunar Phases"
+        phase_type_name = (
+            self.lunar_phase_combo.currentText() if phase_type else "All Lunar Phases"
+        )
 
         # Update progress dialog
         progress.setValue(10)
@@ -1010,29 +1144,36 @@ class CycleCalculatorWindow(QDialog):
 
         try:
             # Convert QDate to Python datetime
-            start_datetime = datetime.combine(start_date.toPyDate(), datetime.min.time())
+            start_datetime = datetime.combine(
+                start_date.toPyDate(), datetime.min.time()
+            )
             end_datetime = datetime.combine(end_date.toPyDate(), datetime.max.time())
 
             # Debug log the query parameters
-            logger.debug(f"Lunar phases search params: start={start_datetime}, end={end_datetime}")
+            logger.debug(
+                f"Lunar phases search params: start={start_datetime}, end={end_datetime}"
+            )
             if phase_type:
-                logger.debug(f"Phase type: {phase_type}, value: {phase_type.value}, type: {type(phase_type)}")
+                logger.debug(
+                    f"Phase type: {phase_type}, value: {phase_type.value}, type: {type(phase_type)}"
+                )
 
             # Query lunar phases from the repository
             # Only pass phase_type if it's not None, and convert enum to string
-            query_params = {
-                'start_date': start_datetime,
-                'end_date': end_datetime
-            }
+            query_params = {"start_date": start_datetime, "end_date": end_datetime}
 
             if phase_type is not None:
                 # Convert enum to string value before passing to repository
-                query_params['phase_type'] = phase_type.value
-                logger.debug(f"Using phase_type query param: {query_params['phase_type']}")
+                query_params["phase_type"] = phase_type.value
+                logger.debug(
+                    f"Using phase_type query param: {query_params['phase_type']}"
+                )
 
             try:
                 lunar_phases = self.repository.get_lunar_phases(**query_params)
-                logger.debug(f"Repository query successful, returned {len(lunar_phases)} results")
+                logger.debug(
+                    f"Repository query successful, returned {len(lunar_phases)} results"
+                )
             except Exception as repo_error:
                 logger.error(f"Error in repository query: {repo_error}", exc_info=True)
                 raise
@@ -1049,28 +1190,36 @@ class CycleCalculatorWindow(QDialog):
             # Debug log the first result to understand its structure
             if total > 0:
                 logger.debug(f"First result structure: {lunar_phases[0]}")
-                logger.debug(f"phase_type value: {lunar_phases[0]['phase_type']}, type: {type(lunar_phases[0]['phase_type'])}")
-                logger.debug(f"moon_position value: {lunar_phases[0]['moon_position']}, type: {type(lunar_phases[0]['moon_position'])}")
-                logger.debug(f"zodiac_sign value: {lunar_phases[0]['zodiac_sign']}, type: {type(lunar_phases[0]['zodiac_sign'])}")
+                logger.debug(
+                    f"phase_type value: {lunar_phases[0]['phase_type']}, type: {type(lunar_phases[0]['phase_type'])}"
+                )
+                logger.debug(
+                    f"moon_position value: {lunar_phases[0]['moon_position']}, type: {type(lunar_phases[0]['moon_position'])}"
+                )
+                logger.debug(
+                    f"zodiac_sign value: {lunar_phases[0]['zodiac_sign']}, type: {type(lunar_phases[0]['zodiac_sign'])}"
+                )
 
             # Safely get timezone for display
             try:
                 local_tz = datetime.now().astimezone().tzinfo
                 # Handle timezone as a string safely
-                if hasattr(local_tz, 'tzname'):
-                    timezone_name = local_tz.tzname(None) or 'UTC'
+                if hasattr(local_tz, "tzname"):
+                    timezone_name = local_tz.tzname(None) or "UTC"
                 else:
-                    timezone_name = str(local_tz) or 'UTC'
+                    timezone_name = str(local_tz) or "UTC"
             except Exception as e:
                 logger.warning(f"Could not determine local timezone: {e}, using UTC")
-                timezone_name = 'UTC'
+                timezone_name = "UTC"
 
             # Add results to table
             for i, phase in enumerate(lunar_phases):
                 try:
                     # Update progress periodically
                     if i % 10 == 0:
-                        progress_value = 50 + int((i / total) * 50) if total > 0 else 100
+                        progress_value = (
+                            50 + int((i / total) * 50) if total > 0 else 100
+                        )
                         progress.setValue(progress_value)
                         if progress.wasCanceled():
                             break
@@ -1080,57 +1229,74 @@ class CycleCalculatorWindow(QDialog):
                         logger.debug(f"Processing phase {i}: {phase}")
 
                     # Get the phase time and convert to local timezone safely
-                    phase_time = phase['timestamp']
+                    phase_time = phase["timestamp"]
                     if phase_time.tzinfo is None:
                         # Localize if time is naive
                         try:
-                            phase_time = pytz.timezone('UTC').localize(phase_time)
-                            phase_time = phase_time.astimezone(pytz.timezone('UTC'))  # First convert to UTC
+                            phase_time = pytz.timezone("UTC").localize(phase_time)
+                            phase_time = phase_time.astimezone(
+                                pytz.timezone("UTC")
+                            )  # First convert to UTC
                             try:
                                 # Then try to convert to local timezone if possible
-                                phase_time = phase_time.astimezone()  # Use system default timezone
+                                phase_time = (
+                                    phase_time.astimezone()
+                                )  # Use system default timezone
                             except Exception as e:
                                 logger.warning(f"Local timezone conversion failed: {e}")
                                 # If local timezone conversion fails, stay with UTC
                                 pass
                         except Exception as e:
-                            logger.warning(f"Timezone conversion failed: {e}, using original time")
+                            logger.warning(
+                                f"Timezone conversion failed: {e}, using original time"
+                            )
 
                     # Get zodiac sign - handle different types of zodiac_sign values
                     try:
                         # If zodiac_sign is a string (like 'Aries'), use it directly
-                        if isinstance(phase['zodiac_sign'], str):
-                            zodiac_sign = phase['zodiac_sign']
+                        if isinstance(phase["zodiac_sign"], str):
+                            zodiac_sign = phase["zodiac_sign"]
                         # If zodiac_sign is a number (0-11), convert using our helper function
-                        elif isinstance(phase['zodiac_sign'], (int, float)):
+                        elif isinstance(phase["zodiac_sign"], (int, float)):
                             # If moon_position is present, use that for more accurate sign
-                            if 'moon_position' in phase and phase['moon_position'] is not None:
-                                zodiac_sign = self._get_zodiac_sign_for_position(phase['moon_position'])
+                            if (
+                                "moon_position" in phase
+                                and phase["moon_position"] is not None
+                            ):
+                                zodiac_sign = self._get_zodiac_sign_for_position(
+                                    phase["moon_position"]
+                                )
                             else:
                                 # Multiply zodiac_sign by 30 to get position in degrees (0=Aries, 1=Taurus, etc.)
-                                zodiac_sign = self._get_zodiac_sign_for_position(phase['zodiac_sign'] * 30)
+                                zodiac_sign = self._get_zodiac_sign_for_position(
+                                    phase["zodiac_sign"] * 30
+                                )
                         else:
                             # Fallback
                             zodiac_sign = "Unknown Sign"
-                            logger.warning(f"Unknown zodiac_sign type: {type(phase['zodiac_sign'])}")
+                            logger.warning(
+                                f"Unknown zodiac_sign type: {type(phase['zodiac_sign'])}"
+                            )
                     except Exception as e:
                         logger.warning(f"Error determining zodiac sign: {e}")
                         zodiac_sign = "Unknown Sign"
 
                     # Format display details - ensure phase_type is handled as a string
-                    phase_type_value = phase['phase_type']
+                    phase_type_value = phase["phase_type"]
                     if not isinstance(phase_type_value, str):
                         # Handle the case where phase_type might not be a string
-                        logger.warning(f"phase_type is not a string: {phase_type_value}, type: {type(phase_type_value)}")
-                        if hasattr(phase_type_value, 'value'):  # If it's an enum
+                        logger.warning(
+                            f"phase_type is not a string: {phase_type_value}, type: {type(phase_type_value)}"
+                        )
+                        if hasattr(phase_type_value, "value"):  # If it's an enum
                             phase_type_value = phase_type_value.value
                         else:
                             phase_type_value = str(phase_type_value)
 
-                    phase_title = phase_type_value.replace('_', ' ').title()
+                    phase_title = phase_type_value.replace("_", " ").title()
 
                     # Safely get moon position for display
-                    moon_position = phase.get('moon_position')
+                    moon_position = phase.get("moon_position")
                     if moon_position is not None:
                         position_text = f"{round(moon_position % 30, 1)}° {zodiac_sign}"
                     else:
@@ -1142,27 +1308,35 @@ class CycleCalculatorWindow(QDialog):
                         time_value=phase_time.time(),
                         event=phase_title,
                         details=f"Moon in {zodiac_sign}",
-                        position=position_text
+                        position=position_text,
                     )
                     count += 1
                 except Exception as loop_err:
-                    logger.error(f"Error processing phase {i}: {loop_err}", exc_info=True)
+                    logger.error(
+                        f"Error processing phase {i}: {loop_err}", exc_info=True
+                    )
                     # Continue with next phase rather than breaking the entire loop
                     continue
 
             # Set final progress and update count
             progress.setValue(100)
             if count == 0:
-                logger.info(f"No lunar phases found in the specified date range")
-                QMessageBox.information(self, "No Results",
-                    f"No {phase_type_name.lower()} found in the specified date range.")
+                logger.info("No lunar phases found in the specified date range")
+                QMessageBox.information(
+                    self,
+                    "No Results",
+                    f"No {phase_type_name.lower()} found in the specified date range.",
+                )
             else:
                 logger.info(f"Added {count} lunar phases to the results table")
 
         except Exception as e:
             logger.error(f"Error searching for lunar phases: {e}", exc_info=True)
-            QMessageBox.warning(self, "Search Error",
-                f"An error occurred while searching for lunar phases: {e}")
+            QMessageBox.warning(
+                self,
+                "Search Error",
+                f"An error occurred while searching for lunar phases: {e}",
+            )
 
     def _add_result_to_table(self, date, time_value, event, details, position):
         """Add a result to the results table.
@@ -1183,13 +1357,13 @@ class CycleCalculatorWindow(QDialog):
         # Use type name checking to avoid conflict with datetime.time
         time_str = "--:--"
         if time_value is not None:
-            if type(time_value).__name__ == 'time':
+            if type(time_value).__name__ == "time":
                 time_str = time_value.strftime("%H:%M")
         else:
-                try:
-                    time_str = str(time_value)
-                except:
-                    time_str = "--:--"
+            try:
+                time_str = str(time_value)
+            except:
+                time_str = "--:--"
 
         # Create items
         date_item = QTableWidgetItem(date_str)
@@ -1229,7 +1403,7 @@ class CycleCalculatorWindow(QDialog):
             "Saturn": swe.SATURN,
             "Uranus": swe.URANUS,
             "Neptune": swe.NEPTUNE,
-            "Pluto": swe.PLUTO
+            "Pluto": swe.PLUTO,
         }
 
         return planet_map.get(planet_name)
@@ -1248,7 +1422,7 @@ class CycleCalculatorWindow(QDialog):
             1914: "World War I begins",
             1947: "Cold War begins",
             1982: "Economic recession, Cold War tensions",
-            2020: "COVID-19 pandemic"
+            2020: "COVID-19 pandemic",
         }
 
         # Find the closest year

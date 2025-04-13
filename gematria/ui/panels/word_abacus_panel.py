@@ -138,7 +138,10 @@ class WordAbacusPanel(QWidget):
             result: The calculation result
         """
         from loguru import logger
-        logger.debug(f"WordAbacusPanel._on_calculation_performed called with result ID: {result.id}")
+
+        logger.debug(
+            f"WordAbacusPanel._on_calculation_performed called with result ID: {result.id}"
+        )
 
         # Store the current calculation
         self._current_calculation = result
@@ -149,7 +152,9 @@ class WordAbacusPanel(QWidget):
 
         # Re-emit the signal to notify parent components
         # This is needed for the MainPanel to switch to the history tab
-        logger.debug(f"Re-emitting calculation_performed signal with result ID: {result.id}")
+        logger.debug(
+            f"Re-emitting calculation_performed signal with result ID: {result.id}"
+        )
         self.calculation_performed.emit(result)
 
     def _show_help_dialog(self) -> None:
@@ -225,8 +230,13 @@ class WordAbacusPanel(QWidget):
             from loguru import logger
 
             # Check if this is a custom cipher calculation
-            if hasattr(self._current_calculation, "custom_method_name") and self._current_calculation.custom_method_name:
-                logger.debug(f"Saving custom cipher calculation with method: {self._current_calculation.custom_method_name}")
+            if (
+                hasattr(self._current_calculation, "custom_method_name")
+                and self._current_calculation.custom_method_name
+            ):
+                logger.debug(
+                    f"Saving custom cipher calculation with method: {self._current_calculation.custom_method_name}"
+                )
 
                 # For custom ciphers, we need to pass the custom_method_name
                 # Get the custom method name, removing 'Custom: ' prefix if present
@@ -243,7 +253,7 @@ class WordAbacusPanel(QWidget):
                     tags=tags,
                     favorite=favorite,
                     value=value,  # Pass the pre-calculated value
-                    custom_method_name=custom_method_name  # Pass the clean custom method name
+                    custom_method_name=custom_method_name,  # Pass the clean custom method name
                 )
             else:
                 # For standard calculation types

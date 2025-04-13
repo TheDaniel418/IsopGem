@@ -42,4 +42,4 @@ class Location(BaseModel):
         Returns:
             Tuple of (latitude, longitude)
         """
-        return (self.latitude, self.longitude) 
+        return (self.latitude, self.longitude)

@@ -7,28 +7,23 @@ import random
 
 from loguru import logger
 from PyQt6.QtCore import QPointF, Qt, QTimer
-from PyQt6.QtGui import (
-    QBrush,
-    QColor,
-    QPainter,
-    QPen,
-    QPixmap,
-    QRadialGradient,
-)
+from PyQt6.QtGui import QBrush, QColor, QPainter, QPen, QPixmap, QRadialGradient
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
 )
 
+from astrology.ui.dialogs.astrological_database_manager import (
+    AstrologicalDatabaseManager,
+)
 from astrology.ui.dialogs.birth_chart_window import BirthChartWindow
-from astrology.ui.dialogs.planner_window import PlannerWindow
 from astrology.ui.dialogs.cycle_calculator_window import CycleCalculatorWindow
-from astrology.ui.dialogs.astrological_database_manager import AstrologicalDatabaseManager
+from astrology.ui.dialogs.planner_window import PlannerWindow
 from shared.repositories.database import Database
 from shared.ui.window_management import TabManager, WindowManager
 
@@ -167,7 +162,9 @@ class AstrologyTab(QWidget):
         cycle_calculator_window = CycleCalculatorWindow()
 
         # Connect chart requested signal
-        cycle_calculator_window.chart_requested.connect(self._on_chart_requested_from_cycle_calculator)
+        cycle_calculator_window.chart_requested.connect(
+            self._on_chart_requested_from_cycle_calculator
+        )
 
         # Open it in a window
         self.window_manager.open_window(
@@ -194,10 +191,10 @@ class AstrologyTab(QWidget):
         try:
             # Get the database instance
             database = Database.get_instance()
-            
+
             # Create the database manager dialog
             db_manager = AstrologicalDatabaseManager(database, self)
-            
+
             # Show the dialog
             db_manager.exec()
         except Exception as e:
@@ -206,8 +203,8 @@ class AstrologyTab(QWidget):
             QMessageBox.critical(
                 self,
                 "Database Manager Error",
-                f"Could not open database manager: {str(e)}"
-        )
+                f"Could not open database manager: {str(e)}",
+            )
 
     def _init_ui(self) -> None:
         """Initialize the UI components."""
@@ -263,7 +260,7 @@ class AstrologyTab(QWidget):
         planner_btn.setToolTip("Open the astrological daily planner")
         planner_btn.clicked.connect(self._open_planner)
         button_layout.addWidget(planner_btn)
-        
+
         # Database Manager button
         db_manager_btn = QPushButton("Database Manager")
         db_manager_btn.setToolTip("Manage the astrological events database")

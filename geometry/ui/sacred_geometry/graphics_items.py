@@ -5,43 +5,35 @@ on the canvas in the Sacred Geometry Explorer.
 """
 
 import math
-from typing import Dict, Any, Optional, List, Tuple, Set, cast
-from PyQt6.QtCore import Qt, QRectF, QPointF, QSizeF, QLineF
+from typing import Any, List, Optional, Set
+
+from loguru import logger
+from PyQt6.QtCore import QLineF, QPointF, QRectF, Qt
+from PyQt6.QtGui import (
+    QBrush,
+    QFont,
+    QFontMetricsF,
+    QPainter,
+    QPainterPath,
+    QPainterPathStroker,
+    QPen,
+    QPolygonF,
+)
 from PyQt6.QtWidgets import (
     QGraphicsItem,
-    QGraphicsEllipseItem,
-    QGraphicsLineItem,
-    QGraphicsPathItem,
-    QGraphicsRectItem,
-    QGraphicsPolygonItem,
     QGraphicsSceneMouseEvent,
     QStyleOptionGraphicsItem,
     QWidget,
 )
-from PyQt6.QtGui import (
-    QPen,
-    QBrush,
-    QColor,
-    QPainter,
-    QPainterPath,
-    QPainterPathStroker,
-    QTransform,
-    QPolygonF,
-    QFont,
-    QFontMetricsF,
-)
-from loguru import logger
 
 from geometry.ui.sacred_geometry.model import (
-    GeometricObject,
-    Point,
-    Line,
     Circle,
+    GeometricObject,
+    Line,
+    LineType,
+    Point,
     Polygon,
     Text,
-    Style,
-    ObjectType,
-    LineType,
 )
 
 
@@ -105,9 +97,9 @@ class GeometricGraphicsItem(QGraphicsItem):
         if isinstance(self.geometric_object, Point):
             self.setZValue(10)  # Points on top
         elif isinstance(self.geometric_object, Line):
-            self.setZValue(5)   # Lines in the middle
+            self.setZValue(5)  # Lines in the middle
         elif isinstance(self.geometric_object, Circle):
-            self.setZValue(1)   # Circles at the bottom
+            self.setZValue(1)  # Circles at the bottom
 
     def update_from_object(self) -> None:
         """Update the item's geometry and appearance from the geometric object."""
@@ -176,7 +168,12 @@ class GeometricGraphicsItem(QGraphicsItem):
         # Subclasses should override this method if they have handles
         pass
 
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = None) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionGraphicsItem,
+        widget: Optional[QWidget] = None,
+    ) -> None:
         """Paint the item.
 
         Args:
@@ -299,7 +296,9 @@ class GeometricGraphicsItem(QGraphicsItem):
         # Check if we're dragging a handle
         if self.drag_handle is not None:
             # Log the event
-            logger.debug(f"DEBUG: LineGraphicsItem.mouseMoveEvent with drag_handle={self.drag_handle}")
+            logger.debug(
+                f"DEBUG: LineGraphicsItem.mouseMoveEvent with drag_handle={self.drag_handle}"
+            )
 
             # Move the handle to the new position
             # We're directly passing the event position to move_handle
@@ -314,7 +313,9 @@ class GeometricGraphicsItem(QGraphicsItem):
             event.accept()
         elif self.selected_handles:
             # Log the event
-            logger.debug(f"DEBUG: LineGraphicsItem.mouseMoveEvent with selected_handles={self.selected_handles}")
+            logger.debug(
+                f"DEBUG: LineGraphicsItem.mouseMoveEvent with selected_handles={self.selected_handles}"
+            )
 
             # Move selected handles
             for handle in self.selected_handles:
@@ -328,7 +329,9 @@ class GeometricGraphicsItem(QGraphicsItem):
             event.accept()
         else:
             # No handles selected, use default behavior for moving the entire line
-            logger.debug(f"DEBUG: LineGraphicsItem.mouseMoveEvent with no handles selected (moving entire line)")
+            logger.debug(
+                "DEBUG: LineGraphicsItem.mouseMoveEvent with no handles selected (moving entire line)"
+            )
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:
@@ -440,7 +443,9 @@ class PointGraphicsItem(GeometricGraphicsItem):
             new_x, new_y = self.pos().x(), self.pos().y()
 
             # Log point movement
-            logger.debug(f"Point {self.point.id} moving from ({old_x}, {old_y}) to ({new_x}, {new_y})")
+            logger.debug(
+                f"Point {self.point.id} moving from ({old_x}, {old_y}) to ({new_x}, {new_y})"
+            )
 
             # Update position in the model
             self.point.x = new_x
@@ -448,7 +453,7 @@ class PointGraphicsItem(GeometricGraphicsItem):
 
             # Notify dependents if position changed
             if old_x != new_x or old_y != new_y:
-                if self.scene() and hasattr(self.scene().views()[0], 'canvas'):
+                if self.scene() and hasattr(self.scene().views()[0], "canvas"):
                     # Find all dependent line graphics items
                     dependent_lines = []
                     for item in self.scene().items():
@@ -462,7 +467,9 @@ class PointGraphicsItem(GeometricGraphicsItem):
 
                     # Log dependent lines
                     if dependent_lines:
-                        logger.debug(f"  Point {self.point.id} has {len(dependent_lines)} dependent lines")
+                        logger.debug(
+                            f"  Point {self.point.id} has {len(dependent_lines)} dependent lines"
+                        )
                     else:
                         logger.debug(f"  Point {self.point.id} has no dependent lines")
 
@@ -470,7 +477,9 @@ class PointGraphicsItem(GeometricGraphicsItem):
                     lines_updated = 0
                     for line_item, is_p1, is_p2 in dependent_lines:
                         endpoint = "P1" if is_p1 else "P2"
-                        logger.debug(f"  Found dependent line {line_item.line.id} where this point is {endpoint}")
+                        logger.debug(
+                            f"  Found dependent line {line_item.line.id} where this point is {endpoint}"
+                        )
 
                         if not line_item.updating:  # Prevent recursive updates
                             # Temporarily disable updating to prevent recursive updates
@@ -479,7 +488,9 @@ class PointGraphicsItem(GeometricGraphicsItem):
 
                             # This code is no longer needed as Line objects don't have p1/p2 Point objects
                             # Instead, we'll skip this section as it's not applicable to the new Line implementation
-                            logger.debug(f"    Skipping line update as Line objects no longer use Point objects")
+                            logger.debug(
+                                "    Skipping line update as Line objects no longer use Point objects"
+                            )
 
                             # Force a redraw of the line
                             line_item.prepareGeometryChange()
@@ -489,13 +500,20 @@ class PointGraphicsItem(GeometricGraphicsItem):
                             line_item.updating = old_updating
                             lines_updated += 1
                         else:
-                            logger.debug(f"    Skipped updating line (already updating)")
+                            logger.debug(
+                                "    Skipped updating line (already updating)"
+                            )
 
                     logger.debug(f"  Updated {lines_updated} line graphics items")
         finally:
             self.updating = False
 
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = None) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionGraphicsItem,
+        widget: Optional[QWidget] = None,
+    ) -> None:
         """Paint the item.
 
         Args:
@@ -527,7 +545,12 @@ class PointGraphicsItem(GeometricGraphicsItem):
             Handle index or None if no handle at the point
         """
         # Points only have one handle (the point itself)
-        if QRectF(-self.HANDLE_SIZE / 2, -self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE).contains(point):
+        if QRectF(
+            -self.HANDLE_SIZE / 2,
+            -self.HANDLE_SIZE / 2,
+            self.HANDLE_SIZE,
+            self.HANDLE_SIZE,
+        ).contains(point):
             return self.HANDLE_MIDDLE_MIDDLE
 
         return None
@@ -543,7 +566,12 @@ class PointGraphicsItem(GeometricGraphicsItem):
         """
         # Points only have one handle (the point itself)
         if handle == self.HANDLE_MIDDLE_MIDDLE:
-            return QRectF(-self.HANDLE_SIZE / 2, -self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                -self.HANDLE_SIZE / 2,
+                -self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
 
         return QRectF()
 
@@ -636,7 +664,9 @@ class LineGraphicsItem(GeometricGraphicsItem):
         """Update the item's geometry and appearance from the geometric object."""
         # Prevent recursive updates
         if self.updating:
-            logger.debug(f"DEBUG: LineGraphicsItem.update_from_object skipped due to recursive update prevention")
+            logger.debug(
+                "DEBUG: LineGraphicsItem.update_from_object skipped due to recursive update prevention"
+            )
             return
 
         self.updating = True
@@ -647,8 +677,12 @@ class LineGraphicsItem(GeometricGraphicsItem):
             old_x2, old_y2 = self.line.x2, self.line.y2
 
             # Log before update
-            logger.debug(f"DEBUG: LineGraphicsItem.update_from_object called for Line {self.line.id}")
-            logger.debug(f"DEBUG: Before update_from_object: P1=({old_x1}, {old_y1}), P2=({old_x2}, {old_y2})")
+            logger.debug(
+                f"DEBUG: LineGraphicsItem.update_from_object called for Line {self.line.id}"
+            )
+            logger.debug(
+                f"DEBUG: Before update_from_object: P1=({old_x1}, {old_y1}), P2=({old_x2}, {old_y2})"
+            )
 
             # Update base properties (color, style, etc.)
             super().update_from_object()
@@ -659,20 +693,26 @@ class LineGraphicsItem(GeometricGraphicsItem):
             self.setPos(0, 0)
 
             # Log the update
-            logger.debug(f"Updating LineGraphicsItem from Line object: P1=({self.line.x1}, {self.line.y1}), P2=({self.line.x2}, {self.line.y2})")
+            logger.debug(
+                f"Updating LineGraphicsItem from Line object: P1=({self.line.x1}, {self.line.y1}), P2=({self.line.x2}, {self.line.y2})"
+            )
 
             # Check if endpoints changed
             if old_x1 != self.line.x1 or old_y1 != self.line.y1:
-                logger.debug(f"DEBUG: Endpoint 1 changed from ({old_x1}, {old_y1}) to ({self.line.x1}, {self.line.y1})")
+                logger.debug(
+                    f"DEBUG: Endpoint 1 changed from ({old_x1}, {old_y1}) to ({self.line.x1}, {self.line.y1})"
+                )
             if old_x2 != self.line.x2 or old_y2 != self.line.y2:
-                logger.debug(f"DEBUG: Endpoint 2 changed from ({old_x2}, {old_y2}) to ({self.line.x2}, {self.line.y2})")
+                logger.debug(
+                    f"DEBUG: Endpoint 2 changed from ({old_x2}, {old_y2}) to ({self.line.x2}, {self.line.y2})"
+                )
 
             # Force a redraw to reflect any changes in endpoint positions
             self.prepareGeometryChange()
 
             # Update the item
             self.update()
-            logger.debug(f"DEBUG: LineGraphicsItem.update_from_object completed")
+            logger.debug("DEBUG: LineGraphicsItem.update_from_object completed")
         finally:
             self.updating = False
 
@@ -680,7 +720,9 @@ class LineGraphicsItem(GeometricGraphicsItem):
         """Update the geometric object's properties from the item."""
         # Prevent recursive updates
         if self.updating:
-            logger.debug(f"DEBUG: LineGraphicsItem.update_object_from_item skipped due to recursive update prevention")
+            logger.debug(
+                "DEBUG: LineGraphicsItem.update_object_from_item skipped due to recursive update prevention"
+            )
             return
 
         self.updating = True
@@ -697,10 +739,13 @@ class LineGraphicsItem(GeometricGraphicsItem):
             if dx != 0 or dy != 0:
                 # Log before movement
                 logger.debug(f"DEBUG: Line {self.line.id} moving by ({dx}, {dy})")
-                logger.debug(f"DEBUG: Before update_object_from_item: P1=({self.line.x1}, {self.line.y1}), P2=({self.line.x2}, {self.line.y2})")
+                logger.debug(
+                    f"DEBUG: Before update_object_from_item: P1=({self.line.x1}, {self.line.y1}), P2=({self.line.x2}, {self.line.y2})"
+                )
 
                 # Create a copy of the line to modify
                 from copy import deepcopy
+
                 modified_line = deepcopy(self.line)
 
                 # Move the entire line by updating both endpoints
@@ -718,7 +763,9 @@ class LineGraphicsItem(GeometricGraphicsItem):
                 self.line.y2 = modified_line.y2
 
                 # Log after movement
-                logger.debug(f"DEBUG: After update_object_from_item: P1=({self.line.x1}, {self.line.y1}), P2=({self.line.x2}, {self.line.y2})")
+                logger.debug(
+                    f"DEBUG: After update_object_from_item: P1=({self.line.x1}, {self.line.y1}), P2=({self.line.x2}, {self.line.y2})"
+                )
 
                 # Reset the line position to origin
                 self.setPos(0, 0)
@@ -735,14 +782,22 @@ class LineGraphicsItem(GeometricGraphicsItem):
         Returns:
             Modified value
         """
-        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+        if (
+            change == QGraphicsItem.GraphicsItemChange.ItemPositionChange
+            and self.scene()
+        ):
             # When the line is moved, we need to move its endpoints too
             # This is handled in update_object_from_item
             pass
 
         return super().itemChange(change, value)
 
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = None) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionGraphicsItem,
+        widget: Optional[QWidget] = None,
+    ) -> None:
         """Paint the item.
 
         Args:
@@ -865,11 +920,21 @@ class LineGraphicsItem(GeometricGraphicsItem):
         if handle == self.HANDLE_TOP_LEFT:
             # Start point
             x, y = self.line.x1, self.line.y1
-            return QRectF(x - self.HANDLE_SIZE / 2, y - self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                x - self.HANDLE_SIZE / 2,
+                y - self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
         elif handle == self.HANDLE_BOTTOM_RIGHT:
             # End point
             x, y = self.line.x2, self.line.y2
-            return QRectF(x - self.HANDLE_SIZE / 2, y - self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                x - self.HANDLE_SIZE / 2,
+                y - self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
 
         return QRectF()
 
@@ -897,7 +962,9 @@ class LineGraphicsItem(GeometricGraphicsItem):
         """
         # Prevent recursive updates
         if self.updating:
-            logger.debug(f"DEBUG: LineGraphicsItem.move_handle skipped due to recursive update prevention")
+            logger.debug(
+                "DEBUG: LineGraphicsItem.move_handle skipped due to recursive update prevention"
+            )
             return
 
         self.updating = True
@@ -909,34 +976,49 @@ class LineGraphicsItem(GeometricGraphicsItem):
             new_y = scene_point.y()
 
             # Log handle movement
-            handle_name = "P1 (TOP_LEFT)" if handle == self.HANDLE_TOP_LEFT else "P2 (BOTTOM_RIGHT)" if handle == self.HANDLE_BOTTOM_RIGHT else f"Unknown ({handle})"
-            logger.debug(f"DEBUG: LineGraphicsItem.move_handle called for Line {self.line.id} handle {handle_name} to ({new_x}, {new_y})")
+            handle_name = (
+                "P1 (TOP_LEFT)"
+                if handle == self.HANDLE_TOP_LEFT
+                else "P2 (BOTTOM_RIGHT)"
+                if handle == self.HANDLE_BOTTOM_RIGHT
+                else f"Unknown ({handle})"
+            )
+            logger.debug(
+                f"DEBUG: LineGraphicsItem.move_handle called for Line {self.line.id} handle {handle_name} to ({new_x}, {new_y})"
+            )
 
             # Store original values for debugging
             orig_x1, orig_y1 = self.line.x1, self.line.y1
             orig_x2, orig_y2 = self.line.x2, self.line.y2
-            logger.debug(f"DEBUG: Before move_handle: P1=({orig_x1}, {orig_y1}), P2=({orig_x2}, {orig_y2})")
+            logger.debug(
+                f"DEBUG: Before move_handle: P1=({orig_x1}, {orig_y1}), P2=({orig_x2}, {orig_y2})"
+            )
 
             # Create a new line with the same properties as the current line
             from copy import deepcopy
+
             new_line = deepcopy(self.line)
 
             # Store which endpoint is being moved in the line's metadata
             # This will be used by the properties panel to only update the relevant fields
-            if 'metadata' not in new_line.__dict__:
+            if "metadata" not in new_line.__dict__:
                 new_line.metadata = {}
 
             # Update only the endpoint that's being moved
             if handle == self.HANDLE_TOP_LEFT:
                 new_line.x1 = new_x
                 new_line.y1 = new_y
-                new_line.metadata['moved_endpoint'] = 1  # Endpoint 1 was moved
-                logger.debug(f"  New line: P1=({new_line.x1}, {new_line.y1}), P2=({new_line.x2}, {new_line.y2})")
+                new_line.metadata["moved_endpoint"] = 1  # Endpoint 1 was moved
+                logger.debug(
+                    f"  New line: P1=({new_line.x1}, {new_line.y1}), P2=({new_line.x2}, {new_line.y2})"
+                )
             elif handle == self.HANDLE_BOTTOM_RIGHT:
                 new_line.x2 = new_x
                 new_line.y2 = new_y
-                new_line.metadata['moved_endpoint'] = 2  # Endpoint 2 was moved
-                logger.debug(f"  New line: P1=({new_line.x1}, {new_line.y1}), P2=({new_line.x2}, {new_line.y2})")
+                new_line.metadata["moved_endpoint"] = 2  # Endpoint 2 was moved
+                logger.debug(
+                    f"  New line: P1=({new_line.x1}, {new_line.y1}), P2=({new_line.x2}, {new_line.y2})"
+                )
 
             # Update our internal line object first
             self.line = new_line
@@ -946,18 +1028,20 @@ class LineGraphicsItem(GeometricGraphicsItem):
             self.update()
 
             # Find the canvas through the scene's views
-            if hasattr(self, 'scene') and self.scene():
+            if hasattr(self, "scene") and self.scene():
                 for view in self.scene().views():
-                    if hasattr(view, 'update_object'):
-                        logger.debug(f"  Updating canvas with new line")
+                    if hasattr(view, "update_object"):
+                        logger.debug("  Updating canvas with new line")
                         view.update_object(new_line)
                         break
                 else:
                     # If we get here, we didn't find a view with update_object
-                    logger.error(f"  Cannot find canvas in scene views")
+                    logger.error("  Cannot find canvas in scene views")
 
             # Don't call any other update methods - let the explorer handle it
-            logger.debug(f"DEBUG: LineGraphicsItem.move_handle completed for Line {self.line.id}")
+            logger.debug(
+                f"DEBUG: LineGraphicsItem.move_handle completed for Line {self.line.id}"
+            )
         finally:
             self.updating = False
 
@@ -1011,7 +1095,9 @@ class CircleGraphicsItem(GeometricGraphicsItem):
             self.setPos(0, 0)
 
             # Log the update
-            logger.debug(f"Updating CircleGraphicsItem from Circle object: center=({self.circle.center_x}, {self.circle.center_y}), radius={self.circle.radius}")
+            logger.debug(
+                f"Updating CircleGraphicsItem from Circle object: center=({self.circle.center_x}, {self.circle.center_y}), radius={self.circle.radius}"
+            )
 
             # Force a redraw to reflect any changes in center position or radius
             self.prepareGeometryChange()
@@ -1034,13 +1120,20 @@ class CircleGraphicsItem(GeometricGraphicsItem):
             super().update_object_from_item()
 
             # Log the update
-            logger.debug(f"Updating Circle object from CircleGraphicsItem: center=({self.circle.center_x}, {self.circle.center_y}), radius={self.circle.radius}")
+            logger.debug(
+                f"Updating Circle object from CircleGraphicsItem: center=({self.circle.center_x}, {self.circle.center_y}), radius={self.circle.radius}"
+            )
 
             # Circles are updated through handle movement
         finally:
             self.updating = False
 
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = None) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionGraphicsItem,
+        widget: Optional[QWidget] = None,
+    ) -> None:
         """Paint the item.
 
         Args:
@@ -1078,8 +1171,13 @@ class CircleGraphicsItem(GeometricGraphicsItem):
             Handle index or None if no handle at the point
         """
         # Circles have 5 handles (center, top, right, bottom, left)
-        for handle in [self.HANDLE_MIDDLE_MIDDLE, self.HANDLE_TOP_MIDDLE, self.HANDLE_MIDDLE_RIGHT,
-                      self.HANDLE_BOTTOM_MIDDLE, self.HANDLE_MIDDLE_LEFT]:
+        for handle in [
+            self.HANDLE_MIDDLE_MIDDLE,
+            self.HANDLE_TOP_MIDDLE,
+            self.HANDLE_MIDDLE_RIGHT,
+            self.HANDLE_BOTTOM_MIDDLE,
+            self.HANDLE_MIDDLE_LEFT,
+        ]:
             if self.handle_rect(handle).contains(point):
                 return handle
 
@@ -1101,19 +1199,44 @@ class CircleGraphicsItem(GeometricGraphicsItem):
         # Circles have 5 handles (center, top, right, bottom, left)
         if handle == self.HANDLE_MIDDLE_MIDDLE:
             # Center
-            return QRectF(cx - self.HANDLE_SIZE / 2, cy - self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                cx - self.HANDLE_SIZE / 2,
+                cy - self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
         elif handle == self.HANDLE_TOP_MIDDLE:
             # Top
-            return QRectF(cx - self.HANDLE_SIZE / 2, cy - r - self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                cx - self.HANDLE_SIZE / 2,
+                cy - r - self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
         elif handle == self.HANDLE_MIDDLE_RIGHT:
             # Right
-            return QRectF(cx + r - self.HANDLE_SIZE / 2, cy - self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                cx + r - self.HANDLE_SIZE / 2,
+                cy - self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
         elif handle == self.HANDLE_BOTTOM_MIDDLE:
             # Bottom
-            return QRectF(cx - self.HANDLE_SIZE / 2, cy + r - self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                cx - self.HANDLE_SIZE / 2,
+                cy + r - self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
         elif handle == self.HANDLE_MIDDLE_LEFT:
             # Left
-            return QRectF(cx - r - self.HANDLE_SIZE / 2, cy - self.HANDLE_SIZE / 2, self.HANDLE_SIZE, self.HANDLE_SIZE)
+            return QRectF(
+                cx - r - self.HANDLE_SIZE / 2,
+                cy - self.HANDLE_SIZE / 2,
+                self.HANDLE_SIZE,
+                self.HANDLE_SIZE,
+            )
 
         return QRectF()
 
@@ -1161,32 +1284,42 @@ class CircleGraphicsItem(GeometricGraphicsItem):
                 # Move center
                 old_x, old_y = self.circle.center_x, self.circle.center_y
                 new_x, new_y = point.x(), point.y()
-                logger.debug(f"Moving circle {self.circle.id} center from ({old_x}, {old_y}) to ({new_x}, {new_y})")
+                logger.debug(
+                    f"Moving circle {self.circle.id} center from ({old_x}, {old_y}) to ({new_x}, {new_y})"
+                )
                 self.circle.center_x = new_x
                 self.circle.center_y = new_y
             elif handle == self.HANDLE_TOP_MIDDLE:
                 # Resize from top
                 old_radius = self.circle.radius
                 new_radius = abs(point.y() - cy)
-                logger.debug(f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (top)")
+                logger.debug(
+                    f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (top)"
+                )
                 self.circle.radius = new_radius
             elif handle == self.HANDLE_MIDDLE_RIGHT:
                 # Resize from right
                 old_radius = self.circle.radius
                 new_radius = abs(point.x() - cx)
-                logger.debug(f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (right)")
+                logger.debug(
+                    f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (right)"
+                )
                 self.circle.radius = new_radius
             elif handle == self.HANDLE_BOTTOM_MIDDLE:
                 # Resize from bottom
                 old_radius = self.circle.radius
                 new_radius = abs(point.y() - cy)
-                logger.debug(f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (bottom)")
+                logger.debug(
+                    f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (bottom)"
+                )
                 self.circle.radius = new_radius
             elif handle == self.HANDLE_MIDDLE_LEFT:
                 # Resize from left
                 old_radius = self.circle.radius
                 new_radius = abs(point.x() - cx)
-                logger.debug(f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (left)")
+                logger.debug(
+                    f"Resizing circle {self.circle.id} radius from {old_radius} to {new_radius} (left)"
+                )
                 self.circle.radius = new_radius
 
             # Force a redraw
@@ -1251,7 +1384,12 @@ class PolygonGraphicsItem(GeometricGraphicsItem):
         path.addPolygon(self.polygon_shape)
         return path
 
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = None) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionGraphicsItem,
+        widget: Optional[QWidget] = None,
+    ) -> None:
         """Paint the item.
 
         Args:
@@ -1292,7 +1430,7 @@ class PolygonGraphicsItem(GeometricGraphicsItem):
                 vertex.x - self.HANDLE_SIZE / 2,
                 vertex.y - self.HANDLE_SIZE / 2,
                 self.HANDLE_SIZE,
-                self.HANDLE_SIZE
+                self.HANDLE_SIZE,
             )
             painter.drawRect(handle_rect)
 
@@ -1306,7 +1444,10 @@ class PolygonGraphicsItem(GeometricGraphicsItem):
         Returns:
             Modified value
         """
-        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+        if (
+            change == QGraphicsItem.GraphicsItemChange.ItemPositionChange
+            and self.scene()
+        ):
             # Get the position delta
             old_pos = self.pos()
             new_pos = value
@@ -1383,7 +1524,12 @@ class TextGraphicsItem(GeometricGraphicsItem):
         self.text.position.x = self.pos().x()
         self.text.position.y = self.pos().y()
 
-    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = None) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionGraphicsItem,
+        widget: Optional[QWidget] = None,
+    ) -> None:
         """Paint the item.
 
         Args:

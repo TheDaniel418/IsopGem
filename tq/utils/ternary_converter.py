@@ -3,7 +3,7 @@ Purpose: Provides utility functions for converting between decimal, standard ter
 
 This file is part of the tq pillar and serves as a utility component.
 It is responsible for handling conversions between base-10 and base-3 number systems,
-including both standard and balanced ternary representations, which are fundamental 
+including both standard and balanced ternary representations, which are fundamental
 operations for TQ (Ternary Qabala) analysis.
 
 Key components:
@@ -30,20 +30,25 @@ Implementation Notes:
 - Negative numbers are supported in standard ternary format
 """
 
-from typing import List, Literal, NewType, Tuple, TypeAlias, TypeGuard, Union, overload
+from typing import List, Literal, NewType, Tuple, TypeGuard, Union, overload
 
 # Type aliases and NewTypes for stronger type safety
 TernaryDigit = Literal[0, 1, 2]
 BalancedTernaryDigit = Union[Literal[-1], Literal[0], Literal[1]]
-TernaryString = NewType('TernaryString', str)  # A string containing only '0', '1', '2' characters
-BalancedTernaryString = NewType('BalancedTernaryString', str)  # A string containing only 'T', '0', '1' characters
+TernaryString = NewType(
+    "TernaryString", str
+)  # A string containing only '0', '1', '2' characters
+BalancedTernaryString = NewType(
+    "BalancedTernaryString", str
+)  # A string containing only 'T', '0', '1' characters
+
 
 def is_valid_ternary_string(s: str) -> TypeGuard[TernaryString]:
     """Type guard to validate ternary strings.
-    
+
     Args:
         s: String to validate
-        
+
     Returns:
         True if string contains only valid ternary digits
     """
@@ -53,112 +58,121 @@ def is_valid_ternary_string(s: str) -> TypeGuard[TernaryString]:
         s = s[1:]
     return all(digit in "012" for digit in s)
 
+
 def is_valid_balanced_ternary(s: str) -> TypeGuard[BalancedTernaryString]:
     """Type guard to validate balanced ternary strings.
-    
+
     Args:
         s: String to validate
-        
+
     Returns:
         True if string contains only valid balanced ternary digits
     """
     return bool(s) and all(digit in "T01" for digit in s)
 
-@overload
-def decimal_to_ternary(decimal_num: int, *, pad_length: int = 0) -> TernaryString: ...
 
 @overload
-def decimal_to_ternary(decimal_num: int, *, group_size: int = 0) -> TernaryString: ...
+def decimal_to_ternary(decimal_num: int, *, pad_length: int = 0) -> TernaryString:
+    ...
 
-def decimal_to_ternary(decimal_num: int, *, pad_length: int = 0, group_size: int = 0) -> TernaryString:
+
+@overload
+def decimal_to_ternary(decimal_num: int, *, group_size: int = 0) -> TernaryString:
+    ...
+
+
+def decimal_to_ternary(
+    decimal_num: int, *, pad_length: int = 0, group_size: int = 0
+) -> TernaryString:
     """Convert a decimal number to its ternary representation.
-    
+
     Args:
         decimal_num: The decimal integer to convert
         pad_length: Length to pad the result to with leading zeros
         group_size: Size of digit groups (0 for no grouping)
-        
+
     Returns:
         The ternary string representation
-        
+
     Raises:
         TypeError: If input is not an integer
     """
     if not isinstance(decimal_num, int):
         raise TypeError("Input must be an integer")
-        
+
     if decimal_num == 0:
         result = "0"
         if pad_length > 0:
             result = result.zfill(pad_length)
         return TernaryString(result)
-        
+
     is_negative = decimal_num < 0
     decimal_num = abs(decimal_num)
-    
+
     digits = []
     while decimal_num:
         digits.append(str(decimal_num % 3))
         decimal_num //= 3
-        
+
     result = "".join(reversed(digits))
     if pad_length > 0:
         result = result.zfill(pad_length)
     if group_size > 0:
         groups = []
         for i in range(0, len(result), group_size):
-            groups.append(result[i:i + group_size])
+            groups.append(result[i : i + group_size])
         result = " ".join(groups)
-    
+
     final = f"-{result}" if is_negative else result
     return TernaryString(final)
 
+
 @overload
-def ternary_to_decimal(ternary_str: TernaryString) -> int: ...
+def ternary_to_decimal(ternary_str: TernaryString) -> int:
+    ...
+
 
 def ternary_to_decimal(ternary_str: TernaryString) -> int:
     """Convert a ternary string to its decimal representation.
-    
+
     Args:
         ternary_str: The ternary string to convert
-        
+
     Returns:
         The decimal integer value
-        
+
     Raises:
         ValueError: If input contains invalid ternary digits
         TypeError: If input is not a string
     """
     if not isinstance(ternary_str, str):
         raise TypeError("Input must be a string")
-        
+
     if not is_valid_ternary_string(ternary_str):
         raise ValueError("Input must contain only valid ternary digits (0,1,2)")
-        
+
     is_negative = ternary_str.startswith("-")
     if is_negative:
         ternary_str = ternary_str[1:]
-        
+
     decimal = 0
     for digit in ternary_str:
         decimal = decimal * 3 + int(digit)
-        
+
     return -decimal if is_negative else decimal
 
+
 @overload
-def format_ternary(
-    ternary_str: TernaryString,
-    *,
-    pad_length: int = 0
-) -> TernaryString: ...
+def format_ternary(ternary_str: TernaryString, *, pad_length: int = 0) -> TernaryString:
+    ...
+
 
 @overload
 def format_ternary(
-    ternary_str: TernaryString,
-    *,
-    group_size: int = 0,
-    group_separator: str = " "
-) -> TernaryString: ...
+    ternary_str: TernaryString, *, group_size: int = 0, group_separator: str = " "
+) -> TernaryString:
+    ...
+
 
 @overload
 def format_ternary(
@@ -166,8 +180,10 @@ def format_ternary(
     *,
     pad_length: int = 0,
     group_size: int = 0,
-    group_separator: str = " "
-) -> TernaryString: ...
+    group_separator: str = " ",
+) -> TernaryString:
+    ...
+
 
 def format_ternary(
     ternary_str: TernaryString,
@@ -293,26 +309,28 @@ def get_ternary_digit_positions(
 
 
 @overload
-def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString: ...
+def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString:
+    ...
+
 
 def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString:
     """Convert a decimal number to balanced ternary representation.
-    
+
     Args:
         decimal_num: The decimal integer to convert
-        
+
     Returns:
         The balanced ternary string representation using T (-1), 0, and 1
-        
+
     Raises:
         TypeError: If input is not an integer
     """
     if not isinstance(decimal_num, int):
         raise TypeError("Input must be an integer")
-        
+
     if decimal_num == 0:
         return BalancedTernaryString("0")
-        
+
     digits = []
     while decimal_num:
         remainder = decimal_num % 3
@@ -321,12 +339,14 @@ def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString:
             decimal_num += 3
         digits.append("T" if remainder == -1 else str(remainder))
         decimal_num //= 3
-        
+
     return BalancedTernaryString("".join(reversed(digits)))
 
 
 @overload
-def balanced_to_original(balanced_str: BalancedTernaryString) -> TernaryString: ...
+def balanced_to_original(balanced_str: BalancedTernaryString) -> TernaryString:
+    ...
+
 
 def balanced_to_original(balanced_str: BalancedTernaryString) -> TernaryString:
     """Convert a balanced ternary string to standard ternary.
@@ -359,30 +379,34 @@ def balanced_to_original(balanced_str: BalancedTernaryString) -> TernaryString:
 
 
 @overload
-def balanced_ternary_to_decimal(balanced_str: BalancedTernaryString) -> int: ...
+def balanced_ternary_to_decimal(balanced_str: BalancedTernaryString) -> int:
+    ...
+
 
 def balanced_ternary_to_decimal(balanced_str: BalancedTernaryString) -> int:
     """Convert a balanced ternary string to its decimal representation.
-    
+
     Args:
         balanced_str: The balanced ternary string to convert
-        
+
     Returns:
         The decimal integer value
-        
+
     Raises:
         ValueError: If input contains invalid balanced ternary digits
         TypeError: If input is not a string
     """
     if not isinstance(balanced_str, str):
         raise TypeError("Input must be a string")
-        
+
     if not is_valid_balanced_ternary(balanced_str):
-        raise ValueError("Input must contain only valid balanced ternary digits (T,0,1)")
-        
+        raise ValueError(
+            "Input must contain only valid balanced ternary digits (T,0,1)"
+        )
+
     decimal = 0
     for digit in balanced_str:
         value = -1 if digit == "T" else int(digit)
         decimal = decimal * 3 + value
-        
+
     return decimal

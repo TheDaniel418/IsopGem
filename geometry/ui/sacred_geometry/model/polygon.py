@@ -3,15 +3,16 @@
 This module contains the Polygon class that represents a polygon in 2D space.
 """
 
-from typing import Dict, Any, List, Optional
 import math
-from PyQt6.QtCore import QPointF, QRectF, QLineF, Qt
+from typing import Any, Dict, List, Optional
+
+from PyQt6.QtCore import QLineF, QPointF, QRectF, Qt
 from PyQt6.QtGui import QPolygonF
 
 from geometry.ui.sacred_geometry.model.base import GeometricObject
 from geometry.ui.sacred_geometry.model.enums import ObjectType
-from geometry.ui.sacred_geometry.model.style import Style
 from geometry.ui.sacred_geometry.model.point import Point
+from geometry.ui.sacred_geometry.model.style import Style
 
 
 class Polygon(GeometricObject):
@@ -19,7 +20,9 @@ class Polygon(GeometricObject):
 
     object_type = ObjectType.POLYGON
 
-    def __init__(self, vertices: List[Point] = None, name: str = None, style: Style = None) -> None:
+    def __init__(
+        self, vertices: List[Point] = None, name: str = None, style: Style = None
+    ) -> None:
         """Initialize a polygon.
 
         Args:
@@ -32,19 +35,24 @@ class Polygon(GeometricObject):
 
         # Add dependencies
         for vertex in self.vertices:
-            if hasattr(vertex, 'id'):
+            if hasattr(vertex, "id"):
                 self.dependencies.add(vertex.id)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the polygon to a dictionary for serialization."""
         data = super().to_dict()
-        data.update({
-            "vertices": [v.to_dict() if hasattr(v, 'to_dict') else None for v in self.vertices]
-        })
+        data.update(
+            {
+                "vertices": [
+                    v.to_dict() if hasattr(v, "to_dict") else None
+                    for v in self.vertices
+                ]
+            }
+        )
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Polygon':
+    def from_dict(cls, data: Dict[str, Any]) -> "Polygon":
         """Create a polygon from a dictionary."""
         vertices = []
         if "vertices" in data:
@@ -52,10 +60,7 @@ class Polygon(GeometricObject):
                 if v_data:
                     vertices.append(Point.from_dict(v_data))
 
-        polygon = cls(
-            vertices=vertices,
-            name=data.get("name")
-        )
+        polygon = cls(vertices=vertices, name=data.get("name"))
 
         # Load base class properties
         polygon.id = data.get("id", polygon.id)
@@ -90,7 +95,7 @@ class Polygon(GeometricObject):
             min_x - padding,
             min_y - padding,
             max_x - min_x + padding * 2,
-            max_y - min_y + padding * 2
+            max_y - min_y + padding * 2,
         )
 
     def contains_point(self, point: QPointF, tolerance: float = 5.0) -> bool:
@@ -118,14 +123,16 @@ class Polygon(GeometricObject):
             normal.setLength(1.0)
 
             # Create a line from the point perpendicular to the edge
-            perp_line = QLineF(point, QPointF(
-                point.x() + normal.dx(),
-                point.y() + normal.dy()
-            ))
+            perp_line = QLineF(
+                point, QPointF(point.x() + normal.dx(), point.y() + normal.dy())
+            )
 
             # Find intersection point
             intersection_point = QPointF()
-            if line.intersects(perp_line, intersection_point) == QLineF.IntersectionType.BoundedIntersection:
+            if (
+                line.intersects(perp_line, intersection_point)
+                == QLineF.IntersectionType.BoundedIntersection
+            ):
                 # Calculate distance from point to intersection
                 dx = point.x() - intersection_point.x()
                 dy = point.y() - intersection_point.y()
@@ -174,7 +181,7 @@ class Polygon(GeometricObject):
     def distance_to(self, point: QPointF) -> float:
         """Calculate the distance from the polygon to the given point."""
         if not self.vertices or len(self.vertices) < 3:
-            return float('inf')
+            return float("inf")
 
         # Create a QPolygonF for containment test
         poly = QPolygonF([QPointF(v.x, v.y) for v in self.vertices])
@@ -184,7 +191,7 @@ class Polygon(GeometricObject):
             return 0.0
 
         # Find minimum distance to any edge
-        min_distance = float('inf')
+        min_distance = float("inf")
         for i in range(len(self.vertices)):
             v1 = self.vertices[i]
             v2 = self.vertices[(i + 1) % len(self.vertices)]
@@ -201,7 +208,10 @@ class Polygon(GeometricObject):
                 distance = math.sqrt(dx * dx + dy * dy)
             else:
                 # Calculate projection of point onto line
-                t = ((point.x() - v1.x) * (v2.x - v1.x) + (point.y() - v1.y) * (v2.y - v1.y)) / line_length_sq
+                t = (
+                    (point.x() - v1.x) * (v2.x - v1.x)
+                    + (point.y() - v1.y) * (v2.y - v1.y)
+                ) / line_length_sq
 
                 # Clamp t to [0, 1] for line segment
                 t = max(0, min(1, t))
@@ -232,7 +242,7 @@ class Polygon(GeometricObject):
             self.vertices.insert(index, vertex)
 
         # Add dependency
-        if hasattr(vertex, 'id'):
+        if hasattr(vertex, "id"):
             self.dependencies.add(vertex.id)
 
     def remove_vertex(self, index: int) -> Optional[Point]:
@@ -248,7 +258,7 @@ class Polygon(GeometricObject):
             vertex = self.vertices.pop(index)
 
             # Remove dependency
-            if hasattr(vertex, 'id'):
+            if hasattr(vertex, "id"):
                 self.dependencies.discard(vertex.id)
 
             return vertex
@@ -282,14 +292,14 @@ class Polygon(GeometricObject):
         if 0 <= index < len(self.vertices):
             # Remove dependency on old vertex
             old_vertex = self.vertices[index]
-            if hasattr(old_vertex, 'id'):
+            if hasattr(old_vertex, "id"):
                 self.dependencies.discard(old_vertex.id)
 
             # Set new vertex
             self.vertices[index] = vertex
 
             # Add dependency on new vertex
-            if hasattr(vertex, 'id'):
+            if hasattr(vertex, "id"):
                 self.dependencies.add(vertex.id)
 
             return True
@@ -401,7 +411,7 @@ class Polygon(GeometricObject):
         if len(self.vertices) == 2:
             return Point(
                 (self.vertices[0].x + self.vertices[1].x) / 2,
-                (self.vertices[0].y + self.vertices[1].y) / 2
+                (self.vertices[0].y + self.vertices[1].y) / 2,
             )
 
         # Calculate centroid using weighted average of triangle centroids

@@ -4,14 +4,29 @@ This module contains the canvas component for the Sacred Geometry Explorer,
 which provides the drawing area for geometric constructions.
 """
 
-from loguru import logger
-from typing import Optional, Tuple, List, Dict, Any
-from PyQt6.QtCore import Qt, QRectF, QPointF, QSizeF, QLineF, pyqtSignal, QEvent
-from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QWidget, QMenu
-from PyQt6.QtGui import QPen, QBrush, QColor, QPainter, QMouseEvent, QWheelEvent, QKeyEvent, QTransform
+from typing import List, Optional
 
-from geometry.ui.sacred_geometry.model import GeometricObject, Point, Line, Circle
-from geometry.ui.sacred_geometry.graphics_items import GraphicsItemFactory, GeometricGraphicsItem, LineGraphicsItem
+from loguru import logger
+from PyQt6.QtCore import QEvent, QPointF, QRectF, Qt, pyqtSignal
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QWheelEvent,
+)
+from PyQt6.QtWidgets import (
+    QGraphicsScene,
+    QGraphicsView,
+)
+
+from geometry.ui.sacred_geometry.graphics_items import (
+    GraphicsItemFactory,
+    LineGraphicsItem,
+)
+from geometry.ui.sacred_geometry.model import GeometricObject, Line
 
 
 class GeometryCanvas(QGraphicsView):
@@ -23,12 +38,12 @@ class GeometryCanvas(QGraphicsView):
 
     # Signals
     mouse_pressed = pyqtSignal(QMouseEvent, QPointF)  # Event, scene position
-    mouse_moved = pyqtSignal(QMouseEvent, QPointF)    # Event, scene position
-    mouse_released = pyqtSignal(QMouseEvent, QPointF) # Event, scene position
-    key_pressed = pyqtSignal(QKeyEvent)               # Key event
-    object_selected = pyqtSignal(GeometricObject)     # Selected object
-    object_deselected = pyqtSignal(GeometricObject)   # Deselected object
-    object_modified = pyqtSignal(GeometricObject)     # Modified object
+    mouse_moved = pyqtSignal(QMouseEvent, QPointF)  # Event, scene position
+    mouse_released = pyqtSignal(QMouseEvent, QPointF)  # Event, scene position
+    key_pressed = pyqtSignal(QKeyEvent)  # Key event
+    object_selected = pyqtSignal(GeometricObject)  # Selected object
+    object_deselected = pyqtSignal(GeometricObject)  # Deselected object
+    object_modified = pyqtSignal(GeometricObject)  # Modified object
 
     def __init__(self, parent=None) -> None:
         """Initialize the geometry canvas.
@@ -80,13 +95,17 @@ class GeometryCanvas(QGraphicsView):
         self.scene.selectionChanged.connect(self._handle_selection_changed)
 
         # Mouse tracking
-        self.setMouseTracking(True)  # Track mouse movements even when no button is pressed
+        self.setMouseTracking(
+            True
+        )  # Track mouse movements even when no button is pressed
 
         # Initialize the view
         self.reset_view()
 
         # Set tooltip
-        self.setToolTip("Use mouse wheel to zoom in/out. Press Ctrl+0 to reset view. Press G to toggle grid.")
+        self.setToolTip(
+            "Use mouse wheel to zoom in/out. Press Ctrl+0 to reset view. Press G to toggle grid."
+        )
 
         logger.debug("GeometryCanvas initialized")
 
@@ -110,7 +129,9 @@ class GeometryCanvas(QGraphicsView):
 
             logger.debug(f"Added {obj.__class__.__name__} to canvas")
         else:
-            logger.warning(f"Failed to create graphics item for {obj.__class__.__name__}")
+            logger.warning(
+                f"Failed to create graphics item for {obj.__class__.__name__}"
+            )
 
     def add_objects(self, objects: List[GeometricObject]) -> None:
         """Add multiple geometric objects to the canvas.
@@ -158,7 +179,9 @@ class GeometryCanvas(QGraphicsView):
         """
         # Prevent recursive updates
         if self.updating:
-            logger.debug(f"DEBUG: Canvas.update_object skipped due to recursive update prevention")
+            logger.debug(
+                "DEBUG: Canvas.update_object skipped due to recursive update prevention"
+            )
             return
 
         self.updating = True
@@ -167,16 +190,22 @@ class GeometryCanvas(QGraphicsView):
             # Log the object state before update
             if isinstance(obj, Line):
                 logger.debug(f"DEBUG: Canvas.update_object called for Line {obj.id}")
-                logger.debug(f"DEBUG: Before update: P1=({obj.x1}, {obj.y1}), P2=({obj.x2}, {obj.y2})")
+                logger.debug(
+                    f"DEBUG: Before update: P1=({obj.x1}, {obj.y1}), P2=({obj.x2}, {obj.y2})"
+                )
 
                 # Store metadata about which endpoint was moved (if any)
                 # This is critical for preserving context across update paths
                 moved_endpoint = None
-                if hasattr(obj, 'metadata') and 'moved_endpoint' in obj.metadata:
-                    moved_endpoint = obj.metadata['moved_endpoint']
-                    logger.debug(f"DEBUG: Preserving moved_endpoint={moved_endpoint} metadata")
+                if hasattr(obj, "metadata") and "moved_endpoint" in obj.metadata:
+                    moved_endpoint = obj.metadata["moved_endpoint"]
+                    logger.debug(
+                        f"DEBUG: Preserving moved_endpoint={moved_endpoint} metadata"
+                    )
             else:
-                logger.debug(f"DEBUG: Canvas.update_object called for {obj.__class__.__name__} {obj.id}")
+                logger.debug(
+                    f"DEBUG: Canvas.update_object called for {obj.__class__.__name__} {obj.id}"
+                )
 
             # Update graphics item
             if obj.id in self.items_map:
@@ -184,31 +213,37 @@ class GeometryCanvas(QGraphicsView):
 
                 # Log the item state before update
                 if isinstance(item, LineGraphicsItem):
-                    logger.debug(f"DEBUG: Before item.update_from_object: P1=({item.line.x1}, {item.line.y1}), P2=({item.line.x2}, {item.line.y2})")
+                    logger.debug(
+                        f"DEBUG: Before item.update_from_object: P1=({item.line.x1}, {item.line.y1}), P2=({item.line.x2}, {item.line.y2})"
+                    )
 
                 # Perform the update
                 item.update_from_object()
 
                 # Log the item state after update
                 if isinstance(item, LineGraphicsItem):
-                    logger.debug(f"DEBUG: After item.update_from_object: P1=({item.line.x1}, {item.line.y1}), P2=({item.line.x2}, {item.line.y2})")
+                    logger.debug(
+                        f"DEBUG: After item.update_from_object: P1=({item.line.x1}, {item.line.y1}), P2=({item.line.x2}, {item.line.y2})"
+                    )
 
                     # Restore metadata about which endpoint was moved (if any)
                     # This ensures the metadata is preserved across all update paths
-                    if moved_endpoint is not None and hasattr(item.line, 'metadata'):
-                        item.line.metadata['moved_endpoint'] = moved_endpoint
-                        logger.debug(f"DEBUG: Restored moved_endpoint={moved_endpoint} metadata")
+                    if moved_endpoint is not None and hasattr(item.line, "metadata"):
+                        item.line.metadata["moved_endpoint"] = moved_endpoint
+                        logger.debug(
+                            f"DEBUG: Restored moved_endpoint={moved_endpoint} metadata"
+                        )
 
                 logger.debug(f"Updated {obj.__class__.__name__} on canvas")
 
                 # Emit object_modified signal to update property panel
                 # Only emit if the object is selected to avoid unnecessary updates
-                if hasattr(self, 'object_modified') and obj.selected:
+                if hasattr(self, "object_modified") and obj.selected:
                     # Get the appropriate object to emit based on item type
-                    if isinstance(item, LineGraphicsItem) and hasattr(item, 'line'):
+                    if isinstance(item, LineGraphicsItem) and hasattr(item, "line"):
                         # For lines, use the line from the item to ensure metadata is preserved
                         emit_obj = item.line
-                    elif hasattr(item, 'geometric_object'):
+                    elif hasattr(item, "geometric_object"):
                         # For other items, use the geometric_object if available
                         emit_obj = item.geometric_object
                     else:
@@ -222,7 +257,9 @@ class GeometryCanvas(QGraphicsView):
         finally:
             self.updating = False
 
-    def get_object_at(self, pos: QPointF, tolerance: float = 5.0) -> Optional[GeometricObject]:
+    def get_object_at(
+        self, pos: QPointF, tolerance: float = 5.0
+    ) -> Optional[GeometricObject]:
         """Get the geometric object at the given position.
 
         Args:
@@ -327,15 +364,19 @@ class GeometryCanvas(QGraphicsView):
                             self.object_deselected.emit(obj)
 
             # Update status bar with selection count
-            if hasattr(self.parent(), 'status_bar'):
+            if hasattr(self.parent(), "status_bar"):
                 selected_count = len(selected_items)
                 if selected_count == 0:
                     self.parent().status_bar.showMessage("No objects selected")
                 elif selected_count == 1:
                     obj = self.get_selected_objects()[0]
-                    self.parent().status_bar.showMessage(f"Selected: {obj.__class__.__name__} {obj.name or ''}")
+                    self.parent().status_bar.showMessage(
+                        f"Selected: {obj.__class__.__name__} {obj.name or ''}"
+                    )
                 else:
-                    self.parent().status_bar.showMessage(f"Selected: {selected_count} objects")
+                    self.parent().status_bar.showMessage(
+                        f"Selected: {selected_count} objects"
+                    )
 
             logger.debug(f"Selection changed: {len(selected_items)} items selected")
         finally:
@@ -400,7 +441,9 @@ class GeometryCanvas(QGraphicsView):
         # Update the view
         self.update()
 
-        logger.debug(f"Grid spacing set to {self.grid_spacing} with {self.grid_subdivisions} subdivisions")
+        logger.debug(
+            f"Grid spacing set to {self.grid_spacing} with {self.grid_subdivisions} subdivisions"
+        )
 
     def toggle_grid(self, show: bool = None) -> None:
         """Toggle grid visibility.
@@ -462,15 +505,23 @@ class GeometryCanvas(QGraphicsView):
 
         # Calculate the range of grid lines to draw
         left = int(scene_rect.left() / effective_spacing) * effective_spacing
-        right = int(scene_rect.right() / effective_spacing) * effective_spacing + effective_spacing
+        right = (
+            int(scene_rect.right() / effective_spacing) * effective_spacing
+            + effective_spacing
+        )
         top = int(scene_rect.top() / effective_spacing) * effective_spacing
-        bottom = int(scene_rect.bottom() / effective_spacing) * effective_spacing + effective_spacing
+        bottom = (
+            int(scene_rect.bottom() / effective_spacing) * effective_spacing
+            + effective_spacing
+        )
 
         # Calculate minor grid spacing
         minor_spacing = effective_spacing / self.grid_subdivisions
 
         # Draw minor grid lines
-        painter.setPen(QPen(self.minor_grid_color, 0))  # Width 0 means 1 pixel regardless of zoom
+        painter.setPen(
+            QPen(self.minor_grid_color, 0)
+        )  # Width 0 means 1 pixel regardless of zoom
 
         # Draw minor vertical grid lines
         x = left
@@ -491,7 +542,9 @@ class GeometryCanvas(QGraphicsView):
             y += effective_spacing
 
         # Draw major grid lines
-        painter.setPen(QPen(self.major_grid_color, 0))  # Width 0 means 1 pixel regardless of zoom
+        painter.setPen(
+            QPen(self.major_grid_color, 0)
+        )  # Width 0 means 1 pixel regardless of zoom
 
         # Draw major vertical grid lines
         x = left
@@ -508,7 +561,9 @@ class GeometryCanvas(QGraphicsView):
             y += effective_spacing
 
         # Draw coordinate axes
-        painter.setPen(QPen(self.axis_color, 0))  # Width 0 means 1 pixel regardless of zoom
+        painter.setPen(
+            QPen(self.axis_color, 0)
+        )  # Width 0 means 1 pixel regardless of zoom
 
         # Draw x-axis
         painter.drawLine(QPointF(left, 0), QPointF(right, 0))
@@ -547,9 +602,10 @@ class GeometryCanvas(QGraphicsView):
         scene_pos = self.mapToScene(event.position().toPoint())
 
         # Middle button or Alt+Left button for panning
-        if event.button() == Qt.MouseButton.MiddleButton or \
-           (event.button() == Qt.MouseButton.LeftButton and \
-            event.modifiers() & Qt.KeyboardModifier.AltModifier):
+        if event.button() == Qt.MouseButton.MiddleButton or (
+            event.button() == Qt.MouseButton.LeftButton
+            and event.modifiers() & Qt.KeyboardModifier.AltModifier
+        ):
             # Set drag mode to scroll hand drag
             self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
 
@@ -559,7 +615,7 @@ class GeometryCanvas(QGraphicsView):
                 event.position(),
                 Qt.MouseButton.LeftButton,
                 Qt.MouseButton.LeftButton,
-                Qt.KeyboardModifier.NoModifier
+                Qt.KeyboardModifier.NoModifier,
             )
             super().mousePressEvent(fake_event)
         else:
@@ -594,9 +650,10 @@ class GeometryCanvas(QGraphicsView):
         scene_pos = self.mapToScene(event.position().toPoint())
 
         # Middle button or Alt+Left button for panning
-        if event.button() == Qt.MouseButton.MiddleButton or \
-           (event.button() == Qt.MouseButton.LeftButton and \
-            event.modifiers() & Qt.KeyboardModifier.AltModifier):
+        if event.button() == Qt.MouseButton.MiddleButton or (
+            event.button() == Qt.MouseButton.LeftButton
+            and event.modifiers() & Qt.KeyboardModifier.AltModifier
+        ):
             # Reset drag mode
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
 
@@ -606,7 +663,7 @@ class GeometryCanvas(QGraphicsView):
                 event.position(),
                 Qt.MouseButton.LeftButton,
                 Qt.MouseButton.LeftButton,
-                Qt.KeyboardModifier.NoModifier
+                Qt.KeyboardModifier.NoModifier,
             )
             super().mouseReleaseEvent(fake_event)
         else:
@@ -623,7 +680,10 @@ class GeometryCanvas(QGraphicsView):
             event: Key event
         """
         # Handle specific keys
-        if event.key() == Qt.Key.Key_0 and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        if (
+            event.key() == Qt.Key.Key_0
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
             # Reset view with Ctrl+0
             self.reset_view()
             event.accept()

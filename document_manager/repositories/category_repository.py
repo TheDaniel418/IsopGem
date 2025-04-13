@@ -14,7 +14,7 @@ Dependencies:
 
 import json
 import sqlite3
-from typing import Dict, List, Optional, TypedDict, Any, cast
+from typing import Any, Dict, List, Optional, TypedDict, cast
 
 from loguru import logger
 
@@ -23,6 +23,7 @@ from document_manager.models.document_category import DocumentCategory
 
 class CategoryRow(TypedDict):
     """Type definition for category database row."""
+
     id: str
     name: str
     color: str

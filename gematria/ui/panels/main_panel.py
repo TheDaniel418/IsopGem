@@ -86,7 +86,10 @@ class MainPanel(QWidget):
             result: The calculation result
         """
         from loguru import logger
-        logger.debug(f"MainPanel._on_calculation_performed called with result ID: {result.id}")
+
+        logger.debug(
+            f"MainPanel._on_calculation_performed called with result ID: {result.id}"
+        )
 
         # Switch to the history tab to show the new calculation
         self.tab_widget.setCurrentWidget(self.history_panel)

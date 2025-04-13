@@ -75,4 +75,4 @@ class WordAbacusWindow(QMainWindow):
 
     def reset_calculator(self) -> None:
         """Reset the calculator to its initial state."""
-        self.word_abacus_panel.reset_calculator() 
+        self.word_abacus_panel.reset_calculator()

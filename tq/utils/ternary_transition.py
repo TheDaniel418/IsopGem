@@ -20,7 +20,7 @@ Related files:
 """
 
 import re
-from typing import Dict, List, Literal, Optional, Tuple, TypeAlias, Union, cast
+from typing import Dict, List, Literal, Optional, Tuple, cast
 
 # Type aliases for clarity and type safety
 TernaryDigit = Literal[0, 1, 2]

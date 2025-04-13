@@ -20,8 +20,11 @@ class HistoryService:
         self._history: List[CalculationResult] = []
         # Add a unique identifier to each history service instance for debugging
         import uuid
+
         self._instance_id = str(uuid.uuid4())[:8]
-        logger.debug(f"HistoryService initialized with instance ID: {self._instance_id}")
+        logger.debug(
+            f"HistoryService initialized with instance ID: {self._instance_id}"
+        )
 
     def add_calculation(self, calculation: CalculationResult) -> None:
         """Add a calculation to the history.
@@ -32,11 +35,15 @@ class HistoryService:
         # Check if this calculation is already in the history (by ID)
         for existing_calc in self._history:
             if existing_calc.id == calculation.id:
-                logger.warning(f"HistoryService[{self._instance_id}]: Calculation with ID {calculation.id} already exists in history")
+                logger.warning(
+                    f"HistoryService[{self._instance_id}]: Calculation with ID {calculation.id} already exists in history"
+                )
                 return
 
         # Log the current state of the history
-        logger.debug(f"HistoryService[{self._instance_id}]: Current history has {len(self._history)} items")
+        logger.debug(
+            f"HistoryService[{self._instance_id}]: Current history has {len(self._history)} items"
+        )
 
         # Add the calculation to the history
         self._history.append(calculation)
@@ -56,7 +63,9 @@ class HistoryService:
         )
 
         # Log the updated state of the history
-        logger.debug(f"HistoryService[{self._instance_id}]: History now has {len(self._history)} items")
+        logger.debug(
+            f"HistoryService[{self._instance_id}]: History now has {len(self._history)} items"
+        )
 
     def get_history(self) -> List[CalculationResult]:
         """Get the calculation history.
@@ -64,7 +73,9 @@ class HistoryService:
         Returns:
             List of calculation results in chronological order
         """
-        logger.debug(f"HistoryService[{self._instance_id}]: get_history called, returning {len(self._history)} items")
+        logger.debug(
+            f"HistoryService[{self._instance_id}]: get_history called, returning {len(self._history)} items"
+        )
         return list(self._history)  # Return a copy of the history list
 
     def clear_history(self) -> None:

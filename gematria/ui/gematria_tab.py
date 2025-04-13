@@ -3,22 +3,26 @@
 This module provides the main tab for the Gematria pillar.
 """
 
-import random
 import math
+import random
+
 from loguru import logger
-from PyQt6.QtCore import Qt, QTimer, QPointF, QRectF, QTime
+from PyQt6.QtCore import QRectF, Qt, QTime, QTimer
+from PyQt6.QtGui import (
+    QColor,
+    QFont,
+    QPainter,
+    QPen,
+    QPixmap,
+    QRadialGradient,
+)
 from PyQt6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
     QWidget,
-    QFrame,
-    QStackedLayout
-)
-from PyQt6.QtGui import (
-    QPixmap, QImage, QColor, QPalette, QBrush, QPainter,
-    QPainterPath, QPen, QFont, QRadialGradient
 )
 
 from shared.ui.window_management import TabManager, WindowManager
@@ -31,13 +35,36 @@ class HebrewLetter:
         # Hebrew letters with their numerical values (for standard gematria)
         self.hebrew_letters = {
             # Alef to Tet (1-9)
-            "א": 1, "ב": 2, "ג": 3, "ד": 4, "ה": 5, "ו": 6, "ז": 7, "ח": 8, "ט": 9,
+            "א": 1,
+            "ב": 2,
+            "ג": 3,
+            "ד": 4,
+            "ה": 5,
+            "ו": 6,
+            "ז": 7,
+            "ח": 8,
+            "ט": 9,
             # Yod to Tsadi (10-90)
-            "י": 10, "כ": 20, "ל": 30, "מ": 40, "נ": 50, "ס": 60, "ע": 70, "פ": 80, "צ": 90,
+            "י": 10,
+            "כ": 20,
+            "ל": 30,
+            "מ": 40,
+            "נ": 50,
+            "ס": 60,
+            "ע": 70,
+            "פ": 80,
+            "צ": 90,
             # Qof to Tav (100-400)
-            "ק": 100, "ר": 200, "ש": 300, "ת": 400,
+            "ק": 100,
+            "ר": 200,
+            "ש": 300,
+            "ת": 400,
             # Final forms
-            "ך": 20, "ם": 40, "ן": 50, "ף": 80, "ץ": 90
+            "ך": 20,
+            "ם": 40,
+            "ן": 50,
+            "ף": 80,
+            "ץ": 90,
         }
 
         # Position (as percentage of width/height)
@@ -50,7 +77,9 @@ class HebrewLetter:
 
         # For morphing effect - target letter to transform into
         self.target_letter = self.letter
-        self.morph_progress = 1.0  # Start fully formed (1.0 = current letter, 0.0 = fully target letter)
+        self.morph_progress = (
+            1.0  # Start fully formed (1.0 = current letter, 0.0 = fully target letter)
+        )
         self.morph_speed = 0  # Not morphing initially
         self.target_value = self.value  # Initialize target value
 
@@ -152,7 +181,7 @@ class HebrewLetterCanvas(QWidget):
         """Set up connections between letters with the same or related values."""
         # Find letters with the same value
         for i, letter1 in enumerate(self.letters):
-            for j, letter2 in enumerate(self.letters[i+1:], i+1):
+            for j, letter2 in enumerate(self.letters[i + 1 :], i + 1):
                 # Connect letters with the same value
                 if letter1.value == letter2.value:
                     # 80% chance to connect same-value letters
@@ -161,8 +190,9 @@ class HebrewLetterCanvas(QWidget):
                         letter1.connection_target_alpha = 0.6  # Increased from 0.4
                         break
                 # Connect letters with numerically related values (multiples or factors)
-                elif (letter1.value != 0 and letter2.value % letter1.value == 0) or \
-                     (letter2.value != 0 and letter1.value % letter2.value == 0):
+                elif (letter1.value != 0 and letter2.value % letter1.value == 0) or (
+                    letter2.value != 0 and letter1.value % letter2.value == 0
+                ):
                     # 40% chance to connect related-value letters
                     if random.random() < 0.4:
                         letter1.connect_to = letter2
@@ -173,7 +203,7 @@ class HebrewLetterCanvas(QWidget):
         """Update all letter animations."""
         # Get elapsed time since last update
         current_time = QTime.currentTime().msecsSinceStartOfDay() * 0.001  # To seconds
-        if not hasattr(self, 'last_update_time'):
+        if not hasattr(self, "last_update_time"):
             self.last_update_time = current_time
 
         dt = current_time - self.last_update_time
@@ -206,11 +236,15 @@ class HebrewLetterCanvas(QWidget):
             # Update connection alpha (fade in/out)
             if letter.connect_to is not None:
                 if letter.connection_alpha < letter.connection_target_alpha:
-                    letter.connection_alpha = min(letter.connection_target_alpha,
-                                              letter.connection_alpha + letter.connection_speed)
+                    letter.connection_alpha = min(
+                        letter.connection_target_alpha,
+                        letter.connection_alpha + letter.connection_speed,
+                    )
                 elif letter.connection_alpha > letter.connection_target_alpha:
-                    letter.connection_alpha = max(letter.connection_target_alpha,
-                                              letter.connection_alpha - letter.connection_speed)
+                    letter.connection_alpha = max(
+                        letter.connection_target_alpha,
+                        letter.connection_alpha - letter.connection_speed,
+                    )
 
             # Update morphing effect
             if letter.morph_speed > 0:
@@ -258,16 +292,24 @@ class HebrewLetterCanvas(QWidget):
             x = random.randint(0, self.width())
             y = random.randint(0, self.height())
             size = random.uniform(0.5, 1.5)
-            painter.drawEllipse(QRectF(x - size/2, y - size/2, size, size))
+            painter.drawEllipse(QRectF(x - size / 2, y - size / 2, size, size))
 
         # Add a very subtle nebula effect in the corners
         painter.setOpacity(0.05)  # Extremely subtle
         for _ in range(3):
             # Position nebulas in corners or edges
-            x = random.choice([random.randint(0, self.width()//4),
-                              random.randint(3*self.width()//4, self.width())])
-            y = random.choice([random.randint(0, self.height()//4),
-                              random.randint(3*self.height()//4, self.height())])
+            x = random.choice(
+                [
+                    random.randint(0, self.width() // 4),
+                    random.randint(3 * self.width() // 4, self.width()),
+                ]
+            )
+            y = random.choice(
+                [
+                    random.randint(0, self.height() // 4),
+                    random.randint(3 * self.height() // 4, self.height()),
+                ]
+            )
             radius = random.randint(150, 350)
 
             # Very gentle blue-purple hues
@@ -276,7 +318,7 @@ class HebrewLetterCanvas(QWidget):
                 random.uniform(0.6, 0.8),  # Blue-purple hue
                 random.uniform(0.3, 0.5),  # Lower saturation
                 random.uniform(0.6, 0.8),  # Medium value
-                0.1  # Very low alpha
+                0.1,  # Very low alpha
             )
 
             # Draw nebula as a radial gradient
@@ -305,10 +347,14 @@ class HebrewLetterCanvas(QWidget):
                 # More visible connection colors
                 if letter.value == letter.connect_to.value:
                     # Golden connections for identical values
-                    connection_color = QColor(255, 225, 155, int(letter.connection_alpha * 120))
+                    connection_color = QColor(
+                        255, 225, 155, int(letter.connection_alpha * 120)
+                    )
                 else:
                     # Blue-white for related
-                    connection_color = QColor(170, 210, 255, int(letter.connection_alpha * 100))
+                    connection_color = QColor(
+                        170, 210, 255, int(letter.connection_alpha * 100)
+                    )
 
                 pen.setColor(connection_color)
                 pen.setWidth(1)  # Thinner lines
@@ -320,7 +366,9 @@ class HebrewLetterCanvas(QWidget):
                 # Add a small glow effect for important connections
                 if letter.value == letter.connect_to.value:
                     # Only add glow to identical value connections
-                    glow_pen = QPen(QColor(255, 225, 155, int(letter.connection_alpha * 60)))
+                    glow_pen = QPen(
+                        QColor(255, 225, 155, int(letter.connection_alpha * 60))
+                    )
                     glow_pen.setWidth(2)
                     painter.setPen(glow_pen)
                     # Draw a slightly offset line for a subtle glow effect
@@ -334,7 +382,9 @@ class HebrewLetterCanvas(QWidget):
             y = self.height() * letter.y / 100.0
 
             # Calculate pulsating size
-            current_time = QTime.currentTime().msecsSinceStartOfDay() * 0.001  # Convert to seconds
+            current_time = (
+                QTime.currentTime().msecsSinceStartOfDay() * 0.001
+            )  # Convert to seconds
             pulse = math.sin(letter.pulse_offset + current_time * letter.pulse_speed)
             size_factor = 1.0 + pulse * letter.pulse_amount
             size = letter.size * size_factor
@@ -349,7 +399,9 @@ class HebrewLetterCanvas(QWidget):
                 else:
                     target_hue += 1.0
 
-            interpolated_hue = current_hue + letter.color_progress * (target_hue - current_hue)
+            interpolated_hue = current_hue + letter.color_progress * (
+                target_hue - current_hue
+            )
             interpolated_hue %= 1.0  # Keep in 0-1 range
 
             # For morphing effect - calculate alpha based on morph progress
@@ -361,7 +413,9 @@ class HebrewLetterCanvas(QWidget):
                 interpolated_hue,
                 min(0.9, max(0.1, letter.saturation * 0.9)),  # Ensure in 0-1 range
                 min(0.9, max(0.1, letter.value_prop)),  # Ensure in 0-1 range
-                min(0.9, max(0.1, letter.alpha * 0.9 * morph_alpha_factor))  # Ensure in 0-1 range
+                min(
+                    0.9, max(0.1, letter.alpha * 0.9 * morph_alpha_factor)
+                ),  # Ensure in 0-1 range
             )
 
             # Set up the painter for this letter
@@ -373,17 +427,23 @@ class HebrewLetterCanvas(QWidget):
             if letter.value > 100:
                 # Subtle glow for important letters
                 glow_color = QColor(letter_color)
-                glow_color.setAlpha(int(min(255, max(0, letter.alpha * 40 * morph_alpha_factor))))
+                glow_color.setAlpha(
+                    int(min(255, max(0, letter.alpha * 40 * morph_alpha_factor)))
+                )
                 painter.setBrush(Qt.BrushStyle.NoBrush)
 
                 # Just one subtle glow layer
                 glow_pen = QPen(glow_color, 1)
                 painter.setPen(glow_pen)
                 glow_size = size * 1.2
-                painter.drawEllipse(QRectF(-glow_size/2, -glow_size/2, glow_size, glow_size))
+                painter.drawEllipse(
+                    QRectF(-glow_size / 2, -glow_size / 2, glow_size, glow_size)
+                )
 
             # Draw letter itself with proper styling - more elegant font
-            letter_font = QFont("Arial", int(size * 0.9))  # Slightly larger size for better visibility
+            letter_font = QFont(
+                "Arial", int(size * 0.9)
+            )  # Slightly larger size for better visibility
             letter_font.setBold(True)
             painter.setFont(letter_font)
 
@@ -392,22 +452,45 @@ class HebrewLetterCanvas(QWidget):
                 # If morphing, draw both letters with appropriate opacity
                 # Current letter fades out
                 current_letter_color = QColor(letter_color)
-                current_letter_color.setAlphaF(min(1.0, max(0.0, current_letter_color.alphaF() * letter.morph_progress)))
+                current_letter_color.setAlphaF(
+                    min(
+                        1.0,
+                        max(0.0, current_letter_color.alphaF() * letter.morph_progress),
+                    )
+                )
                 painter.setPen(current_letter_color)
-                painter.drawText(QRectF(-size/2, -size/2, size, size),
-                               Qt.AlignmentFlag.AlignCenter, letter.letter)
+                painter.drawText(
+                    QRectF(-size / 2, -size / 2, size, size),
+                    Qt.AlignmentFlag.AlignCenter,
+                    letter.letter,
+                )
 
                 # Target letter fades in
                 target_letter_color = QColor(letter_color)
-                target_letter_color.setAlphaF(min(1.0, max(0.0, target_letter_color.alphaF() * (1.0 - letter.morph_progress))))
+                target_letter_color.setAlphaF(
+                    min(
+                        1.0,
+                        max(
+                            0.0,
+                            target_letter_color.alphaF()
+                            * (1.0 - letter.morph_progress),
+                        ),
+                    )
+                )
                 painter.setPen(target_letter_color)
-                painter.drawText(QRectF(-size/2, -size/2, size, size),
-                               Qt.AlignmentFlag.AlignCenter, letter.target_letter)
+                painter.drawText(
+                    QRectF(-size / 2, -size / 2, size, size),
+                    Qt.AlignmentFlag.AlignCenter,
+                    letter.target_letter,
+                )
             else:
                 # Not morphing, just draw the current letter
                 painter.setPen(letter_color)
-                painter.drawText(QRectF(-size/2, -size/2, size, size),
-                               Qt.AlignmentFlag.AlignCenter, letter.letter)
+                painter.drawText(
+                    QRectF(-size / 2, -size / 2, size, size),
+                    Qt.AlignmentFlag.AlignCenter,
+                    letter.letter,
+                )
 
             painter.restore()
 
@@ -442,7 +525,7 @@ class GematriaTab(QWidget):
         super().resizeEvent(event)
 
         # Resize the letter canvas to match the tab size
-        if hasattr(self, 'letter_canvas') and hasattr(self, 'stacked_widget'):
+        if hasattr(self, "letter_canvas") and hasattr(self, "stacked_widget"):
             self.letter_canvas.resize(self.stacked_widget.size())
             self.letter_canvas.raise_()  # Keep it on top
 
@@ -451,7 +534,7 @@ class GematriaTab(QWidget):
         super().showEvent(event)
 
         # Ensure canvas is visible when tab is shown
-        if hasattr(self, 'letter_canvas'):
+        if hasattr(self, "letter_canvas"):
             self.letter_canvas.setVisible(True)
             self.letter_canvas.raise_()
 
@@ -475,11 +558,13 @@ class GematriaTab(QWidget):
         # Content container with completely transparent background
         content_container = QWidget()
         content_container.setObjectName("gematria_content")
-        content_container.setStyleSheet("""
+        content_container.setStyleSheet(
+            """
             QWidget#gematria_content {
                 background-color: transparent;
             }
-        """)
+        """
+        )
         content_layout = QVBoxLayout(content_container)
 
         # Button bar
@@ -541,7 +626,8 @@ class GematriaTab(QWidget):
         # Create card for welcome content
         welcome_card = QFrame()
         welcome_card.setObjectName("welcomeCard")
-        welcome_card.setStyleSheet("""
+        welcome_card.setStyleSheet(
+            """
             #welcomeCard {
                 background-color: rgba(255, 255, 255, 0.7);
                 border-radius: 8px;
@@ -552,7 +638,8 @@ class GematriaTab(QWidget):
                 max-width: 800px;
                 min-height: 200px;
             }
-        """)
+        """
+        )
         welcome_layout = QVBoxLayout(welcome_card)
         welcome_layout.setContentsMargins(15, 15, 15, 15)
         welcome_layout.setSpacing(10)
@@ -590,12 +677,14 @@ class GematriaTab(QWidget):
         # Add Thoth image below welcome card
         thoth_container = QFrame()
         thoth_container.setObjectName("thothImageContainer")
-        thoth_container.setStyleSheet("""
+        thoth_container.setStyleSheet(
+            """
             #thothImageContainer {
                 background-color: transparent;
                 margin: 10px 40px 20px 40px;
             }
-        """)
+        """
+        )
         thoth_layout = QVBoxLayout(thoth_container)
 
         # Create image label
@@ -605,23 +694,30 @@ class GematriaTab(QWidget):
         if not thoth_pixmap.isNull():
             # Scale the image to a reasonable size while maintaining aspect ratio
             scaled_pixmap = thoth_pixmap.scaled(
-                400, 400,
+                400,
+                400,
                 Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
+                Qt.TransformationMode.SmoothTransformation,
             )
             thoth_image_label.setPixmap(scaled_pixmap)
             thoth_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             # Add caption
             caption = QLabel("Thoth - Egyptian deity of wisdom, writing, and magic")
-            caption.setStyleSheet("font-size: 12px; color: #673AB7; font-style: italic;")
+            caption.setStyleSheet(
+                "font-size: 12px; color: #673AB7; font-style: italic;"
+            )
             caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            thoth_layout.addWidget(thoth_image_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            thoth_layout.addWidget(
+                thoth_image_label, alignment=Qt.AlignmentFlag.AlignCenter
+            )
             thoth_layout.addWidget(caption, alignment=Qt.AlignmentFlag.AlignCenter)
 
             # Add the image container to the content layout
-            content_layout.addWidget(thoth_container, alignment=Qt.AlignmentFlag.AlignCenter)
+            content_layout.addWidget(
+                thoth_container, alignment=Qt.AlignmentFlag.AlignCenter
+            )
         else:
             logger.error("Failed to load Thoth image from assets/tab_images/thoth.png")
 
@@ -646,12 +742,16 @@ class GematriaTab(QWidget):
     def _open_word_abacus_window(self) -> None:
         """Open the Word Abacus window."""
         from gematria.ui.windows.word_abacus_window import WordAbacusWindow
-        
-        self._open_gematria_window("word_abacus", WordAbacusWindow, "Gematria Word Abacus", allow_multiple=True)
 
-    def _open_gematria_window(self, window_id: str, window_class, title: str, *args, **kwargs) -> None:
+        self._open_gematria_window(
+            "word_abacus", WordAbacusWindow, "Gematria Word Abacus", allow_multiple=True
+        )
+
+    def _open_gematria_window(
+        self, window_id: str, window_class, title: str, *args, **kwargs
+    ) -> None:
         """Open a gematria-related window with consistent window management.
-        
+
         Args:
             window_id: Unique identifier for the window
             window_class: Window class to instantiate
@@ -660,67 +760,76 @@ class GematriaTab(QWidget):
         """
         # Check if we should allow multiple instances
         allow_multiple = kwargs.pop("allow_multiple", False)
-        
+
         # Generate a unique window ID if multiple instances are allowed
         final_window_id = f"gematria_{window_id}"
         if allow_multiple:
             import uuid
+
             final_window_id = f"gematria_{window_id}_{uuid.uuid4().hex[:8]}"
-            
+
         # Create window instance
         window = window_class(*args, **kwargs)
-        
+
         # Apply standard flags for proper window behavior
         window.setWindowFlags(
-            window.windowFlags() | 
-            Qt.WindowType.Window |
-            Qt.WindowType.WindowStaysOnTopHint
+            window.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowStaysOnTopHint
         )
-        
+
         # Open the window through the window manager
         self.window_manager.open_window(final_window_id, window, title)
-        
+
         # Ensure proper focus and z-order
         window.raise_()
         window.activateWindow()
-        
+
         return window
 
     def _open_calculation_history(self) -> None:
         """Open the Calculation History panel."""
-        from gematria.ui.windows.calculation_history_window import CalculationHistoryWindow
-        
-        self._open_gematria_window("calculation_history", CalculationHistoryWindow, "Calculation History")
+        from gematria.ui.windows.calculation_history_window import (
+            CalculationHistoryWindow,
+        )
+
+        self._open_gematria_window(
+            "calculation_history", CalculationHistoryWindow, "Calculation History"
+        )
 
     def _open_tag_management(self) -> None:
         """Open the Tag Management panel."""
         from gematria.ui.windows.tag_management_window import TagManagementWindow
-        
-        self._open_gematria_window("tag_management", TagManagementWindow, "Tag Management")
+
+        self._open_gematria_window(
+            "tag_management", TagManagementWindow, "Tag Management"
+        )
 
     def _open_search_panel(self) -> None:
         """Open the Search panel."""
         from loguru import logger
+
         logger.debug("Opening search panel")
 
         try:
             from gematria.ui.windows.search_window import SearchWindow
-            
+
             # Open the window with the search panel
             self._open_gematria_window(
                 "search",
                 SearchWindow,
                 "Gematria Search",
                 self.window_manager,
-                allow_multiple=True
+                allow_multiple=True,
             )
         except Exception as e:
             logger.error(f"Error opening search panel: {e}")
             import traceback
+
             logger.error(traceback.format_exc())
 
     def _show_help(self) -> None:
         """Show the Gematria help dialog."""
         from gematria.ui.windows.help_window import HelpWindow
-        
+
         self._open_gematria_window("help", HelpWindow, "Gematria Help")

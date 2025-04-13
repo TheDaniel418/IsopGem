@@ -4,9 +4,9 @@ This module contains the GeometricObject base class that provides common
 functionality for all geometric objects in the Sacred Geometry Explorer.
 """
 
-from typing import Dict, Any, List, Set, ClassVar, Type, Optional
+from typing import Any, ClassVar, Dict, List, Set, Type
 from uuid import uuid4
-import math
+
 from PyQt6.QtCore import QPointF, QRectF
 
 from geometry.ui.sacred_geometry.model.enums import ObjectType
@@ -22,7 +22,7 @@ class GeometricObject:
 
     # Class variables
     object_type: ClassVar[ObjectType] = None
-    registry: ClassVar[Dict[str, Type['GeometricObject']]] = {}
+    registry: ClassVar[Dict[str, Type["GeometricObject"]]] = {}
 
     def __init_subclass__(cls, **kwargs):
         """Register subclasses for factory creation."""
@@ -45,7 +45,7 @@ class GeometricObject:
         self.style = style or Style()
         self.tags: Set[str] = set()
         self.dependencies: Set[str] = set()  # IDs of objects this object depends on
-        self.dependents: Set[str] = set()    # IDs of objects that depend on this object
+        self.dependents: Set[str] = set()  # IDs of objects that depend on this object
         self.metadata: Dict[str, Any] = {}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -65,11 +65,11 @@ class GeometricObject:
             "tags": list(self.tags),
             "dependencies": list(self.dependencies),
             "dependents": list(self.dependents),
-            "metadata": self.metadata.copy()
+            "metadata": self.metadata.copy(),
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'GeometricObject':
+    def from_dict(cls, data: Dict[str, Any]) -> "GeometricObject":
         """Create an object from a dictionary.
 
         Args:
@@ -162,9 +162,9 @@ class GeometricObject:
         """
         # Base implementation returns infinity
         # Subclasses should override this method
-        return float('inf')
+        return float("inf")
 
-    def intersect(self, other: 'GeometricObject') -> List[QPointF]:
+    def intersect(self, other: "GeometricObject") -> List[QPointF]:
         """Calculate intersection points with another object.
 
         Args:
@@ -177,7 +177,7 @@ class GeometricObject:
         # Subclasses should override this method
         return []
 
-    def clone(self) -> 'GeometricObject':
+    def clone(self) -> "GeometricObject":
         """Create a clone of this object.
 
         Returns:

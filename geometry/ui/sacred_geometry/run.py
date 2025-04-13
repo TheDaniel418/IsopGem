@@ -5,9 +5,12 @@ This script creates and shows the Sacred Geometry Explorer window.
 """
 
 import sys
+
 from PyQt6.QtWidgets import QApplication
-from shared.ui.window_management import WindowManager
+
 from geometry.ui.sacred_geometry.explorer import SacredGeometryExplorer
+from shared.ui.window_management import WindowManager
+
 
 def main():
     """Run the Sacred Geometry Explorer."""
@@ -28,6 +31,7 @@ def main():
 
     # Run application
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()

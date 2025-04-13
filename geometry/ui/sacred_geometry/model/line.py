@@ -3,12 +3,13 @@
 This module contains the Line class that represents a line in 2D space.
 """
 
-from typing import Dict, Any, List
 import math
+from typing import Any, Dict, List
+
 from PyQt6.QtCore import QPointF, QRectF
 
 from geometry.ui.sacred_geometry.model.base import GeometricObject
-from geometry.ui.sacred_geometry.model.enums import ObjectType, LineType
+from geometry.ui.sacred_geometry.model.enums import LineType, ObjectType
 from geometry.ui.sacred_geometry.model.style import Style
 
 
@@ -21,9 +22,16 @@ class Line(GeometricObject):
 
     object_type = ObjectType.LINE
 
-    def __init__(self, x1: float = 0, y1: float = 0, x2: float = 1, y2: float = 0,
-                 name: str = None, style: Style = None,
-                 line_type: LineType = LineType.SEGMENT) -> None:
+    def __init__(
+        self,
+        x1: float = 0,
+        y1: float = 0,
+        x2: float = 1,
+        y2: float = 0,
+        name: str = None,
+        style: Style = None,
+        line_type: LineType = LineType.SEGMENT,
+    ) -> None:
         """Initialize a line.
 
         Args:
@@ -45,8 +53,11 @@ class Line(GeometricObject):
 
         # Add debug logging for initialization
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.debug(f"DEBUG: Line initialized with P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: Line initialized with P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
     # Add properties for direct access to the private attributes
     @property
@@ -59,14 +70,19 @@ class Line(GeometricObject):
         """Set the x coordinate of the first endpoint."""
         # Add debug logging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.x1 setter called with value {value}")
-        logger.debug(f"DEBUG: Before x1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: Before x1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
         # Update only x1
         self._x1 = value
 
-        logger.debug(f"DEBUG: After x1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: After x1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
     @property
     def y1(self) -> float:
@@ -78,14 +94,19 @@ class Line(GeometricObject):
         """Set the y coordinate of the first endpoint."""
         # Add debug logging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.y1 setter called with value {value}")
-        logger.debug(f"DEBUG: Before y1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: Before y1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
         # Update only y1
         self._y1 = value
 
-        logger.debug(f"DEBUG: After y1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: After y1 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
     @property
     def x2(self) -> float:
@@ -97,14 +118,19 @@ class Line(GeometricObject):
         """Set the x coordinate of the second endpoint."""
         # Add debug logging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.x2 setter called with value {value}")
-        logger.debug(f"DEBUG: Before x2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: Before x2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
         # Update only x2
         self._x2 = value
 
-        logger.debug(f"DEBUG: After x2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: After x2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
     @property
     def y2(self) -> float:
@@ -116,29 +142,36 @@ class Line(GeometricObject):
         """Set the y coordinate of the second endpoint."""
         # Add debug logging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.y2 setter called with value {value}")
-        logger.debug(f"DEBUG: Before y2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: Before y2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
         # Update only y2
         self._y2 = value
 
-        logger.debug(f"DEBUG: After y2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})")
+        logger.debug(
+            f"DEBUG: After y2 change: P1=({self._x1}, {self._y1}), P2=({self._x2}, {self._y2})"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the line to a dictionary for serialization."""
         data = super().to_dict()
-        data.update({
-            "x1": self.x1,
-            "y1": self.y1,
-            "x2": self.x2,
-            "y2": self.y2,
-            "line_type": self.line_type.name
-        })
+        data.update(
+            {
+                "x1": self.x1,
+                "y1": self.y1,
+                "x2": self.x2,
+                "y2": self.y2,
+                "line_type": self.line_type.name,
+            }
+        )
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Line':
+    def from_dict(cls, data: Dict[str, Any]) -> "Line":
         """Create a line from a dictionary."""
         # Get coordinates
         x1 = data.get("x1", 0)
@@ -166,12 +199,7 @@ class Line(GeometricObject):
                 pass
 
         line = cls(
-            x1=x1,
-            y1=y1,
-            x2=x2,
-            y2=y2,
-            name=data.get("name"),
-            line_type=line_type
+            x1=x1, y1=y1, x2=x2, y2=y2, name=data.get("name"), line_type=line_type
         )
 
         # Load base class properties
@@ -208,7 +236,7 @@ class Line(GeometricObject):
                 min(x1, x2) - padding,
                 min(y1, y2) - padding,
                 abs(x2 - x1) + padding * 2,
-                abs(y2 - y1) + padding * 2
+                abs(y2 - y1) + padding * 2,
             )
         elif self.line_type == LineType.RAY:
             # For rays, extend the line in the direction from p1 to p2
@@ -231,7 +259,7 @@ class Line(GeometricObject):
                 min(x1, extended_x) - padding,
                 min(y1, extended_y) - padding,
                 abs(extended_x - x1) + padding * 2,
-                abs(extended_y - y1) + padding * 2
+                abs(extended_y - y1) + padding * 2,
             )
         else:  # LineType.INFINITE
             # For infinite lines, extend in both directions
@@ -256,7 +284,7 @@ class Line(GeometricObject):
                 min(extended_x1, extended_x2) - padding,
                 min(extended_y1, extended_y2) - padding,
                 abs(extended_x2 - extended_x1) + padding * 2,
-                abs(extended_y2 - extended_y1) + padding * 2
+                abs(extended_y2 - extended_y1) + padding * 2,
             )
 
     def contains_point(self, point: QPointF, tolerance: float = 5.0) -> bool:
@@ -271,9 +299,12 @@ class Line(GeometricObject):
 
         # Log before update
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.move_by({dx}, {dy}) called")
-        logger.debug(f"DEBUG: Before move_by: P1=({old_x1}, {old_y1}), P2=({old_x2}, {old_y2})")
+        logger.debug(
+            f"DEBUG: Before move_by: P1=({old_x1}, {old_y1}), P2=({old_x2}, {old_y2})"
+        )
 
         # Move both endpoints
         self.x1 += dx
@@ -282,7 +313,9 @@ class Line(GeometricObject):
         self.y2 += dy
 
         # Log after update
-        logger.debug(f"DEBUG: After move_by: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: After move_by: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
     def move_endpoint(self, endpoint: int, x: float, y: float) -> None:
         """Move a specific endpoint to the given position.
@@ -298,14 +331,20 @@ class Line(GeometricObject):
 
         # Get the current stack trace to see who called this method
         import traceback
+
         stack = traceback.extract_stack()
         caller = stack[-2]  # The caller is the second-to-last entry in the stack
 
         # Log before update
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.debug(f"DEBUG: Line.move_endpoint({endpoint}, {x}, {y}) called from {caller.filename}:{caller.lineno}")
-        logger.debug(f"DEBUG: Before move: P1=({old_x1}, {old_y1}), P2=({old_x2}, {old_y2})")
+        logger.debug(
+            f"DEBUG: Line.move_endpoint({endpoint}, {x}, {y}) called from {caller.filename}:{caller.lineno}"
+        )
+        logger.debug(
+            f"DEBUG: Before move: P1=({old_x1}, {old_y1}), P2=({old_x2}, {old_y2})"
+        )
 
         # ONLY update the specified endpoint
         if endpoint == 1:
@@ -318,7 +357,9 @@ class Line(GeometricObject):
 
             # Verify endpoint 2 hasn't changed
             if self.x2 != orig_x2 or self.y2 != orig_y2:
-                logger.error(f"ERROR: Endpoint 2 changed unexpectedly from ({orig_x2}, {orig_y2}) to ({self.x2}, {self.y2})")
+                logger.error(
+                    f"ERROR: Endpoint 2 changed unexpectedly from ({orig_x2}, {orig_y2}) to ({self.x2}, {self.y2})"
+                )
                 # Force it back to the original value
                 self.x2 = orig_x2
                 self.y2 = orig_y2
@@ -334,7 +375,9 @@ class Line(GeometricObject):
 
             # Verify endpoint 1 hasn't changed
             if self.x1 != orig_x1 or self.y1 != orig_y1:
-                logger.error(f"ERROR: Endpoint 1 changed unexpectedly from ({orig_x1}, {orig_y1}) to ({self.x1}, {self.y1})")
+                logger.error(
+                    f"ERROR: Endpoint 1 changed unexpectedly from ({orig_x1}, {orig_y1}) to ({self.x1}, {self.y1})"
+                )
                 # Force it back to the original value
                 self.x1 = orig_x1
                 self.y1 = orig_y1
@@ -342,7 +385,9 @@ class Line(GeometricObject):
             logger.debug(f"DEBUG: Moving ONLY endpoint 2 to ({x}, {y})")
 
         # Log after update
-        logger.debug(f"DEBUG: After move: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: After move: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
     # Add properties for endpoint coordinates to support property panel
     @property
@@ -355,9 +400,12 @@ class Line(GeometricObject):
         """Set the x coordinate of the first endpoint."""
         # Store original values for debugging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.endpoint1_x setter called with value {value}")
-        logger.debug(f"DEBUG: Before endpoint1_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: Before endpoint1_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
         # Store the original value of the other endpoint
         orig_x2, orig_y2 = self.x2, self.y2
@@ -367,12 +415,16 @@ class Line(GeometricObject):
 
         # Verify the other endpoint hasn't changed
         if self.x2 != orig_x2 or self.y2 != orig_y2:
-            logger.error(f"ERROR: Endpoint 2 changed unexpectedly in endpoint1_x setter from ({orig_x2}, {orig_y2}) to ({self.x2}, {self.y2})")
+            logger.error(
+                f"ERROR: Endpoint 2 changed unexpectedly in endpoint1_x setter from ({orig_x2}, {orig_y2}) to ({self.x2}, {self.y2})"
+            )
             # Force it back to the original value
             self.x2 = orig_x2
             self.y2 = orig_y2
 
-        logger.debug(f"DEBUG: After endpoint1_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: After endpoint1_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
     @property
     def endpoint1_y(self) -> float:
@@ -384,9 +436,12 @@ class Line(GeometricObject):
         """Set the y coordinate of the first endpoint."""
         # Store original values for debugging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.endpoint1_y setter called with value {value}")
-        logger.debug(f"DEBUG: Before endpoint1_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: Before endpoint1_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
         # Store the original value of the other endpoint
         orig_x2, orig_y2 = self.x2, self.y2
@@ -396,12 +451,16 @@ class Line(GeometricObject):
 
         # Verify the other endpoint hasn't changed
         if self.x2 != orig_x2 or self.y2 != orig_y2:
-            logger.error(f"ERROR: Endpoint 2 changed unexpectedly in endpoint1_y setter from ({orig_x2}, {orig_y2}) to ({self.x2}, {self.y2})")
+            logger.error(
+                f"ERROR: Endpoint 2 changed unexpectedly in endpoint1_y setter from ({orig_x2}, {orig_y2}) to ({self.x2}, {self.y2})"
+            )
             # Force it back to the original value
             self.x2 = orig_x2
             self.y2 = orig_y2
 
-        logger.debug(f"DEBUG: After endpoint1_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: After endpoint1_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
     @property
     def endpoint2_x(self) -> float:
@@ -413,9 +472,12 @@ class Line(GeometricObject):
         """Set the x coordinate of the second endpoint."""
         # Store original values for debugging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.endpoint2_x setter called with value {value}")
-        logger.debug(f"DEBUG: Before endpoint2_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: Before endpoint2_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
         # Store the original value of the other endpoint
         orig_x1, orig_y1 = self.x1, self.y1
@@ -425,12 +487,16 @@ class Line(GeometricObject):
 
         # Verify the other endpoint hasn't changed
         if self.x1 != orig_x1 or self.y1 != orig_y1:
-            logger.error(f"ERROR: Endpoint 1 changed unexpectedly in endpoint2_x setter from ({orig_x1}, {orig_y1}) to ({self.x1}, {self.y1})")
+            logger.error(
+                f"ERROR: Endpoint 1 changed unexpectedly in endpoint2_x setter from ({orig_x1}, {orig_y1}) to ({self.x1}, {self.y1})"
+            )
             # Force it back to the original value
             self.x1 = orig_x1
             self.y1 = orig_y1
 
-        logger.debug(f"DEBUG: After endpoint2_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: After endpoint2_x change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
     @property
     def endpoint2_y(self) -> float:
@@ -442,9 +508,12 @@ class Line(GeometricObject):
         """Set the y coordinate of the second endpoint."""
         # Store original values for debugging
         import logging
+
         logger = logging.getLogger(__name__)
         logger.debug(f"DEBUG: Line.endpoint2_y setter called with value {value}")
-        logger.debug(f"DEBUG: Before endpoint2_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: Before endpoint2_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
         # Store the original value of the other endpoint
         orig_x1, orig_y1 = self.x1, self.y1
@@ -454,12 +523,16 @@ class Line(GeometricObject):
 
         # Verify the other endpoint hasn't changed
         if self.x1 != orig_x1 or self.y1 != orig_y1:
-            logger.error(f"ERROR: Endpoint 1 changed unexpectedly in endpoint2_y setter from ({orig_x1}, {orig_y1}) to ({self.x1}, {self.y1})")
+            logger.error(
+                f"ERROR: Endpoint 1 changed unexpectedly in endpoint2_y setter from ({orig_x1}, {orig_y1}) to ({self.x1}, {self.y1})"
+            )
             # Force it back to the original value
             self.x1 = orig_x1
             self.y1 = orig_y1
 
-        logger.debug(f"DEBUG: After endpoint2_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})")
+        logger.debug(
+            f"DEBUG: After endpoint2_y change: P1=({self.x1}, {self.y1}), P2=({self.x2}, {self.y2})"
+        )
 
     def get_endpoint(self, endpoint: int) -> tuple[float, float]:
         """Get the coordinates of a specific endpoint.
@@ -589,7 +662,7 @@ class Line(GeometricObject):
         # This method is mainly a hook for the notification system
         pass
 
-    def _intersect_line(self, other: 'Line') -> List[QPointF]:
+    def _intersect_line(self, other: "Line") -> List[QPointF]:
         """Calculate intersection point with another line.
 
         The behavior depends on the line types of both lines.

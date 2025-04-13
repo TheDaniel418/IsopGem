@@ -34,7 +34,7 @@ class Database:
     _lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls, data_dir: Optional[str] = None) -> 'Database':
+    def get_instance(cls, data_dir: Optional[str] = None) -> "Database":
         """Get the singleton instance of the database.
 
         Args:

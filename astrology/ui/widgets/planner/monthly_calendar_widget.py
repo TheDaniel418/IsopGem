@@ -545,7 +545,7 @@ class MonthlyCalendarWidget(QWidget):
         events_by_day = self.planner_service.get_events_for_month(
             self.current_date.year(),
             self.current_date.month(),
-            include_minor_aspects=self.show_minor_aspects
+            include_minor_aspects=self.show_minor_aspects,
         )
 
         # Add moon phases

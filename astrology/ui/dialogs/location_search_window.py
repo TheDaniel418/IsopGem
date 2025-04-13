@@ -14,7 +14,7 @@ Dependencies:
 
 from loguru import logger
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QDialog, QVBoxLayout
 
 from astrology.services.location_service import Location
 from astrology.ui.widgets.location_search_widget import LocationSearchWidget

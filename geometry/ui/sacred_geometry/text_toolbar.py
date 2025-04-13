@@ -1,19 +1,17 @@
 """Toolbar for the Text Tool."""
 
-from PyQt6.QtWidgets import (
-    QToolBar,
-    QComboBox,
-    QSpinBox,
-    QLabel,
-    QColorDialog,
-    QPushButton,
-    QFontComboBox,
-    QCheckBox,
-    QHBoxLayout,
-    QWidget,
-)
-from PyQt6.QtGui import QIcon, QColor
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QFontComboBox,
+    QLabel,
+    QPushButton,
+    QSpinBox,
+    QToolBar,
+)
 
 
 class TextToolbar(QToolBar):
@@ -92,7 +90,9 @@ class TextToolbar(QToolBar):
 
         self.color_button = QPushButton()
         self.color_button.setFixedSize(24, 24)
-        self.color_button.setStyleSheet("background-color: #000000; border: 1px solid #888;")
+        self.color_button.setStyleSheet(
+            "background-color: #000000; border: 1px solid #888;"
+        )
         self.color_button.clicked.connect(self._on_color_button_clicked)
         self.addWidget(self.color_button)
 
@@ -151,7 +151,9 @@ class TextToolbar(QToolBar):
         # Show color dialog
         color = QColorDialog.getColor(current_color, self, "Select Text Color")
         if color.isValid():
-            self.color_button.setStyleSheet(f"background-color: {color.name()}; border: 1px solid #888;")
+            self.color_button.setStyleSheet(
+                f"background-color: {color.name()}; border: 1px solid #888;"
+            )
             self.text_color_changed.emit(color)
 
     def _on_auto_position_changed(self, state):
@@ -201,7 +203,9 @@ class TextToolbar(QToolBar):
         Args:
             color: Text color
         """
-        self.color_button.setStyleSheet(f"background-color: {color.name()}; border: 1px solid #888;")
+        self.color_button.setStyleSheet(
+            f"background-color: {color.name()}; border: 1px solid #888;"
+        )
 
     def set_auto_position(self, auto_position):
         """Set the current auto-position setting.

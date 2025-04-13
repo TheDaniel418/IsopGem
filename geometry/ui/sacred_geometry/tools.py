@@ -5,36 +5,49 @@ which provides the interface for creating and manipulating geometric objects.
 """
 
 import math
-from typing import List, Optional, Tuple
-from enum import Enum, auto
 from dataclasses import dataclass
-from PyQt6.QtCore import Qt, QPointF, QRectF, QLineF
-from PyQt6.QtGui import QMouseEvent, QKeyEvent, QCursor, QPen, QBrush, QColor, QPolygonF
-from PyQt6.QtWidgets import QGraphicsItem, QApplication, QDialog
-from loguru import logger
+from enum import Enum, auto
+from typing import List, Optional, Tuple
 
-from geometry.ui.sacred_geometry.model import GeometricObject, Point, Line, Circle, Polygon, Text, Style, LineType
+from loguru import logger
+from PyQt6.QtCore import QLineF, QPointF, QRectF, Qt
+from PyQt6.QtGui import QBrush, QColor, QCursor, QKeyEvent, QMouseEvent, QPen, QPolygonF
+from PyQt6.QtWidgets import QApplication
+
+from geometry.ui.sacred_geometry.model import (
+    Circle,
+    GeometricObject,
+    Line,
+    LineType,
+    Point,
+    Polygon,
+    Style,
+)
 from geometry.ui.sacred_geometry.text_dialog import TextDialog
 
 
 class ToolState(Enum):
     """Enumeration of tool states."""
-    IDLE = auto()       # Tool is idle, waiting for user input
-    ACTIVE = auto()     # Tool is active, processing user input
-    PREVIEW = auto()    # Tool is showing a preview
-    COMPLETE = auto()   # Tool has completed its operation
+
+    IDLE = auto()  # Tool is idle, waiting for user input
+    ACTIVE = auto()  # Tool is active, processing user input
+    PREVIEW = auto()  # Tool is showing a preview
+    COMPLETE = auto()  # Tool has completed its operation
     CANCELLED = auto()  # Tool operation was cancelled
 
 
 @dataclass
 class ToolOptions:
     """Options for geometric tools."""
-    snap_to_grid: bool = True           # Snap to grid points
-    snap_to_objects: bool = True        # Snap to existing objects
-    snap_tolerance: float = 10.0        # Snap tolerance in pixels
-    show_preview: bool = True           # Show preview during tool operation
-    auto_complete: bool = False         # Automatically complete operation when possible
-    continuous_creation: bool = False   # Create multiple objects without deactivating tool
+
+    snap_to_grid: bool = True  # Snap to grid points
+    snap_to_objects: bool = True  # Snap to existing objects
+    snap_tolerance: float = 10.0  # Snap tolerance in pixels
+    show_preview: bool = True  # Show preview during tool operation
+    auto_complete: bool = False  # Automatically complete operation when possible
+    continuous_creation: bool = (
+        False  # Create multiple objects without deactivating tool
+    )
 
 
 class GeometryTool:
@@ -74,7 +87,7 @@ class GeometryTool:
         self.explorer = explorer
 
         # Get canvas from explorer
-        if explorer and hasattr(explorer, 'canvas'):
+        if explorer and hasattr(explorer, "canvas"):
             self.canvas = explorer.canvas
 
         # Initialize tool-specific state
@@ -116,7 +129,7 @@ class GeometryTool:
     def _clear_preview(self) -> None:
         """Clear any preview items."""
         # Remove preview items from canvas
-        if self.canvas and hasattr(self.canvas, 'scene'):
+        if self.canvas and hasattr(self.canvas, "scene"):
             for item in self.preview_items:
                 self.canvas.scene.removeItem(item)
 
@@ -144,7 +157,7 @@ class GeometryTool:
             return pos
 
         # Get grid spacing
-        grid_spacing = getattr(self.canvas, 'grid_spacing', 50)
+        grid_spacing = getattr(self.canvas, "grid_spacing", 50)
 
         # Snap to grid
         x = round(pos.x() / grid_spacing) * grid_spacing
@@ -165,10 +178,10 @@ class GeometryTool:
             return pos
 
         # Get objects from canvas
-        objects = getattr(self.canvas, 'objects', [])
+        objects = getattr(self.canvas, "objects", [])
 
         # Find closest object
-        min_distance = float('inf')
+        min_distance = float("inf")
         closest_pos = pos
 
         for obj in objects:
@@ -182,7 +195,7 @@ class GeometryTool:
                     min_distance = distance
                     closest_pos = obj_pos
 
-        return closest_pos if min_distance < float('inf') else pos
+        return closest_pos if min_distance < float("inf") else pos
 
     def _snap_position(self, pos: QPointF) -> QPointF:
         """Snap position to grid and/or objects.
@@ -203,7 +216,9 @@ class GeometryTool:
 
         return pos
 
-    def _snap_position_with_info(self, pos: QPointF) -> Tuple[QPointF, str, Optional[GeometricObject]]:
+    def _snap_position_with_info(
+        self, pos: QPointF
+    ) -> Tuple[QPointF, str, Optional[GeometricObject]]:
         """Snap position to grid or objects and return snap information.
 
         Args:
@@ -212,7 +227,7 @@ class GeometryTool:
         Returns:
             Tuple of (snapped position, snap type, snap target)
         """
-        snap_type = 'none'
+        snap_type = "none"
         snap_target = None
         snapped_pos = pos
 
@@ -220,7 +235,7 @@ class GeometryTool:
         if self.options.snap_to_objects and self.canvas:
             # Find closest object
             closest_obj = None
-            closest_dist = float('inf')
+            closest_dist = float("inf")
             closest_point = None
 
             for obj in self.canvas.objects:
@@ -238,7 +253,7 @@ class GeometryTool:
 
             # If we found a close object, snap to it
             if closest_obj:
-                snap_type = 'object'
+                snap_type = "object"
                 snap_target = closest_obj
 
                 # If we have a specific point to snap to, use it
@@ -246,10 +261,10 @@ class GeometryTool:
                     snapped_pos = closest_point
 
         # If we didn't snap to an object, try snapping to grid
-        if snap_type == 'none' and self.options.snap_to_grid:
+        if snap_type == "none" and self.options.snap_to_grid:
             grid_pos = self._snap_to_grid(pos)
             if grid_pos != pos:
-                snap_type = 'grid'
+                snap_type = "grid"
                 snapped_pos = grid_pos
 
         return snapped_pos, snap_type, snap_target
@@ -265,19 +280,19 @@ class GeometryTool:
             Created object, or None if creation failed
         """
         if not self.explorer:
-            logger.warning(f"Cannot create object: no explorer reference")
+            logger.warning("Cannot create object: no explorer reference")
             return None
 
         # Create object based on type
-        if obj_type == 'point':
+        if obj_type == "point":
             return self.explorer.create_point(**kwargs)
-        elif obj_type == 'line':
+        elif obj_type == "line":
             return self.explorer.create_line(**kwargs)
-        elif obj_type == 'circle':
+        elif obj_type == "circle":
             return self.explorer.create_circle(**kwargs)
-        elif obj_type == 'polygon':
+        elif obj_type == "polygon":
             return self.explorer.create_polygon(**kwargs)
-        elif obj_type == 'text':
+        elif obj_type == "text":
             return self.explorer.create_text(**kwargs)
         else:
             logger.warning(f"Unknown object type: {obj_type}")
@@ -299,7 +314,7 @@ class GeometryTool:
         # If not continuous creation, deactivate tool
         if not self.options.continuous_creation and self.explorer:
             # Activate selection tool
-            self.explorer._activate_tool('selection')
+            self.explorer._activate_tool("selection")
 
     def _cancel_operation(self) -> None:
         """Cancel the current operation.
@@ -378,9 +393,9 @@ class SelectionTool(GeometryTool):
 
     # Selection modes
     MODE_SELECT = 0  # Normal selection mode
-    MODE_MOVE = 1    # Moving selected objects
+    MODE_MOVE = 1  # Moving selected objects
     MODE_ROTATE = 2  # Rotating selected objects
-    MODE_SCALE = 3   # Scaling selected objects
+    MODE_SCALE = 3  # Scaling selected objects
 
     def __init__(self) -> None:
         """Initialize the selection tool."""
@@ -456,7 +471,7 @@ class SelectionTool(GeometryTool):
                     self._store_original_positions()
 
                     # Update status message
-                    if self.explorer and hasattr(self.explorer, 'status_bar'):
+                    if self.explorer and hasattr(self.explorer, "status_bar"):
                         self.explorer.status_bar.showMessage("Moving selected objects")
 
                 return
@@ -470,7 +485,7 @@ class SelectionTool(GeometryTool):
             self.selection_rect_current = scene_pos
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage("Drag to select objects")
 
     def mouse_move(self, event: QMouseEvent, scene_pos: QPointF) -> None:
@@ -495,8 +510,10 @@ class SelectionTool(GeometryTool):
             self._move_selected_objects(dx, dy)
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage(f"Moving selected objects by ({dx:.2f}, {dy:.2f})")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    f"Moving selected objects by ({dx:.2f}, {dy:.2f})"
+                )
 
         elif self.mode == self.MODE_ROTATE and self.transform_start_pos is not None:
             # Rotating selected objects
@@ -509,8 +526,10 @@ class SelectionTool(GeometryTool):
             self._rotate_selected_objects(angle)
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage(f"Rotating selected objects by {angle:.2f} degrees")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    f"Rotating selected objects by {angle:.2f} degrees"
+                )
 
         elif self.mode == self.MODE_SCALE and self.transform_start_pos is not None:
             # Scaling selected objects
@@ -523,8 +542,10 @@ class SelectionTool(GeometryTool):
             self._scale_selected_objects(sx, sy)
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage(f"Scaling selected objects by ({sx:.2f}, {sy:.2f})")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    f"Scaling selected objects by ({sx:.2f}, {sy:.2f})"
+                )
 
         elif self.selection_rect_start is not None:
             # Updating selection rectangle
@@ -534,7 +555,7 @@ class SelectionTool(GeometryTool):
             self._draw_selection_rectangle()
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage("Drag to select objects")
 
     def mouse_release(self, event: QMouseEvent, scene_pos: QPointF) -> None:
@@ -555,7 +576,7 @@ class SelectionTool(GeometryTool):
             self.transform_current_pos = None
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage("Objects moved")
 
         elif self.mode == self.MODE_ROTATE:
@@ -566,7 +587,7 @@ class SelectionTool(GeometryTool):
             self.transform_center = None
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage("Objects rotated")
 
         elif self.mode == self.MODE_SCALE:
@@ -577,7 +598,7 @@ class SelectionTool(GeometryTool):
             self.transform_center = None
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage("Objects scaled")
 
         elif self.selection_rect_start is not None:
@@ -592,9 +613,13 @@ class SelectionTool(GeometryTool):
             self._clear_preview()
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                selected_count = len(self.canvas.get_selected_objects()) if self.canvas else 0
-                self.explorer.status_bar.showMessage(f"Selected {selected_count} objects")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                selected_count = (
+                    len(self.canvas.get_selected_objects()) if self.canvas else 0
+                )
+                self.explorer.status_bar.showMessage(
+                    f"Selected {selected_count} objects"
+                )
 
     def key_press(self, event: QKeyEvent) -> None:
         """Handle key press event.
@@ -613,7 +638,7 @@ class SelectionTool(GeometryTool):
                 self.transform_center = None
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage("Transformation cancelled")
 
                 event.accept()
@@ -627,14 +652,18 @@ class SelectionTool(GeometryTool):
                 self._clear_preview()
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage("Selection cancelled")
 
                 event.accept()
                 return
 
         # Handle rotation mode
-        elif event.key() == Qt.Key.Key_R and self.canvas and self.canvas.get_selected_objects():
+        elif (
+            event.key() == Qt.Key.Key_R
+            and self.canvas
+            and self.canvas.get_selected_objects()
+        ):
             # Switch to rotation mode
             self.mode = self.MODE_ROTATE
             self.transform_start_pos = None
@@ -647,14 +676,20 @@ class SelectionTool(GeometryTool):
             self._store_original_positions()
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Click and drag to rotate selected objects")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Click and drag to rotate selected objects"
+                )
 
             event.accept()
             return
 
         # Handle scale mode
-        elif event.key() == Qt.Key.Key_S and self.canvas and self.canvas.get_selected_objects():
+        elif (
+            event.key() == Qt.Key.Key_S
+            and self.canvas
+            and self.canvas.get_selected_objects()
+        ):
             # Switch to scale mode
             self.mode = self.MODE_SCALE
             self.transform_start_pos = None
@@ -667,8 +702,10 @@ class SelectionTool(GeometryTool):
             self._store_original_positions()
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Click and drag to scale selected objects")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Click and drag to scale selected objects"
+                )
 
             event.accept()
             return
@@ -682,21 +719,29 @@ class SelectionTool(GeometryTool):
                     self.canvas.remove_object(obj)
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Deleted {len(selected_objects)} objects")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Deleted {len(selected_objects)} objects"
+                    )
 
                 event.accept()
                 return
 
         # Handle select all (Ctrl+A)
-        elif event.key() == Qt.Key.Key_A and event.modifiers() & Qt.KeyboardModifier.ControlModifier and self.canvas:
+        elif (
+            event.key() == Qt.Key.Key_A
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+            and self.canvas
+        ):
             # Select all objects
             self.canvas.select_all_objects()
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 selected_count = len(self.canvas.get_selected_objects())
-                self.explorer.status_bar.showMessage(f"Selected all objects ({selected_count} total)")
+                self.explorer.status_bar.showMessage(
+                    f"Selected all objects ({selected_count} total)"
+                )
 
             event.accept()
             return
@@ -717,7 +762,12 @@ class SelectionTool(GeometryTool):
 
     def _draw_selection_rectangle(self) -> None:
         """Draw the selection rectangle preview."""
-        if not self.selection_rect_start or not self.selection_rect_current or not self.canvas or not hasattr(self.canvas, 'scene'):
+        if (
+            not self.selection_rect_start
+            or not self.selection_rect_current
+            or not self.canvas
+            or not hasattr(self.canvas, "scene")
+        ):
             return
 
         # Calculate rectangle coordinates
@@ -736,13 +786,17 @@ class SelectionTool(GeometryTool):
         rect_item = self.canvas.scene.addRect(
             QRectF(left, top, width, height),
             QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DashLine),
-            QBrush(QColor(100, 100, 255, 30))
+            QBrush(QColor(100, 100, 255, 30)),
         )
         self.preview_items.append(rect_item)
 
     def _select_objects_in_rectangle(self) -> None:
         """Select all objects that intersect with the selection rectangle."""
-        if not self.selection_rect_start or not self.selection_rect_current or not self.canvas:
+        if (
+            not self.selection_rect_start
+            or not self.selection_rect_current
+            or not self.canvas
+        ):
             return
 
         # Calculate rectangle coordinates
@@ -752,12 +806,7 @@ class SelectionTool(GeometryTool):
         y2 = self.selection_rect_current.y()
 
         # Create selection rectangle
-        selection_rect = QRectF(
-            min(x1, x2),
-            min(y1, y2),
-            abs(x2 - x1),
-            abs(y2 - y1)
-        )
+        selection_rect = QRectF(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
 
         # Check each object
         for obj in self.canvas.objects:
@@ -780,24 +829,33 @@ class SelectionTool(GeometryTool):
         self.original_positions = {}
         for obj in selected_objects:
             if isinstance(obj, Point):
-                self.original_positions[obj.id] = {'type': 'point', 'x': obj.x, 'y': obj.y}
+                self.original_positions[obj.id] = {
+                    "type": "point",
+                    "x": obj.x,
+                    "y": obj.y,
+                }
             elif isinstance(obj, Line):
                 self.original_positions[obj.id] = {
-                    'type': 'line',
-                    'x1': obj.x1, 'y1': obj.y1,
-                    'x2': obj.x2, 'y2': obj.y2
+                    "type": "line",
+                    "x1": obj.x1,
+                    "y1": obj.y1,
+                    "x2": obj.x2,
+                    "y2": obj.y2,
                 }
             elif isinstance(obj, Circle):
                 self.original_positions[obj.id] = {
-                    'type': 'circle',
-                    'center': {'x': obj.center.x, 'y': obj.center.y},
-                    'radius': obj.radius
+                    "type": "circle",
+                    "center": {"x": obj.center.x, "y": obj.center.y},
+                    "radius": obj.radius,
                 }
             elif isinstance(obj, Polygon):
                 vertices = []
                 for vertex in obj.vertices:
-                    vertices.append({'x': vertex.x, 'y': vertex.y})
-                self.original_positions[obj.id] = {'type': 'polygon', 'vertices': vertices}
+                    vertices.append({"x": vertex.x, "y": vertex.y})
+                self.original_positions[obj.id] = {
+                    "type": "polygon",
+                    "vertices": vertices,
+                }
 
     def _restore_original_positions(self) -> None:
         """Restore the original positions of objects after cancelled transformation."""
@@ -812,23 +870,23 @@ class SelectionTool(GeometryTool):
                 continue
 
             # Restore position based on object type
-            if data['type'] == 'point' and isinstance(obj, Point):
-                obj.x = data['x']
-                obj.y = data['y']
-            elif data['type'] == 'line' and isinstance(obj, Line):
-                obj.x1 = data['x1']
-                obj.y1 = data['y1']
-                obj.x2 = data['x2']
-                obj.y2 = data['y2']
-            elif data['type'] == 'circle' and isinstance(obj, Circle):
-                obj.center.x = data['center']['x']
-                obj.center.y = data['center']['y']
-                obj.radius = data['radius']
-            elif data['type'] == 'polygon' and isinstance(obj, Polygon):
-                for i, vertex_data in enumerate(data['vertices']):
+            if data["type"] == "point" and isinstance(obj, Point):
+                obj.x = data["x"]
+                obj.y = data["y"]
+            elif data["type"] == "line" and isinstance(obj, Line):
+                obj.x1 = data["x1"]
+                obj.y1 = data["y1"]
+                obj.x2 = data["x2"]
+                obj.y2 = data["y2"]
+            elif data["type"] == "circle" and isinstance(obj, Circle):
+                obj.center.x = data["center"]["x"]
+                obj.center.y = data["center"]["y"]
+                obj.radius = data["radius"]
+            elif data["type"] == "polygon" and isinstance(obj, Polygon):
+                for i, vertex_data in enumerate(data["vertices"]):
                     if i < len(obj.vertices):
-                        obj.vertices[i].x = vertex_data['x']
-                        obj.vertices[i].y = vertex_data['y']
+                        obj.vertices[i].x = vertex_data["x"]
+                        obj.vertices[i].y = vertex_data["y"]
 
             # Update the object on the canvas
             self.canvas.update_object(obj)
@@ -859,22 +917,22 @@ class SelectionTool(GeometryTool):
                     continue
 
                 # Move based on object type
-                if orig_data['type'] == 'point' and isinstance(obj, Point):
-                    obj.x = orig_data['x'] + total_dx
-                    obj.y = orig_data['y'] + total_dy
-                elif orig_data['type'] == 'line' and isinstance(obj, Line):
-                    obj.x1 = orig_data['x1'] + total_dx
-                    obj.y1 = orig_data['y1'] + total_dy
-                    obj.x2 = orig_data['x2'] + total_dx
-                    obj.y2 = orig_data['y2'] + total_dy
-                elif orig_data['type'] == 'circle' and isinstance(obj, Circle):
-                    obj.center.x = orig_data['center']['x'] + total_dx
-                    obj.center.y = orig_data['center']['y'] + total_dy
-                elif orig_data['type'] == 'polygon' and isinstance(obj, Polygon):
-                    for i, vertex_data in enumerate(orig_data['vertices']):
+                if orig_data["type"] == "point" and isinstance(obj, Point):
+                    obj.x = orig_data["x"] + total_dx
+                    obj.y = orig_data["y"] + total_dy
+                elif orig_data["type"] == "line" and isinstance(obj, Line):
+                    obj.x1 = orig_data["x1"] + total_dx
+                    obj.y1 = orig_data["y1"] + total_dy
+                    obj.x2 = orig_data["x2"] + total_dx
+                    obj.y2 = orig_data["y2"] + total_dy
+                elif orig_data["type"] == "circle" and isinstance(obj, Circle):
+                    obj.center.x = orig_data["center"]["x"] + total_dx
+                    obj.center.y = orig_data["center"]["y"] + total_dy
+                elif orig_data["type"] == "polygon" and isinstance(obj, Polygon):
+                    for i, vertex_data in enumerate(orig_data["vertices"]):
                         if i < len(obj.vertices):
-                            obj.vertices[i].x = vertex_data['x'] + total_dx
-                            obj.vertices[i].y = vertex_data['y'] + total_dy
+                            obj.vertices[i].x = vertex_data["x"] + total_dx
+                            obj.vertices[i].y = vertex_data["y"] + total_dy
 
                 # Update the object on the canvas
                 self.canvas.update_object(obj)
@@ -894,10 +952,10 @@ class SelectionTool(GeometryTool):
             return QPointF(0, 0)
 
         # Calculate bounding box of all selected objects
-        min_x = float('inf')
-        min_y = float('inf')
-        max_x = float('-inf')
-        max_y = float('-inf')
+        min_x = float("inf")
+        min_y = float("inf")
+        max_x = float("-inf")
+        max_y = float("-inf")
 
         for obj in selected_objects:
             bounds = obj.get_bounds()
@@ -918,7 +976,11 @@ class SelectionTool(GeometryTool):
         Returns:
             Rotation angle in degrees
         """
-        if not self.transform_start_pos or not self.transform_current_pos or not self.transform_center:
+        if (
+            not self.transform_start_pos
+            or not self.transform_current_pos
+            or not self.transform_center
+        ):
             return 0.0
 
         # Calculate vectors from center to start and current positions
@@ -926,14 +988,14 @@ class SelectionTool(GeometryTool):
             self.transform_center.x(),
             self.transform_center.y(),
             self.transform_start_pos.x(),
-            self.transform_start_pos.y()
+            self.transform_start_pos.y(),
         )
 
         current_vec = QLineF(
             self.transform_center.x(),
             self.transform_center.y(),
             self.transform_current_pos.x(),
-            self.transform_current_pos.y()
+            self.transform_current_pos.y(),
         )
 
         # Calculate angle between vectors
@@ -965,10 +1027,10 @@ class SelectionTool(GeometryTool):
                 continue
 
             # Rotate based on object type
-            if orig_data['type'] == 'point' and isinstance(obj, Point):
+            if orig_data["type"] == "point" and isinstance(obj, Point):
                 # Calculate new position after rotation
-                x = orig_data['x'] - self.transform_center.x()
-                y = orig_data['y'] - self.transform_center.y()
+                x = orig_data["x"] - self.transform_center.x()
+                y = orig_data["y"] - self.transform_center.y()
 
                 # Rotate
                 angle_rad = math.radians(angle)
@@ -981,11 +1043,11 @@ class SelectionTool(GeometryTool):
                 obj.x = new_x + self.transform_center.x()
                 obj.y = new_y + self.transform_center.y()
 
-            elif orig_data['type'] == 'line' and isinstance(obj, Line):
+            elif orig_data["type"] == "line" and isinstance(obj, Line):
                 # Rotate each endpoint
                 # First endpoint (x1, y1)
-                x = orig_data['x1'] - self.transform_center.x()
-                y = orig_data['y1'] - self.transform_center.y()
+                x = orig_data["x1"] - self.transform_center.x()
+                y = orig_data["y1"] - self.transform_center.y()
 
                 # Rotate
                 angle_rad = math.radians(angle)
@@ -999,8 +1061,8 @@ class SelectionTool(GeometryTool):
                 obj.y1 = new_y + self.transform_center.y()
 
                 # Second endpoint (x2, y2)
-                x = orig_data['x2'] - self.transform_center.x()
-                y = orig_data['y2'] - self.transform_center.y()
+                x = orig_data["x2"] - self.transform_center.x()
+                y = orig_data["y2"] - self.transform_center.y()
 
                 # Rotate
                 new_x = x * cos_a - y * sin_a
@@ -1010,10 +1072,10 @@ class SelectionTool(GeometryTool):
                 obj.x2 = new_x + self.transform_center.x()
                 obj.y2 = new_y + self.transform_center.y()
 
-            elif orig_data['type'] == 'circle' and isinstance(obj, Circle):
+            elif orig_data["type"] == "circle" and isinstance(obj, Circle):
                 # Rotate center
-                x = orig_data['center']['x'] - self.transform_center.x()
-                y = orig_data['center']['y'] - self.transform_center.y()
+                x = orig_data["center"]["x"] - self.transform_center.x()
+                y = orig_data["center"]["y"] - self.transform_center.y()
 
                 # Rotate
                 angle_rad = math.radians(angle)
@@ -1026,12 +1088,12 @@ class SelectionTool(GeometryTool):
                 obj.center.x = new_x + self.transform_center.x()
                 obj.center.y = new_y + self.transform_center.y()
 
-            elif orig_data['type'] == 'polygon' and isinstance(obj, Polygon):
+            elif orig_data["type"] == "polygon" and isinstance(obj, Polygon):
                 # Rotate each vertex
-                for i, vertex_data in enumerate(orig_data['vertices']):
+                for i, vertex_data in enumerate(orig_data["vertices"]):
                     if i < len(obj.vertices):
-                        x = vertex_data['x'] - self.transform_center.x()
-                        y = vertex_data['y'] - self.transform_center.y()
+                        x = vertex_data["x"] - self.transform_center.x()
+                        y = vertex_data["y"] - self.transform_center.y()
 
                         # Rotate
                         angle_rad = math.radians(angle)
@@ -1053,7 +1115,11 @@ class SelectionTool(GeometryTool):
         Returns:
             Tuple of (x_scale, y_scale)
         """
-        if not self.transform_start_pos or not self.transform_current_pos or not self.transform_center:
+        if (
+            not self.transform_start_pos
+            or not self.transform_current_pos
+            or not self.transform_center
+        ):
             return 1.0, 1.0
 
         # Calculate distances from center to start and current positions
@@ -1106,10 +1172,10 @@ class SelectionTool(GeometryTool):
                 continue
 
             # Scale based on object type
-            if orig_data['type'] == 'point' and isinstance(obj, Point):
+            if orig_data["type"] == "point" and isinstance(obj, Point):
                 # Calculate new position after scaling
-                dx = orig_data['x'] - self.transform_center.x()
-                dy = orig_data['y'] - self.transform_center.y()
+                dx = orig_data["x"] - self.transform_center.x()
+                dy = orig_data["y"] - self.transform_center.y()
 
                 # Scale
                 new_dx = dx * sx
@@ -1119,10 +1185,10 @@ class SelectionTool(GeometryTool):
                 obj.x = self.transform_center.x() + new_dx
                 obj.y = self.transform_center.y() + new_dy
 
-            elif orig_data['type'] == 'line' and isinstance(obj, Line):
+            elif orig_data["type"] == "line" and isinstance(obj, Line):
                 # Scale first endpoint (x1, y1)
-                dx = orig_data['x1'] - self.transform_center.x()
-                dy = orig_data['y1'] - self.transform_center.y()
+                dx = orig_data["x1"] - self.transform_center.x()
+                dy = orig_data["y1"] - self.transform_center.y()
 
                 # Scale
                 new_dx = dx * sx
@@ -1133,8 +1199,8 @@ class SelectionTool(GeometryTool):
                 obj.y1 = self.transform_center.y() + new_dy
 
                 # Scale second endpoint (x2, y2)
-                dx = orig_data['x2'] - self.transform_center.x()
-                dy = orig_data['y2'] - self.transform_center.y()
+                dx = orig_data["x2"] - self.transform_center.x()
+                dy = orig_data["y2"] - self.transform_center.y()
 
                 # Scale
                 new_dx = dx * sx
@@ -1144,10 +1210,10 @@ class SelectionTool(GeometryTool):
                 obj.x2 = self.transform_center.x() + new_dx
                 obj.y2 = self.transform_center.y() + new_dy
 
-            elif orig_data['type'] == 'circle' and isinstance(obj, Circle):
+            elif orig_data["type"] == "circle" and isinstance(obj, Circle):
                 # Scale center
-                dx = orig_data['center']['x'] - self.transform_center.x()
-                dy = orig_data['center']['y'] - self.transform_center.y()
+                dx = orig_data["center"]["x"] - self.transform_center.x()
+                dy = orig_data["center"]["y"] - self.transform_center.y()
 
                 # Scale
                 new_dx = dx * sx
@@ -1159,14 +1225,14 @@ class SelectionTool(GeometryTool):
 
                 # Scale radius (use average of sx and sy for uniform scaling)
                 scale_factor = (abs(sx) + abs(sy)) / 2
-                obj.radius = orig_data['radius'] * scale_factor
+                obj.radius = orig_data["radius"] * scale_factor
 
-            elif orig_data['type'] == 'polygon' and isinstance(obj, Polygon):
+            elif orig_data["type"] == "polygon" and isinstance(obj, Polygon):
                 # Scale each vertex
-                for i, vertex_data in enumerate(orig_data['vertices']):
+                for i, vertex_data in enumerate(orig_data["vertices"]):
                     if i < len(obj.vertices):
-                        dx = vertex_data['x'] - self.transform_center.x()
-                        dy = vertex_data['y'] - self.transform_center.y()
+                        dx = vertex_data["x"] - self.transform_center.x()
+                        dy = vertex_data["y"] - self.transform_center.y()
 
                         # Scale
                         new_dx = dx * sx
@@ -1210,9 +1276,9 @@ class PointTool(GeometryTool):
 
         # Initialize data
         self.data = {
-            'preview_point': None,  # Preview point for visualization
-            'snap_target': None,    # Current snap target (object or grid point)
-            'snap_type': None       # Type of snap (grid, object, none)
+            "preview_point": None,  # Preview point for visualization
+            "snap_target": None,  # Current snap target (object or grid point)
+            "snap_type": None,  # Type of snap (grid, object, none)
         }
 
         # Set state
@@ -1226,37 +1292,42 @@ class PointTool(GeometryTool):
         # If we have a canvas, create preview point
         if self.canvas and self.options.show_preview:
             # Get current mouse position
-            current_pos = self.data.get('current_pos', QPointF(0, 0))
+            current_pos = self.data.get("current_pos", QPointF(0, 0))
 
             # Create preview point
-            if hasattr(self.canvas, 'scene'):
+            if hasattr(self.canvas, "scene"):
                 # Create point item
                 point_size = self.point_size
                 point_item = self.canvas.scene.addEllipse(
-                    QRectF(current_pos.x() - point_size/2, current_pos.y() - point_size/2, point_size, point_size),
+                    QRectF(
+                        current_pos.x() - point_size / 2,
+                        current_pos.y() - point_size / 2,
+                        point_size,
+                        point_size,
+                    ),
                     QPen(QColor(100, 100, 255, 150)),
-                    QBrush(QColor(200, 200, 255, 100))
+                    QBrush(QColor(200, 200, 255, 100)),
                 )
 
                 # Add to preview items
                 self.preview_items.append(point_item)
 
                 # Show snap indicator if snapping
-                snap_type = self.data.get('snap_type')
-                if snap_type == 'grid':
+                snap_type = self.data.get("snap_type")
+                if snap_type == "grid":
                     # Add grid snap indicator
                     grid_indicator = self.canvas.scene.addEllipse(
                         QRectF(current_pos.x() - 3, current_pos.y() - 3, 6, 6),
                         QPen(QColor(0, 150, 0, 200)),
-                        QBrush(Qt.BrushStyle.NoBrush)
+                        QBrush(Qt.BrushStyle.NoBrush),
                     )
                     self.preview_items.append(grid_indicator)
-                elif snap_type == 'object':
+                elif snap_type == "object":
                     # Add object snap indicator
                     obj_indicator = self.canvas.scene.addEllipse(
                         QRectF(current_pos.x() - 4, current_pos.y() - 4, 8, 8),
                         QPen(QColor(150, 0, 150, 200)),
-                        QBrush(Qt.BrushStyle.NoBrush)
+                        QBrush(Qt.BrushStyle.NoBrush),
                     )
                     self.preview_items.append(obj_indicator)
 
@@ -1284,7 +1355,7 @@ class PointTool(GeometryTool):
                 self.canvas.select_object(obj)
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(f"Dragging point {obj.name}")
 
                 return
@@ -1294,10 +1365,7 @@ class PointTool(GeometryTool):
 
         # Create point with current style settings
         point = self._create_object(
-            'point',
-            x=pos.x(),
-            y=pos.y(),
-            style=self._create_point_style()
+            "point", x=pos.x(), y=pos.y(), style=self._create_point_style()
         )
 
         # Select the newly created point
@@ -1307,8 +1375,10 @@ class PointTool(GeometryTool):
         # If continuous creation is enabled, stay in creation mode
         if self.options.continuous_creation:
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage(f"Created point at ({pos.x():.2f}, {pos.y():.2f}). Click to create another.")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    f"Created point at ({pos.x():.2f}, {pos.y():.2f}). Click to create another."
+                )
         else:
             # Complete operation
             self._complete_operation()
@@ -1334,8 +1404,10 @@ class PointTool(GeometryTool):
                 self.canvas.update_object(self.drag_point)
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage(f"Dragging point to ({pos.x():.2f}, {pos.y():.2f})")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    f"Dragging point to ({pos.x():.2f}, {pos.y():.2f})"
+                )
 
             return
 
@@ -1343,22 +1415,28 @@ class PointTool(GeometryTool):
         pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
 
         # Store current position and snap info
-        self.data['current_pos'] = pos
-        self.data['snap_type'] = snap_type
-        self.data['snap_target'] = snap_target
+        self.data["current_pos"] = pos
+        self.data["snap_type"] = snap_type
+        self.data["snap_target"] = snap_target
 
         # Update preview
         if self.options.show_preview:
             self._update_preview()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
-            if snap_type == 'grid':
-                self.explorer.status_bar.showMessage(f"Click to create point at grid point ({pos.x():.2f}, {pos.y():.2f})")
-            elif snap_type == 'object' and snap_target:
-                self.explorer.status_bar.showMessage(f"Click to create point on {snap_target.__class__.__name__} {snap_target.name}")
+        if self.explorer and hasattr(self.explorer, "status_bar"):
+            if snap_type == "grid":
+                self.explorer.status_bar.showMessage(
+                    f"Click to create point at grid point ({pos.x():.2f}, {pos.y():.2f})"
+                )
+            elif snap_type == "object" and snap_target:
+                self.explorer.status_bar.showMessage(
+                    f"Click to create point on {snap_target.__class__.__name__} {snap_target.name}"
+                )
             else:
-                self.explorer.status_bar.showMessage(f"Click to create point at ({pos.x():.2f}, {pos.y():.2f})")
+                self.explorer.status_bar.showMessage(
+                    f"Click to create point at ({pos.x():.2f}, {pos.y():.2f})"
+                )
 
     def mouse_release(self, event: QMouseEvent, scene_pos: QPointF) -> None:
         """Handle mouse release event.
@@ -1386,10 +1464,12 @@ class PointTool(GeometryTool):
             self.drag_start_pos = None
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage("Point dragging completed")
 
-    def _snap_position_with_info(self, pos: QPointF) -> Tuple[QPointF, str, Optional[GeometricObject]]:
+    def _snap_position_with_info(
+        self, pos: QPointF
+    ) -> Tuple[QPointF, str, Optional[GeometricObject]]:
         """Snap position to grid or objects and return snap information.
 
         Args:
@@ -1398,7 +1478,7 @@ class PointTool(GeometryTool):
         Returns:
             Tuple of (snapped position, snap type, snap target)
         """
-        snap_type = 'none'
+        snap_type = "none"
         snap_target = None
         snapped_pos = pos
 
@@ -1406,7 +1486,7 @@ class PointTool(GeometryTool):
         if self.options.snap_to_objects and self.canvas:
             # Find closest object
             closest_obj = None
-            closest_dist = float('inf')
+            closest_dist = float("inf")
             closest_point = None
 
             for obj in self.canvas.objects:
@@ -1432,13 +1512,15 @@ class PointTool(GeometryTool):
                         line_length_sq = line_vec.length() ** 2
 
                         if line_length_sq > 0:
-                            t = ((pos.x() - obj.x1) * (obj.x2 - obj.x1) +
-                                 (pos.y() - obj.y1) * (obj.y2 - obj.y1)) / line_length_sq
+                            t = (
+                                (pos.x() - obj.x1) * (obj.x2 - obj.x1)
+                                + (pos.y() - obj.y1) * (obj.y2 - obj.y1)
+                            ) / line_length_sq
                             t = max(0, min(1, t))  # Clamp to line segment
 
                             closest_point = QPointF(
                                 obj.x1 + t * (obj.x2 - obj.x1),
-                                obj.y1 + t * (obj.y2 - obj.y1)
+                                obj.y1 + t * (obj.y2 - obj.y1),
                             )
                     # For circles, find closest point on the circumference
                     elif isinstance(obj, Circle):
@@ -1451,17 +1533,17 @@ class PointTool(GeometryTool):
                             # Normalize and scale to radius
                             closest_point = QPointF(
                                 obj.center.x + (dx / dist_from_center) * obj.radius,
-                                obj.center.y + (dy / dist_from_center) * obj.radius
+                                obj.center.y + (dy / dist_from_center) * obj.radius,
                             )
 
             # If we found a close object, snap to it
             if closest_obj and closest_point:
                 snapped_pos = closest_point
-                snap_type = 'object'
+                snap_type = "object"
                 snap_target = closest_obj
 
         # If not snapped to an object, try snapping to grid
-        if snap_type == 'none' and self.options.snap_to_grid:
+        if snap_type == "none" and self.options.snap_to_grid:
             grid_pos = self._snap_to_grid(pos)
 
             # Check if grid snap is within tolerance
@@ -1471,7 +1553,7 @@ class PointTool(GeometryTool):
 
             if grid_dist <= self.options.snap_tolerance:
                 snapped_pos = grid_pos
-                snap_type = 'grid'
+                snap_type = "grid"
 
         return snapped_pos, snap_type, snap_target
 
@@ -1530,7 +1612,7 @@ class PointTool(GeometryTool):
                 self.drag_start_pos = None
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage("Point dragging cancelled")
             else:
                 # Cancel operation
@@ -1570,10 +1652,10 @@ class LineTool(GeometryTool):
 
         # Initialize data
         self.data = {
-            'start_point': None,  # First point of the line
-            'preview_line': None,  # Preview line item
-            'snap_target': None,   # Current snap target (object or grid point)
-            'snap_type': None      # Type of snap (grid, object, none)
+            "start_point": None,  # First point of the line
+            "preview_line": None,  # Preview line item
+            "snap_target": None,  # Current snap target (object or grid point)
+            "snap_type": None,  # Type of snap (grid, object, none)
         }
 
         # Set state
@@ -1585,24 +1667,36 @@ class LineTool(GeometryTool):
         self._clear_preview()
 
         # If we have a start point and canvas, create preview line
-        if self.state == ToolState.ACTIVE and 'start_point' in self.data and self.data['start_point'] and self.canvas:
+        if (
+            self.state == ToolState.ACTIVE
+            and "start_point" in self.data
+            and self.data["start_point"]
+            and self.canvas
+        ):
             # Get start point
-            start_point = self.data['start_point']
+            start_point = self.data["start_point"]
 
             # Get current mouse position
-            current_pos = self.data.get('current_pos', QPointF(0, 0))
+            current_pos = self.data.get("current_pos", QPointF(0, 0))
 
             # Create preview line based on line type
-            if hasattr(self.canvas, 'scene'):
+            if hasattr(self.canvas, "scene"):
                 # Set up pen for preview
-                preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+                preview_pen = QPen(
+                    QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+                )
 
                 # Draw different line types
                 if self.line_type == LineType.SEGMENT:
                     # Draw line segment
                     line_item = self.canvas.scene.addLine(
-                        QLineF(start_point.x(), start_point.y(), current_pos.x(), current_pos.y()),
-                        preview_pen
+                        QLineF(
+                            start_point.x(),
+                            start_point.y(),
+                            current_pos.x(),
+                            current_pos.y(),
+                        ),
+                        preview_pen,
                     )
                     self.preview_items.append(line_item)
                 elif self.line_type == LineType.RAY:
@@ -1624,8 +1718,10 @@ class LineTool(GeometryTool):
 
                     # Draw the ray
                     line_item = self.canvas.scene.addLine(
-                        QLineF(start_point.x(), start_point.y(), extended_x, extended_y),
-                        preview_pen
+                        QLineF(
+                            start_point.x(), start_point.y(), extended_x, extended_y
+                        ),
+                        preview_pen,
                     )
                     self.preview_items.append(line_item)
                 else:  # LineType.INFINITE
@@ -1650,7 +1746,7 @@ class LineTool(GeometryTool):
                     # Draw the infinite line
                     line_item = self.canvas.scene.addLine(
                         QLineF(extended_x1, extended_y1, extended_x2, extended_y2),
-                        preview_pen
+                        preview_pen,
                     )
                     self.preview_items.append(line_item)
 
@@ -1670,30 +1766,32 @@ class LineTool(GeometryTool):
 
         if self.state == ToolState.IDLE:
             # First point
-            self.data['start_point'] = QPointF(pos)
+            self.data["start_point"] = QPointF(pos)
             self.state = ToolState.ACTIVE
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 line_type_name = self.line_type.name.lower()
-                self.explorer.status_bar.showMessage(f"Click to place second point for {line_type_name}")
+                self.explorer.status_bar.showMessage(
+                    f"Click to place second point for {line_type_name}"
+                )
 
         elif self.state == ToolState.ACTIVE:
             # Second point - create line
-            start_point = self.data['start_point']
+            start_point = self.data["start_point"]
 
             # Create line style
             style = self._create_line_style()
 
             # Create line
             self._create_object(
-                'line',
+                "line",
                 x1=start_point.x(),
                 y1=start_point.y(),
                 x2=pos.x(),
                 y2=pos.y(),
                 style=style,
-                line_type=self.line_type
+                line_type=self.line_type,
             )
 
             # Complete operation
@@ -1710,23 +1808,23 @@ class LineTool(GeometryTool):
         pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
 
         # Store current position
-        self.data['current_pos'] = pos
-        self.data['snap_type'] = snap_type
-        self.data['snap_target'] = snap_target
+        self.data["current_pos"] = pos
+        self.data["snap_type"] = snap_type
+        self.data["snap_target"] = snap_target
 
         # Update preview
         if self.state == ToolState.ACTIVE and self.options.show_preview:
             self._update_preview()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             line_type_name = self.line_type.name.lower()
             if self.state == ToolState.IDLE:
                 self.explorer.status_bar.showMessage(
                     f"Click to place first point of {line_type_name} at ({pos.x():.2f}, {pos.y():.2f})"
                 )
             elif self.state == ToolState.ACTIVE:
-                start_point = self.data['start_point']
+                start_point = self.data["start_point"]
                 self.explorer.status_bar.showMessage(
                     f"{line_type_name.capitalize()} from ({start_point.x():.2f}, {start_point.y():.2f}) to ({pos.x():.2f}, {pos.y():.2f})"
                 )
@@ -1737,7 +1835,7 @@ class LineTool(GeometryTool):
         super()._cancel_operation()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage("Line creation cancelled")
 
     def get_cursor(self) -> QCursor:
@@ -1785,10 +1883,12 @@ class LineTool(GeometryTool):
         return Style(
             stroke_color=self.stroke_color,
             stroke_width=self.stroke_width,
-            stroke_style=self.stroke_style
+            stroke_style=self.stroke_style,
         )
 
-    def _snap_position_with_info(self, pos: QPointF) -> Tuple[QPointF, str, Optional[GeometricObject]]:
+    def _snap_position_with_info(
+        self, pos: QPointF
+    ) -> Tuple[QPointF, str, Optional[GeometricObject]]:
         """Snap position to grid or objects and return snap information.
 
         Args:
@@ -1797,7 +1897,7 @@ class LineTool(GeometryTool):
         Returns:
             Tuple of (snapped position, snap type, snap target)
         """
-        snap_type = 'none'
+        snap_type = "none"
         snap_target = None
         snapped_pos = pos
 
@@ -1805,7 +1905,7 @@ class LineTool(GeometryTool):
         if self.options.snap_to_objects and self.canvas:
             # Find closest object
             closest_obj = None
-            closest_dist = float('inf')
+            closest_dist = float("inf")
             closest_point = None
 
             for obj in self.canvas.objects:
@@ -1833,7 +1933,9 @@ class LineTool(GeometryTool):
 
                             if line_length_sq > 1e-10:  # Avoid division by zero
                                 # Calculate projection of point onto line
-                                t = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / line_length_sq
+                                t = (
+                                    (x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)
+                                ) / line_length_sq
 
                                 # Clamp t based on line type
                                 if obj.line_type == LineType.SEGMENT:
@@ -1872,7 +1974,7 @@ class LineTool(GeometryTool):
                             if obj.vertices:
                                 # Find the closest vertex
                                 closest_vertex = None
-                                min_vertex_dist = float('inf')
+                                min_vertex_dist = float("inf")
 
                                 for vertex in obj.vertices:
                                     dx = vertex.x - pos.x()
@@ -1884,7 +1986,9 @@ class LineTool(GeometryTool):
                                         closest_vertex = vertex
 
                                 if closest_vertex:
-                                    closest_point = QPointF(closest_vertex.x, closest_vertex.y)
+                                    closest_point = QPointF(
+                                        closest_vertex.x, closest_vertex.y
+                                    )
                 except AttributeError:
                     # Skip objects that don't have the required attributes
                     continue
@@ -1892,11 +1996,11 @@ class LineTool(GeometryTool):
             # If we found a close object, snap to it
             if closest_obj and closest_point:
                 snapped_pos = closest_point
-                snap_type = 'object'
+                snap_type = "object"
                 snap_target = closest_obj
 
         # If not snapped to an object, try snapping to grid
-        if snap_type == 'none' and self.options.snap_to_grid:
+        if snap_type == "none" and self.options.snap_to_grid:
             grid_pos = self._snap_to_grid(pos)
 
             # Check if grid snap is within tolerance
@@ -1906,7 +2010,7 @@ class LineTool(GeometryTool):
 
             if grid_dist <= self.options.snap_tolerance:
                 snapped_pos = grid_pos
-                snap_type = 'grid'
+                snap_type = "grid"
 
         return snapped_pos, snap_type, snap_target
 
@@ -1942,12 +2046,12 @@ class PolygonTool(GeometryTool):
 
         # Initialize data
         self.data = {
-            'vertices': [],  # List of vertices (Point objects)
-            'preview_vertices': [],  # List of vertex positions (QPointF objects)
-            'snap_target': None,     # Current snap target (object or grid point)
-            'snap_type': None,       # Type of snap (grid, object, none)
-            'last_click_time': 0,    # Time of last click (for double-click detection)
-            'double_click_interval': 400  # Maximum time between clicks for double-click (ms)
+            "vertices": [],  # List of vertices (Point objects)
+            "preview_vertices": [],  # List of vertex positions (QPointF objects)
+            "snap_target": None,  # Current snap target (object or grid point)
+            "snap_type": None,  # Type of snap (grid, object, none)
+            "last_click_time": 0,  # Time of last click (for double-click detection)
+            "double_click_interval": 400,  # Maximum time between clicks for double-click (ms)
         }
 
         # Set state
@@ -1969,29 +2073,33 @@ class PolygonTool(GeometryTool):
 
         # Get current time for double-click detection
         current_time = event.timestamp()
-        last_click_time = self.data.get('last_click_time', 0)
-        self.data['last_click_time'] = current_time
+        last_click_time = self.data.get("last_click_time", 0)
+        self.data["last_click_time"] = current_time
 
         # Check for double-click
-        is_double_click = (current_time - last_click_time) <= self.data['double_click_interval']
+        is_double_click = (current_time - last_click_time) <= self.data[
+            "double_click_interval"
+        ]
 
         # If we're in idle state, start a new polygon
         if self.state == ToolState.IDLE:
             # Create first vertex
             first_vertex = Point(pos.x(), pos.y())
-            self.data['vertices'] = [first_vertex]
-            self.data['preview_vertices'] = [QPointF(pos)]
+            self.data["vertices"] = [first_vertex]
+            self.data["preview_vertices"] = [QPointF(pos)]
             self.state = ToolState.ACTIVE
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Click to add vertices. To complete polygon: 1) Double-click, 2) Press Enter, or 3) Click near first vertex")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Click to add vertices. To complete polygon: 1) Double-click, 2) Press Enter, or 3) Click near first vertex"
+                )
 
         # If we're in active state, add a vertex or complete the polygon
         elif self.state == ToolState.ACTIVE:
             # Check if we're clicking near the first vertex to close the polygon
-            if len(self.data['vertices']) >= self.min_vertices:
-                first_vertex = self.data['vertices'][0]
+            if len(self.data["vertices"]) >= self.min_vertices:
+                first_vertex = self.data["vertices"][0]
                 dx = pos.x() - first_vertex.x
                 dy = pos.y() - first_vertex.y
                 distance_to_first = math.sqrt(dx * dx + dy * dy)
@@ -2002,19 +2110,19 @@ class PolygonTool(GeometryTool):
                     return
 
             # Check for double-click to complete the polygon
-            if is_double_click and len(self.data['vertices']) >= self.min_vertices:
+            if is_double_click and len(self.data["vertices"]) >= self.min_vertices:
                 # Complete the polygon
                 self._complete_polygon()
                 return
 
             # Add a new vertex
             new_vertex = Point(pos.x(), pos.y())
-            self.data['vertices'].append(new_vertex)
-            self.data['preview_vertices'].append(QPointF(pos))
+            self.data["vertices"].append(new_vertex)
+            self.data["preview_vertices"].append(QPointF(pos))
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                vertex_count = len(self.data['vertices'])
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                vertex_count = len(self.data["vertices"])
                 self.explorer.status_bar.showMessage(
                     f"Added vertex {vertex_count}. Click to add more, double-click or press Enter to complete."
                 )
@@ -2030,23 +2138,25 @@ class PolygonTool(GeometryTool):
         pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
 
         # Store current position and snap info
-        self.data['current_pos'] = pos
-        self.data['snap_type'] = snap_type
-        self.data['snap_target'] = snap_target
+        self.data["current_pos"] = pos
+        self.data["snap_type"] = snap_type
+        self.data["snap_target"] = snap_target
 
         # Update preview
         if self.options.show_preview:
             self._update_preview()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             if self.state == ToolState.IDLE:
-                self.explorer.status_bar.showMessage(f"Click to place first vertex at ({pos.x():.2f}, {pos.y():.2f})")
+                self.explorer.status_bar.showMessage(
+                    f"Click to place first vertex at ({pos.x():.2f}, {pos.y():.2f})"
+                )
             elif self.state == ToolState.ACTIVE:
-                vertex_count = len(self.data['vertices'])
+                vertex_count = len(self.data["vertices"])
                 if vertex_count >= self.min_vertices:
                     # Check if we're near the first vertex
-                    first_vertex = self.data['vertices'][0]
+                    first_vertex = self.data["vertices"][0]
                     dx = pos.x() - first_vertex.x
                     dy = pos.y() - first_vertex.y
                     distance_to_first = math.sqrt(dx * dx + dy * dy)
@@ -2075,7 +2185,10 @@ class PolygonTool(GeometryTool):
 
         # Handle enter key to complete polygon
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            if self.state == ToolState.ACTIVE and len(self.data['vertices']) >= self.min_vertices:
+            if (
+                self.state == ToolState.ACTIVE
+                and len(self.data["vertices"]) >= self.min_vertices
+            ):
                 self._complete_polygon()
                 event.accept()
                 return
@@ -2085,15 +2198,19 @@ class PolygonTool(GeometryTool):
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 # Increase stroke width
                 self.set_stroke_width(min(10.0, self.stroke_width + 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_Minus:
                 # Decrease stroke width
                 self.set_stroke_width(max(0.5, self.stroke_width - 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_BracketLeft:
@@ -2102,7 +2219,7 @@ class PolygonTool(GeometryTool):
                 color = QColor(self.fill_color)
                 color.setAlpha(opacity)
                 self.set_fill_color(color)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(f"Fill opacity: {opacity}")
                 event.accept()
                 return
@@ -2112,7 +2229,7 @@ class PolygonTool(GeometryTool):
                 color = QColor(self.fill_color)
                 color.setAlpha(opacity)
                 self.set_fill_color(color)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(f"Fill opacity: {opacity}")
                 event.accept()
                 return
@@ -2126,26 +2243,30 @@ class PolygonTool(GeometryTool):
         self._clear_preview()
 
         # Only proceed if we have a canvas
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Get current mouse position
-        current_pos = self.data.get('current_pos', QPointF(0, 0))
+        current_pos = self.data.get("current_pos", QPointF(0, 0))
 
         # Set up pen and brush for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
         preview_brush = QBrush(QColor(100, 100, 255, 30), Qt.BrushStyle.SolidPattern)
 
         # If we have vertices, draw the preview polygon
-        if self.state == ToolState.ACTIVE and self.data['preview_vertices']:
-            vertices = self.data['preview_vertices']
+        if self.state == ToolState.ACTIVE and self.data["preview_vertices"]:
+            vertices = self.data["preview_vertices"]
 
             # Draw lines connecting the vertices
             for i in range(len(vertices) - 1):
                 line_item = self.canvas.scene.addLine(
-                    vertices[i].x(), vertices[i].y(),
-                    vertices[i+1].x(), vertices[i+1].y(),
-                    preview_pen
+                    vertices[i].x(),
+                    vertices[i].y(),
+                    vertices[i + 1].x(),
+                    vertices[i + 1].y(),
+                    preview_pen,
                 )
                 self.preview_items.append(line_item)
 
@@ -2153,9 +2274,11 @@ class PolygonTool(GeometryTool):
             if vertices:
                 last_vertex = vertices[-1]
                 line_item = self.canvas.scene.addLine(
-                    last_vertex.x(), last_vertex.y(),
-                    current_pos.x(), current_pos.y(),
-                    preview_pen
+                    last_vertex.x(),
+                    last_vertex.y(),
+                    current_pos.x(),
+                    current_pos.y(),
+                    preview_pen,
                 )
                 self.preview_items.append(line_item)
 
@@ -2183,7 +2306,7 @@ class PolygonTool(GeometryTool):
                             self.close_distance,
                             self.close_distance,
                             QPen(QColor(100, 255, 100, 150), 1, Qt.PenStyle.DotLine),
-                            QBrush(QColor(100, 255, 100, 50))
+                            QBrush(QColor(100, 255, 100, 50)),
                         )
                         self.preview_items.append(highlight_item)
 
@@ -2191,14 +2314,16 @@ class PolygonTool(GeometryTool):
                 qpolygon = QPolygonF(polygon_points)
 
                 # Add the polygon to the scene
-                polygon_item = self.canvas.scene.addPolygon(qpolygon, preview_pen, preview_brush)
+                polygon_item = self.canvas.scene.addPolygon(
+                    qpolygon, preview_pen, preview_brush
+                )
                 self.preview_items.append(polygon_item)
 
     def _complete_polygon(self) -> None:
         """Complete the polygon and create it."""
         # Check if we have enough vertices
-        if len(self.data['vertices']) < self.min_vertices:
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if len(self.data["vertices"]) < self.min_vertices:
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage(
                     f"Need at least {self.min_vertices} vertices to create a polygon. Current: {len(self.data['vertices'])}"
                 )
@@ -2208,11 +2333,7 @@ class PolygonTool(GeometryTool):
         style = self._create_polygon_style()
 
         # Create polygon
-        self._create_object(
-            'polygon',
-            vertices=self.data['vertices'],
-            style=style
-        )
+        self._create_object("polygon", vertices=self.data["vertices"], style=style)
 
         # Complete operation
         self._complete_operation()
@@ -2228,10 +2349,12 @@ class PolygonTool(GeometryTool):
             stroke_width=self.stroke_width,
             stroke_style=self.stroke_style,
             fill_color=self.fill_color,
-            fill_style=self.fill_style
+            fill_style=self.fill_style,
         )
 
-    def _snap_position_with_info(self, pos: QPointF) -> Tuple[QPointF, str, Optional[GeometricObject]]:
+    def _snap_position_with_info(
+        self, pos: QPointF
+    ) -> Tuple[QPointF, str, Optional[GeometricObject]]:
         """Snap position to grid or objects and return snap information.
 
         Args:
@@ -2240,7 +2363,7 @@ class PolygonTool(GeometryTool):
         Returns:
             Tuple of (snapped position, snap type, snap target)
         """
-        snap_type = 'none'
+        snap_type = "none"
         snap_target = None
         snapped_pos = pos
 
@@ -2248,7 +2371,7 @@ class PolygonTool(GeometryTool):
         if self.options.snap_to_objects and self.canvas:
             # Find closest object
             closest_obj = None
-            closest_dist = float('inf')
+            closest_dist = float("inf")
             closest_point = None
 
             for obj in self.canvas.objects:
@@ -2275,7 +2398,9 @@ class PolygonTool(GeometryTool):
 
                         if line_length_sq > 1e-10:  # Avoid division by zero
                             # Calculate projection of point onto line
-                            t = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / line_length_sq
+                            t = (
+                                (x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)
+                            ) / line_length_sq
 
                             # Clamp t based on line type
                             if obj.line_type == LineType.SEGMENT:
@@ -2310,11 +2435,11 @@ class PolygonTool(GeometryTool):
             # If we found a close object, snap to it
             if closest_obj and closest_point:
                 snapped_pos = closest_point
-                snap_type = 'object'
+                snap_type = "object"
                 snap_target = closest_obj
 
         # If not snapped to an object, try snapping to grid
-        if snap_type == 'none' and self.options.snap_to_grid:
+        if snap_type == "none" and self.options.snap_to_grid:
             grid_pos = self._snap_to_grid(pos)
 
             # Check if grid snap is within tolerance
@@ -2324,7 +2449,7 @@ class PolygonTool(GeometryTool):
 
             if grid_dist <= self.options.snap_tolerance:
                 snapped_pos = grid_pos
-                snap_type = 'grid'
+                snap_type = "grid"
 
         return snapped_pos, snap_type, snap_target
 
@@ -2410,11 +2535,11 @@ class RegularPolygonTool(GeometryTool):
 
         # Initialize data
         self.data = {
-            'center': None,  # Center point
-            'vertex': None,  # Vertex point
-            'preview_polygon': None,  # Preview polygon
-            'snap_target': None,  # Current snap target
-            'snap_type': None,  # Type of snap (grid, object, none)
+            "center": None,  # Center point
+            "vertex": None,  # Vertex point
+            "preview_polygon": None,  # Preview polygon
+            "snap_target": None,  # Current snap target
+            "snap_type": None,  # Type of snap (grid, object, none)
         }
 
         # Set state
@@ -2437,21 +2562,21 @@ class RegularPolygonTool(GeometryTool):
         if self.state == ToolState.IDLE:
             # First click - set center point
             center_point = Point(pos.x(), pos.y())
-            self.data['center'] = center_point
+            self.data["center"] = center_point
             self.state = ToolState.ACTIVE
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage(
                     f"Center point set at ({pos.x():.2f}, {pos.y():.2f}). Click to place vertex and create {self.sides}-sided polygon."
                 )
 
         elif self.state == ToolState.ACTIVE:
             # Second click - create regular polygon
-            if self.data['center']:
+            if self.data["center"]:
                 # Create vertex point
                 vertex_point = Point(pos.x(), pos.y())
-                self.data['vertex'] = vertex_point
+                self.data["vertex"] = vertex_point
 
                 # Create regular polygon
                 self._create_regular_polygon()
@@ -2470,22 +2595,22 @@ class RegularPolygonTool(GeometryTool):
         pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
 
         # Store current position and snap info
-        self.data['current_pos'] = pos
-        self.data['snap_type'] = snap_type
-        self.data['snap_target'] = snap_target
+        self.data["current_pos"] = pos
+        self.data["snap_type"] = snap_type
+        self.data["snap_target"] = snap_target
 
         # Update preview
         if self.options.show_preview:
             self._update_preview()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             if self.state == ToolState.IDLE:
                 self.explorer.status_bar.showMessage(
                     f"Click to place center point of {self.sides}-sided polygon at ({pos.x():.2f}, {pos.y():.2f})"
                 )
-            elif self.state == ToolState.ACTIVE and self.data['center']:
-                center = self.data['center']
+            elif self.state == ToolState.ACTIVE and self.data["center"]:
+                center = self.data["center"]
                 # Calculate radius
                 dx = pos.x() - center.x
                 dy = pos.y() - center.y
@@ -2510,13 +2635,13 @@ class RegularPolygonTool(GeometryTool):
         # Handle plus/minus keys to change number of sides
         if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
             self.set_sides(min(self.max_sides, self.sides + 1))
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage(f"Number of sides: {self.sides}")
             event.accept()
             return
         elif event.key() == Qt.Key.Key_Minus:
             self.set_sides(max(self.min_sides, self.sides - 1))
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage(f"Number of sides: {self.sides}")
             event.accept()
             return
@@ -2525,11 +2650,11 @@ class RegularPolygonTool(GeometryTool):
         if event.key() == Qt.Key.Key_O:
             if self.orientation == self.ORIENTATION_VERTEX_TOP:
                 self.set_orientation(self.ORIENTATION_SIDE_TOP)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage("Orientation: Side at top")
             else:
                 self.set_orientation(self.ORIENTATION_VERTEX_TOP)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage("Orientation: Vertex at top")
             event.accept()
             return
@@ -2538,7 +2663,7 @@ class RegularPolygonTool(GeometryTool):
         if Qt.Key.Key_3 <= event.key() <= Qt.Key.Key_9:
             sides = event.key() - Qt.Key.Key_0  # Convert key code to number
             self.set_sides(sides)
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage(f"Number of sides: {self.sides}")
             event.accept()
             return
@@ -2548,15 +2673,19 @@ class RegularPolygonTool(GeometryTool):
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 # Increase stroke width
                 self.set_stroke_width(min(10.0, self.stroke_width + 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_Minus:
                 # Decrease stroke width
                 self.set_stroke_width(max(0.5, self.stroke_width - 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_BracketLeft:
@@ -2565,7 +2694,7 @@ class RegularPolygonTool(GeometryTool):
                 color = QColor(self.fill_color)
                 color.setAlpha(opacity)
                 self.set_fill_color(color)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(f"Fill opacity: {opacity}")
                 event.accept()
                 return
@@ -2575,7 +2704,7 @@ class RegularPolygonTool(GeometryTool):
                 color = QColor(self.fill_color)
                 color.setAlpha(opacity)
                 self.set_fill_color(color)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(f"Fill opacity: {opacity}")
                 event.accept()
                 return
@@ -2589,19 +2718,21 @@ class RegularPolygonTool(GeometryTool):
         self._clear_preview()
 
         # Only proceed if we have a canvas
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Get current mouse position
-        current_pos = self.data.get('current_pos', QPointF(0, 0))
+        current_pos = self.data.get("current_pos", QPointF(0, 0))
 
         # Set up pen and brush for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
         preview_brush = QBrush(QColor(100, 100, 255, 30), Qt.BrushStyle.SolidPattern)
 
         # If we have a center point, draw the preview polygon
-        if self.state == ToolState.ACTIVE and self.data['center']:
-            center = self.data['center']
+        if self.state == ToolState.ACTIVE and self.data["center"]:
+            center = self.data["center"]
 
             # Calculate radius from mouse position
             dx = current_pos.x() - center.x
@@ -2619,26 +2750,35 @@ class RegularPolygonTool(GeometryTool):
             qpolygon = QPolygonF(polygon_points)
 
             # Add the polygon to the scene
-            polygon_item = self.canvas.scene.addPolygon(qpolygon, preview_pen, preview_brush)
+            polygon_item = self.canvas.scene.addPolygon(
+                qpolygon, preview_pen, preview_brush
+            )
             self.preview_items.append(polygon_item)
 
             # Draw center point
             center_item = self.canvas.scene.addEllipse(
-                center.x - 3, center.y - 3, 6, 6,
+                center.x - 3,
+                center.y - 3,
+                6,
+                6,
                 QPen(QColor(100, 100, 255, 150)),
-                QBrush(QColor(100, 100, 255, 150))
+                QBrush(QColor(100, 100, 255, 150)),
             )
             self.preview_items.append(center_item)
 
             # Draw radius line
             radius_line = self.canvas.scene.addLine(
-                center.x, center.y,
-                current_pos.x(), current_pos.y(),
-                QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine)
+                center.x,
+                center.y,
+                current_pos.x(),
+                current_pos.y(),
+                QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine),
             )
             self.preview_items.append(radius_line)
 
-    def _calculate_regular_polygon_vertices(self, center: Point, radius: float, reference_angle: float = 0) -> List[Point]:
+    def _calculate_regular_polygon_vertices(
+        self, center: Point, radius: float, reference_angle: float = 0
+    ) -> List[Point]:
         """Calculate the vertices of a regular polygon.
 
         Args:
@@ -2671,11 +2811,11 @@ class RegularPolygonTool(GeometryTool):
 
     def _create_regular_polygon(self) -> None:
         """Create a regular polygon based on the current state."""
-        if not self.data['center'] or not self.data['vertex']:
+        if not self.data["center"] or not self.data["vertex"]:
             return
 
-        center = self.data['center']
-        vertex = self.data['vertex']
+        center = self.data["center"]
+        vertex = self.data["vertex"]
 
         # Calculate radius and angle
         dx = vertex.x - center.x
@@ -2690,11 +2830,7 @@ class RegularPolygonTool(GeometryTool):
         style = self._create_polygon_style()
 
         # Create polygon
-        self._create_object(
-            'polygon',
-            vertices=vertices,
-            style=style
-        )
+        self._create_object("polygon", vertices=vertices, style=style)
 
     def _create_polygon_style(self) -> Style:
         """Create a style object for new polygons.
@@ -2707,7 +2843,7 @@ class RegularPolygonTool(GeometryTool):
             stroke_width=self.stroke_width,
             stroke_style=self.stroke_style,
             fill_color=self.fill_color,
-            fill_style=self.fill_style
+            fill_style=self.fill_style,
         )
 
     def set_sides(self, sides: int) -> None:
@@ -2775,7 +2911,9 @@ class RegularPolygonTool(GeometryTool):
         """
         self.fill_style = style
 
-    def _snap_position_with_info(self, pos: QPointF) -> Tuple[QPointF, str, Optional[GeometricObject]]:
+    def _snap_position_with_info(
+        self, pos: QPointF
+    ) -> Tuple[QPointF, str, Optional[GeometricObject]]:
         """Snap position to grid or objects and return snap information.
 
         Args:
@@ -2784,7 +2922,7 @@ class RegularPolygonTool(GeometryTool):
         Returns:
             Tuple of (snapped position, snap type, snap target)
         """
-        snap_type = 'none'
+        snap_type = "none"
         snap_target = None
         snapped_pos = pos
 
@@ -2792,7 +2930,7 @@ class RegularPolygonTool(GeometryTool):
         if self.options.snap_to_objects and self.canvas:
             # Find closest object
             closest_obj = None
-            closest_dist = float('inf')
+            closest_dist = float("inf")
             closest_point = None
 
             for obj in self.canvas.objects:
@@ -2820,7 +2958,9 @@ class RegularPolygonTool(GeometryTool):
 
                             if line_length_sq > 1e-10:  # Avoid division by zero
                                 # Calculate projection of point onto line
-                                t = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / line_length_sq
+                                t = (
+                                    (x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)
+                                ) / line_length_sq
 
                                 # Clamp t based on line type
                                 if obj.line_type == LineType.SEGMENT:
@@ -2859,7 +2999,7 @@ class RegularPolygonTool(GeometryTool):
                             if obj.vertices:
                                 # Find the closest vertex
                                 closest_vertex = None
-                                min_vertex_dist = float('inf')
+                                min_vertex_dist = float("inf")
 
                                 for vertex in obj.vertices:
                                     dx = vertex.x - pos.x()
@@ -2871,7 +3011,9 @@ class RegularPolygonTool(GeometryTool):
                                         closest_vertex = vertex
 
                                 if closest_vertex:
-                                    closest_point = QPointF(closest_vertex.x, closest_vertex.y)
+                                    closest_point = QPointF(
+                                        closest_vertex.x, closest_vertex.y
+                                    )
                 except AttributeError:
                     # Skip objects that don't have the required attributes
                     continue
@@ -2879,11 +3021,11 @@ class RegularPolygonTool(GeometryTool):
             # If we found a close object, snap to it
             if closest_obj and closest_point:
                 snapped_pos = closest_point
-                snap_type = 'object'
+                snap_type = "object"
                 snap_target = closest_obj
 
         # If not snapped to an object, try snapping to grid
-        if snap_type == 'none' and self.options.snap_to_grid:
+        if snap_type == "none" and self.options.snap_to_grid:
             grid_pos = self._snap_to_grid(pos)
 
             # Check if grid snap is within tolerance
@@ -2893,7 +3035,7 @@ class RegularPolygonTool(GeometryTool):
 
             if grid_dist <= self.options.snap_tolerance:
                 snapped_pos = grid_pos
-                snap_type = 'grid'
+                snap_type = "grid"
 
         return snapped_pos, snap_type, snap_target
 
@@ -2946,11 +3088,11 @@ class CircleTool(GeometryTool):
 
         # Initialize data
         self.data = {
-            'center_point': None,  # Center of the circle
-            'preview_circle': None,  # Preview circle item
-            'snap_target': None,     # Current snap target (object or grid point)
-            'snap_type': None,       # Type of snap (grid, object, none)
-            'points': []            # Points for diameter and three-point modes
+            "center_point": None,  # Center of the circle
+            "preview_circle": None,  # Preview circle item
+            "snap_target": None,  # Current snap target (object or grid point)
+            "snap_type": None,  # Type of snap (grid, object, none)
+            "points": [],  # Points for diameter and three-point modes
         }
 
         # Set state
@@ -2997,15 +3139,21 @@ class CircleTool(GeometryTool):
         self._cancel_operation()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             if mode == self.MODE_CENTER_POINT:
                 self.explorer.status_bar.showMessage("Click to place center point")
             elif mode == self.MODE_FIXED_RADIUS:
-                self.explorer.status_bar.showMessage(f"Click to place center of circle with radius {self.fixed_radius:.2f}")
+                self.explorer.status_bar.showMessage(
+                    f"Click to place center of circle with radius {self.fixed_radius:.2f}"
+                )
             elif mode == self.MODE_DIAMETER:
-                self.explorer.status_bar.showMessage("Click to place first point of diameter")
+                self.explorer.status_bar.showMessage(
+                    "Click to place first point of diameter"
+                )
             elif mode == self.MODE_THREE_POINTS:
-                self.explorer.status_bar.showMessage("Click to place first point of circle")
+                self.explorer.status_bar.showMessage(
+                    "Click to place first point of circle"
+                )
 
     def _on_radius_changed(self, radius: float) -> None:
         """Handle radius change from toolbar.
@@ -3026,14 +3174,16 @@ class CircleTool(GeometryTool):
         self._clear_preview()
 
         # Only proceed if we have a canvas
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Get current mouse position
-        current_pos = self.data.get('current_pos', QPointF(0, 0))
+        current_pos = self.data.get("current_pos", QPointF(0, 0))
 
         # Set up pen and brush for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
         preview_brush = QBrush(QColor(100, 100, 255, 30), Qt.BrushStyle.SolidPattern)
 
         # Handle preview based on mode
@@ -3046,7 +3196,9 @@ class CircleTool(GeometryTool):
         elif self.mode == self.MODE_THREE_POINTS:
             self._update_three_points_preview(current_pos, preview_pen, preview_brush)
 
-    def _update_center_point_preview(self, current_pos: QPointF, pen: QPen, brush: QBrush) -> None:
+    def _update_center_point_preview(
+        self, current_pos: QPointF, pen: QPen, brush: QBrush
+    ) -> None:
         """Update preview for center-point mode.
 
         Args:
@@ -3055,9 +3207,13 @@ class CircleTool(GeometryTool):
             brush: Brush to use for preview
         """
         # If we have a center point, create preview circle
-        if self.state == ToolState.ACTIVE and 'center_point' in self.data and self.data['center_point']:
+        if (
+            self.state == ToolState.ACTIVE
+            and "center_point" in self.data
+            and self.data["center_point"]
+        ):
             # Get center point
-            center_point = self.data['center_point']
+            center_point = self.data["center_point"]
 
             # Calculate radius from mouse position
             dx = current_pos.x() - center_point.x()
@@ -3071,7 +3227,7 @@ class CircleTool(GeometryTool):
                 radius * 2,
                 radius * 2,
                 pen,
-                brush
+                brush,
             )
 
             # Add to preview items
@@ -3079,15 +3235,19 @@ class CircleTool(GeometryTool):
 
             # Draw radius line
             radius_line = self.canvas.scene.addLine(
-                center_point.x(), center_point.y(),
-                current_pos.x(), current_pos.y(),
-                QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine)
+                center_point.x(),
+                center_point.y(),
+                current_pos.x(),
+                current_pos.y(),
+                QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine),
             )
 
             # Add to preview items
             self.preview_items.append(radius_line)
 
-    def _update_fixed_radius_preview(self, current_pos: QPointF, pen: QPen, brush: QBrush) -> None:
+    def _update_fixed_radius_preview(
+        self, current_pos: QPointF, pen: QPen, brush: QBrush
+    ) -> None:
         """Update preview for fixed-radius mode.
 
         Args:
@@ -3102,7 +3262,7 @@ class CircleTool(GeometryTool):
             self.fixed_radius * 2,
             self.fixed_radius * 2,
             pen,
-            brush
+            brush,
         )
 
         # Add to preview items
@@ -3114,15 +3274,19 @@ class CircleTool(GeometryTool):
         circ_y = current_pos.y() + self.fixed_radius * math.sin(angle)
 
         radius_line = self.canvas.scene.addLine(
-            current_pos.x(), current_pos.y(),
-            circ_x, circ_y,
-            QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine)
+            current_pos.x(),
+            current_pos.y(),
+            circ_x,
+            circ_y,
+            QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine),
         )
 
         # Add to preview items
         self.preview_items.append(radius_line)
 
-    def _update_diameter_preview(self, current_pos: QPointF, pen: QPen, brush: QBrush) -> None:
+    def _update_diameter_preview(
+        self, current_pos: QPointF, pen: QPen, brush: QBrush
+    ) -> None:
         """Update preview for diameter mode.
 
         Args:
@@ -3130,9 +3294,13 @@ class CircleTool(GeometryTool):
             pen: Pen to use for preview
             brush: Brush to use for preview
         """
-        if self.state == ToolState.ACTIVE and 'points' in self.data and len(self.data['points']) > 0:
+        if (
+            self.state == ToolState.ACTIVE
+            and "points" in self.data
+            and len(self.data["points"]) > 0
+        ):
             # Get first point of diameter
-            p1 = self.data['points'][0]
+            p1 = self.data["points"][0]
             p2 = current_pos
 
             # Calculate center and radius from diameter
@@ -3144,12 +3312,7 @@ class CircleTool(GeometryTool):
 
             # Create preview circle
             circle_item = self.canvas.scene.addEllipse(
-                center_x - radius,
-                center_y - radius,
-                radius * 2,
-                radius * 2,
-                pen,
-                brush
+                center_x - radius, center_y - radius, radius * 2, radius * 2, pen, brush
             )
 
             # Add to preview items
@@ -3157,15 +3320,19 @@ class CircleTool(GeometryTool):
 
             # Draw diameter line
             diameter_line = self.canvas.scene.addLine(
-                p1.x(), p1.y(),
-                p2.x(), p2.y(),
-                QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine)
+                p1.x(),
+                p1.y(),
+                p2.x(),
+                p2.y(),
+                QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine),
             )
 
             # Add to preview items
             self.preview_items.append(diameter_line)
 
-    def _update_three_points_preview(self, current_pos: QPointF, pen: QPen, brush: QBrush) -> None:
+    def _update_three_points_preview(
+        self, current_pos: QPointF, pen: QPen, brush: QBrush
+    ) -> None:
         """Update preview for three-points mode.
 
         Args:
@@ -3173,18 +3340,24 @@ class CircleTool(GeometryTool):
             pen: Pen to use for preview
             brush: Brush to use for preview
         """
-        if self.state == ToolState.ACTIVE and 'points' in self.data:
-            points = self.data['points']
+        if self.state == ToolState.ACTIVE and "points" in self.data:
+            points = self.data["points"]
 
             # Draw lines connecting the points
             for i in range(len(points)):
                 # Connect to next point or current mouse position
-                next_point = points[(i + 1) % len(points)] if i < len(points) - 1 else current_pos
+                next_point = (
+                    points[(i + 1) % len(points)]
+                    if i < len(points) - 1
+                    else current_pos
+                )
 
                 line_item = self.canvas.scene.addLine(
-                    points[i].x(), points[i].y(),
-                    next_point.x(), next_point.y(),
-                    QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine)
+                    points[i].x(),
+                    points[i].y(),
+                    next_point.x(),
+                    next_point.y(),
+                    QPen(QColor(100, 100, 255, 150), 1, Qt.PenStyle.DotLine),
                 )
 
                 # Add to preview items
@@ -3198,7 +3371,9 @@ class CircleTool(GeometryTool):
                     p3 = current_pos
 
                     # Calculate center and radius
-                    center, radius = self._calculate_circle_from_three_points(p1, p2, p3)
+                    center, radius = self._calculate_circle_from_three_points(
+                        p1, p2, p3
+                    )
 
                     # Create preview circle
                     circle_item = self.canvas.scene.addEllipse(
@@ -3207,7 +3382,7 @@ class CircleTool(GeometryTool):
                         radius * 2,
                         radius * 2,
                         pen,
-                        brush
+                        brush,
                     )
 
                     # Add to preview items
@@ -3248,16 +3423,16 @@ class CircleTool(GeometryTool):
         """
         if self.state == ToolState.IDLE:
             # Center point
-            self.data['center_point'] = QPointF(pos)
+            self.data["center_point"] = QPointF(pos)
             self.state = ToolState.ACTIVE
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage("Click to set radius")
 
         elif self.state == ToolState.ACTIVE:
             # Radius point - create circle
-            center_point = self.data['center_point']
+            center_point = self.data["center_point"]
 
             # Calculate radius from mouse position
             dx = pos.x() - center_point.x()
@@ -3269,11 +3444,11 @@ class CircleTool(GeometryTool):
 
             # Create circle
             self._create_object(
-                'circle',
+                "circle",
                 cx=center_point.x(),
                 cy=center_point.y(),
                 radius=radius,
-                style=style
+                style=style,
             )
 
             # Complete operation
@@ -3291,17 +3466,15 @@ class CircleTool(GeometryTool):
 
         # Create circle
         self._create_object(
-            'circle',
-            cx=pos.x(),
-            cy=pos.y(),
-            radius=self.fixed_radius,
-            style=style
+            "circle", cx=pos.x(), cy=pos.y(), radius=self.fixed_radius, style=style
         )
 
         # No need to change state - can create multiple circles
         # Just update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
-            self.explorer.status_bar.showMessage(f"Created circle with radius {self.fixed_radius:.2f}. Click to create another.")
+        if self.explorer and hasattr(self.explorer, "status_bar"):
+            self.explorer.status_bar.showMessage(
+                f"Created circle with radius {self.fixed_radius:.2f}. Click to create another."
+            )
 
     def _handle_diameter_mode(self, pos: QPointF) -> None:
         """Handle mouse press in diameter mode.
@@ -3311,16 +3484,18 @@ class CircleTool(GeometryTool):
         """
         if self.state == ToolState.IDLE:
             # First point of diameter
-            self.data['points'] = [QPointF(pos)]
+            self.data["points"] = [QPointF(pos)]
             self.state = ToolState.ACTIVE
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Click to set second point of diameter")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Click to set second point of diameter"
+                )
 
         elif self.state == ToolState.ACTIVE:
             # Second point of diameter - create circle
-            p1 = self.data['points'][0]
+            p1 = self.data["points"][0]
             p2 = QPointF(pos)
 
             # Calculate center and radius from diameter
@@ -3335,11 +3510,7 @@ class CircleTool(GeometryTool):
 
             # Create circle
             self._create_object(
-                'circle',
-                cx=center_x,
-                cy=center_y,
-                radius=radius,
-                style=style
+                "circle", cx=center_x, cy=center_y, radius=radius, style=style
             )
 
             # Complete operation
@@ -3353,25 +3524,29 @@ class CircleTool(GeometryTool):
         """
         if self.state == ToolState.IDLE:
             # First point
-            self.data['points'] = [QPointF(pos)]
+            self.data["points"] = [QPointF(pos)]
             self.state = ToolState.ACTIVE
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Click to set second point of circle")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Click to set second point of circle"
+                )
 
-        elif self.state == ToolState.ACTIVE and len(self.data['points']) == 1:
+        elif self.state == ToolState.ACTIVE and len(self.data["points"]) == 1:
             # Second point
-            self.data['points'].append(QPointF(pos))
+            self.data["points"].append(QPointF(pos))
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Click to set third point of circle")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Click to set third point of circle"
+                )
 
-        elif self.state == ToolState.ACTIVE and len(self.data['points']) == 2:
+        elif self.state == ToolState.ACTIVE and len(self.data["points"]) == 2:
             # Third point - create circle
-            p1 = self.data['points'][0]
-            p2 = self.data['points'][1]
+            p1 = self.data["points"][0]
+            p2 = self.data["points"][1]
             p3 = QPointF(pos)
 
             # Calculate center and radius from three points
@@ -3383,23 +3558,23 @@ class CircleTool(GeometryTool):
 
                 # Create circle
                 self._create_object(
-                    'circle',
-                    cx=center.x(),
-                    cy=center.y(),
-                    radius=radius,
-                    style=style
+                    "circle", cx=center.x(), cy=center.y(), radius=radius, style=style
                 )
 
                 # Complete operation
                 self._complete_operation()
             except Exception as e:
                 # Handle error (e.g., points are collinear)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Error creating circle: {str(e)}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Error creating circle: {str(e)}"
+                    )
                 logger.error(f"Error creating circle from three points: {str(e)}")
                 self._cancel_operation()
 
-    def _calculate_circle_from_three_points(self, p1: QPointF, p2: QPointF, p3: QPointF) -> Tuple[QPointF, float]:
+    def _calculate_circle_from_three_points(
+        self, p1: QPointF, p2: QPointF, p3: QPointF
+    ) -> Tuple[QPointF, float]:
         """Calculate the center and radius of a circle passing through three points.
 
         Args:
@@ -3420,7 +3595,9 @@ class CircleTool(GeometryTool):
 
         # Check if points are collinear
         if abs((y2 - y1) * (x3 - x2) - (y3 - y2) * (x2 - x1)) < 1e-10:
-            raise ValueError("The three points are collinear, no circle passes through them")
+            raise ValueError(
+                "The three points are collinear, no circle passes through them"
+            )
 
         # Calculate circle center using perpendicular bisectors
         # Midpoints
@@ -3434,7 +3611,7 @@ class CircleTool(GeometryTool):
         elif abs(y2 - y1) < 1e-10:
             # First line is horizontal, slope of perpendicular is infinity
             # Handle this case separately
-            s1 = float('inf')
+            s1 = float("inf")
         else:
             s1 = -1 / ((y2 - y1) / (x2 - x1))
 
@@ -3444,16 +3621,16 @@ class CircleTool(GeometryTool):
         elif abs(y3 - y2) < 1e-10:
             # Second line is horizontal, slope of perpendicular is infinity
             # Handle this case separately
-            s2 = float('inf')
+            s2 = float("inf")
         else:
             s2 = -1 / ((y3 - y2) / (x3 - x2))
 
         # Handle special cases with infinite slopes
-        if s1 == float('inf'):
+        if s1 == float("inf"):
             # First perpendicular bisector is vertical
             cx = mx1
             cy = s2 * (cx - mx2) + my2
-        elif s2 == float('inf'):
+        elif s2 == float("inf"):
             # Second perpendicular bisector is vertical
             cx = mx2
             cy = s1 * (cx - mx1) + my1
@@ -3480,16 +3657,16 @@ class CircleTool(GeometryTool):
         pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
 
         # Store current position and snap info
-        self.data['current_pos'] = pos
-        self.data['snap_type'] = snap_type
-        self.data['snap_target'] = snap_target
+        self.data["current_pos"] = pos
+        self.data["snap_type"] = snap_type
+        self.data["snap_target"] = snap_target
 
         # Update preview
         if self.options.show_preview:
             self._update_preview()
 
         # Update status message based on mode
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             if self.mode == self.MODE_CENTER_POINT:
                 self._update_center_point_status(pos)
             elif self.mode == self.MODE_FIXED_RADIUS:
@@ -3506,9 +3683,11 @@ class CircleTool(GeometryTool):
             pos: Current mouse position
         """
         if self.state == ToolState.IDLE:
-            self.explorer.status_bar.showMessage(f"Click to place center at ({pos.x():.2f}, {pos.y():.2f})")
+            self.explorer.status_bar.showMessage(
+                f"Click to place center at ({pos.x():.2f}, {pos.y():.2f})"
+            )
         elif self.state == ToolState.ACTIVE:
-            center_point = self.data['center_point']
+            center_point = self.data["center_point"]
             dx = pos.x() - center_point.x()
             dy = pos.y() - center_point.y()
             radius = (dx * dx + dy * dy) ** 0.5
@@ -3533,9 +3712,11 @@ class CircleTool(GeometryTool):
             pos: Current mouse position
         """
         if self.state == ToolState.IDLE:
-            self.explorer.status_bar.showMessage(f"Click to place first point of diameter at ({pos.x():.2f}, {pos.y():.2f})")
+            self.explorer.status_bar.showMessage(
+                f"Click to place first point of diameter at ({pos.x():.2f}, {pos.y():.2f})"
+            )
         elif self.state == ToolState.ACTIVE:
-            p1 = self.data['points'][0]
+            p1 = self.data["points"][0]
             p2 = pos
 
             # Calculate center and radius from diameter
@@ -3557,16 +3738,18 @@ class CircleTool(GeometryTool):
             pos: Current mouse position
         """
         if self.state == ToolState.IDLE:
-            self.explorer.status_bar.showMessage(f"Click to place first point of circle at ({pos.x():.2f}, {pos.y():.2f})")
+            self.explorer.status_bar.showMessage(
+                f"Click to place first point of circle at ({pos.x():.2f}, {pos.y():.2f})"
+            )
         elif self.state == ToolState.ACTIVE:
-            if len(self.data['points']) == 1:
-                p1 = self.data['points'][0]
+            if len(self.data["points"]) == 1:
+                p1 = self.data["points"][0]
                 self.explorer.status_bar.showMessage(
                     f"First point at ({p1.x():.2f}, {p1.y():.2f}), click to place second point at ({pos.x():.2f}, {pos.y():.2f})"
                 )
-            elif len(self.data['points']) == 2:
-                p1 = self.data['points'][0]
-                p2 = self.data['points'][1]
+            elif len(self.data["points"]) == 2:
+                p1 = self.data["points"][0]
+                p2 = self.data["points"][1]
                 self.explorer.status_bar.showMessage(
                     f"Two points at ({p1.x():.2f}, {p1.y():.2f}) and ({p2.x():.2f}, {p2.y():.2f}), click to place third point"
                 )
@@ -3577,7 +3760,7 @@ class CircleTool(GeometryTool):
         super()._cancel_operation()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage("Circle creation cancelled")
 
     def get_cursor(self) -> QCursor:
@@ -3651,10 +3834,12 @@ class CircleTool(GeometryTool):
             stroke_width=self.stroke_width,
             stroke_style=self.stroke_style,
             fill_color=self.fill_color,
-            fill_style=self.fill_style
+            fill_style=self.fill_style,
         )
 
-    def _snap_position_with_info(self, pos: QPointF) -> Tuple[QPointF, str, Optional[GeometricObject]]:
+    def _snap_position_with_info(
+        self, pos: QPointF
+    ) -> Tuple[QPointF, str, Optional[GeometricObject]]:
         """Snap position to grid or objects and return snap information.
 
         Args:
@@ -3663,7 +3848,7 @@ class CircleTool(GeometryTool):
         Returns:
             Tuple of (snapped position, snap type, snap target)
         """
-        snap_type = 'none'
+        snap_type = "none"
         snap_target = None
         snapped_pos = pos
 
@@ -3671,7 +3856,7 @@ class CircleTool(GeometryTool):
         if self.options.snap_to_objects and self.canvas:
             # Find closest object
             closest_obj = None
-            closest_dist = float('inf')
+            closest_dist = float("inf")
             closest_point = None
 
             for obj in self.canvas.objects:
@@ -3698,7 +3883,9 @@ class CircleTool(GeometryTool):
 
                         if line_length_sq > 1e-10:  # Avoid division by zero
                             # Calculate projection of point onto line
-                            t = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / line_length_sq
+                            t = (
+                                (x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)
+                            ) / line_length_sq
 
                             # Clamp t based on line type
                             if obj.line_type == LineType.SEGMENT:
@@ -3733,11 +3920,11 @@ class CircleTool(GeometryTool):
             # If we found a close object, snap to it
             if closest_obj and closest_point:
                 snapped_pos = closest_point
-                snap_type = 'object'
+                snap_type = "object"
                 snap_target = closest_obj
 
         # If not snapped to an object, try snapping to grid
-        if snap_type == 'none' and self.options.snap_to_grid:
+        if snap_type == "none" and self.options.snap_to_grid:
             grid_pos = self._snap_to_grid(pos)
 
             # Check if grid snap is within tolerance
@@ -3747,7 +3934,7 @@ class CircleTool(GeometryTool):
 
             if grid_dist <= self.options.snap_tolerance:
                 snapped_pos = grid_pos
-                snap_type = 'grid'
+                snap_type = "grid"
 
         return snapped_pos, snap_type, snap_target
 
@@ -3803,15 +3990,19 @@ class CircleTool(GeometryTool):
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 # Increase stroke width
                 self.set_stroke_width(min(10.0, self.stroke_width + 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_Minus:
                 # Decrease stroke width
                 self.set_stroke_width(max(0.5, self.stroke_width - 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_BracketLeft:
@@ -3820,7 +4011,7 @@ class CircleTool(GeometryTool):
                 color = QColor(self.fill_color)
                 color.setAlpha(opacity)
                 self.set_fill_color(color)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(f"Fill opacity: {opacity}")
                 event.accept()
                 return
@@ -3830,7 +4021,7 @@ class CircleTool(GeometryTool):
                 color = QColor(self.fill_color)
                 color.setAlpha(opacity)
                 self.set_fill_color(color)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(f"Fill opacity: {opacity}")
                 event.accept()
                 return
@@ -3871,8 +4062,8 @@ class PerpendicularLineTool(GeometryTool):
         """Initialize tool-specific state."""
         # Reset data
         self.data = {
-            'reference_point': None,  # Point from which to draw perpendicular (mode 0) or point on line (mode 1)
-            'reference_line': None,   # Line to which perpendicular will be drawn
+            "reference_point": None,  # Point from which to draw perpendicular (mode 0) or point on line (mode 1)
+            "reference_line": None,  # Line to which perpendicular will be drawn
         }
 
         # Set state
@@ -3883,11 +4074,15 @@ class PerpendicularLineTool(GeometryTool):
             self.canvas.setCursor(self.get_cursor())
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             if self.mode == self.MODE_POINT_TO_LINE:
-                self.explorer.status_bar.showMessage("Select a point from which to draw the perpendicular line")
+                self.explorer.status_bar.showMessage(
+                    "Select a point from which to draw the perpendicular line"
+                )
             else:  # MODE_THROUGH_POINT
-                self.explorer.status_bar.showMessage("Select a point on a line through which to draw the perpendicular")
+                self.explorer.status_bar.showMessage(
+                    "Select a point on a line through which to draw the perpendicular"
+                )
 
     def _cleanup_tool(self) -> None:
         """Clean up tool-specific state."""
@@ -3916,7 +4111,9 @@ class PerpendicularLineTool(GeometryTool):
         else:  # MODE_THROUGH_POINT
             self._handle_through_point_mode(pos, snap_type, snap_target)
 
-    def _handle_point_to_line_mode(self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]) -> None:
+    def _handle_point_to_line_mode(
+        self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]
+    ) -> None:
         """Handle mouse press in point-to-line mode.
 
         Args:
@@ -3926,32 +4123,29 @@ class PerpendicularLineTool(GeometryTool):
         """
         if self.state == ToolState.IDLE:
             # First click - select reference point
-            if snap_type == 'object' and isinstance(snap_target, Point):
+            if snap_type == "object" and isinstance(snap_target, Point):
                 # Use existing point
-                self.data['reference_point'] = snap_target
+                self.data["reference_point"] = snap_target
             else:
                 # Create new point
                 style = self._create_point_style()
-                point = self._create_object(
-                    'point',
-                    x=pos.x(),
-                    y=pos.y(),
-                    style=style
-                )
-                self.data['reference_point'] = point
+                point = self._create_object("point", x=pos.x(), y=pos.y(), style=style)
+                self.data["reference_point"] = point
 
             # Update state
             self.state = ToolState.ACTIVE
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Select a line to which the perpendicular will be drawn")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Select a line to which the perpendicular will be drawn"
+                )
 
         elif self.state == ToolState.ACTIVE:
             # Second click - select reference line
-            if snap_type == 'object' and isinstance(snap_target, Line):
+            if snap_type == "object" and isinstance(snap_target, Line):
                 # Use existing line
-                self.data['reference_line'] = snap_target
+                self.data["reference_line"] = snap_target
 
                 # Create perpendicular line
                 self._create_perpendicular_line_from_point()
@@ -3960,10 +4154,14 @@ class PerpendicularLineTool(GeometryTool):
                 self._complete_operation()
             else:
                 # No line selected
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage("Please select a line to which the perpendicular will be drawn")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        "Please select a line to which the perpendicular will be drawn"
+                    )
 
-    def _handle_through_point_mode(self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]) -> None:
+    def _handle_through_point_mode(
+        self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]
+    ) -> None:
         """Handle mouse press in through-point mode.
 
         Args:
@@ -3972,17 +4170,20 @@ class PerpendicularLineTool(GeometryTool):
             snap_target: Object that was snapped to, if any
         """
         # In this mode, we need to select a point that is on a line
-        if snap_type == 'object':
+        if snap_type == "object":
             if isinstance(snap_target, Point):
                 # Check if this point is on a line
                 if self.canvas:
                     for obj in self.canvas.objects:
                         if isinstance(obj, Line):
                             # Check if point is on the line
-                            if obj.distance_to(QPointF(snap_target.x, snap_target.y)) < 1e-6:
+                            if (
+                                obj.distance_to(QPointF(snap_target.x, snap_target.y))
+                                < 1e-6
+                            ):
                                 # Point is on the line
-                                self.data['reference_point'] = snap_target
-                                self.data['reference_line'] = obj
+                                self.data["reference_point"] = snap_target
+                                self.data["reference_line"] = obj
 
                                 # Create perpendicular line
                                 self._create_perpendicular_line_through_point()
@@ -3994,14 +4195,9 @@ class PerpendicularLineTool(GeometryTool):
             elif isinstance(snap_target, Line):
                 # Create a point at the clicked position on the line
                 style = self._create_point_style()
-                point = self._create_object(
-                    'point',
-                    x=pos.x(),
-                    y=pos.y(),
-                    style=style
-                )
-                self.data['reference_point'] = point
-                self.data['reference_line'] = snap_target
+                point = self._create_object("point", x=pos.x(), y=pos.y(), style=style)
+                self.data["reference_point"] = point
+                self.data["reference_line"] = snap_target
 
                 # Create perpendicular line
                 self._create_perpendicular_line_through_point()
@@ -4011,8 +4207,10 @@ class PerpendicularLineTool(GeometryTool):
                 return
 
         # If we get here, no valid selection was made
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
-            self.explorer.status_bar.showMessage("Please select a point on a line or a line itself")
+        if self.explorer and hasattr(self.explorer, "status_bar"):
+            self.explorer.status_bar.showMessage(
+                "Please select a point on a line or a line itself"
+            )
 
     def mouse_move(self, event: QMouseEvent, scene_pos: QPointF) -> None:
         """Handle mouse move event.
@@ -4025,24 +4223,36 @@ class PerpendicularLineTool(GeometryTool):
         self._clear_preview()
 
         # Store current position for preview
-        self.data['current_pos'] = scene_pos
+        self.data["current_pos"] = scene_pos
 
         # Create preview based on current state
-        if self.state == ToolState.ACTIVE and self.data.get('reference_point') and self.canvas:
+        if (
+            self.state == ToolState.ACTIVE
+            and self.data.get("reference_point")
+            and self.canvas
+        ):
             # Get reference point
-            ref_point = self.data['reference_point']
+            ref_point = self.data["reference_point"]
             ref_point_pos = QPointF(ref_point.x, ref_point.y)
 
             # Snap position to objects
             pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
 
             # Create preview based on mode
-            if self.mode == self.MODE_POINT_TO_LINE and snap_type == 'object' and isinstance(snap_target, Line):
+            if (
+                self.mode == self.MODE_POINT_TO_LINE
+                and snap_type == "object"
+                and isinstance(snap_target, Line)
+            ):
                 # Preview perpendicular line from point to line
                 self._preview_perpendicular_from_point(ref_point_pos, snap_target)
-            elif self.mode == self.MODE_THROUGH_POINT and self.data.get('reference_line'):
+            elif self.mode == self.MODE_THROUGH_POINT and self.data.get(
+                "reference_line"
+            ):
                 # Preview perpendicular line through point on line
-                self._preview_perpendicular_through_point(ref_point_pos, self.data['reference_line'])
+                self._preview_perpendicular_through_point(
+                    ref_point_pos, self.data["reference_line"]
+                )
 
         # Update status message
         self._update_status_message(scene_pos)
@@ -4053,17 +4263,23 @@ class PerpendicularLineTool(GeometryTool):
         Args:
             pos: Current mouse position
         """
-        if not self.explorer or not hasattr(self.explorer, 'status_bar'):
+        if not self.explorer or not hasattr(self.explorer, "status_bar"):
             return
 
         if self.state == ToolState.IDLE:
             if self.mode == self.MODE_POINT_TO_LINE:
-                self.explorer.status_bar.showMessage("Select a point from which to draw the perpendicular line")
+                self.explorer.status_bar.showMessage(
+                    "Select a point from which to draw the perpendicular line"
+                )
             else:  # MODE_THROUGH_POINT
-                self.explorer.status_bar.showMessage("Select a point on a line through which to draw the perpendicular")
+                self.explorer.status_bar.showMessage(
+                    "Select a point on a line through which to draw the perpendicular"
+                )
         elif self.state == ToolState.ACTIVE:
             if self.mode == self.MODE_POINT_TO_LINE:
-                self.explorer.status_bar.showMessage("Select a line to which the perpendicular will be drawn")
+                self.explorer.status_bar.showMessage(
+                    "Select a line to which the perpendicular will be drawn"
+                )
 
     def key_press(self, event: QKeyEvent) -> None:
         """Handle key press event.
@@ -4105,15 +4321,19 @@ class PerpendicularLineTool(GeometryTool):
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 # Increase stroke width
                 self.set_stroke_width(min(10.0, self.stroke_width + 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_Minus:
                 # Decrease stroke width
                 self.set_stroke_width(max(0.5, self.stroke_width - 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
 
@@ -4126,8 +4346,10 @@ class PerpendicularLineTool(GeometryTool):
         super()._cancel_operation()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
-            self.explorer.status_bar.showMessage("Perpendicular line creation cancelled")
+        if self.explorer and hasattr(self.explorer, "status_bar"):
+            self.explorer.status_bar.showMessage(
+                "Perpendicular line creation cancelled"
+            )
 
     def get_cursor(self) -> QCursor:
         """Get the cursor for this tool."""
@@ -4153,7 +4375,7 @@ class PerpendicularLineTool(GeometryTool):
         self.line_type = line_type
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             line_type_name = self.line_type.name.lower()
             self.explorer.status_bar.showMessage(f"Line type set to {line_type_name}")
 
@@ -4190,7 +4412,7 @@ class PerpendicularLineTool(GeometryTool):
         return Style(
             point_size=5.0,
             stroke_color=QColor(0, 0, 0),
-            fill_color=QColor(255, 255, 255)
+            fill_color=QColor(255, 255, 255),
         )
 
     def _create_line_style(self) -> Style:
@@ -4202,14 +4424,14 @@ class PerpendicularLineTool(GeometryTool):
         return Style(
             stroke_color=self.stroke_color,
             stroke_width=self.stroke_width,
-            stroke_style=self.stroke_style
+            stroke_style=self.stroke_style,
         )
 
     def _create_perpendicular_line_from_point(self) -> None:
         """Create a perpendicular line from a point to a line."""
         # Get reference point and line
-        ref_point = self.data['reference_point']
-        ref_line = self.data['reference_line']
+        ref_point = self.data["reference_point"]
+        ref_line = self.data["reference_line"]
 
         # Calculate perpendicular line
         p1 = QPointF(ref_point.x, ref_point.y)
@@ -4220,20 +4442,20 @@ class PerpendicularLineTool(GeometryTool):
 
         # Create line
         self._create_object(
-            'line',
+            "line",
             x1=p1.x(),
             y1=p1.y(),
             x2=p2.x(),
             y2=p2.y(),
             style=style,
-            line_type=self.line_type
+            line_type=self.line_type,
         )
 
     def _create_perpendicular_line_through_point(self) -> None:
         """Create a perpendicular line through a point on a line."""
         # Get reference point and line
-        ref_point = self.data['reference_point']
-        ref_line = self.data['reference_line']
+        ref_point = self.data["reference_point"]
+        ref_line = self.data["reference_line"]
 
         # Calculate perpendicular line
         p1 = QPointF(ref_point.x, ref_point.y)
@@ -4244,16 +4466,18 @@ class PerpendicularLineTool(GeometryTool):
 
         # Create line
         self._create_object(
-            'line',
+            "line",
             x1=p1.x(),
             y1=p1.y(),
             x2=p2.x(),
             y2=p2.y(),
             style=style,
-            line_type=self.line_type
+            line_type=self.line_type,
         )
 
-    def _calculate_perpendicular_point_on_line(self, point: QPointF, line: Line) -> QPointF:
+    def _calculate_perpendicular_point_on_line(
+        self, point: QPointF, line: Line
+    ) -> QPointF:
         """Calculate the point on a line that is perpendicular to the given point.
 
         Args:
@@ -4284,7 +4508,9 @@ class PerpendicularLineTool(GeometryTool):
 
         return QPointF(closest_x, closest_y)
 
-    def _calculate_perpendicular_point_through_line(self, point: QPointF, line: Line) -> QPointF:
+    def _calculate_perpendicular_point_through_line(
+        self, point: QPointF, line: Line
+    ) -> QPointF:
         """Calculate a point that forms a perpendicular line through the given point on a line.
 
         Args:
@@ -4327,21 +4553,23 @@ class PerpendicularLineTool(GeometryTool):
             point: Point from which to draw perpendicular
             line: Line to which perpendicular will be drawn
         """
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Calculate perpendicular point on line
         perp_point = self._calculate_perpendicular_point_on_line(point, line)
 
         # Set up pen for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
 
         # Draw preview line based on line type
         if self.line_type == LineType.SEGMENT:
             # Draw line segment
             line_item = self.canvas.scene.addLine(
                 QLineF(point.x(), point.y(), perp_point.x(), perp_point.y()),
-                preview_pen
+                preview_pen,
             )
             self.preview_items.append(line_item)
         elif self.line_type == LineType.RAY:
@@ -4363,8 +4591,7 @@ class PerpendicularLineTool(GeometryTool):
 
             # Draw the ray
             line_item = self.canvas.scene.addLine(
-                QLineF(point.x(), point.y(), extended_x, extended_y),
-                preview_pen
+                QLineF(point.x(), point.y(), extended_x, extended_y), preview_pen
             )
             self.preview_items.append(line_item)
         else:  # LineType.INFINITE
@@ -4388,8 +4615,7 @@ class PerpendicularLineTool(GeometryTool):
 
             # Draw the infinite line
             line_item = self.canvas.scene.addLine(
-                QLineF(extended_x1, extended_y1, extended_x2, extended_y2),
-                preview_pen
+                QLineF(extended_x1, extended_y1, extended_x2, extended_y2), preview_pen
             )
             self.preview_items.append(line_item)
 
@@ -4400,21 +4626,23 @@ class PerpendicularLineTool(GeometryTool):
             point: Point on the line through which to draw perpendicular
             line: Line on which the point lies
         """
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Calculate perpendicular point
         perp_point = self._calculate_perpendicular_point_through_line(point, line)
 
         # Set up pen for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
 
         # Draw preview line based on line type
         if self.line_type == LineType.SEGMENT:
             # Draw line segment
             line_item = self.canvas.scene.addLine(
                 QLineF(point.x(), point.y(), perp_point.x(), perp_point.y()),
-                preview_pen
+                preview_pen,
             )
             self.preview_items.append(line_item)
         elif self.line_type == LineType.RAY:
@@ -4436,8 +4664,7 @@ class PerpendicularLineTool(GeometryTool):
 
             # Draw the ray
             line_item = self.canvas.scene.addLine(
-                QLineF(point.x(), point.y(), extended_x, extended_y),
-                preview_pen
+                QLineF(point.x(), point.y(), extended_x, extended_y), preview_pen
             )
             self.preview_items.append(line_item)
         else:  # LineType.INFINITE
@@ -4461,8 +4688,7 @@ class PerpendicularLineTool(GeometryTool):
 
             # Draw the infinite line
             line_item = self.canvas.scene.addLine(
-                QLineF(extended_x1, extended_y1, extended_x2, extended_y2),
-                preview_pen
+                QLineF(extended_x1, extended_y1, extended_x2, extended_y2), preview_pen
             )
             self.preview_items.append(line_item)
 
@@ -4494,9 +4720,9 @@ class ParallelLineTool(GeometryTool):
         """Initialize tool-specific state."""
         # Reset data
         self.data = {
-            'reference_line': None,   # Line to which parallel will be drawn
-            'reference_point': None,  # Point through which parallel will be drawn
-            'distance': None,         # Distance between parallel lines (if measured)
+            "reference_line": None,  # Line to which parallel will be drawn
+            "reference_point": None,  # Point through which parallel will be drawn
+            "distance": None,  # Distance between parallel lines (if measured)
         }
 
         # Set state
@@ -4507,8 +4733,10 @@ class ParallelLineTool(GeometryTool):
             self.canvas.setCursor(self.get_cursor())
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
-            self.explorer.status_bar.showMessage("Select a line to which the parallel will be drawn")
+        if self.explorer and hasattr(self.explorer, "status_bar"):
+            self.explorer.status_bar.showMessage(
+                "Select a line to which the parallel will be drawn"
+            )
 
     def _cleanup_tool(self) -> None:
         """Clean up tool-specific state."""
@@ -4538,34 +4766,33 @@ class ParallelLineTool(GeometryTool):
 
         if self.state == ToolState.IDLE:
             # First click - select reference line
-            if snap_type == 'object' and isinstance(snap_target, Line):
+            if snap_type == "object" and isinstance(snap_target, Line):
                 # Use existing line
-                self.data['reference_line'] = snap_target
+                self.data["reference_line"] = snap_target
                 self.state = ToolState.ACTIVE
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage("Select a point through which the parallel line will pass")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        "Select a point through which the parallel line will pass"
+                    )
             else:
                 # No line selected
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage("Please select a line to which the parallel will be drawn")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        "Please select a line to which the parallel will be drawn"
+                    )
 
         elif self.state == ToolState.ACTIVE:
             # Second click - select reference point
-            if snap_type == 'object' and isinstance(snap_target, Point):
+            if snap_type == "object" and isinstance(snap_target, Point):
                 # Use existing point
-                self.data['reference_point'] = snap_target
+                self.data["reference_point"] = snap_target
             else:
                 # Create new point
                 style = self._create_point_style()
-                point = self._create_object(
-                    'point',
-                    x=pos.x(),
-                    y=pos.y(),
-                    style=style
-                )
-                self.data['reference_point'] = point
+                point = self._create_object("point", x=pos.x(), y=pos.y(), style=style)
+                self.data["reference_point"] = point
 
             # Create parallel line
             self._create_parallel_line()
@@ -4584,9 +4811,13 @@ class ParallelLineTool(GeometryTool):
         self._clear_preview()
 
         # Create preview based on current state
-        if self.state == ToolState.ACTIVE and self.data.get('reference_line') and self.canvas:
+        if (
+            self.state == ToolState.ACTIVE
+            and self.data.get("reference_line")
+            and self.canvas
+        ):
             # Get reference line
-            ref_line = self.data['reference_line']
+            ref_line = self.data["reference_line"]
 
             # Snap position to grid/objects
             pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
@@ -4597,13 +4828,15 @@ class ParallelLineTool(GeometryTool):
             # Update status message with distance if enabled
             if self.show_distance:
                 distance = self._calculate_distance_to_line(pos, ref_line)
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(
                         f"Distance to reference line: {distance:.2f} units. Click to create parallel line."
                     )
             else:
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage("Click to create parallel line")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        "Click to create parallel line"
+                    )
 
     def key_press(self, event: QKeyEvent) -> None:
         """Handle key press event.
@@ -4634,7 +4867,7 @@ class ParallelLineTool(GeometryTool):
         # Toggle distance measurement
         if event.key() == Qt.Key.Key_D:
             self.show_distance = not self.show_distance
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 status = "enabled" if self.show_distance else "disabled"
                 self.explorer.status_bar.showMessage(f"Distance measurement {status}")
             event.accept()
@@ -4645,15 +4878,19 @@ class ParallelLineTool(GeometryTool):
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 # Increase stroke width
                 self.set_stroke_width(min(10.0, self.stroke_width + 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_Minus:
                 # Decrease stroke width
                 self.set_stroke_width(max(0.5, self.stroke_width - 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
 
@@ -4666,7 +4903,7 @@ class ParallelLineTool(GeometryTool):
         super()._cancel_operation()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage("Parallel line creation cancelled")
 
     def set_line_type(self, line_type: LineType) -> None:
@@ -4678,7 +4915,7 @@ class ParallelLineTool(GeometryTool):
         self.line_type = line_type
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             line_type_name = self.line_type.name.lower()
             self.explorer.status_bar.showMessage(f"Line type set to {line_type_name}")
 
@@ -4715,7 +4952,7 @@ class ParallelLineTool(GeometryTool):
         return Style(
             point_size=5.0,
             stroke_color=QColor(0, 0, 0),
-            fill_color=QColor(255, 255, 255)
+            fill_color=QColor(255, 255, 255),
         )
 
     def _create_line_style(self) -> Style:
@@ -4727,7 +4964,7 @@ class ParallelLineTool(GeometryTool):
         return Style(
             stroke_color=self.stroke_color,
             stroke_width=self.stroke_width,
-            stroke_style=self.stroke_style
+            stroke_style=self.stroke_style,
         )
 
     def _calculate_distance_to_line(self, point: QPointF, line: Line) -> float:
@@ -4763,7 +5000,9 @@ class ParallelLineTool(GeometryTool):
 
         return distance
 
-    def _calculate_parallel_line_points(self, point: QPointF, line: Line) -> Tuple[QPointF, QPointF]:
+    def _calculate_parallel_line_points(
+        self, point: QPointF, line: Line
+    ) -> Tuple[QPointF, QPointF]:
         """Calculate the points for a parallel line through a given point.
 
         Args:
@@ -4803,34 +5042,38 @@ class ParallelLineTool(GeometryTool):
     def _create_parallel_line(self) -> None:
         """Create a parallel line through the reference point."""
         # Get reference point and line
-        ref_point = self.data['reference_point']
-        ref_line = self.data['reference_line']
+        ref_point = self.data["reference_point"]
+        ref_line = self.data["reference_line"]
 
         # Calculate parallel line points
-        p1, p2 = self._calculate_parallel_line_points(QPointF(ref_point.x, ref_point.y), ref_line)
+        p1, p2 = self._calculate_parallel_line_points(
+            QPointF(ref_point.x, ref_point.y), ref_line
+        )
 
         # Create line style
         style = self._create_line_style()
 
         # Create line
         line = self._create_object(
-            'line',
+            "line",
             x1=p1.x(),
             y1=p1.y(),
             x2=p2.x(),
             y2=p2.y(),
             style=style,
-            line_type=self.line_type
+            line_type=self.line_type,
         )
 
         # Store distance if measurement is enabled
         if self.show_distance:
-            distance = self._calculate_distance_to_line(QPointF(ref_point.x, ref_point.y), ref_line)
-            self.data['distance'] = distance
+            distance = self._calculate_distance_to_line(
+                QPointF(ref_point.x, ref_point.y), ref_line
+            )
+            self.data["distance"] = distance
 
             # Add distance to line metadata
-            if hasattr(line, 'metadata'):
-                line.metadata['parallel_distance'] = distance
+            if hasattr(line, "metadata"):
+                line.metadata["parallel_distance"] = distance
 
     def _preview_parallel_line(self, point: QPointF, line: Line) -> None:
         """Preview a parallel line through a given point.
@@ -4839,21 +5082,22 @@ class ParallelLineTool(GeometryTool):
             point: Point through which the parallel line will pass
             line: Line to which the new line will be parallel
         """
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Calculate parallel line points
         p1, p2 = self._calculate_parallel_line_points(point, line)
 
         # Set up pen for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
 
         # Draw preview line based on line type
         if self.line_type == LineType.SEGMENT:
             # Draw line segment
             line_item = self.canvas.scene.addLine(
-                QLineF(p1.x(), p1.y(), p2.x(), p2.y()),
-                preview_pen
+                QLineF(p1.x(), p1.y(), p2.x(), p2.y()), preview_pen
             )
             self.preview_items.append(line_item)
         elif self.line_type == LineType.RAY:
@@ -4875,8 +5119,7 @@ class ParallelLineTool(GeometryTool):
 
             # Draw the ray
             line_item = self.canvas.scene.addLine(
-                QLineF(point.x(), point.y(), extended_x, extended_y),
-                preview_pen
+                QLineF(point.x(), point.y(), extended_x, extended_y), preview_pen
             )
             self.preview_items.append(line_item)
         else:  # LineType.INFINITE
@@ -4900,8 +5143,7 @@ class ParallelLineTool(GeometryTool):
 
             # Draw the infinite line
             line_item = self.canvas.scene.addLine(
-                QLineF(extended_x1, extended_y1, extended_x2, extended_y2),
-                preview_pen
+                QLineF(extended_x1, extended_y1, extended_x2, extended_y2), preview_pen
             )
             self.preview_items.append(line_item)
 
@@ -4926,7 +5168,7 @@ class AngleBisectorTool(GeometryTool):
 
     # Mode constants
     MODE_THREE_POINTS = 0  # Angle defined by three points
-    MODE_TWO_LINES = 1     # Angle defined by two lines
+    MODE_TWO_LINES = 1  # Angle defined by two lines
 
     def __init__(self) -> None:
         """Initialize the angle bisector tool."""
@@ -4947,8 +5189,8 @@ class AngleBisectorTool(GeometryTool):
         """Initialize tool-specific state."""
         # Reset data
         self.data = {
-            'points': [],  # Points defining the angle (for MODE_THREE_POINTS)
-            'lines': [],   # Lines defining the angle (for MODE_TWO_LINES)
+            "points": [],  # Points defining the angle (for MODE_THREE_POINTS)
+            "lines": [],  # Lines defining the angle (for MODE_TWO_LINES)
         }
 
         # Set state
@@ -4959,11 +5201,15 @@ class AngleBisectorTool(GeometryTool):
             self.canvas.setCursor(self.get_cursor())
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             if self.mode == self.MODE_THREE_POINTS:
-                self.explorer.status_bar.showMessage("Select three points to define an angle")
+                self.explorer.status_bar.showMessage(
+                    "Select three points to define an angle"
+                )
             else:  # MODE_TWO_LINES
-                self.explorer.status_bar.showMessage("Select two lines to define an angle")
+                self.explorer.status_bar.showMessage(
+                    "Select two lines to define an angle"
+                )
 
     def _cleanup_tool(self) -> None:
         """Clean up tool-specific state."""
@@ -4996,7 +5242,9 @@ class AngleBisectorTool(GeometryTool):
         else:  # MODE_TWO_LINES
             self._handle_two_lines_mode(pos, snap_type, snap_target)
 
-    def _handle_three_points_mode(self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]) -> None:
+    def _handle_three_points_mode(
+        self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]
+    ) -> None:
         """Handle mouse press in three-points mode.
 
         Args:
@@ -5004,40 +5252,41 @@ class AngleBisectorTool(GeometryTool):
             snap_type: Type of snap ('grid', 'object', or 'none')
             snap_target: Object that was snapped to, if any
         """
-        points = self.data.get('points', [])
+        points = self.data.get("points", [])
 
         if len(points) < 3:
             # We need to collect three points
-            if snap_type == 'object' and isinstance(snap_target, Point):
+            if snap_type == "object" and isinstance(snap_target, Point):
                 # Use existing point
                 point = snap_target
             else:
                 # Create new point
                 style = self._create_point_style()
-                point = self._create_object(
-                    'point',
-                    x=pos.x(),
-                    y=pos.y(),
-                    style=style
-                )
+                point = self._create_object("point", x=pos.x(), y=pos.y(), style=style)
 
             # Add point to list
             points.append(point)
-            self.data['points'] = points
+            self.data["points"] = points
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 if len(points) == 1:
-                    self.explorer.status_bar.showMessage("Select second point to define the angle")
+                    self.explorer.status_bar.showMessage(
+                        "Select second point to define the angle"
+                    )
                 elif len(points) == 2:
-                    self.explorer.status_bar.showMessage("Select third point to complete the angle")
+                    self.explorer.status_bar.showMessage(
+                        "Select third point to complete the angle"
+                    )
 
             # If we have all three points, create the bisector
             if len(points) == 3:
                 self._create_angle_bisector_from_points()
                 self._complete_operation()
 
-    def _handle_two_lines_mode(self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]) -> None:
+    def _handle_two_lines_mode(
+        self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]
+    ) -> None:
         """Handle mouse press in two-lines mode.
 
         Args:
@@ -5045,28 +5294,32 @@ class AngleBisectorTool(GeometryTool):
             snap_type: Type of snap ('grid', 'object', or 'none')
             snap_target: Object that was snapped to, if any
         """
-        lines = self.data.get('lines', [])
+        lines = self.data.get("lines", [])
 
         if len(lines) < 2:
             # We need to collect two lines
-            if snap_type == 'object' and isinstance(snap_target, Line):
+            if snap_type == "object" and isinstance(snap_target, Line):
                 # Use existing line
                 line = snap_target
 
                 # Check if this line is already selected
                 if line in lines:
-                    if self.explorer and hasattr(self.explorer, 'status_bar'):
-                        self.explorer.status_bar.showMessage("Line already selected. Please select a different line.")
+                    if self.explorer and hasattr(self.explorer, "status_bar"):
+                        self.explorer.status_bar.showMessage(
+                            "Line already selected. Please select a different line."
+                        )
                     return
 
                 # Add line to list
                 lines.append(line)
-                self.data['lines'] = lines
+                self.data["lines"] = lines
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     if len(lines) == 1:
-                        self.explorer.status_bar.showMessage("Select second line to complete the angle")
+                        self.explorer.status_bar.showMessage(
+                            "Select second line to complete the angle"
+                        )
 
                 # If we have both lines, create the bisector
                 if len(lines) == 2:
@@ -5074,8 +5327,10 @@ class AngleBisectorTool(GeometryTool):
                     self._complete_operation()
             else:
                 # No line selected
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage("Please select a line to define the angle")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        "Please select a line to define the angle"
+                    )
 
     def mouse_move(self, event: QMouseEvent, scene_pos: QPointF) -> None:
         """Handle mouse move event.
@@ -5089,17 +5344,21 @@ class AngleBisectorTool(GeometryTool):
 
         # Create preview based on current state
         if self.mode == self.MODE_THREE_POINTS:
-            points = self.data.get('points', [])
+            points = self.data.get("points", [])
             if len(points) == 2:
                 # We have two points, preview the angle bisector for the current mouse position
                 pos, _, _ = self._snap_position_with_info(scene_pos)
                 self._preview_angle_bisector_from_points(points[0], points[1], pos)
         else:  # MODE_TWO_LINES
-            lines = self.data.get('lines', [])
+            lines = self.data.get("lines", [])
             if len(lines) == 1:
                 # We have one line, preview the angle bisector for the current mouse position
                 pos, snap_type, snap_target = self._snap_position_with_info(scene_pos)
-                if snap_type == 'object' and isinstance(snap_target, Line) and snap_target != lines[0]:
+                if (
+                    snap_type == "object"
+                    and isinstance(snap_target, Line)
+                    and snap_target != lines[0]
+                ):
                     self._preview_angle_bisector_from_lines(lines[0], snap_target)
 
     def key_press(self, event: QKeyEvent) -> None:
@@ -5142,15 +5401,19 @@ class AngleBisectorTool(GeometryTool):
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 # Increase stroke width
                 self.set_stroke_width(min(10.0, self.stroke_width + 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_Minus:
                 # Decrease stroke width
                 self.set_stroke_width(max(0.5, self.stroke_width - 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
 
@@ -5163,7 +5426,7 @@ class AngleBisectorTool(GeometryTool):
         super()._cancel_operation()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage("Angle bisector creation cancelled")
 
     def set_mode(self, mode: int) -> None:
@@ -5186,7 +5449,7 @@ class AngleBisectorTool(GeometryTool):
         self.line_type = line_type
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             line_type_name = self.line_type.name.lower()
             self.explorer.status_bar.showMessage(f"Line type set to {line_type_name}")
 
@@ -5223,7 +5486,7 @@ class AngleBisectorTool(GeometryTool):
         return Style(
             point_size=5.0,
             stroke_color=QColor(0, 0, 0),
-            fill_color=QColor(255, 255, 255)
+            fill_color=QColor(255, 255, 255),
         )
 
     def _create_line_style(self) -> Style:
@@ -5235,10 +5498,12 @@ class AngleBisectorTool(GeometryTool):
         return Style(
             stroke_color=self.stroke_color,
             stroke_width=self.stroke_width,
-            stroke_style=self.stroke_style
+            stroke_style=self.stroke_style,
         )
 
-    def _calculate_angle_bisector_from_points(self, p1: Point, p2: Point, p3: Point) -> Tuple[QPointF, QPointF]:
+    def _calculate_angle_bisector_from_points(
+        self, p1: Point, p2: Point, p3: Point
+    ) -> Tuple[QPointF, QPointF]:
         """Calculate the angle bisector from three points.
 
         The angle is defined by p1-p2-p3, with p2 being the vertex.
@@ -5297,7 +5562,9 @@ class AngleBisectorTool(GeometryTool):
 
         return p2_pos, QPointF(end_x, end_y)
 
-    def _calculate_angle_bisector_from_lines(self, line1: Line, line2: Line) -> Tuple[QPointF, QPointF]:
+    def _calculate_angle_bisector_from_lines(
+        self, line1: Line, line2: Line
+    ) -> Tuple[QPointF, QPointF]:
         """Calculate the angle bisector from two lines.
 
         Args:
@@ -5315,7 +5582,9 @@ class AngleBisectorTool(GeometryTool):
             # Return a default horizontal line through the midpoint of the lines
             midpoint_x = (line1.x1 + line1.x2 + line2.x1 + line2.x2) / 4
             midpoint_y = (line1.y1 + line1.y2 + line2.y1 + line2.y2) / 4
-            return QPointF(midpoint_x, midpoint_y), QPointF(midpoint_x + 100, midpoint_y)
+            return QPointF(midpoint_x, midpoint_y), QPointF(
+                midpoint_x + 100, midpoint_y
+            )
 
         # Get intersection point
         intersection = intersections[0]
@@ -5368,52 +5637,58 @@ class AngleBisectorTool(GeometryTool):
     def _create_angle_bisector_from_points(self) -> None:
         """Create an angle bisector from three points."""
         # Get points
-        points = self.data.get('points', [])
+        points = self.data.get("points", [])
         if len(points) != 3:
             return
 
         # Calculate bisector
-        start_point, end_point = self._calculate_angle_bisector_from_points(points[0], points[1], points[2])
+        start_point, end_point = self._calculate_angle_bisector_from_points(
+            points[0], points[1], points[2]
+        )
 
         # Create line style
         style = self._create_line_style()
 
         # Create line
         self._create_object(
-            'line',
+            "line",
             x1=start_point.x(),
             y1=start_point.y(),
             x2=end_point.x(),
             y2=end_point.y(),
             style=style,
-            line_type=self.line_type
+            line_type=self.line_type,
         )
 
     def _create_angle_bisector_from_lines(self) -> None:
         """Create an angle bisector from two lines."""
         # Get lines
-        lines = self.data.get('lines', [])
+        lines = self.data.get("lines", [])
         if len(lines) != 2:
             return
 
         # Calculate bisector
-        start_point, end_point = self._calculate_angle_bisector_from_lines(lines[0], lines[1])
+        start_point, end_point = self._calculate_angle_bisector_from_lines(
+            lines[0], lines[1]
+        )
 
         # Create line style
         style = self._create_line_style()
 
         # Create line
         self._create_object(
-            'line',
+            "line",
             x1=start_point.x(),
             y1=start_point.y(),
             x2=end_point.x(),
             y2=end_point.y(),
             style=style,
-            line_type=self.line_type
+            line_type=self.line_type,
         )
 
-    def _preview_angle_bisector_from_points(self, p1: Point, p2: Point, p3_pos: QPointF) -> None:
+    def _preview_angle_bisector_from_points(
+        self, p1: Point, p2: Point, p3_pos: QPointF
+    ) -> None:
         """Preview an angle bisector from two points and a position.
 
         Args:
@@ -5421,7 +5696,7 @@ class AngleBisectorTool(GeometryTool):
             p2: Vertex point
             p3_pos: Current mouse position (third point)
         """
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Create a temporary point for p3
@@ -5431,14 +5706,16 @@ class AngleBisectorTool(GeometryTool):
         start_point, end_point = self._calculate_angle_bisector_from_points(p1, p2, p3)
 
         # Set up pen for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
 
         # Draw preview line based on line type
         if self.line_type == LineType.SEGMENT:
             # Draw line segment
             line_item = self.canvas.scene.addLine(
                 QLineF(start_point.x(), start_point.y(), end_point.x(), end_point.y()),
-                preview_pen
+                preview_pen,
             )
             self.preview_items.append(line_item)
         elif self.line_type == LineType.RAY:
@@ -5461,7 +5738,7 @@ class AngleBisectorTool(GeometryTool):
             # Draw the ray
             line_item = self.canvas.scene.addLine(
                 QLineF(start_point.x(), start_point.y(), extended_x, extended_y),
-                preview_pen
+                preview_pen,
             )
             self.preview_items.append(line_item)
         else:  # LineType.INFINITE
@@ -5485,8 +5762,7 @@ class AngleBisectorTool(GeometryTool):
 
             # Draw the infinite line
             line_item = self.canvas.scene.addLine(
-                QLineF(extended_x1, extended_y1, extended_x2, extended_y2),
-                preview_pen
+                QLineF(extended_x1, extended_y1, extended_x2, extended_y2), preview_pen
             )
             self.preview_items.append(line_item)
 
@@ -5494,16 +5770,12 @@ class AngleBisectorTool(GeometryTool):
         angle_pen = QPen(QColor(200, 200, 200, 100), 1, Qt.PenStyle.DotLine)
 
         # Line from vertex to first point
-        line_item = self.canvas.scene.addLine(
-            QLineF(p2.x, p2.y, p1.x, p1.y),
-            angle_pen
-        )
+        line_item = self.canvas.scene.addLine(QLineF(p2.x, p2.y, p1.x, p1.y), angle_pen)
         self.preview_items.append(line_item)
 
         # Line from vertex to third point (mouse position)
         line_item = self.canvas.scene.addLine(
-            QLineF(p2.x, p2.y, p3_pos.x(), p3_pos.y()),
-            angle_pen
+            QLineF(p2.x, p2.y, p3_pos.x(), p3_pos.y()), angle_pen
         )
         self.preview_items.append(line_item)
 
@@ -5514,21 +5786,23 @@ class AngleBisectorTool(GeometryTool):
             line1: First line
             line2: Second line
         """
-        if not self.canvas or not hasattr(self.canvas, 'scene'):
+        if not self.canvas or not hasattr(self.canvas, "scene"):
             return
 
         # Calculate bisector
         start_point, end_point = self._calculate_angle_bisector_from_lines(line1, line2)
 
         # Set up pen for preview
-        preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
+        preview_pen = QPen(
+            QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+        )
 
         # Draw preview line based on line type
         if self.line_type == LineType.SEGMENT:
             # Draw line segment
             line_item = self.canvas.scene.addLine(
                 QLineF(start_point.x(), start_point.y(), end_point.x(), end_point.y()),
-                preview_pen
+                preview_pen,
             )
             self.preview_items.append(line_item)
         elif self.line_type == LineType.RAY:
@@ -5551,7 +5825,7 @@ class AngleBisectorTool(GeometryTool):
             # Draw the ray
             line_item = self.canvas.scene.addLine(
                 QLineF(start_point.x(), start_point.y(), extended_x, extended_y),
-                preview_pen
+                preview_pen,
             )
             self.preview_items.append(line_item)
         else:  # LineType.INFINITE
@@ -5575,8 +5849,7 @@ class AngleBisectorTool(GeometryTool):
 
             # Draw the infinite line
             line_item = self.canvas.scene.addLine(
-                QLineF(extended_x1, extended_y1, extended_x2, extended_y2),
-                preview_pen
+                QLineF(extended_x1, extended_y1, extended_x2, extended_y2), preview_pen
             )
             self.preview_items.append(line_item)
 
@@ -5616,16 +5889,16 @@ class TextTool(GeometryTool):
 
         # Initialize data
         self.data = {
-            'text': "",  # Text content
-            'position': None,  # Text position
-            'target_object': None,  # Object being labeled
+            "text": "",  # Text content
+            "position": None,  # Text position
+            "target_object": None,  # Object being labeled
         }
 
         # Set state
         self.state = ToolState.IDLE
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             if self.mode == self.MODE_FREE_TEXT:
                 self.explorer.status_bar.showMessage("Click to place text")
             else:  # MODE_LABEL_OBJECT
@@ -5731,7 +6004,7 @@ class TextTool(GeometryTool):
             scene_pos: Position in scene coordinates
         """
         # Store the position
-        self.data['position'] = scene_pos
+        self.data["position"] = scene_pos
 
         # Prompt for text input
         self._prompt_for_text_input()
@@ -5747,14 +6020,16 @@ class TextTool(GeometryTool):
 
         if obj:
             # Store the target object
-            self.data['target_object'] = obj
+            self.data["target_object"] = obj
 
             # Prompt for text input
             self._prompt_for_text_input()
         else:
             # No object found, show message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("No object found. Please click on an object to label.")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "No object found. Please click on an object to label."
+                )
 
     def _prompt_for_text_input(self) -> None:
         """Prompt the user for text input."""
@@ -5768,13 +6043,13 @@ class TextTool(GeometryTool):
             initial_font_style=self.font_style,
             initial_color=self.text_color,
             initial_auto_position=self.auto_position,
-            is_label=is_label
+            is_label=is_label,
         )
 
         # Show the dialog
         if dialog.exec():
             # Get values from dialog
-            self.data['text'] = dialog.get_text()
+            self.data["text"] = dialog.get_text()
             self.font_family = dialog.get_font_family()
             self.font_size = dialog.get_font_size()
             self.font_style = dialog.get_font_style()
@@ -5793,7 +6068,7 @@ class TextTool(GeometryTool):
             return
 
         # Get text content
-        text_content = self.data.get('text', "")
+        text_content = self.data.get("text", "")
         if not text_content:
             return
 
@@ -5803,32 +6078,28 @@ class TextTool(GeometryTool):
         # Create text object
         if self.mode == self.MODE_FREE_TEXT:
             # Create standalone text
-            position = self.data.get('position')
+            position = self.data.get("position")
             if not position:
                 return
 
             text_obj = self._create_object(
-                'text',
-                x=position.x(),
-                y=position.y(),
-                text=text_content,
-                style=style
+                "text", x=position.x(), y=position.y(), text=text_content, style=style
             )
         else:  # MODE_LABEL_OBJECT
             # Create text as a label for an object
-            target_obj = self.data.get('target_object')
+            target_obj = self.data.get("target_object")
             if not target_obj:
                 return
 
             # Create text with target object
             text_obj = self._create_object(
-                'text',
+                "text",
                 x=0,  # Will be positioned automatically
                 y=0,  # Will be positioned automatically
                 text=text_content,
                 style=style,
                 target_object=target_obj,
-                auto_position=self.auto_position
+                auto_position=self.auto_position,
             )
 
             # Update position based on target object
@@ -5887,7 +6158,9 @@ class CompassTool(GeometryTool):
 
     # Tool states
     STATE_SELECTING_RADIUS = "selecting_radius"  # Selecting two points to define radius
-    STATE_DRAWING_CIRCLES = "drawing_circles"   # Drawing circles with the selected radius
+    STATE_DRAWING_CIRCLES = (
+        "drawing_circles"  # Drawing circles with the selected radius
+    )
 
     def __init__(self) -> None:
         """Initialize the compass tool."""
@@ -5904,8 +6177,8 @@ class CompassTool(GeometryTool):
         """Initialize tool-specific state."""
         # Reset data
         self.data = {
-            'radius_points': [],  # Points defining the radius
-            'radius': None,       # Calculated radius
+            "radius_points": [],  # Points defining the radius
+            "radius": None,  # Calculated radius
         }
 
         # Set state
@@ -5916,7 +6189,7 @@ class CompassTool(GeometryTool):
             self.canvas.setCursor(self.get_cursor())
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage("Select first point to define radius")
 
     def _cleanup_tool(self) -> None:
@@ -5952,7 +6225,9 @@ class CompassTool(GeometryTool):
             # Drawing circles with the selected radius
             self._handle_circle_creation(pos, snap_type, snap_target)
 
-    def _handle_radius_selection(self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]) -> None:
+    def _handle_radius_selection(
+        self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]
+    ) -> None:
         """Handle mouse press when selecting radius points.
 
         Args:
@@ -5960,31 +6235,28 @@ class CompassTool(GeometryTool):
             snap_type: Type of snap ('grid', 'object', or 'none')
             snap_target: Object that was snapped to, if any
         """
-        radius_points = self.data.get('radius_points', [])
+        radius_points = self.data.get("radius_points", [])
 
         if len(radius_points) < 2:
             # We need to collect two points to define the radius
-            if snap_type == 'object' and isinstance(snap_target, Point):
+            if snap_type == "object" and isinstance(snap_target, Point):
                 # Use existing point
                 point = snap_target
             else:
                 # Create new point
                 style = self._create_point_style()
-                point = self._create_object(
-                    'point',
-                    x=pos.x(),
-                    y=pos.y(),
-                    style=style
-                )
+                point = self._create_object("point", x=pos.x(), y=pos.y(), style=style)
 
             # Add point to list
             radius_points.append(point)
-            self.data['radius_points'] = radius_points
+            self.data["radius_points"] = radius_points
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 if len(radius_points) == 1:
-                    self.explorer.status_bar.showMessage("Select second point to define radius")
+                    self.explorer.status_bar.showMessage(
+                        "Select second point to define radius"
+                    )
 
             # If we have both points, calculate radius and switch to drawing mode
             if len(radius_points) == 2:
@@ -5996,18 +6268,20 @@ class CompassTool(GeometryTool):
                 radius = math.sqrt(dx * dx + dy * dy)
 
                 # Store radius
-                self.data['radius'] = radius
+                self.data["radius"] = radius
 
                 # Switch to drawing mode
                 self.state = self.STATE_DRAWING_CIRCLES
 
                 # Update status message
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
+                if self.explorer and hasattr(self.explorer, "status_bar"):
                     self.explorer.status_bar.showMessage(
                         f"Radius set to {radius:.2f}. Click to create circles with this radius."
                     )
 
-    def _handle_circle_creation(self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]) -> None:
+    def _handle_circle_creation(
+        self, pos: QPointF, snap_type: str, snap_target: Optional[GeometricObject]
+    ) -> None:
         """Handle mouse press when creating circles.
 
         Args:
@@ -6016,17 +6290,19 @@ class CompassTool(GeometryTool):
             snap_target: Object that was snapped to, if any
         """
         # Get radius
-        radius = self.data.get('radius')
+        radius = self.data.get("radius")
         if radius is None:
             # No radius defined, switch back to radius selection
             self.state = self.STATE_SELECTING_RADIUS
-            self.data['radius_points'] = []
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Select first point to define radius")
+            self.data["radius_points"] = []
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Select first point to define radius"
+                )
             return
 
         # Create circle at the clicked position with the selected radius
-        if snap_type == 'object' and isinstance(snap_target, Point):
+        if snap_type == "object" and isinstance(snap_target, Point):
             # Use existing point as center
             center_x = snap_target.x
             center_y = snap_target.y
@@ -6040,16 +6316,12 @@ class CompassTool(GeometryTool):
 
         # Create circle
         self._create_object(
-            'circle',
-            cx=center_x,
-            cy=center_y,
-            radius=radius,
-            style=style
+            "circle", cx=center_x, cy=center_y, radius=radius, style=style
         )
 
         # No need to change state - can create multiple circles
         # Just update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage(
                 f"Created circle with radius {radius:.2f}. Click to create another, or press Escape to reset radius."
             )
@@ -6084,9 +6356,9 @@ class CompassTool(GeometryTool):
         Args:
             pos: Current mouse position
         """
-        radius_points = self.data.get('radius_points', [])
+        radius_points = self.data.get("radius_points", [])
 
-        if len(radius_points) == 1 and self.canvas and hasattr(self.canvas, 'scene'):
+        if len(radius_points) == 1 and self.canvas and hasattr(self.canvas, "scene"):
             # Draw line from first point to current position
             p1 = radius_points[0]
             p1_pos = QPointF(p1.x, p1.y)
@@ -6096,8 +6368,7 @@ class CompassTool(GeometryTool):
 
             # Draw preview line
             line_item = self.canvas.scene.addLine(
-                QLineF(p1_pos.x(), p1_pos.y(), pos.x(), pos.y()),
-                preview_pen
+                QLineF(p1_pos.x(), p1_pos.y(), pos.x(), pos.y()), preview_pen
             )
             self.preview_items.append(line_item)
 
@@ -6120,12 +6391,16 @@ class CompassTool(GeometryTool):
         Args:
             pos: Current mouse position (center of circle)
         """
-        radius = self.data.get('radius')
+        radius = self.data.get("radius")
 
-        if radius is not None and self.canvas and hasattr(self.canvas, 'scene'):
+        if radius is not None and self.canvas and hasattr(self.canvas, "scene"):
             # Set up pen and brush for preview
-            preview_pen = QPen(QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine)
-            preview_brush = QBrush(QColor(100, 100, 255, 30), Qt.BrushStyle.SolidPattern)
+            preview_pen = QPen(
+                QColor(100, 100, 255, 150), self.stroke_width, Qt.PenStyle.DashLine
+            )
+            preview_brush = QBrush(
+                QColor(100, 100, 255, 30), Qt.BrushStyle.SolidPattern
+            )
 
             # Draw preview circle
             circle_item = self.canvas.scene.addEllipse(
@@ -6134,7 +6409,7 @@ class CompassTool(GeometryTool):
                 radius * 2,
                 radius * 2,
                 preview_pen,
-                preview_brush
+                preview_brush,
             )
             self.preview_items.append(circle_item)
 
@@ -6144,14 +6419,16 @@ class CompassTool(GeometryTool):
         Args:
             pos: Current mouse position
         """
-        if not self.explorer or not hasattr(self.explorer, 'status_bar'):
+        if not self.explorer or not hasattr(self.explorer, "status_bar"):
             return
 
         if self.state == self.STATE_SELECTING_RADIUS:
-            radius_points = self.data.get('radius_points', [])
+            radius_points = self.data.get("radius_points", [])
 
             if len(radius_points) == 0:
-                self.explorer.status_bar.showMessage(f"Select first point to define radius at ({pos.x():.2f}, {pos.y():.2f})")
+                self.explorer.status_bar.showMessage(
+                    f"Select first point to define radius at ({pos.x():.2f}, {pos.y():.2f})"
+                )
             elif len(radius_points) == 1:
                 p1 = radius_points[0]
                 dx = pos.x() - p1.x
@@ -6161,7 +6438,7 @@ class CompassTool(GeometryTool):
                     f"First point at ({p1.x:.2f}, {p1.y:.2f}), radius: {distance:.2f}. Click to set."
                 )
         elif self.state == self.STATE_DRAWING_CIRCLES:
-            radius = self.data.get('radius')
+            radius = self.data.get("radius")
             if radius is not None:
                 self.explorer.status_bar.showMessage(
                     f"Click to create circle with radius {radius:.2f} at ({pos.x():.2f}, {pos.y():.2f})"
@@ -6178,10 +6455,12 @@ class CompassTool(GeometryTool):
             if self.state == self.STATE_DRAWING_CIRCLES:
                 # Reset radius and go back to radius selection
                 self.state = self.STATE_SELECTING_RADIUS
-                self.data['radius_points'] = []
-                self.data['radius'] = None
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage("Radius reset. Select first point to define new radius.")
+                self.data["radius_points"] = []
+                self.data["radius"] = None
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        "Radius reset. Select first point to define new radius."
+                    )
             else:
                 # Cancel operation
                 self._cancel_operation()
@@ -6193,15 +6472,19 @@ class CompassTool(GeometryTool):
             if event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
                 # Increase stroke width
                 self.set_stroke_width(min(10.0, self.stroke_width + 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
             elif event.key() == Qt.Key.Key_Minus:
                 # Decrease stroke width
                 self.set_stroke_width(max(0.5, self.stroke_width - 0.5))
-                if self.explorer and hasattr(self.explorer, 'status_bar'):
-                    self.explorer.status_bar.showMessage(f"Stroke width: {self.stroke_width:.1f}")
+                if self.explorer and hasattr(self.explorer, "status_bar"):
+                    self.explorer.status_bar.showMessage(
+                        f"Stroke width: {self.stroke_width:.1f}"
+                    )
                 event.accept()
                 return
 
@@ -6214,7 +6497,7 @@ class CompassTool(GeometryTool):
         super()._cancel_operation()
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage("Compass operation cancelled")
 
     def set_stroke_width(self, width: float) -> None:
@@ -6266,7 +6549,7 @@ class CompassTool(GeometryTool):
         return Style(
             point_size=5.0,
             stroke_color=QColor(0, 0, 0),
-            fill_color=QColor(255, 255, 255)
+            fill_color=QColor(255, 255, 255),
         )
 
     def _create_circle_style(self) -> Style:
@@ -6280,7 +6563,7 @@ class CompassTool(GeometryTool):
             stroke_width=self.stroke_width,
             stroke_style=self.stroke_style,
             fill_color=self.fill_color,
-            fill_style=self.fill_style
+            fill_style=self.fill_style,
         )
 
 
@@ -6318,7 +6601,7 @@ class IntersectionTool(GeometryTool):
             self.canvas.setCursor(self.get_cursor())
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage("Select first object for intersection")
 
     def _cleanup_tool(self) -> None:
@@ -6350,7 +6633,7 @@ class IntersectionTool(GeometryTool):
             self.first_object = obj
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage(
                     f"Selected {obj.__class__.__name__} as first object. Select second object for intersection."
                 )
@@ -6366,8 +6649,10 @@ class IntersectionTool(GeometryTool):
             self.second_object = None
 
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
-                self.explorer.status_bar.showMessage("Select first object for intersection")
+            if self.explorer and hasattr(self.explorer, "status_bar"):
+                self.explorer.status_bar.showMessage(
+                    "Select first object for intersection"
+                )
 
     def key_press(self, event: QKeyEvent) -> None:
         """Handle key press event.
@@ -6388,8 +6673,10 @@ class IntersectionTool(GeometryTool):
         self.second_object = None
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
-            self.explorer.status_bar.showMessage("Intersection operation cancelled. Select first object for intersection.")
+        if self.explorer and hasattr(self.explorer, "status_bar"):
+            self.explorer.status_bar.showMessage(
+                "Intersection operation cancelled. Select first object for intersection."
+            )
 
     def get_cursor(self) -> QCursor:
         """Get the cursor for this tool."""
@@ -6423,7 +6710,7 @@ class IntersectionTool(GeometryTool):
             self._create_intersection_points(intersections)
         else:
             # Update status message
-            if self.explorer and hasattr(self.explorer, 'status_bar'):
+            if self.explorer and hasattr(self.explorer, "status_bar"):
                 self.explorer.status_bar.showMessage(
                     "No intersections found. Select first object for next intersection."
                 )
@@ -6441,23 +6728,25 @@ class IntersectionTool(GeometryTool):
 
             # Create point
             point = self._create_object(
-                'point',
+                "point",
                 x=intersection.x(),
                 y=intersection.y(),
                 style=style,
-                name=f"Intersection"
+                name="Intersection",
             )
 
             if point:
                 created_points.append(point)
 
         # Update status message
-        if self.explorer and hasattr(self.explorer, 'status_bar'):
+        if self.explorer and hasattr(self.explorer, "status_bar"):
             self.explorer.status_bar.showMessage(
                 f"Created {len(created_points)} intersection point(s). Select first object for next intersection."
             )
 
-    def _find_intersections(self, obj1: GeometricObject, obj2: GeometricObject) -> List[QPointF]:
+    def _find_intersections(
+        self, obj1: GeometricObject, obj2: GeometricObject
+    ) -> List[QPointF]:
         """Find intersections between two objects.
 
         Args:

@@ -3,20 +3,27 @@
 This module provides the main tab for the Geometry pillar.
 """
 
+import math
+import random
+
 from loguru import logger
-from PyQt6.QtCore import Qt, QTimer, QPointF, QRectF
+from PyQt6.QtCore import QRectF, Qt, QTimer
+from PyQt6.QtGui import (
+    QColor,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+)
 from PyQt6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QStackedLayout,
     QVBoxLayout,
     QWidget,
-    QFrame,
-    QStackedLayout
 )
-from PyQt6.QtGui import QPixmap, QImage, QColor, QPalette, QBrush, QPainter, QPainterPath, QPen, QFont
-import random
-import math
 
 from shared.ui.window_management import TabManager, WindowManager
 
@@ -36,8 +43,12 @@ class SimpleShape:
 
         # Shape type (0: circle, 1: square, 2: triangle, 3: hexagon, 4: star, 5: infinity)
         self.shape_type = random.randint(0, 5)
-        self.target_shape = (self.shape_type + random.randint(1, 5)) % 6  # More randomness in target shape
-        self.morph_progress = random.uniform(0, 0.5)  # Start with some shapes already morphing
+        self.target_shape = (
+            self.shape_type + random.randint(1, 5)
+        ) % 6  # More randomness in target shape
+        self.morph_progress = random.uniform(
+            0, 0.5
+        )  # Start with some shapes already morphing
 
         # Color - use 0-1 range for HSV values
         self.hue = random.random()  # 0.0-1.0 instead of 0-360
@@ -46,8 +57,12 @@ class SimpleShape:
         self.alpha = random.uniform(0.6, 0.9)  # More transparency variation
 
         # Target color
-        self.target_hue = (self.hue + random.uniform(0.3, 0.7)) % 1.0  # More random color changes
-        self.color_progress = random.uniform(0, 0.5)  # Start with some colors already transitioning
+        self.target_hue = (
+            self.hue + random.uniform(0.3, 0.7)
+        ) % 1.0  # More random color changes
+        self.color_progress = random.uniform(
+            0, 0.5
+        )  # Start with some colors already transitioning
 
         # Animation
         self.rotation = random.uniform(0, 360)
@@ -84,7 +99,9 @@ class ShapeCanvas(QWidget):
     def showEvent(self, event):
         """Called when the widget is shown."""
         super().showEvent(event)
-        logger.debug(f"ShapeCanvas shown - size: {self.width()}x{self.height()}, visible: {self.isVisible()}")
+        logger.debug(
+            f"ShapeCanvas shown - size: {self.width()}x{self.height()}, visible: {self.isVisible()}"
+        )
 
     def resizeEvent(self, event):
         """Called when the widget is resized."""
@@ -144,9 +161,11 @@ class ShapeCanvas(QWidget):
         path = QPainterPath()
 
         if shape_type == 0:  # Circle
-            path.addEllipse(QRectF(-half_size, -half_size, half_size*2, half_size*2))
+            path.addEllipse(
+                QRectF(-half_size, -half_size, half_size * 2, half_size * 2)
+            )
         elif shape_type == 1:  # Square
-            path.addRect(QRectF(-half_size, -half_size, half_size*2, half_size*2))
+            path.addRect(QRectF(-half_size, -half_size, half_size * 2, half_size * 2))
         elif shape_type == 2:  # Triangle
             path.moveTo(0, -half_size)
             path.lineTo(-half_size, half_size)
@@ -183,9 +202,9 @@ class ShapeCanvas(QWidget):
             path.closeSubpath()
         elif shape_type == 5:  # Infinity
             # Left loop
-            path.addEllipse(QRectF(-half_size, -half_size/2, half_size, half_size))
+            path.addEllipse(QRectF(-half_size, -half_size / 2, half_size, half_size))
             # Right loop
-            path.addEllipse(QRectF(0, -half_size/2, half_size, half_size))
+            path.addEllipse(QRectF(0, -half_size / 2, half_size, half_size))
 
         return path
 
@@ -212,7 +231,9 @@ class ShapeCanvas(QWidget):
                 else:
                     target_hue += 1.0
 
-            interpolated_hue = current_hue + shape.color_progress * (target_hue - current_hue)
+            interpolated_hue = current_hue + shape.color_progress * (
+                target_hue - current_hue
+            )
             interpolated_hue %= 1.0  # Keep in 0-1 range
 
             # Set color with proper HSV values (0-1 range)
@@ -220,8 +241,8 @@ class ShapeCanvas(QWidget):
             color.setHsvF(
                 interpolated_hue,  # Hue: 0-1
                 shape.saturation,  # Saturation: 0-1
-                shape.value,       # Value: 0-1
-                shape.alpha        # Alpha: 0-1
+                shape.value,  # Value: 0-1
+                shape.alpha,  # Alpha: 0-1
             )
 
             # Prepare painter
@@ -297,14 +318,20 @@ class GeometryTab(QWidget):
         if isinstance(stack_layout, QStackedLayout):
             # Log information about the stacked layout
             logger.debug(f"GeometryTab stacked layout - count: {stack_layout.count()}")
-            logger.debug(f"GeometryTab stacked layout - current index: {stack_layout.currentIndex()}")
-            logger.debug(f"GeometryTab stacked layout - stacking mode: {stack_layout.stackingMode()}")
+            logger.debug(
+                f"GeometryTab stacked layout - current index: {stack_layout.currentIndex()}"
+            )
+            logger.debug(
+                f"GeometryTab stacked layout - stacking mode: {stack_layout.stackingMode()}"
+            )
 
             # Log information about each widget in the stacked layout
             for i in range(stack_layout.count()):
                 widget = stack_layout.widget(i)
-                logger.debug(f"  Widget {i}: {widget.__class__.__name__} - visible: {widget.isVisible()}, "
-                            f"size: {widget.width()}x{widget.height()}")
+                logger.debug(
+                    f"  Widget {i}: {widget.__class__.__name__} - visible: {widget.isVisible()}, "
+                    f"size: {widget.width()}x{widget.height()}"
+                )
                 if widget == self.shape_canvas:
                     # Force canvas to be raised
                     logger.debug("  Raising ShapeCanvas to the top using raise_()")
@@ -313,7 +340,9 @@ class GeometryTab(QWidget):
     def showEvent(self, event) -> None:
         """Called when the tab is shown."""
         super().showEvent(event)
-        logger.debug(f"GeometryTab shown - size: {self.width()}x{self.height()}, visible: {self.isVisible()}")
+        logger.debug(
+            f"GeometryTab shown - size: {self.width()}x{self.height()}, visible: {self.isVisible()}"
+        )
 
         # Debug widget visibility when the tab is shown
         QTimer.singleShot(100, self._debug_widget_visibility)
@@ -340,9 +369,9 @@ class GeometryTab(QWidget):
         logger.debug(f"GeometryTab resized to {self.width()}x{self.height()}")
 
         # Ensure the shape canvas covers the entire widget area when resized
-        if hasattr(self, 'shape_canvas') and hasattr(self, 'stacked_widget'):
+        if hasattr(self, "shape_canvas") and hasattr(self, "stacked_widget"):
             self.shape_canvas.resize(self.stacked_widget.size())
-            self.shape_canvas.raise_() # Make sure it's on top when resized
+            self.shape_canvas.raise_()  # Make sure it's on top when resized
 
     def _init_ui(self) -> None:
         """Initialize the UI components."""
@@ -358,13 +387,15 @@ class GeometryTab(QWidget):
         # Content container with background styling
         content_container = QWidget()
         content_container.setObjectName("geometry_content")
-        content_container.setStyleSheet("""
+        content_container.setStyleSheet(
+            """
             QWidget#geometry_content {
                 background-color: #f0f8ff;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                                         stop:0 #f0f8ff, stop:1 #e0f0fd);
             }
-        """)
+        """
+        )
         content_layout = QVBoxLayout(content_container)
 
         # Button bar
@@ -420,7 +451,8 @@ class GeometryTab(QWidget):
         # Create card for welcome content
         welcome_card = QFrame()
         welcome_card.setObjectName("welcomeCard")
-        welcome_card.setStyleSheet("""
+        welcome_card.setStyleSheet(
+            """
             #welcomeCard {
                 background-color: rgba(255, 255, 255, 0.9);
                 border-radius: 8px;
@@ -431,7 +463,8 @@ class GeometryTab(QWidget):
                 max-width: 800px;
                 min-height: 200px;
             }
-        """)
+        """
+        )
         welcome_layout = QVBoxLayout(welcome_card)
         welcome_layout.setContentsMargins(15, 15, 15, 15)
         welcome_layout.setSpacing(10)
@@ -469,14 +502,16 @@ class GeometryTab(QWidget):
         # Add Harmonia image below welcome card
         harmonia_container = QFrame()
         harmonia_container.setObjectName("harmoniaImageContainer")
-        harmonia_container.setStyleSheet("""
+        harmonia_container.setStyleSheet(
+            """
             #harmoniaImageContainer {
                 background-color: rgba(255, 255, 255, 0.7);
                 border-radius: 8px;
                 margin: 10px 40px 20px 40px;
                 padding: 10px;
             }
-        """)
+        """
+        )
         harmonia_layout = QVBoxLayout(harmonia_container)
 
         # Create image label
@@ -486,25 +521,36 @@ class GeometryTab(QWidget):
         if not harmonia_pixmap.isNull():
             # Scale the image to a reasonable size while maintaining aspect ratio
             scaled_pixmap = harmonia_pixmap.scaled(
-                400, 400,
+                400,
+                400,
                 Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
+                Qt.TransformationMode.SmoothTransformation,
             )
             harmonia_image_label.setPixmap(scaled_pixmap)
             harmonia_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             # Add caption
-            caption = QLabel("Harmonia - Greek goddess of harmony, concord and geometric proportion")
-            caption.setStyleSheet("font-size: 12px; color: #009688; font-style: italic;")
+            caption = QLabel(
+                "Harmonia - Greek goddess of harmony, concord and geometric proportion"
+            )
+            caption.setStyleSheet(
+                "font-size: 12px; color: #009688; font-style: italic;"
+            )
             caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            harmonia_layout.addWidget(harmonia_image_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            harmonia_layout.addWidget(
+                harmonia_image_label, alignment=Qt.AlignmentFlag.AlignCenter
+            )
             harmonia_layout.addWidget(caption, alignment=Qt.AlignmentFlag.AlignCenter)
 
             # Add the image container to the content layout
-            content_layout.addWidget(harmonia_container, alignment=Qt.AlignmentFlag.AlignCenter)
+            content_layout.addWidget(
+                harmonia_container, alignment=Qt.AlignmentFlag.AlignCenter
+            )
         else:
-            logger.error("Failed to load Harmonia image from assets/tab_images/harmonia.png")
+            logger.error(
+                "Failed to load Harmonia image from assets/tab_images/harmonia.png"
+            )
 
         content_layout.addStretch()
 
@@ -521,10 +567,12 @@ class GeometryTab(QWidget):
         # Set attributes for shape canvas
         self.shape_canvas.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-        logger.debug("ShapeCanvas created with visibility: " + str(self.shape_canvas.isVisible()))
+        logger.debug(
+            "ShapeCanvas created with visibility: " + str(self.shape_canvas.isVisible())
+        )
 
         # Debug the layout
-        logger.debug(f"Using regular layout with overlay canvas")
+        logger.debug("Using regular layout with overlay canvas")
 
         # Raise the canvas to be on top of everything else after a delay
         QTimer.singleShot(1000, self._ensure_canvas_on_top)
@@ -548,8 +596,8 @@ class GeometryTab(QWidget):
             # application's focus-based approach
             self.window_manager.open_window(
                 "sacred_geometry_explorer",  # Unique ID for the window
-                explorer,                    # Content widget
-                "Sacred Geometry Explorer"   # Window title
+                explorer,  # Content widget
+                "Sacred Geometry Explorer",  # Window title
             )
 
             # Log success
@@ -560,18 +608,18 @@ class GeometryTab(QWidget):
             logger.error(f"Failed to import Sacred Geometry Explorer: {e}")
             # Show error message to user
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.critical(
                 self,
                 "Error",
-                "Could not open Sacred Geometry Explorer: Module not found."
+                "Could not open Sacred Geometry Explorer: Module not found.",
             )
         except Exception as e:
             # Handle any other errors
             logger.error(f"Error opening Sacred Geometry Explorer: {e}")
             # Show error message to user
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.critical(
-                self,
-                "Error",
-                f"Could not open Sacred Geometry Explorer: {str(e)}"
+                self, "Error", f"Could not open Sacred Geometry Explorer: {str(e)}"
             )

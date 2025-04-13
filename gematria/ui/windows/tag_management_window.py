@@ -46,4 +46,4 @@ class TagManagementWindow(QMainWindow):
         self.tag_panel = TagManagementPanel()
         layout.addWidget(self.tag_panel)
 
-        logger.debug("TagManagementWindow initialized") 
+        logger.debug("TagManagementWindow initialized")

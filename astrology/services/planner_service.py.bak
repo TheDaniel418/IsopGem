@@ -53,17 +53,17 @@ class PlannerService:
         """Initialize the planner service."""
         if PlannerService._instance is not None:
             raise Exception("PlannerService is a singleton!")
-            
+
         self.repository = SQLitePlannerRepository(Database.get_instance())
         self.chart_service = ChartService.get_instance()
         self.astrology_calculation_service = AstrologyCalculationService.get_instance()
         self.moon_phase_calculator = MoonPhaseCalculator.get_instance()
-        
+
         # Get the AstrologicalEventCalculator for planet phases
         self.astrological_event_calculator = AstrologicalEventCalculator.get_instance()
-        
+
         self._settings = self._load_settings()
-        
+
         PlannerService._instance = self
 
         logger.debug("PlannerService initialized")
@@ -181,7 +181,7 @@ class PlannerService:
             List of PlannerEvent objects for the specified date
         """
         events = []
-        
+
         try:
             # Get moon phase events if enabled
             if self._settings.show_lunar_phases:
@@ -190,23 +190,23 @@ class PlannerService:
                 logger.debug(f"Added {len(moon_phase_events)} moon phase events for {date}")
         except Exception as e:
             logger.error(f"Error getting moon phase events: {e}")
-        
+
         try:
             # Get planetary aspects from the database if enabled
             if self._settings.show_planetary_aspects:
                 logger.debug(f"Fetching planetary aspects for {date} with include_minor={include_minor_aspects}")
                 aspect_events = self.get_planetary_aspects_for_date(date, include_minor=include_minor_aspects)
                 logger.debug(f"Returned aspect events: {len(aspect_events)}")
-                
+
                 # Log the first few aspect events for debugging
                 for i, event in enumerate(aspect_events[:3]):
                     logger.debug(f"  Aspect event {i+1}: {event.title}, type={event.event_type}, time={event.start_time}")
-                
+
                 events.extend(aspect_events)
                 logger.debug(f"Added {len(aspect_events)} planetary aspect events for {date}, total events now: {len(events)}")
         except Exception as e:
             logger.error(f"Error getting aspect events: {e}", exc_info=True)
-        
+
         try:
             # Get retrograde events if enabled
             if self._settings.show_retrogrades:
@@ -215,7 +215,7 @@ class PlannerService:
                 logger.debug(f"Added {len(retrograde_events)} retrograde events for {date}")
         except Exception as e:
             logger.error(f"Error getting retrograde events: {e}")
-        
+
         try:
             # Get eclipse events if enabled
             if self._settings.show_eclipses:
@@ -224,14 +224,14 @@ class PlannerService:
                 logger.debug(f"Added {len(eclipse_events)} eclipse events for {date}")
         except Exception as e:
             logger.error(f"Error getting eclipse events: {e}")
-        
+
         try:
             # Get planet phases (Mercury and Venus phases) from the database if enabled
             if self._settings.show_venus_cycles:
                 date_as_datetime = datetime.combine(date, time())
                 # Use the AstrologicalEventCalculator instance to get planet phases
                 planet_phases = self.astrological_event_calculator.get_planet_phases_for_date(date_as_datetime)
-                
+
                 for phase in planet_phases:
                     event = PlannerEvent(
                         id=phase.get('id', str(uuid.uuid4())),
@@ -246,7 +246,7 @@ class PlannerService:
                 logger.debug(f"Added {len(planet_phases)} planetary phase events for {date}")
         except Exception as e:
             logger.error(f"Error getting planet phase events: {e}")
-        
+
         logger.info(f"Found {len(events)} total astrological events for {date}")
         return events
 
@@ -260,7 +260,7 @@ class PlannerService:
             List of PlannerEvent objects
         """
         events = []
-        
+
         # Define aspect colors
         aspect_colors = {
             "conjunction": "#E67E22",  # Orange
@@ -273,18 +273,18 @@ class PlannerService:
             "semisquare": "#FF7979",   # Light red
             "sesquiquadrate": "#FF5733", # Red/orange
         }
-        
+
         for aspect in aspects:
             try:
                 # Try to convert using the built-in method if available
                 if hasattr(aspect, 'to_planner_event') and callable(getattr(aspect, 'to_planner_event')):
                     event = aspect.to_planner_event()
-                    
+
                     # Set default color based on aspect type
                     if hasattr(aspect, 'aspect_type'):
                         aspect_name = ""
                         aspect_key = ""
-                        
+
                         # Get the aspect type in the correct format
                         if hasattr(aspect.aspect_type, 'name'):
                             aspect_name = aspect.aspect_type.name.lower()
@@ -295,7 +295,7 @@ class PlannerService:
                         elif isinstance(aspect.aspect_type, str):
                             aspect_name = aspect.aspect_type.lower()
                             aspect_key = aspect_name
-                            
+
                         # Set color if we have a specific one for this aspect type
                         if aspect_key in aspect_colors:
                             event.color = aspect_colors[aspect_key]
@@ -314,20 +314,20 @@ class PlannerService:
                             else:
                                 # Default blue if no match
                                 event.color = "#3498db"
-                    
+
                     # IMPORTANT FIX: Make sure the event has the correct event_type
                     event.event_type = EventType.PLANETARY_ASPECT
-                    
+
                     events.append(event)
                     continue
-                
+
                 # Fallback if to_planner_event isn't available
                 # Safely extract planet names
                 planet1_name = "Unknown"
                 planet2_name = "Unknown"
                 aspect_name = "Unknown"
                 aspect_key = "conjunction"  # Default for color selection
-                
+
                 # Try to get planet1 name
                 if hasattr(aspect, 'planet1'):
                     planet1 = aspect.planet1
@@ -335,7 +335,7 @@ class PlannerService:
                         planet1_name = planet1.name
                     elif isinstance(planet1, dict) and 'name' in planet1:
                         planet1_name = planet1['name']
-                
+
                 # Try to get planet2 name
                 if hasattr(aspect, 'planet2'):
                     planet2 = aspect.planet2
@@ -343,7 +343,7 @@ class PlannerService:
                         planet2_name = planet2.name
                     elif isinstance(planet2, dict) and 'name' in planet2:
                         planet2_name = planet2['name']
-                
+
                 # Try to get aspect type
                 if hasattr(aspect, 'aspect_type'):
                     aspect_type = aspect.aspect_type
@@ -357,7 +357,7 @@ class PlannerService:
                     elif isinstance(aspect_type, str):
                         aspect_name = aspect_type.replace('_', ' ').title()
                         aspect_key = aspect_type.lower()
-                
+
                 # Get the exact time if available
                 exact_time = None
                 if hasattr(aspect, 'exact_time') and aspect.exact_time:
@@ -365,13 +365,13 @@ class PlannerService:
                 else:
                     # Default to current date/time if not available
                     exact_time = datetime.now()
-                
+
                 # Create a unique ID
                 unique_id = f"aspect_{planet1_name}_{planet2_name}_{aspect_name}_{uuid.uuid4().hex[:8]}"
-                
+
                 # Determine aspect color
                 color = aspect_colors.get(aspect_key, "#3498db")  # Default blue if aspect not found
-                
+
                 # Create an event from the aspect
                 event = PlannerEvent(
                     id=unique_id,
@@ -383,7 +383,7 @@ class PlannerService:
                     color=color
                 )
                 events.append(event)
-                
+
             except Exception as e:
                 logger.error(f"Error converting aspect to event: {str(e)}")
                 # Continue processing other aspects even if one fails
@@ -410,20 +410,20 @@ class PlannerService:
         # Get astrological events day by day (aspects still need to be calculated daily)
         all_events = {}
         current_day = datetime(year, month, 1).date()
-        
+
         while current_day.month == month:
             day_events = []
-            
+
             # Add user events
             if current_day.day in user_events_by_day:
                 day_events.extend(user_events_by_day[current_day.day])
-            
+
             # Add moon phases for this day if enabled
             if self._settings.show_lunar_phases:
                 moon_phases = self.moon_phase_calculator.get_moon_phase_events_for_date(current_day)
                 if moon_phases:
                     day_events.extend(moon_phases)
-                    
+
             # Get planetary aspects from database instead of calculating them if enabled
             if self._settings.show_planetary_aspects:
                 # Use get_planetary_aspects_for_date which uses the database
@@ -431,28 +431,28 @@ class PlannerService:
                 if aspects:
                     logger.debug(f"Adding {len(aspects)} aspects to events for {current_day}")
                     day_events.extend(aspects)
-                
+
             # Get retrograde events if enabled
             if self._settings.show_retrogrades:
                 retrogrades = self.get_retrograde_periods(current_day)
                 if retrogrades:
                     day_events.extend(retrogrades)
-                
+
             # Get eclipse events if enabled
             if self._settings.show_eclipses:
                 eclipses = self.get_eclipse_events(current_day)
                 if eclipses:
                     day_events.extend(eclipses)
-                
+
             # Get Venus cycle and planetary phase events from database if enabled
             if self._settings.show_venus_cycles:
                 # Convert date to datetime for the database query
                 day_datetime = datetime.combine(current_day, time())
-                
+
                 # Get planet phases which includes Venus cycle events
                 # Use the AstrologicalEventCalculator instance to get planet phases
                 planet_phases = self.astrological_event_calculator.get_planet_phases_for_date(day_datetime)
-                
+
                 for phase in planet_phases:
                     # Only include Venus events if they match what we're looking for
                     if "Venus" in phase.get('title', ''):
@@ -466,11 +466,11 @@ class PlannerService:
                             color="#FF69B4"  # Hot pink for Venus events
                         )
                         day_events.append(event)
-                
+
             # Store events for this day
             if day_events:
                 all_events[current_day.day] = day_events
-                
+
             # Move to next day
             current_day += timedelta(days=1)
 
@@ -589,7 +589,7 @@ class PlannerService:
 
     def get_retrograde_periods(self, date: datetime.date) -> List[PlannerEvent]:
         """Get retrograde periods for specified date.
-        
+
         Uses Swiss Ephemeris to check if planets are in retrograde motion
         and returns appropriate PlannerEvent objects.
 
@@ -612,7 +612,7 @@ class PlannerService:
             "Neptune": "#5DADE2",  # Medium blue
             "Pluto": "#6C3483"     # Dark purple
         }
-        
+
         # List of planets to check for retrograde motion (SE planet constants)
         planets = [
             (swe.MERCURY, "Mercury"),
@@ -624,48 +624,48 @@ class PlannerService:
             (swe.NEPTUNE, "Neptune"),
             (swe.PLUTO, "Pluto")
         ]
-        
+
         try:
             # Set ephemeris path if configured
             if hasattr(self.astrology_calculation_service, 'ephemeris_path'):
                 swe.set_ephe_path(self.astrology_calculation_service.ephemeris_path)
-            
+
             # Convert date to Julian day at noon
             jd = swe.julday(date.year, date.month, date.day, 12.0)
-            
+
             # Check retrograde status for each planet
             for planet_id, planet_name in planets:
                 # Calculate planet position and retrieve speed
                 flags = swe.FLG_SWIEPH | swe.FLG_SPEED
                 ret, result = swe.calc_ut(jd, planet_id, flags)
-                
+
                 if ret == 0:  # Successful calculation
                     longitude = result[0]
                     speed = result[3]  # Daily speed in longitude
-                    
+
                     # If speed is negative, planet is retrograde
                     if speed < 0:
                         logger.debug(f"{planet_name} is retrograde on {date}")
-                        
+
                         # Create datetime objects for start/end of day
                         start_time = datetime.combine(date, datetime.min.time())
                         end_time = datetime.combine(date, datetime.max.time())
-                        
+
                         # Check if this is the beginning or end of retrograde period
                         retrograde_status = ""
-                        
+
                         # Check previous day
                         prev_jd = jd - 1.0
                         prev_ret, prev_result = swe.calc_ut(prev_jd, planet_id, flags)
                         if prev_ret == 0 and prev_result[3] >= 0:
                             retrograde_status = " begins"
-                        
+
                         # Check next day
                         next_jd = jd + 1.0
                         next_ret, next_result = swe.calc_ut(next_jd, planet_id, flags)
                         if next_ret == 0 and next_result[3] >= 0:
                             retrograde_status = " ends"
-                        
+
                         # Format position for description
                         degrees = int(longitude) % 30
                         minutes = int((longitude % 1) * 60)
@@ -673,7 +673,7 @@ class PlannerService:
                         sign_names = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
                                      "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
                         position_str = f"{degrees}°{minutes}' {sign_names[sign-1]}"
-                        
+
                         # Create the event
                         event = PlannerEvent(
                             title=f"{planet_name} Retrograde{retrograde_status}",
@@ -691,10 +691,10 @@ class PlannerService:
                         )
                         events.append(event)
                         logger.debug(f"Added retrograde event: {event.title}")
-                
+
         except Exception as e:
             logger.error(f"Error calculating retrograde periods: {e}")
-            
+
             # Fallback to basic Mercury retrograde data if calculation failed
             if self.astrology_calculation_service is None:
                 logger.warning("Using placeholder Mercury retrograde data as AstrologyCalculationService is unavailable")
@@ -704,7 +704,7 @@ class PlannerService:
                     (datetime(2023, 8, 23), datetime(2023, 9, 15)),
                     (datetime(2023, 12, 13), datetime(2024, 1, 1))
                 ]
-                
+
                 for start, end in mercury_retro_periods_2023:
                     if start.date() <= date <= end.date():
                         event = PlannerEvent(
@@ -876,19 +876,19 @@ class PlannerService:
         try:
             # Get aspect calculator
             calculator = AstrologicalEventCalculator.get_instance()
-            
+
             # Get aspects from database
             aspects = calculator.get_aspects_for_date(date)
-            
+
             # Log successful retrieval
             logger.debug(f"Retrieved {len(aspects)} aspects for {date}")
-            
+
             # Log aspect details for debugging
             for i, aspect in enumerate(aspects):
                 logger.debug(f"Aspect {i+1} details: {type(aspect)}")
                 if hasattr(aspect, 'get_description'):
                     logger.debug(f"  Description: {aspect.get_description()}")
-                    
+
             # Filter out minor aspects if not requested
             if not include_minor and aspects:
                 try:
@@ -896,8 +896,8 @@ class PlannerService:
                     if hasattr(aspects[0], 'aspect_type'):
                         # If aspects have aspect_type attribute, filter by the major types
                         aspects = [a for a in aspects if getattr(a, 'aspect_type', None) in [
-                            AspectType.CONJUNCTION, 
-                            AspectType.OPPOSITION, 
+                            AspectType.CONJUNCTION,
+                            AspectType.OPPOSITION,
                             AspectType.TRINE,
                             AspectType.SQUARE,
                             AspectType.SEXTILE
@@ -907,7 +907,7 @@ class PlannerService:
                         logger.warning("Could not filter minor aspects: unexpected aspect structure")
                 except (IndexError, AttributeError) as e:
                     logger.warning(f"Could not filter aspects: {str(e)}")
-            
+
             # Convert aspects to events, handling potential errors
             events = self._convert_aspects_to_events(aspects)
             logger.debug(f"Final events count: {len(events)}")
@@ -930,10 +930,10 @@ class PlannerService:
         try:
             logger.debug(f"Getting planet phases for {date}")
             result = []
-            
+
             # Convert to Julian day for calculations
             jd = self.astrology_calculation_service._datetime_to_jd(date)
-            
+
             # Check Mercury phases
             mercury_result = swe.calc_ut(jd, swe.MERCURY)
             if not isinstance(mercury_result, tuple) or len(mercury_result) < 2:
@@ -947,7 +947,7 @@ class PlannerService:
                     angular_diff = abs((mercury_pos - sun_pos) % 360)
                     if angular_diff > 180:
                         angular_diff = 360 - angular_diff
-                        
+
                     if angular_diff < 0.5:  # Within half a degree of inferior conjunction
                         result.append({
                             'id': f"mercury_inferior_{date.strftime('%Y%m%d')}",
@@ -962,7 +962,7 @@ class PlannerService:
                             'description': "Mercury is at superior conjunction with the Sun, midpoint of the Mercury cycle.",
                             'date': date
                         })
-            
+
             # Check Venus phases
             venus_result = swe.calc_ut(jd, swe.VENUS)
             if not isinstance(venus_result, tuple) or len(venus_result) < 2:
@@ -976,7 +976,7 @@ class PlannerService:
                     angular_diff = abs((venus_pos - sun_pos) % 360)
                     if angular_diff > 180:
                         angular_diff = 360 - angular_diff
-                        
+
                     if angular_diff < 0.5:  # Within half a degree of inferior conjunction
                         result.append({
                             'id': f"venus_inferior_{date.strftime('%Y%m%d')}",
@@ -991,7 +991,7 @@ class PlannerService:
                             'description': "Venus is at superior conjunction with the Sun, midpoint of the Venus cycle.",
                             'date': date
                         })
-                    
+
                     # Check for greatest elongation (morning/evening star)
                     # Eastern elongation (evening star)
                     if 45 < angular_diff < 48:
@@ -1009,10 +1009,10 @@ class PlannerService:
                             'description': "Venus is visible as the morning star, reaching its greatest angular distance from the Sun.",
                             'date': date
                         })
-                
+
             logger.debug(f"Found {len(result)} planet phase events for {date}")
             return result
-            
+
         except Exception as e:
             logger.error(f"Error calculating planet phases: {str(e)}", exc_info=True)
             return []
