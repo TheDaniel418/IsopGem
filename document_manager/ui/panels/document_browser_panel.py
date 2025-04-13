@@ -671,12 +671,12 @@ class DocumentBrowserPanel(Panel):
 
         if not current_parent or not hasattr(current_parent, "window_manager"):
             logger.error("Cannot find window manager to open RTF editor")
-            
+
             # Fallback to a standalone RTF editor window if window_manager is not available
             try:
                 # Fallback: Create RTF editor directly
                 editor = RTFEditorWindow(parent=self)
-                
+
                 # Set up the document in the editor
                 if editor.document_manager:
                     try:
@@ -709,10 +709,11 @@ class DocumentBrowserPanel(Panel):
                 # Make the editor window modal to ensure changes are captured
                 editor.setWindowModality(Qt.WindowModality.ApplicationModal)
                 
-                # Set up content capture on close, similar to the original implementation
+                # Store content that will be saved on window close
                 document_content_to_save = None
                 
-                def capture_content_before_close():
+                # Define a function to capture content before window closes in fallback mode
+                def capture_content_for_fallback():
                     nonlocal document_content_to_save
                     # Get the current document from the editor
                     if hasattr(editor, "document_manager") and editor.document_manager:
@@ -735,7 +736,11 @@ class DocumentBrowserPanel(Panel):
                                         logger.error(f"Failed to save document {document_id} from RTF editor (fallback mode)")
                                 except Exception as e:
                                     logger.error(f"Error saving document {document_id} from RTF editor (fallback mode): {e}")
-                                    MessageBox.error(self, "Error", f"Unable to save document changes: {e}")
+                                    # Show error message if we're still able to access UI
+                                    try:
+                                        MessageBox.error(self, "Save Error", f"Unable to save document changes: {e}")
+                                    except Exception:
+                                        pass  # If UI is no longer accessible, just log the error
                         except Exception as e:
                             logger.error(f"Error capturing document content before close (fallback mode): {e}")
                 
@@ -743,22 +748,24 @@ class DocumentBrowserPanel(Panel):
                 old_close_event = editor.closeEvent
                 
                 def new_close_event(event):
-                    capture_content_before_close()
+                    capture_content_for_fallback()
                     old_close_event(event)
                 
                 editor.closeEvent = new_close_event
-                
+
                 # Show the editor
                 editor.show()
-                
+
                 # Log that we're using fallback method
-                logger.info(f"Using fallback method to edit document {document_id} in RTF editor")
+                logger.info(
+                    f"Using fallback method to edit document {document_id} in RTF editor"
+                )
                 return
             except Exception as e:
                 logger.error(f"Fallback RTF editor creation failed: {e}")
                 MessageBox.error(self, "Error", f"Cannot open RTF editor: {e}")
                 return
-            
+
         # Get the window manager
         window_manager = getattr(current_parent, "window_manager")
 
@@ -769,7 +776,7 @@ class DocumentBrowserPanel(Panel):
         document_content_to_save = None
 
         # The approach changed! Add a function to capture document content before window is destroyed
-        def capture_content_before_close():
+        def capture_content_for_window_manager():
             nonlocal document_content_to_save
             # Get the current document from the editor
             if hasattr(editor, "document_manager") and editor.document_manager:
@@ -787,7 +794,7 @@ class DocumentBrowserPanel(Panel):
         old_close_event = editor.closeEvent
 
         def new_close_event(event):
-            capture_content_before_close()
+            capture_content_for_window_manager()
             old_close_event(event)
 
         editor.closeEvent = new_close_event
@@ -815,13 +822,15 @@ class DocumentBrowserPanel(Panel):
                                 self._refresh()
                                 logger.info(f"Saved changes to document {document_id}")
                             else:
-                                logger.error(f"Failed to save document {document_id} from RTF editor")
+                                logger.error(
+                                    f"Failed to save document {document_id} from RTF editor"
+                                )
                         except Exception as e:
                             logger.error(f"Error saving document changes: {e}")
                             # Show error message if we're still able to access UI
                             try:
                                 MessageBox.error(self, "Save Error", f"Unable to save document changes: {e}")
-                            except:
+                            except Exception:
                                 pass  # If UI is no longer accessible, just log the error
                 except Exception as e:
                     logger.error(f"Error handling editor closed event: {e}")
