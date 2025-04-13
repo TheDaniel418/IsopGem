@@ -8,7 +8,7 @@ setup(
     description="Sacred Geometry & Gematria Tool",
     author="IsopGem Team",
     packages=find_packages(),
-    python_requires=">=3.12",
+    python_requires=">=3.11",
     include_package_data=True,
     install_requires=[
         "PyQt6>=6.6.0",

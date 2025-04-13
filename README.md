@@ -56,7 +56,7 @@ Each pillar is organized into consistent components:
 
 ### Prerequisites
 
-- Python 3.12 or higher
+- Python 3.11 or higher
 - PyQt6
 - pip
 - Git
