@@ -16,18 +16,18 @@ Dependencies:
 from typing import List
 
 from loguru import logger
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
+from shared.ui.window_management import AuxiliaryWindow
 from tq.ui.widgets.series_transition_widget import SeriesTransitionWidget
 
 
-class SeriesTransitionWindow(QMainWindow):
+class SeriesTransitionWindow(AuxiliaryWindow):
     """Window for analyzing transitions between series of numbers."""
 
     def __init__(self, parent=None):
         """Initialize the window."""
-        super().__init__(parent)
-        self.setWindowTitle("Series Transition Analysis")
+        super().__init__("Series Transition Analysis", parent)
         self.setMinimumSize(600, 800)
 
         # Create central widget and layout

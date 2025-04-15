@@ -175,7 +175,14 @@ class NumberPairWidget(QWidget):
 
             number = int(number_text)
             analysis_service = tq_analysis_service.get_instance()
-            analysis_service.open_quadset_analysis(number)
+            
+            # Open the quadset analysis with the number and ensure it's visible
+            panel = analysis_service.open_quadset_analysis(number)
+            
+            # Find the window containing this panel and ensure it's on top
+            parent = panel.window()
+            if parent and hasattr(parent, "ensure_on_top"):
+                parent.ensure_on_top()
         except Exception as e:
             logger.error(f"Error opening TQ Grid: {e}")
 
@@ -183,24 +190,25 @@ class NumberPairWidget(QWidget):
         """Look up the result number in the database."""
         try:
             number = int(number_text)
-            import uuid
-
             from tq.ui.dialogs.number_database_window import NumberDatabaseWindow
 
             parent = self.window()
             if parent and hasattr(parent, "window_manager"):
                 base_id = f"number_database_{number}"
-                window_id = f"{base_id}_{uuid.uuid4().hex[:8]}"
-                parent.window_manager.open_multi_window(
+                window = parent.window_manager.open_multi_window(
                     base_id,
-                    window_id,
                     NumberDatabaseWindow(number),
                     f"Number Database: {number}",
                     (800, 600),
                 )
+                
+                # Explicitly ensure the new window is on top
+                window.ensure_on_top()
             else:
                 db_window = NumberDatabaseWindow(number)
                 db_window.show()
+                db_window.raise_()
+                db_window.activateWindow()
         except Exception as e:
             logger.error(f"Error looking up in database: {e}")
 
@@ -522,7 +530,14 @@ class SeriesTransitionWidget(QWidget):
 
             number = int(number_text)
             analysis_service = tq_analysis_service.get_instance()
-            analysis_service.open_quadset_analysis(number)
+            
+            # Open the quadset analysis with the number and ensure it's visible
+            panel = analysis_service.open_quadset_analysis(number)
+            
+            # Find the window containing this panel and ensure it's on top
+            parent = panel.window()
+            if parent and hasattr(parent, "ensure_on_top"):
+                parent.ensure_on_top()
         except Exception as e:
             logger.error(f"Error opening TQ Grid: {e}")
 
@@ -530,24 +545,25 @@ class SeriesTransitionWidget(QWidget):
         """Look up a number in the database."""
         try:
             number = int(number_text)
-            import uuid
-
             from tq.ui.dialogs.number_database_window import NumberDatabaseWindow
 
             parent = self.window()
             if parent and hasattr(parent, "window_manager"):
                 base_id = f"number_database_{number}"
-                window_id = f"{base_id}_{uuid.uuid4().hex[:8]}"
-                parent.window_manager.open_multi_window(
+                window = parent.window_manager.open_multi_window(
                     base_id,
-                    window_id,
                     NumberDatabaseWindow(number),
                     f"Number Database: {number}",
                     (800, 600),
                 )
+                
+                # Explicitly ensure the new window is on top
+                window.ensure_on_top()
             else:
                 db_window = NumberDatabaseWindow(number)
                 db_window.show()
+                db_window.raise_()
+                db_window.activateWindow()
         except Exception as e:
             logger.error(f"Error looking up in database: {e}")
 

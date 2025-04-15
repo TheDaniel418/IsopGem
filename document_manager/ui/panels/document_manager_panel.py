@@ -144,7 +144,10 @@ class DocumentManagerPanel(QWidget):
             panel = DocumentAnalysisPanel()
 
             # Open window with the panel
-            window_manager.open_window("document_analysis", panel, "Document Analysis")
+            window_manager.open_window("document_analysis", panel)
+            
+            # Set the window title
+            panel.setWindowTitle("Document Analysis")
 
             # Load the document
             panel.load_document(self.current_document_id)

@@ -22,6 +22,7 @@ Related files:
 from typing import Any, Dict
 
 from loguru import logger
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QFrame,
@@ -30,7 +31,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QMainWindow,
     QPushButton,
     QScrollArea,
     QTableWidget,
@@ -40,11 +40,13 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from shared.ui.window_management import AuxiliaryWindow
+
 from tq.services import tq_analysis_service, tq_database_service
 from tq.utils.ternary_converter import decimal_to_ternary
 
 
-class NumberDatabaseWindow(QMainWindow):
+class NumberDatabaseWindow(AuxiliaryWindow):
     """Window for displaying TQ number database lookup results."""
 
     def __init__(self, number: int, parent=None):
@@ -54,13 +56,13 @@ class NumberDatabaseWindow(QMainWindow):
             number: The decimal number to look up
             parent: The parent widget
         """
-        super().__init__(parent)
+        # Initialize with proper title and window flags
+        super().__init__(f"Number Database: {number}", parent)
 
         # Store the number being looked up
         self.number = number
 
-        # Set window properties
-        self.setWindowTitle(f"Number Database: {number}")
+        # Set minimum size
         self.setMinimumSize(800, 600)
 
         # Create central widget
@@ -398,7 +400,7 @@ class NumberDatabaseWindow(QMainWindow):
             )
             self.other_quadsets_label.setStyleSheet("font-weight: bold; color: blue;")
             self.other_quadsets_label.mousePressEvent = (
-                lambda e: self._open_other_quadset(base_number)
+                lambda _: self._open_other_quadset(base_number)
             )
         else:
             self.other_quadsets_label.setText(
@@ -572,6 +574,30 @@ class NumberDatabaseWindow(QMainWindow):
 
         except Exception as e:
             logger.error(f"Error opening TQ Grid for {base_number}: {e}")
+
+    def ensure_on_top(self):
+        """Ensure this window appears on top of other windows.
+
+        This method is called by the window manager to bring the window to the front.
+        It uses multiple methods to ensure the window is visible and has focus.
+        """
+        # Apply focus operations to ensure we're visible and on top
+        self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+        # Use delayed focus to ensure window ordering is applied after other events
+        QTimer.singleShot(100, self._delayed_focus)
+
+        logger.debug(f"Ensuring NumberDatabaseWindow for {self.number} stays on top")
+
+    def _delayed_focus(self):
+        """Apply delayed focus operations to ensure window stays on top."""
+        if self.isVisible():
+            self.raise_()
+            self.activateWindow()
+            logger.debug(f"Applied delayed focus to NumberDatabaseWindow for {self.number}")
 
 
 if __name__ == "__main__":

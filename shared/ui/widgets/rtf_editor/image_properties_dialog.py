@@ -4,6 +4,7 @@ import io
 import os
 import re
 import sys
+from pathlib import Path
 
 from PIL import Image  # Use Pillow to get original dimensions accurately
 from PyQt6.QtCore import QByteArray, Qt
@@ -19,11 +20,45 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from shared.ui.widgets.rtf_editor.utils.logging_utils import get_logger
+from shared.ui.widgets.rtf_editor.utils.error_utils import handle_error, handle_warning
+
+# Initialize logger
+logger = get_logger(__name__)
+
 
 class ImagePropertiesDialog(QDialog):
-    """Dialog for viewing and editing image properties."""
+    """Dialog for viewing and editing image properties.
+    
+    This dialog allows users to view and modify properties of an image in the document,
+    including:
+    - Width and height
+    - Aspect ratio (with option to maintain or break it)
+    - Original dimensions
+    - Preview of the image
+    
+    It works with both embedded images (data URIs) and linked images (file paths).
+    
+    Attributes:
+        image_format (QTextImageFormat): The format of the image being edited
+        original_width (int): The original width of the image
+        original_height (int): The original height of the image
+        aspect_ratio (float): The aspect ratio of the image (height/width)
+    """
 
     def __init__(self, image_format, parent=None):
+        """Initialize the image properties dialog.
+        
+        Creates a dialog for editing image properties based on the provided image format.
+        Loads the original dimensions of the image and sets up the UI.
+        
+        Args:
+            image_format (QTextImageFormat): The format of the image to edit
+            parent (QWidget, optional): Parent widget for this dialog
+            
+        Returns:
+            None
+        """
         super().__init__(parent)
         self.setWindowTitle("Image Properties")
         self.image_format = image_format
@@ -38,7 +73,21 @@ class ImagePropertiesDialog(QDialog):
         self.load_current_format()
 
     def load_original_dimensions(self):
-        """Load original dimensions using Pillow, handling both file paths and data URIs."""
+        """Load original dimensions using Pillow, handling both file paths and data URIs.
+        
+        Attempts to load the original dimensions of the image from either:
+        1. A data URI embedded in the document
+        2. A file path stored in the image format
+        
+        Sets the original_width, original_height, and aspect_ratio properties.
+        Falls back to the current format dimensions if the original can't be determined.
+        
+        Returns:
+            None
+            
+        Raises:
+            Exception: Handled internally for image loading errors
+        """
         path = self.image_format.name()
 
         # Check if this is a data URI
@@ -62,31 +111,58 @@ class ImagePropertiesDialog(QDialog):
                                 self.original_height / self.original_width
                             )
                 else:
-                    print("Failed to parse data URI")
+                    logger.warning("Failed to parse data URI")
                     self.original_width = int(self.image_format.width())
                     self.original_height = int(self.image_format.height())
             except Exception as e:
-                print(f"Error loading image dimensions from data URI: {e}")
+                logger.error(f"Error loading image dimensions from data URI: {e}", exc_info=True)
                 self.original_width = int(self.image_format.width())
                 self.original_height = int(self.image_format.height())
-        elif path and os.path.exists(path):
+        elif path and Path(path).exists():
             # Regular file path
             try:
-                with Image.open(path) as img:
+                # Input validation
+                if not path or not isinstance(path, str):
+                    raise ValueError("Invalid image path")
+                
+                path_obj = Path(path)
+                
+                # Validate file exists and is readable
+                if not path_obj.is_file():
+                    raise IsADirectoryError(f"Not a file: {path_obj}")
+                if not os.access(str(path_obj), os.R_OK):
+                    raise PermissionError(f"No read permission for file: {path_obj}")
+                
+                # Validate file is an image by checking extension
+                valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
+                if path_obj.suffix.lower() not in valid_extensions:
+                    raise ValueError(f"Unsupported image format: {path_obj.suffix}")
+                
+                # Check file size to prevent loading extremely large images
+                max_size_mb = 10  # Maximum file size in MB
+                if path_obj.stat().st_size > max_size_mb * 1024 * 1024:
+                    raise ValueError(f"Image too large (> {max_size_mb}MB): {path_obj}")
+                
+                # Load image and get dimensions
+                with Image.open(path_obj) as img:
                     self.original_width, self.original_height = img.size
-                    if self.original_width > 0 and self.original_height > 0:
-                        self.aspect_ratio = self.original_height / self.original_width
+                    
+                    # Validate image dimensions
+                    if self.original_width <= 0 or self.original_height <= 0:
+                        raise ValueError(f"Invalid image dimensions: {self.original_width}x{self.original_height}")
+                    
+                    self.aspect_ratio = self.original_height / self.original_width
 
                 # Also store the image data for preview
-                with open(path, "rb") as f:
+                with open(path_obj, "rb") as f:
                     self.image_data = f.read()
             except Exception as e:
-                print(f"Error loading original image dimensions: {e}")
+                logger.error(f"Error loading original image dimensions: {e}", exc_info=True)
                 self.original_width = int(self.image_format.width())
                 self.original_height = int(self.image_format.height())
         else:
             # Fallback if path invalid or not stored
-            print(f"Image path invalid or not found: {path}")
+            logger.warning(f"Image path invalid or not found: {path}")
             self.original_width = int(self.image_format.width())
             self.original_height = int(self.image_format.height())
 
@@ -97,7 +173,18 @@ class ImagePropertiesDialog(QDialog):
         self.aspect_ratio = self.original_height / self.original_width
 
     def setup_ui(self):
-        """Set up the dialog UI elements."""
+        """Set up the dialog UI elements.
+        
+        Creates and configures all UI components for the dialog, including:
+        - Image preview
+        - Dimension controls (width and height)
+        - Aspect ratio maintenance checkbox
+        - Original dimensions display
+        - OK and Cancel buttons
+        
+        Returns:
+            None
+        """
         layout = QVBoxLayout(self)
 
         # --- Preview ---
@@ -153,15 +240,19 @@ class ImagePropertiesDialog(QDialog):
         dims_group = QGroupBox("Dimensions")
         dims_layout = QFormLayout()
 
+        # Width spinbox with validation
         self.width_spin = QSpinBox()
-        self.width_spin.setRange(10, 8000)
+        self.width_spin.setRange(10, 8000)  # Set reasonable min/max values
         self.width_spin.setSuffix(" px")
+        self.width_spin.setToolTip("Width must be between 10 and 8000 pixels")
         self.width_spin.valueChanged.connect(self.width_changed)
         dims_layout.addRow("Width:", self.width_spin)
 
+        # Height spinbox with validation
         self.height_spin = QSpinBox()
-        self.height_spin.setRange(10, 8000)
+        self.height_spin.setRange(10, 8000)  # Set reasonable min/max values
         self.height_spin.setSuffix(" px")
+        self.height_spin.setToolTip("Height must be between 10 and 8000 pixels")
         self.height_spin.valueChanged.connect(self.height_changed)
         dims_layout.addRow("Height:", self.height_spin)
 
@@ -182,7 +273,15 @@ class ImagePropertiesDialog(QDialog):
         layout.addWidget(button_box)
 
     def load_current_format(self):
-        """Load settings from the current image format into the UI."""
+        """Load settings from the current image format into the UI.
+        
+        Retrieves the current width and height from the image format and
+        updates the UI controls to reflect these values. Also updates
+        the image preview.
+        
+        Returns:
+            None
+        """
         self._ignore_spin_changes = True
         current_width = int(self.image_format.width())
         current_height = int(self.image_format.height())
@@ -198,7 +297,17 @@ class ImagePropertiesDialog(QDialog):
         self._ignore_spin_changes = False
 
     def width_changed(self, new_width):
-        """Handle width change, potentially updating height."""
+        """Handle width change, potentially updating height.
+        
+        When the width is changed and aspect ratio lock is enabled,
+        automatically updates the height to maintain the aspect ratio.
+        
+        Args:
+            new_width (int): The new width value
+            
+        Returns:
+            None
+        """
         if not self._ignore_spin_changes and self.keep_aspect_checkbox.isChecked():
             self._ignore_spin_changes = True
             new_height = int(new_width * self.aspect_ratio)
@@ -206,7 +315,17 @@ class ImagePropertiesDialog(QDialog):
             self._ignore_spin_changes = False
 
     def height_changed(self, new_height):
-        """Handle height change, potentially updating width."""
+        """Handle height change, potentially updating width.
+        
+        When the height is changed and aspect ratio lock is enabled,
+        automatically updates the width to maintain the aspect ratio.
+        
+        Args:
+            new_height (int): The new height value
+            
+        Returns:
+            None
+        """
         if not self._ignore_spin_changes and self.keep_aspect_checkbox.isChecked():
             self._ignore_spin_changes = True
             new_width = int(new_height / self.aspect_ratio)
@@ -214,14 +333,27 @@ class ImagePropertiesDialog(QDialog):
             self._ignore_spin_changes = False
 
     def aspect_ratio_lock_changed(self):
-        """Recalculate based on width if lock is enabled."""
+        """Recalculate based on width if lock is enabled.
+        
+        When the aspect ratio lock is toggled on, updates the height
+        based on the current width to restore the proper aspect ratio.
+        
+        Returns:
+            None
+        """
         if self.keep_aspect_checkbox.isChecked():
             self.width_changed(
                 self.width_spin.value()
             )  # Trigger height update from width
 
     def get_new_dimensions(self):
-        """Return the chosen width and height."""
+        """Return the chosen width and height.
+        
+        Provides the final dimensions selected by the user in the dialog.
+        
+        Returns:
+            tuple: A tuple containing (width, height) in pixels
+        """
         return self.width_spin.value(), self.height_spin.value()
 
 
@@ -240,13 +372,13 @@ if __name__ == "__main__":
     dummy_fmt.setHeight(150)
 
     # Create a dummy image file if needed for testing load_original_dimensions
-    test_path = "dummy_image.png"
-    if not os.path.exists(test_path):
+    test_path = Path("dummy_image.png")
+    if not test_path.exists():
         try:
             from PIL import Image
 
             Image.new("RGB", (300, 250), color="red").save(test_path)
-            dummy_fmt.setName(test_path)  # Use the created dummy path
+            dummy_fmt.setName(str(test_path))  # Use the created dummy path
         except ImportError:
             print("Pillow not installed, cannot create dummy image for full test.")
         except Exception as e:
@@ -260,7 +392,7 @@ if __name__ == "__main__":
         print("Dialog Cancelled.")
 
     # Clean up dummy file
-    if os.path.exists(test_path):
-        os.remove(test_path)
+    if test_path.exists():
+        test_path.unlink()
 
     sys.exit()

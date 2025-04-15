@@ -46,7 +46,10 @@ def run_verification_test():
     test_layout.addWidget(QLabel("Test Window Content"))
 
     # Open a test window
-    window = window_manager.open_window("test_window", test_widget, "Test Window")
+    window = window_manager.open_window("test_window", test_widget)
+
+    # Set the window title
+    window.setWindowTitle("Test Window")
 
     # Display verification results
     result_label = QLabel()

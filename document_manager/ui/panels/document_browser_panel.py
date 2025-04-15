@@ -35,6 +35,7 @@ from PyQt6.QtWidgets import (
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
+    QInputDialog,
 )
 
 from document_manager.models.document import DocumentType
@@ -448,6 +449,11 @@ class DocumentBrowserPanel(Panel):
         if not document_id:
             return
 
+        # Get document for tag information
+        document = self.document_service.get_document(document_id)
+        if not document:
+            return
+
         # Create context menu
         menu = QMenu()
 
@@ -488,6 +494,26 @@ class DocumentBrowserPanel(Panel):
             category_menu.addAction(cat_action)
 
         menu.addMenu(category_menu)
+
+        # Tags submenu
+        tags_menu = QMenu("Tags", self)
+
+        # Add tag action
+        add_tag_action = QAction("Add Tag...", self)
+        add_tag_action.triggered.connect(lambda: self._add_tag_to_document(document_id))
+        tags_menu.addAction(add_tag_action)
+
+        # Show existing tags with option to remove
+        if document.tags:
+            tags_menu.addSeparator()
+            for tag in sorted(document.tags):
+                tag_action = QAction(tag, self)
+                tag_action.triggered.connect(
+                    lambda checked, t=tag: self._remove_tag_from_document(document_id, t)
+                )
+                tags_menu.addAction(tag_action)
+
+        menu.addMenu(tags_menu)
 
         # Delete action
         menu.addSeparator()
@@ -914,6 +940,67 @@ class DocumentBrowserPanel(Panel):
                     self,
                     "Delete Failed",
                     "Failed to delete the document. Please try again.",
+                )
+
+    def _add_tag_to_document(self, document_id: str):
+        """Add a tag to a document.
+
+        Args:
+            document_id: Document ID
+        """
+        # Get document
+        document = self.document_service.get_document(document_id)
+        if not document:
+            return
+
+        # Show input dialog
+        tag, ok = QInputDialog.getText(
+            self,
+            "Add Tag",
+            "Enter tag name:",
+            QLineEdit.EchoMode.Normal,
+        )
+
+        if ok and tag:
+            # Add tag to document
+            document.add_tag(tag.strip())
+            
+            # Save document
+            if self.document_service.update_document(document):
+                # Refresh to update the UI
+                self._refresh()
+            else:
+                MessageBox.error(
+                    self,
+                    "Error",
+                    "Failed to add tag to document. Please try again.",
+                )
+
+    def _remove_tag_from_document(self, document_id: str, tag: str):
+        """Remove a tag from a document.
+
+        Args:
+            document_id: Document ID
+            tag: Tag to remove
+        """
+        # Get document
+        document = self.document_service.get_document(document_id)
+        if not document:
+            return
+
+        # Remove tag
+        if tag in document.tags:
+            document.tags.remove(tag)
+            
+            # Save document
+            if self.document_service.update_document(document):
+                # Refresh to update the UI
+                self._refresh()
+            else:
+                MessageBox.error(
+                    self,
+                    "Error",
+                    "Failed to remove tag from document. Please try again.",
                 )
 
     # Helper method to handle delayed focus for fallback windows

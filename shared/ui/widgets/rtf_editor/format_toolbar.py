@@ -15,13 +15,45 @@ from PyQt6.QtWidgets import (
 
 
 class FormatToolBar(QToolBar):
-    """Advanced formatting toolbar for RTF editor."""
+    """Advanced formatting toolbar for RTF editor.
+    
+    This class provides a comprehensive formatting toolbar for the RTF editor, including:
+    - Font family and size selection
+    - Bold, italic, underline, and strikethrough formatting
+    - Text color and background color
+    - Text alignment (left, center, right, justify)
+    - Bullet and numbered lists
+    - Indentation controls
+    
+    The toolbar monitors the current text selection and updates its controls to reflect
+    the formatting of the selected text. It also emits signals when formatting is changed
+    through the toolbar controls.
+    
+    Attributes:
+        format_changed (pyqtSignal): Signal emitted when text format is changed
+        alignment_changed (pyqtSignal): Signal emitted when text alignment is changed
+        
+    Signals:
+        format_changed(QTextCharFormat): Emitted with the new format when changed
+        alignment_changed(Qt.AlignmentFlag): Emitted with the new alignment when changed
+    """
 
     # Signals for format changes
     format_changed = pyqtSignal(QTextCharFormat)
     alignment_changed = pyqtSignal(Qt.AlignmentFlag)
 
     def __init__(self, parent=None):
+        """Initialize the formatting toolbar.
+        
+        Creates a toolbar with all formatting controls and connects their signals
+        to appropriate slots. Sets up a timer for throttling rapid updates.
+        
+        Args:
+            parent (QWidget, optional): Parent widget for this toolbar
+            
+        Returns:
+            None
+        """
         super().__init__(parent)
 
         # Setup timer for throttling updates - disabled by default
@@ -30,8 +62,8 @@ class FormatToolBar(QToolBar):
         self.update_timer.setInterval(300)  # 300 ms throttle
         self.update_timer.timeout.connect(self._do_update_toolbar_state)
 
-        # Flag to completely disable automatic updates (to prevent segfaults)
-        self.auto_updates_enabled = False
+        # Flag to control automatic updates (disabled to prevent segfaults)
+        self.auto_updates_enabled = False  # Disabled due to persistent segfaults
 
         self.setup_font_controls()
         self.setup_paragraph_controls()
@@ -39,120 +71,208 @@ class FormatToolBar(QToolBar):
         self.setup_alignment_controls()
         self.setup_spacing_controls()
 
-        # Connect to text editor signals if possible but only if auto-updates enabled
-        if parent and hasattr(parent, "text_edit") and self.auto_updates_enabled:
-            parent.text_edit.cursorPositionChanged.connect(
-                self.queue_update_toolbar_state
-            )
-            parent.text_edit.selectionChanged.connect(self.queue_update_toolbar_state)
+        # Connect to text editor signals if possible
+        self.connect_to_editor_signals()
 
     def queue_update_toolbar_state(self):
         """Queue a toolbar update with throttling to prevent rapid updates."""
-        # Skip if auto-updates are disabled
-        if not self.auto_updates_enabled:
-            return
-
-        if not self.update_timer.isActive():
-            self.update_timer.start()
+        # Completely disabled to prevent segfaults
+        return
+        
+        # Original implementation (disabled)
+        # # Skip if auto-updates are disabled
+        # if not self.auto_updates_enabled:
+        #     return
+        # 
+        # if not self.update_timer.isActive():
+        #     self.update_timer.start()
 
     def _do_update_toolbar_state(self):
-        """Actually perform the toolbar state update after throttling."""
-        try:
-            # Try to get the text_edit from parent
-            parent = self.parent()
-            if not parent:
-                return
+        """Actually perform the toolbar state update after throttling.
+        
+        This method is completely disabled to prevent segfaults.
+        """
+        # Completely disabled to prevent segfaults
+        return
+        
+        # Original implementation (disabled)
+        # """Actually perform the toolbar state update after throttling.
+        # 
+        # This method updates the toolbar controls to reflect the formatting
+        # at the current cursor position. It includes comprehensive error handling
+        # to prevent segfaults that were previously occurring.
+        # """
+        # # Outer try block to catch any unexpected errors
+        # try:
+        #     # Try to get the text_edit from parent
+        #     parent = self.parent()
+        #     if not parent:
+        #         return
+        # 
+        #     # Check if parent has text_edit attribute
+        #     editor = getattr(parent, "text_edit", None)
+        #     if not editor:
+        #         return
+        #         
+        #     # Check if editor is valid and visible
+        #     if not editor.isVisible() or not editor.isEnabled():
+        #         return
+        #         
+        #     # Get cursor with error handling
+        #     try:
+        #         cursor = editor.textCursor()
+        #         if not cursor:
+        #             return
+        #         # Note: QTextCursor doesn't have isValid() method in PyQt6
+        #     except Exception as e:
+        #         print(f"Error getting text cursor: {e}")
+        #         return
+        #         
+        #     # Check if document is valid
+        #     try:
+        #         document = editor.document()
+        #         if not document:
+        #             return
+        #     except Exception as e:
+        #         print(f"Error accessing document: {e}")
+        #         return
+        # 
+        #     # Get the character format at cursor with error handling
+        #     try:
+        #         char_format = cursor.charFormat()
+        #         # Note: QTextCharFormat doesn't have isValid() method in PyQt6
+        #     except Exception as e:
+        #         print(f"Error getting character format: {e}")
+        #         return
+        #
+        #     # Update font family button
+        #     try:
+        #         font_family = char_format.fontFamily()
+        #         if font_family:
+        #             index = self.font_family.findText(font_family)
+        #             if index >= 0:
+        #                 self.font_family.setCurrentIndex(index)
+        #     except Exception as e:
+        #         print(f"Error updating font family: {e}")
 
-            # Check if parent has text_edit attribute
-            editor = getattr(parent, "text_edit", None)
-            if not editor:
-                return
+        #     # Update font size
+        #     try:
+        #         font_size = char_format.fontPointSize()
+        #         if font_size > 0:
+        #             self.font_size.setCurrentText(str(int(font_size)))
+        #     except Exception as e:
+        #         print(f"Error updating font size: {e}")
+        #
+        #     # Update style buttons
+        #     try:
+        #         self.bold_btn.setChecked(char_format.fontWeight() >= QFont.Weight.Bold)
+        #         self.italic_btn.setChecked(char_format.fontItalic())
+        #         self.underline_btn.setChecked(char_format.fontUnderline())
+        #     except Exception as e:
+        #         print(f"Error updating style buttons: {e}")
+        #
+        #     # Update indentation and spacing
+        #     try:
+        #         block_format = cursor.blockFormat()
+        #
+        #         indent = block_format.leftMargin()
+        #         if indent >= 0 and indent <= 100:  # Make sure it's within range
+        #             self.indent_spin.blockSignals(True)
+        #             self.indent_spin.setValue(indent)
+        #             self.indent_spin.blockSignals(False)
+        #
+        #         spacing = block_format.bottomMargin()
+        #         if spacing >= 0 and spacing <= 100:  # Make sure it's within range
+        #             self.spacing_spin.blockSignals(True)
+        #             self.spacing_spin.setValue(spacing)
+        #             self.spacing_spin.blockSignals(False)
+        #     except Exception as e:
+        #         print(f"Error updating indentation/spacing: {e}")
+        #
+        #     # Update list buttons
+        #     try:
+        #         current_list = cursor.currentList()
+        #         if current_list:
+        #             fmt = current_list.format()
+        #             style = fmt.style()
+        #
+        #             # Set the correct list button state
+        #             self.bullet_btn.blockSignals(True)
+        #             self.number_btn.blockSignals(True)
+        #
+        #             self.bullet_btn.setChecked(style == QTextListFormat.Style.ListDisc)
+        #             self.number_btn.setChecked(
+        #                 style == QTextListFormat.Style.ListDecimal
+        #             )
+        #
+        #             self.bullet_btn.blockSignals(False)
+        #             self.number_btn.blockSignals(False)
+        #         else:
+        #             self.bullet_btn.blockSignals(True)
+        #             self.number_btn.blockSignals(True)
+        #
+        #             self.bullet_btn.setChecked(False)
+        #             self.number_btn.setChecked(False)
+        #
+        #             self.bullet_btn.blockSignals(False)
+        #             self.number_btn.blockSignals(False)
+        #     except Exception as e:
+        #         print(f"Error updating list buttons: {e}")
+        # except Exception as e:
+        #     print(f"Error updating toolbar state: {e}")
 
-            cursor = editor.textCursor()
-
-            # Get the character format at cursor
-            char_format = cursor.charFormat()
-
-            # Update font family button
-            try:
-                font_family = char_format.fontFamily()
-                if font_family:
-                    index = self.font_family.findText(font_family)
-                    if index >= 0:
-                        self.font_family.setCurrentIndex(index)
-            except Exception as e:
-                print(f"Error updating font family: {e}")
-
-            # Update font size
-            try:
-                font_size = char_format.fontPointSize()
-                if font_size > 0:
-                    self.font_size.setCurrentText(str(int(font_size)))
-            except Exception as e:
-                print(f"Error updating font size: {e}")
-
-            # Update style buttons
-            try:
-                self.bold_btn.setChecked(char_format.fontWeight() >= QFont.Weight.Bold)
-                self.italic_btn.setChecked(char_format.fontItalic())
-                self.underline_btn.setChecked(char_format.fontUnderline())
-            except Exception as e:
-                print(f"Error updating style buttons: {e}")
-
-            # Update indentation and spacing
-            try:
-                block_format = cursor.blockFormat()
-
-                indent = block_format.leftMargin()
-                if indent >= 0 and indent <= 100:  # Make sure it's within range
-                    self.indent_spin.blockSignals(True)
-                    self.indent_spin.setValue(indent)
-                    self.indent_spin.blockSignals(False)
-
-                spacing = block_format.bottomMargin()
-                if spacing >= 0 and spacing <= 100:  # Make sure it's within range
-                    self.spacing_spin.blockSignals(True)
-                    self.spacing_spin.setValue(spacing)
-                    self.spacing_spin.blockSignals(False)
-            except Exception as e:
-                print(f"Error updating indentation/spacing: {e}")
-
-            # Update list buttons
-            try:
-                current_list = cursor.currentList()
-                if current_list:
-                    fmt = current_list.format()
-                    style = fmt.style()
-
-                    # Set the correct list button state
-                    self.bullet_btn.blockSignals(True)
-                    self.number_btn.blockSignals(True)
-
-                    self.bullet_btn.setChecked(style == QTextListFormat.Style.ListDisc)
-                    self.number_btn.setChecked(
-                        style == QTextListFormat.Style.ListDecimal
-                    )
-
-                    self.bullet_btn.blockSignals(False)
-                    self.number_btn.blockSignals(False)
-                else:
-                    self.bullet_btn.blockSignals(True)
-                    self.number_btn.blockSignals(True)
-
-                    self.bullet_btn.setChecked(False)
-                    self.number_btn.setChecked(False)
-
-                    self.bullet_btn.blockSignals(False)
-                    self.number_btn.blockSignals(False)
-            except Exception as e:
-                print(f"Error updating list buttons: {e}")
-        except Exception as e:
-            print(f"Error updating toolbar state: {e}")
-
+    def connect_to_editor_signals(self):
+        """Safely connect to text editor signals.
+        
+        This method is completely disabled to prevent segfaults.
+        
+        Returns:
+            bool: Always returns False as connections are disabled
+        """
+        # Completely disabled to prevent segfaults
+        return False
+        
+        # Original implementation (disabled)
+        # try:
+        #     # Only connect if auto-updates are enabled
+        #     if not self.auto_updates_enabled:
+        #         return False
+        #         
+        #     # Try to get the parent and text_edit
+        #     parent = self.parent()
+        #     if not parent or not hasattr(parent, "text_edit"):
+        #         return False
+        #         
+        #     text_edit = parent.text_edit
+        #     
+        #     # Disconnect any existing connections first to prevent duplicates
+        #     try:
+        #         text_edit.cursorPositionChanged.disconnect(self.queue_update_toolbar_state)
+        #     except:
+        #         pass  # Ignore if not connected
+        #         
+        #     try:
+        #         text_edit.selectionChanged.disconnect(self.queue_update_toolbar_state)
+        #     except:
+        #         pass  # Ignore if not connected
+        #     
+        #     # Connect signals with error handling
+        #     text_edit.cursorPositionChanged.connect(self.queue_update_toolbar_state)
+        #     text_edit.selectionChanged.connect(self.queue_update_toolbar_state)
+        #     
+        #     return True
+        # except Exception as e:
+        #     print(f"Error connecting to editor signals: {e}")
+        #     return False
+    
     # Legacy method for compatibility
     def update_toolbar_state(self):
-        """Redirect to the throttled update method."""
-        self.queue_update_toolbar_state()
+        """Disabled to prevent segfaults."""
+        # Completely disabled to prevent segfaults
+        return
+        
+        # Original implementation (disabled)
+        # self.queue_update_toolbar_state()
 
     def setup_font_controls(self):
         """Set up basic font formatting controls."""

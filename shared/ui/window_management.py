@@ -609,7 +609,7 @@ class AuxiliaryWindow(QMainWindow):
         """
         # Set window flags to ensure this window stays on top of the main window
         # but doesn't stay on top of all windows from other applications
-        flags = flags | Qt.WindowType.WindowStaysOnTopHint
+        flags = flags | Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint
 
         super().__init__(parent, flags)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -688,6 +688,37 @@ class AuxiliaryWindow(QMainWindow):
         """
         # Let the parent handle cleanup
         super().closeEvent(event)
+
+    def ensure_on_top(self):
+        """Ensure this window is visible and on top of other application windows.
+        
+        This method applies the necessary window flags and focus operations
+        to ensure the window is visible and properly shown on top of other windows.
+        """
+        # Make sure the window has the proper flags
+        current_flags = self.windowFlags()
+        if not (current_flags & Qt.WindowType.WindowStaysOnTopHint):
+            self.setWindowFlags(current_flags | Qt.WindowType.WindowStaysOnTopHint)
+            
+        # Apply focus operations - ensure we're using all available methods
+        # to properly raise the window
+        self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        
+        # Log the operation
+        logger.debug(f"Ensuring window '{self.windowTitle()}' stays on top")
+        
+        # Use delayed focus to ensure window ordering is applied after other events
+        QTimer.singleShot(100, self._delayed_focus)
+        
+    def _delayed_focus(self):
+        """Apply delayed focus operations to ensure window stays on top."""
+        if self.isVisible():
+            self.raise_()
+            self.activateWindow()
+            logger.debug(f"Applied delayed focus to window '{self.windowTitle()}'")
 
 
 class WindowManager(QObject):
@@ -785,12 +816,12 @@ class WindowManager(QObject):
 
         return panel
 
-    def create_auxiliary_window(self, window_id: str, title: str) -> AuxiliaryWindow:
+    def create_auxiliary_window(self, window_id: str, title: str = None) -> AuxiliaryWindow:
         """Create a new auxiliary window.
 
         Args:
             window_id: Unique identifier for the window
-            title: Title of the window
+            title: Optional title of the window. If None, the window_id will be used.
 
         Returns:
             The created window
@@ -806,6 +837,10 @@ class WindowManager(QObject):
             else:
                 # Window reference exists but window might be invalid - remove it
                 self._auxiliary_windows.pop(window_id, None)
+
+        # Use window_id as title if none provided
+        if title is None:
+            title = window_id
 
         # Create a new window without parent to make it independent
         # This prevents it from being forced behind the main window
@@ -967,43 +1002,52 @@ class WindowManager(QObject):
 
         return panel
 
-    def open_window(
-        self, window_id: str, widget: QWidget, title: str, size=None
-    ) -> AuxiliaryWindow:
-        """Open a standalone window containing the provided widget.
+    def open_window(self, window_id: str, content: Optional[QWidget] = None) -> AuxiliaryWindow:
+        """Open a standalone window with the specified ID.
+
+        If a window with the given ID already exists and is visible, it will
+        be returned. Otherwise, a new window will be created.
 
         Args:
-            window_id: Unique identifier for the window
-            widget: Widget to display in the window
-            title: Window title
-            size: Optional tuple of (width, height) for initial window size
+            window_id: The unique identifier for the window
+            content: Optional widget to set as the central widget of the window
 
         Returns:
-            The created auxiliary window
+            The window instance
         """
-        # Check if window already exists
-        existing_window = self.get_auxiliary_window(window_id)
-        if existing_window:
-            # Configure the existing window and bring it to front
-            existing_window.set_content(widget)
-            self.configure_window(existing_window)
-            logger.debug(
-                f"Reusing existing window with ID: {window_id}, title: {title}"
-            )
-            return existing_window
-
-        # Create a new window
-        window = self.create_auxiliary_window(window_id, title)
-        window.set_content(widget)
-
-        # Set window size if provided
-        if size and len(size) == 2:
-            window.resize(size[0], size[1])
-
-        # Show the window and ensure proper z-order
+        # Check if window already exists in the registry
+        window = self.get_auxiliary_window(window_id)
+        
+        if window and window.isVisible():
+            # Window exists and is visible, ensure it's on top
+            logger.debug(f"Window '{window_id}' already exists and is visible, ensuring proper z-order")
+            self.reapply_z_order(window_id)
+            
+            # Update content if provided
+            if content is not None:
+                window.set_content(content)
+            
+            return window
+        
+        elif window:
+            # Window exists but might be hidden, show it and ensure proper z-order
+            logger.debug(f"Window '{window_id}' exists but may be hidden, showing and ensuring proper z-order")
+            if content is not None:
+                window.set_content(content)
+            
+            self.reapply_z_order(window_id)
+            return window
+            
+        # Create a new window if none exists
+        logger.debug(f"Creating new window with ID '{window_id}'")
+        window = self.create_auxiliary_window(window_id)
+        
+        if content is not None:
+            window.set_content(content)
+            
+        # Configure the window (sets flags, ensures visibility, etc.)
         self.configure_window(window)
-        logger.debug(f"Opening window with ID: {window_id}, title: {title}")
-
+        
         return window
 
     def open_multi_window(
@@ -1050,30 +1094,46 @@ class WindowManager(QObject):
         Args:
             window: The window to configure
         """
-        # Apply standard flags for proper window behavior
-        window.setWindowFlags(
-            window.windowFlags()
-            | Qt.WindowType.Window
-            | Qt.WindowType.WindowStaysOnTopHint
-        )
+        # Make sure the window is visible
+        if not window.isVisible():
+            window.show()
+        
+        # Use the unified window z-ordering method to bring window to front
+        window.ensure_on_top()
+        
+        # Force focus to the new window
+        QTimer.singleShot(50, lambda: window.activateWindow())
+        
+        logger.debug(f"Configured window '{window.windowTitle()}' with z-ordering")
 
-        # Ensure proper focus and z-order
-        window.show()
-        window.raise_()
-        window.activateWindow()
-
-        # Use a short delay to ensure proper z-ordering after other events
-        QTimer.singleShot(100, lambda: self._delayed_focus(window))
-
-    def _delayed_focus(self, window: AuxiliaryWindow) -> None:
-        """Apply delayed focus to ensure window appears on top.
-
+    def reapply_z_order(self, window_id: str) -> bool:
+        """Reapply z-ordering to an existing window.
+        
+        Useful when a window needs to be brought back to the front after
+        being potentially hidden by other windows.
+        
         Args:
-            window: The window to focus
+            window_id: ID of the window to bring to front
+            
+        Returns:
+            True if window was found and z-order applied, False otherwise
         """
-        if window and window.isVisible():
-            window.raise_()
-            window.activateWindow()
+        window = self.get_auxiliary_window(window_id)
+        if window:
+            window.ensure_on_top()
+            logger.debug(f"Reapplied z-ordering to window {window_id}")
+            return True
+        
+        panel = self.get_panel(panel_id=window_id)
+        if panel:
+            panel.show()
+            panel.raise_()
+            panel.activateWindow()
+            logger.debug(f"Reapplied z-ordering to panel {window_id}")
+            return True
+            
+        logger.debug(f"Could not reapply z-ordering - window {window_id} not found")
+        return False
 
     def _on_window_destroyed(self, window_id: str) -> None:
         """Handle window destruction.

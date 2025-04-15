@@ -404,11 +404,8 @@ class GeometryTab(QWidget):
         button_layout.setContentsMargins(5, 5, 5, 5)
         button_layout.setSpacing(5)
 
-        # Sacred Geometry button
-        sacred_geo_btn = QPushButton("Sacred Geometry")
-        sacred_geo_btn.setToolTip("Open Sacred Geometry Explorer")
-        sacred_geo_btn.clicked.connect(lambda: self._open_sacred_geometry())
-        button_layout.addWidget(sacred_geo_btn)
+        # Placeholder for future geometry tools
+        # We've removed the Sacred Geometry button as we're implementing a new approach
 
         # Golden Ratio button
         golden_ratio_btn = QPushButton("Golden Ratio")
@@ -577,49 +574,5 @@ class GeometryTab(QWidget):
         # Raise the canvas to be on top of everything else after a delay
         QTimer.singleShot(1000, self._ensure_canvas_on_top)
 
-    def _open_sacred_geometry(self) -> None:
-        """Open the Sacred Geometry Explorer window.
-
-        This method creates and opens the Sacred Geometry Explorer in a new window,
-        using the application's window management system.
-        """
-        try:
-            # Import the explorer class - this is done inside the method to avoid
-            # circular imports and to lazy-load the module only when needed
-            from geometry.ui.sacred_geometry import SacredGeometryExplorer
-
-            # Create the Sacred Geometry Explorer
-            explorer = SacredGeometryExplorer(self.window_manager)
-
-            # Open it in a new window - the window manager handles focus management
-            # The window will be shown but not forced to the front, following the
-            # application's focus-based approach
-            self.window_manager.open_window(
-                "sacred_geometry_explorer",  # Unique ID for the window
-                explorer,  # Content widget
-                "Sacred Geometry Explorer",  # Window title
-            )
-
-            # Log success
-            logger.debug("Opened Sacred Geometry Explorer window successfully")
-
-        except ImportError as e:
-            # Handle import errors (e.g., if the module is missing)
-            logger.error(f"Failed to import Sacred Geometry Explorer: {e}")
-            # Show error message to user
-            from PyQt6.QtWidgets import QMessageBox
-
-            QMessageBox.critical(
-                self,
-                "Error",
-                "Could not open Sacred Geometry Explorer: Module not found.",
-            )
-        except Exception as e:
-            # Handle any other errors
-            logger.error(f"Error opening Sacred Geometry Explorer: {e}")
-            # Show error message to user
-            from PyQt6.QtWidgets import QMessageBox
-
-            QMessageBox.critical(
-                self, "Error", f"Could not open Sacred Geometry Explorer: {str(e)}"
-            )
+    # The Sacred Geometry Explorer implementation has been removed
+    # We'll implement a new approach for geometry tools

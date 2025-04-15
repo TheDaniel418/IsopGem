@@ -367,7 +367,12 @@ class TernaryTransitionWidget(QWidget):
             analysis_service = tq_analysis_service.get_instance()
 
             # Open the quadset analysis with the number
-            analysis_service.open_quadset_analysis(number)
+            panel = analysis_service.open_quadset_analysis(number)
+            
+            # Find the window containing this panel and ensure it's on top
+            parent = panel.window()
+            if parent and hasattr(parent, "ensure_on_top"):
+                parent.ensure_on_top()
 
         except (ValueError, AttributeError, RuntimeError):
             # Handle errors - no action needed as button should be disabled if no valid number
@@ -391,17 +396,21 @@ class TernaryTransitionWidget(QWidget):
             if parent and hasattr(parent, "window_manager"):
                 # If we can get the window manager from the parent, use it
                 base_id = f"number_database_{number}"
-                window_id = f"{base_id}_{uuid.uuid4().hex[:8]}"
-                parent.window_manager.open_multi_window(
-                    window_id,
+                window = parent.window_manager.open_multi_window(
+                    base_id,
                     NumberDatabaseWindow(number),
                     f"Number Database: {number}",
                     (800, 600),
                 )
+                
+                # Explicitly ensure the new window is on top
+                window.ensure_on_top()
             else:
                 # Otherwise just create a new window directly
                 db_window = NumberDatabaseWindow(number)
                 db_window.show()
+                db_window.raise_()
+                db_window.activateWindow()
 
         except (ValueError, AttributeError, RuntimeError, ImportError):
             # Handle errors - could show a message dialog here

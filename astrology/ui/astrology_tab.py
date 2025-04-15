@@ -122,24 +122,26 @@ class AstrologyTab(QWidget):
         """Open the birth chart window."""
         # Create the birth chart window
         birth_chart_window = BirthChartWindow()
+        
+        # Set the window title
+        birth_chart_window.setWindowTitle("Birth Chart")
 
         # Open it in a window
-        self.window_manager.open_window(
-            "birth_chart", birth_chart_window, "Birth Chart"
-        )
+        self.window_manager.open_window("birth_chart", birth_chart_window)
 
     def _open_planner(self):
         """Open the astrological planner window."""
         # Create the planner window
         planner_window = PlannerWindow()
+        
+        # Set the window title
+        planner_window.setWindowTitle("Astrological Planner")
 
         # Connect chart requested signal
         planner_window.chart_requested.connect(self._on_chart_requested_from_planner)
 
         # Open it in a window
-        self.window_manager.open_window(
-            "astro_planner", planner_window, "Astrological Planner"
-        )
+        self.window_manager.open_window("astro_planner", planner_window)
 
     def _on_chart_requested_from_planner(self, chart):
         """Handle chart request from the planner.
@@ -150,16 +152,20 @@ class AstrologyTab(QWidget):
         # Create a birth chart window with the chart
         birth_chart_window = BirthChartWindow()
         birth_chart_window.set_chart(chart)
+        
+        # Set the window title
+        birth_chart_window.setWindowTitle(f"Chart: {chart.name}")
 
         # Open it in a window
-        self.window_manager.open_window(
-            "planner_chart", birth_chart_window, f"Chart: {chart.name}"
-        )
+        self.window_manager.open_window("planner_chart", birth_chart_window)
 
     def _open_cycle_calculator(self):
         """Open the cosmic cycle calculator window."""
         # Create the cycle calculator window
         cycle_calculator_window = CycleCalculatorWindow()
+        
+        # Set the window title
+        cycle_calculator_window.setWindowTitle("Cosmic Cycle Calculator")
 
         # Connect chart requested signal
         cycle_calculator_window.chart_requested.connect(
@@ -167,9 +173,7 @@ class AstrologyTab(QWidget):
         )
 
         # Open it in a window
-        self.window_manager.open_window(
-            "cycle_calculator", cycle_calculator_window, "Cosmic Cycle Calculator"
-        )
+        self.window_manager.open_window("cycle_calculator", cycle_calculator_window)
 
     def _on_chart_requested_from_cycle_calculator(self, chart):
         """Handle chart request from the cycle calculator.
@@ -180,11 +184,12 @@ class AstrologyTab(QWidget):
         # Create a birth chart window with the chart
         birth_chart_window = BirthChartWindow()
         birth_chart_window.set_chart(chart)
+        
+        # Set the window title
+        birth_chart_window.setWindowTitle(f"Chart: {chart.name}")
 
         # Open it in a window
-        self.window_manager.open_window(
-            "cycle_chart", birth_chart_window, f"Chart: {chart.name}"
-        )
+        self.window_manager.open_window("cycle_chart", birth_chart_window)
 
     def _open_database_manager(self):
         """Open the astrological database manager dialog."""

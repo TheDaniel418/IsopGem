@@ -20,8 +20,9 @@ from PyQt6.QtWidgets import (
 
 from shared.ui.window_management import TabManager, WindowManager
 from tq.services import tq_analysis_service
-from tq.ui.panels.cosmic_force_panel import CosmicForceAnalysisPanel
+from tq.ui.panels.ternary_dimension_panel import TernaryDimensionalAnalysisPanel
 from tq.ui.panels.pair_finder_panel import PairFinderPanel
+from tq.ui.panels.kamea_of_maut_panel import KameaOfMautPanel
 from tq.ui.widgets.planar_expansion_visualizer import PlanarExpansionVisualizer
 from tq.ui.widgets.ternary_visualizer import TernaryVisualizerPanel
 
@@ -403,6 +404,12 @@ class TQTab(QWidget):
         pair_finder_btn.clicked.connect(self._open_pair_finder)
         button_layout.addWidget(pair_finder_btn)
 
+        # Kamea of Maut button
+        kamea_btn = QPushButton("Kamea of Maut")
+        kamea_btn.setToolTip("Explore the 27×27 ternary fractal Kamea")
+        kamea_btn.clicked.connect(self._open_kamea_of_maut)
+        button_layout.addWidget(kamea_btn)
+
         # Add stretch to push buttons to the left
         button_layout.addStretch()
 
@@ -588,10 +595,9 @@ class TQTab(QWidget):
 
     def _open_cosmic_force_analysis(self) -> None:
         """Open the Cosmic Force Analysis panel in a new window."""
-        panel = CosmicForceAnalysisPanel()
-        self.window_manager.open_multi_window(
-            "tq_cosmic_force_analysis", panel, "Cosmic Force Analysis", (900, 700)
-        )
+        panel = TernaryDimensionalAnalysisPanel()
+        self.window_manager.open_window("ternary_analysis", panel)
+        panel.setWindowTitle("Ternary Dimensional Analysis")
 
     def _open_series_transition(self) -> None:
         """Open the series transition calculator in a new window."""
@@ -620,4 +626,11 @@ class TQTab(QWidget):
         panel = TernaryVisualizerPanel()
         self.window_manager.open_multi_window(
             "tq_ternary_visualizer", panel, "Ternary Digit Visualizer", (400, 600)
+        )
+
+    def _open_kamea_of_maut(self) -> None:
+        """Open the Kamea of Maut panel in a new window."""
+        panel = KameaOfMautPanel()
+        self.window_manager.open_multi_window(
+            "tq_kamea_of_maut", panel, "Kamea of Maut Explorer", (1500, 1100)
         )

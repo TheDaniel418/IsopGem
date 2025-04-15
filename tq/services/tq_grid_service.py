@@ -41,11 +41,19 @@ class TQGridService:
 
     _instance = None
 
+    # Signal for grid updates
+    grid_updated = None
+
     def __init__(self):
         """Initialize the service with empty grid."""
         if TQGridService._instance is not None:
             raise RuntimeError("Use get_instance() instead")
         self._current_grid = TQGrid(0, 0, 0, 0)
+
+        # Initialize the grid_updated signal
+        # We're not using PyQt signals here to avoid circular imports
+        # Instead, we'll use a simple callback mechanism
+        self.grid_updated = []  # List of callback functions
 
     @classmethod
     def get_instance(cls) -> "TQGridService":
@@ -79,11 +87,41 @@ class TQGridService:
             f"Updated grid display - Base: {base}, Conrune: {conrune}, "
             f"Reversal: {reversal}, Reversal Conrune: {reversal_conrune}"
         )
+
+        # Notify callbacks about the update
+        self._notify_callbacks()
+
         return self._current_grid
 
     def get_current_grid(self) -> TQGrid:
         """Get the current grid display values."""
         return self._current_grid
+
+    def register_callback(self, callback):
+        """Register a callback function to be called when the grid is updated.
+
+        Args:
+            callback: A function that takes no arguments
+        """
+        if callback not in self.grid_updated:
+            self.grid_updated.append(callback)
+
+    def unregister_callback(self, callback):
+        """Unregister a callback function.
+
+        Args:
+            callback: The function to unregister
+        """
+        if callback in self.grid_updated:
+            self.grid_updated.remove(callback)
+
+    def _notify_callbacks(self):
+        """Notify all registered callbacks that the grid has been updated."""
+        for callback in self.grid_updated:
+            try:
+                callback()
+            except Exception as e:
+                logger.error(f"Error in grid update callback: {e}")
 
 
 # Register service with locator

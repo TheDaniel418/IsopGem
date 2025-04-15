@@ -640,4 +640,7 @@ class SearchPanel(QWidget):
         window_title = f"Calculation Details - {self.selected_calculation.input_text}"
 
         # Open the detail widget in a new window
-        self.window_manager.open_window(window_id, detail_widget, window_title)
+        self.window_manager.open_window(window_id, detail_widget)
+        
+        # Set the window title
+        detail_widget.setWindowTitle(window_title)

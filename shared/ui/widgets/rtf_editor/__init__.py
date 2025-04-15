@@ -16,11 +16,22 @@ tables, images, and custom annotations.
 Key components:
 - RTFEditorWindow: Main rich text editor window
 - DocumentFormat: Model for document serialization and storage
+- CommandHistory: Command pattern implementation for undo/redo
 
 Dependencies:
 - PyQt6: For UI components
 """
 
+from .commands import (
+    Command,
+    CommandHistory,
+    TextCommand,
+    InsertTextCommand,
+    DeleteTextCommand,
+    FormatCommand,
+    AlignmentCommand,
+    InsertImageCommand,
+)
 from .document_manager import DocumentManager
 from .format_toolbar import FormatToolBar
 from .image_manager import ImageManager
@@ -41,4 +52,12 @@ __all__ = [
     "AnnotationMetadata",
     "ImageMetadata",
     "TableMetadata",
+    "Command",
+    "CommandHistory",
+    "TextCommand",
+    "InsertTextCommand",
+    "DeleteTextCommand",
+    "FormatCommand",
+    "AlignmentCommand",
+    "InsertImageCommand",
 ]

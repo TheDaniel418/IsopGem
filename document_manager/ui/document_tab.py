@@ -352,10 +352,14 @@ class DocumentTab(QWidget):
             DocumentManagerPanel,
         )
 
+        # Create the panel
+        panel = DocumentManagerPanel()
+        
         # Create and open the document browser window
-        self.window_manager.open_window(
-            "document_browser", DocumentManagerPanel(), "Document Browser"
-        )
+        self.window_manager.open_window("document_browser", panel)
+        
+        # Set the window title
+        panel.setWindowTitle("Document Browser")
 
         logger.debug("Opened Document Browser window")
 
@@ -365,10 +369,14 @@ class DocumentTab(QWidget):
             DocumentAnalysisPanel,
         )
 
+        # Create the panel
+        panel = DocumentAnalysisPanel()
+        
         # Create and open the document analysis window
-        self.window_manager.open_window(
-            "document_analysis", DocumentAnalysisPanel(), "Document Analysis"
-        )
+        self.window_manager.open_window("document_analysis", panel)
+        
+        # Set the window title
+        panel.setWindowTitle("Document Analysis")
 
         logger.debug("Opened Document Analysis window")
 
@@ -384,6 +392,9 @@ class DocumentTab(QWidget):
         editor = RTFEditorWindow()
 
         # Open the window using the window manager
-        self.window_manager.open_window("rtf_editor", editor, "Rich Text Editor")
+        self.window_manager.open_window("rtf_editor", editor)
+        
+        # Set the window title
+        editor.setWindowTitle("Rich Text Editor")
 
         logger.debug("RTF Editor window opened")

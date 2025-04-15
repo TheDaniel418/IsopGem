@@ -76,7 +76,6 @@ class TQAnalysisService(QObject):
         Returns:
             The TQ Grid panel instance
         """
-        # Create a unique ID for this instance
         import uuid
 
         instance_id = uuid.uuid4().hex[:8]
@@ -96,6 +95,9 @@ class TQAnalysisService(QObject):
             f"TQ Grid Explorer - {number}",
             (1000, 800),
         )
+        
+        # Explicitly ensure the new window is on top
+        window.ensure_on_top()
 
         # Store reference to the panel with the unique window ID
         self._active_quadset_panels[window_id] = grid_panel

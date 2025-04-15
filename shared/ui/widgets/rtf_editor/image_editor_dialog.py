@@ -6,6 +6,7 @@ from typing import Any, Callable, Optional, Union, cast
 # import io
 # import os
 # import re
+from pathlib import Path
 import numpy as np
 from PIL import (
     Image,
@@ -518,14 +519,14 @@ class ImageEditorDialog(QDialog):
                     import uuid
 
                     temp_filename = f"temp_img_{uuid.uuid4().hex}.{ext}"
-                    temp_path = os.path.join(temp_dir, temp_filename)
+                    temp_path = Path(temp_dir) / temp_filename
 
                     # Save to temp file
                     self.original_image.save(temp_path)
                     print(f"Saved embedded image to temporary file: {temp_path}")
 
                     # Store temp path for later use
-                    self._temp_file_path = temp_path
+                    self._temp_file_path = str(temp_path)
 
                     return True
                 else:
@@ -539,14 +540,14 @@ class ImageEditorDialog(QDialog):
         # Regular file path handling
         elif path:
             try:
-                import os
+                path_obj = Path(path)
 
-                if os.path.isfile(path):
+                if path_obj.is_file():
                     # Load with PIL
-                    self.original_image = Image.open(path)
+                    self.original_image = Image.open(path_obj)
                     self.working_image = self.original_image.copy()
                 else:
-                    print(f"File not found: {path}")
+                    print(f"File not found: {path_obj}")
                     return False
 
                 # Get dimensions
@@ -1872,31 +1873,34 @@ class ImageEditorDialog(QDialog):
                 orig_path = self.image_format.name()
                 if orig_path.startswith("data:"):
                     # For data URIs, create a temp directory
-                    import os
                     import tempfile
                     import uuid
 
-                    temp_dir = tempfile.gettempdir()
-                    edit_dir = os.path.join(temp_dir, "edited_images")
+                    temp_dir = Path(tempfile.gettempdir())
+                    edit_dir = temp_dir / "edited_images"
                 else:
                     # For file paths, use the original directory
-                    import os
-
-                    dir_path = os.path.dirname(orig_path)
-                    edit_dir = os.path.join(dir_path, "edited_images")
+                    path_obj = Path(orig_path)
+                    dir_path = path_obj.parent
+                    edit_dir = dir_path / "edited_images"
 
                 # Create a directory for edited images if it doesn't exist
-                os.makedirs(edit_dir, exist_ok=True)
+                edit_dir.mkdir(parents=True, exist_ok=True)
 
                 # Generate a unique filename
                 file_ext = ".png"  # Default
-                if orig_path.lower().endswith((".jpg", ".jpeg")):
-                    file_ext = ".jpg"
-                elif orig_path.lower().endswith(".gif"):
-                    file_ext = ".gif"
+                
+                # Use Path for safer extension handling
+                if isinstance(orig_path, str) and not orig_path.startswith("data:"):
+                    path_obj = Path(orig_path)
+                    suffix = path_obj.suffix.lower()
+                    if suffix in [".jpg", ".jpeg"]:
+                        file_ext = ".jpg"
+                    elif suffix == ".gif":
+                        file_ext = ".gif"
 
                 unique_name = f"edited_image_{uuid.uuid4().hex[:8]}{file_ext}"
-                save_path = os.path.join(edit_dir, unique_name)
+                save_path = edit_dir / unique_name
 
                 # Save the edited image
                 print(f"Saving edited image to {save_path}")

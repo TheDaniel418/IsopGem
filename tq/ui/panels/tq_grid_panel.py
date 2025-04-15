@@ -36,7 +36,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSplitter,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -44,6 +44,9 @@ from PyQt6.QtWidgets import (
 from shared.services.number_properties_service import NumberPropertiesService
 from tq.services.tq_grid_service import TQGridService
 from tq.ui.panels.number_properties_panel import NumberPropertiesPanel
+from tq.ui.panels.quadset_analysis_panel import QuadsetAnalysisPanel
+from tq.ui.panels.advanced_properties_panel import AdvancedPropertiesPanel
+from tq.ui.styles.tq_colors import TQColors, apply_tq_styles
 from tq.ui.widgets.ternary_visualizer import TernaryDigitVisualizer
 from tq.utils.ternary_converter import (
     decimal_to_ternary,
@@ -56,55 +59,70 @@ from tq.utils.ternary_transition import TernaryTransition
 class TQNumberDisplay(QFrame):
     """Widget for displaying a number in decimal, ternary, and visualization formats."""
 
-    def __init__(self, label_text: str, parent=None):
+    def __init__(self, label_text: str, color: str = TQColors.PRIMARY, parent=None):
         """Initialize the number display widget.
 
         Args:
             label_text: The label text for this display
+            color: The color to use for the header
             parent: The parent widget
         """
         super().__init__(parent)
 
-        # Set up the layout
+        # Set up the layout - minimize margins to maximize visualizer space
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(10, 10, 10, 10)
-        self.layout.setSpacing(5)
+        self.layout.setContentsMargins(6, 6, 6, 6)  # Reduce margins significantly
+        self.layout.setSpacing(4)  # Reduce spacing to give more room to visualizer
 
-        # Add label
+        # Add label with color - more compact
         self.label = QLabel(label_text)
-        self.label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        self.label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))  # Smaller font
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setStyleSheet(f"background-color: {color}; color: white; border-radius: 3px; padding: 3px;")  # Less padding
         self.layout.addWidget(self.label)
 
         # Info layout for decimal and ternary representation - use horizontal layout to save vertical space
         self.info_layout = QHBoxLayout()
+        self.info_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        self.info_layout.setSpacing(2)  # Minimal spacing
 
-        # Decimal and ternary info in a compact layout
-        info_container = QWidget()
+        # Create a more compact info container
+        info_container = QFrame()
+        info_container.setFrameStyle(QFrame.Shape.NoFrame)  # Remove frame
+        info_container.setStyleSheet("background-color: transparent;")  # Make transparent
+
         info_grid = QGridLayout(info_container)
-        info_grid.setContentsMargins(0, 0, 0, 0)
-        info_grid.setSpacing(3)
+        info_grid.setContentsMargins(0, 0, 0, 0)  # Remove all margins
+        info_grid.setSpacing(2)  # Minimal spacing
 
-        # Decimal display
-        info_grid.addWidget(QLabel("Decimal:"), 0, 0)
+        # Decimal display - more compact
+        decimal_label = QLabel("Dec:")
+        decimal_label.setStyleSheet("font-weight: bold; color: #333; font-size: 10px;")  # Smaller font
+        info_grid.addWidget(decimal_label, 0, 0)
+
         self.decimal_label = QLabel("0")
-        self.decimal_label.setFont(QFont("Courier New", 10))
+        self.decimal_label.setFont(QFont("Courier New", 10))  # Smaller font
+        self.decimal_label.setStyleSheet("background-color: white; padding: 2px; border-radius: 2px; border: 1px solid #DDD;")  # Less padding
         info_grid.addWidget(self.decimal_label, 0, 1)
 
-        # Ternary display
-        info_grid.addWidget(QLabel("Ternary:"), 1, 0)
+        # Ternary display - more compact
+        ternary_label = QLabel("Ter:")
+        ternary_label.setStyleSheet("font-weight: bold; color: #333; font-size: 10px;")  # Smaller font
+        info_grid.addWidget(ternary_label, 1, 0)
+
         self.ternary_label = QLabel("0")
-        self.ternary_label.setFont(QFont("Courier New", 10))
+        self.ternary_label.setFont(QFont("Courier New", 10))  # Smaller font
+        self.ternary_label.setStyleSheet("background-color: white; padding: 2px; border-radius: 2px; border: 1px solid #DDD;")  # Less padding
         info_grid.addWidget(self.ternary_label, 1, 1)
 
         self.info_layout.addWidget(info_container)
         self.layout.addLayout(self.info_layout)
 
         # Create a scroll area for the visualizer to handle large numbers
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # Add ternary visualizer
         self.visualizer = TernaryDigitVisualizer()
@@ -113,11 +131,11 @@ class TQNumberDisplay(QFrame):
         )
 
         # Set minimum height for the visualizer based on typical digit count
-        self.visualizer.setMinimumHeight(300)
+        self.visualizer.setMinimumHeight(600)  # Significantly increase height for visualizations
 
         # Set the visualizer as the widget in the scroll area
-        scroll_area.setWidget(self.visualizer)
-        self.layout.addWidget(scroll_area, 1)  # Give it a stretch factor of 1 to expand
+        self.scroll_area.setWidget(self.visualizer)
+        self.layout.addWidget(self.scroll_area, 1)  # Give it a stretch factor of 1 to expand
 
         # Set frame style
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
@@ -126,10 +144,33 @@ class TQNumberDisplay(QFrame):
             QFrame {
                 background-color: white;
                 border: 1px solid #ccc;
-                border-radius: 5px;
+                border-radius: 6px;
             }
             """
         )
+
+    def _center_scroll_area(self) -> None:
+        """Center the scroll area on the visualizer.
+
+        This ensures the ternary digits are visible in the middle of the scroll area.
+        """
+        # Wait for the visualizer to update its layout
+        from PyQt6.QtCore import QTimer
+
+        def do_center():
+            # Get the total height of the visualizer
+            total_height = self.visualizer.height()
+            # Get the visible height of the scroll area
+            visible_height = self.scroll_area.viewport().height()
+
+            # Calculate the center position
+            center_pos = max(0, (total_height - visible_height) // 2)
+
+            # Set the scroll position to center the content
+            self.scroll_area.verticalScrollBar().setValue(center_pos)
+
+        # Use a timer to ensure the layout is updated before centering
+        QTimer.singleShot(100, do_center)
 
     def set_number(self, decimal_value: int, pad_length: int = 6) -> None:
         """Set the number to display.
@@ -153,6 +194,9 @@ class TQNumberDisplay(QFrame):
         # Update visualizer
         self.visualizer.set_ternary(padded_ternary)
 
+        # Center the scroll area on the visualizer
+        self._center_scroll_area()
+
 
 class TQGridPanel(QFrame):
     """Panel for displaying the TQ Grid with transformations."""
@@ -173,75 +217,121 @@ class TQGridPanel(QFrame):
         if NumberPropertiesService._instance is None:
             NumberPropertiesService.get_instance()
 
+        # Apply TQ styling
+        apply_tq_styles(self)
+
         # Set up the main layout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(15, 15, 15, 15)
-        self.layout.setSpacing(10)
+        self.layout.setSpacing(15)
 
         # Create title
-        title_label = QLabel("TQ Grid Viewer")
+        title_label = QLabel("TQ Grid Explorer")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        title_label.setProperty("isTitle", "true")
         self.layout.addWidget(title_label)
 
-        # Create input section
-        input_layout = QHBoxLayout()
+        # Create input section with styled container
+        input_container = QFrame()
+        input_container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
+        input_container.setStyleSheet(f"background-color: {TQColors.PRIMARY_LIGHT}; color: white; border-radius: 6px;")
 
-        # Number input
-        input_layout.addWidget(QLabel("Enter decimal number:"))
+        input_layout = QHBoxLayout(input_container)
+        input_layout.setContentsMargins(15, 10, 15, 10)
+
+        # Number input with label
+        input_label = QLabel("Enter decimal number:")
+        input_label.setStyleSheet("color: white; font-weight: bold;")
+        input_layout.addWidget(input_label)
+
         self.number_input = QLineEdit()
         self.number_input.setValidator(
-            QIntValidator(0, 999999)
+            QIntValidator(0, 999999999)
         )  # Limit to positive integers
         self.number_input.setText("0")
         self.number_input.setMaximumWidth(150)
+        self.number_input.setStyleSheet(
+            "background-color: white; color: #333; border: none; border-radius: 4px; padding: 8px;"
+        )
         input_layout.addWidget(self.number_input)
 
         # Process button
-        self.process_button = QPushButton("Process")
+        self.process_button = QPushButton("Explore")
         self.process_button.clicked.connect(self._process_number)
+        self.process_button.setStyleSheet(
+            f"background-color: {TQColors.SECONDARY}; color: white; font-weight: bold; "
+            f"border: none; border-radius: 4px; padding: 8px 16px;"
+        )
         input_layout.addWidget(self.process_button)
 
         input_layout.addStretch()
-        self.layout.addLayout(input_layout)
+        self.layout.addWidget(input_container)
 
-        # Create main splitter for properties and visualizers
-        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        # Create tab widget for organizing content
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setDocumentMode(True)  # More modern look
+        self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
+        self.tab_widget.setStyleSheet(
+            """
+            QTabWidget::pane {
+                border: 1px solid #BDBDBD;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QTabBar::tab {
+                background-color: #E0E0E0;
+                border: 1px solid #BDBDBD;
+                border-bottom: none;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 8px 16px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background-color: white;
+                border-bottom: 1px solid white;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #D0D0D0;
+            }
+            """
+        )
 
-        # Left side - Number properties panel
-        self.properties_panel = NumberPropertiesPanel()
-        self.properties_panel.setMinimumWidth(300)
-
-        # Right side - Visualizers
+        # Create visualizers container (main tab) - minimize margins
         self.visualizers_container = QWidget()
         self.visualizers_layout = QVBoxLayout(self.visualizers_container)
-        self.visualizers_layout.setContentsMargins(0, 0, 0, 0)
+        self.visualizers_layout.setContentsMargins(2, 2, 2, 2)  # Minimal margins to maximize visualizer space
 
         # Create scrollable content area for visualizers
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
-        # Create content widget
+        # Create content widget - minimize margins
         content_widget = QWidget()
         self.content_layout = QVBoxLayout(content_widget)
+        self.content_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins to maximize visualizer space
+        self.content_layout.setSpacing(5)  # Reduce spacing
 
-        # Create grid layout for the displays
+        # Create grid layout for the displays - minimize margins
         self.displays_layout = QGridLayout()
-        self.displays_layout.setContentsMargins(0, 0, 0, 0)
-        self.displays_layout.setHorizontalSpacing(20)
-        self.displays_layout.setVerticalSpacing(20)
+        self.displays_layout.setContentsMargins(2, 2, 2, 2)  # Minimal margins
+        self.displays_layout.setHorizontalSpacing(10)  # Reduce horizontal spacing
+        self.displays_layout.setVerticalSpacing(10)  # Reduce vertical spacing
 
-        # Create the displays
-        self.base_display = TQNumberDisplay("Base Number")
+        # Create the displays with distinct colors
+        self.base_display = TQNumberDisplay("Base Number", TQColors.BASE_NUMBER)
         self.displays_layout.addWidget(self.base_display, 0, 0)
 
-        self.conrune_display = TQNumberDisplay("Conrune")
+        self.conrune_display = TQNumberDisplay("Conrune", TQColors.CONRUNE)
         self.displays_layout.addWidget(self.conrune_display, 0, 1)
 
-        self.reverse_display = TQNumberDisplay("Ternary Reversal")
+        self.reverse_display = TQNumberDisplay("Ternary Reversal", TQColors.REVERSAL)
         self.displays_layout.addWidget(self.reverse_display, 1, 0)
 
-        self.reverse_conrune_display = TQNumberDisplay("Ternary Reversal Conrune")
+        self.reverse_conrune_display = TQNumberDisplay("Ternary Reversal Conrune", TQColors.REVERSAL_CONRUNE)
         self.displays_layout.addWidget(self.reverse_conrune_display, 1, 1)
 
         self.content_layout.addLayout(self.displays_layout)
@@ -250,15 +340,23 @@ class TQGridPanel(QFrame):
         scroll_area.setWidget(content_widget)
         self.visualizers_layout.addWidget(scroll_area)
 
-        # Add components to the splitter
-        self.main_splitter.addWidget(self.properties_panel)
-        self.main_splitter.addWidget(self.visualizers_container)
+        # Create properties panel (second tab)
+        self.properties_panel = NumberPropertiesPanel()
 
-        # Set initial splitter sizes - give more space to visualizers
-        self.main_splitter.setSizes([300, 700])
+        # Create analysis panel (third tab)
+        self.analysis_panel = QuadsetAnalysisPanel()
 
-        # Add the splitter to the main layout
-        self.layout.addWidget(self.main_splitter, 1)  # Give it stretch
+        # Create advanced properties panel (fourth tab)
+        self.advanced_panel = AdvancedPropertiesPanel()
+
+        # Add tabs to the tab widget
+        self.tab_widget.addTab(self.visualizers_container, "Ternary Visualizer")
+        self.tab_widget.addTab(self.properties_panel, "Number Properties")
+        self.tab_widget.addTab(self.analysis_panel, "Quadset Analysis")
+        self.tab_widget.addTab(self.advanced_panel, "Advanced Properties")
+
+        # Add the tab widget to the main layout
+        self.layout.addWidget(self.tab_widget, 1)  # Give it stretch
 
         # Create transition utility
         self.transition = TernaryTransition()
@@ -266,17 +364,8 @@ class TQGridPanel(QFrame):
         # Set initial values
         self._process_number()
 
-        # Set frame style
+        # Set frame style - main panel styling is handled by apply_tq_styles
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
-        self.setStyleSheet(
-            """
-            QFrame {
-                background-color: #f5f5f5;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-            }
-            """
-        )
 
     def set_number(self, value: int) -> None:
         """Set the number for analysis.
@@ -344,9 +433,11 @@ class TQGridPanel(QFrame):
             # Update the number properties panel
             self.properties_panel.set_number(decimal_value)
 
+            # The quadset analysis panel will be updated automatically via the callback
+
             # Dynamically adjust visualizer minimum heights based on digit count
-            digit_height = 40  # Approximate height of each digit in pixels
-            min_visualizer_height = max(300, pad_length * digit_height)
+            digit_height = 80  # Significantly increase height per digit
+            min_visualizer_height = max(600, pad_length * digit_height)  # Ensure minimum height of 600px
 
             self.base_display.visualizer.setMinimumHeight(min_visualizer_height)
             self.conrune_display.visualizer.setMinimumHeight(min_visualizer_height)
@@ -355,16 +446,28 @@ class TQGridPanel(QFrame):
                 min_visualizer_height
             )
 
+            # Center all scroll areas
+            self.base_display._center_scroll_area()
+            self.conrune_display._center_scroll_area()
+            self.reverse_display._center_scroll_area()
+            self.reverse_conrune_display._center_scroll_area()
+
             # Adjust window size if this is a standalone window
             if self.standalone or self.parent() is None:
-                # Base height plus space for each visualizer
-                header_height = 100  # Space for title, input fields
+                # Base height plus space for visualizers - prioritize visualizer space
+                header_height = 80   # Space for title, input fields (reduced)
+                tab_height = 30      # Space for tab bar (reduced)
                 total_height = (
-                    header_height + (min_visualizer_height * 2) + 150
-                )  # Add some spacing between rows
+                    header_height + tab_height + (min_visualizer_height * 2) + 50
+                )  # Minimal spacing between rows
 
+                # Make sure we have enough width for the visualizers
+                min_width = 900  # Minimum width to display the visualizers properly
                 current_size = self.size()
-                self.resize(current_size.width(), total_height)
+                self.resize(max(current_size.width(), min_width), total_height)
+
+                # Switch to the visualizer tab to show the results
+                self.tab_widget.setCurrentIndex(0)
 
         except KeyError as e:
             # Handle transition map errors
@@ -394,6 +497,6 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     panel = TQGridPanel(standalone=True)
-    panel.resize(1200, 800)  # Larger initial size to accommodate properties panel
+    panel.resize(1000, 1400)  # Significantly increased height for much taller visualizers
     panel.show()
     sys.exit(app.exec())

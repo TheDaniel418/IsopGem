@@ -750,23 +750,22 @@ class GematriaTab(QWidget):
     def _open_gematria_window(
         self, window_id: str, window_class, title: str, *args, **kwargs
     ) -> None:
-        """Open a gematria-related window with consistent window management.
+        """Open a Gematria window.
 
         Args:
             window_id: Unique identifier for the window
             window_class: Window class to instantiate
             title: Window title
-            *args, **kwargs: Additional arguments to pass to the window constructor
+            *args: Arguments to pass to the window class
+            **kwargs: Keyword arguments to pass to the window class
         """
-        # Check if we should allow multiple instances
-        allow_multiple = kwargs.pop("allow_multiple", False)
-
         # Generate a unique window ID if multiple instances are allowed
-        final_window_id = f"gematria_{window_id}"
-        if allow_multiple:
+        if kwargs.pop("allow_multiple", False):
             import uuid
 
-            final_window_id = f"gematria_{window_id}_{uuid.uuid4().hex[:8]}"
+            final_window_id = f"{window_id}_{uuid.uuid4().hex[:8]}"
+        else:
+            final_window_id = window_id
 
         # Create window instance
         window = window_class(*args, **kwargs)
@@ -778,8 +777,11 @@ class GematriaTab(QWidget):
             | Qt.WindowType.WindowStaysOnTopHint
         )
 
-        # Open the window through the window manager
-        self.window_manager.open_window(final_window_id, window, title)
+        # Open the window through the window manager - only pass window_id and content
+        self.window_manager.open_window(final_window_id, window)
+        
+        # Set the window title
+        window.setWindowTitle(title)
 
         # Ensure proper focus and z-order
         window.raise_()

@@ -19,12 +19,13 @@ Related files:
 """
 
 from loguru import logger
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
+from shared.ui.window_management import AuxiliaryWindow
 from tq.ui.widgets.ternary_transition_widget import TernaryTransitionWidget
 
 
-class TernaryTransitionWindow(QMainWindow):
+class TernaryTransitionWindow(AuxiliaryWindow):
     """Standalone window for the Ternary Transition Calculator."""
 
     def __init__(self, window_manager=None, parent=None):
@@ -34,13 +35,12 @@ class TernaryTransitionWindow(QMainWindow):
             window_manager: Application window manager (optional)
             parent: The parent widget
         """
-        super().__init__(parent)
+        super().__init__("Ternary Transition Calculator", parent)
 
         # Store the window manager for use by child widgets
         self.window_manager = window_manager
 
         # Set window properties
-        self.setWindowTitle("Ternary Transition Calculator")
         self.setMinimumSize(800, 600)
 
         # Create central widget
