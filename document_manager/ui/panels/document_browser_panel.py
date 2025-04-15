@@ -17,7 +17,7 @@ Dependencies:
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QFileDialog,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMenu,
@@ -35,7 +36,6 @@ from PyQt6.QtWidgets import (
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
-    QInputDialog,
 )
 
 from document_manager.models.document import DocumentType
@@ -509,7 +509,9 @@ class DocumentBrowserPanel(Panel):
             for tag in sorted(document.tags):
                 tag_action = QAction(tag, self)
                 tag_action.triggered.connect(
-                    lambda checked, t=tag: self._remove_tag_from_document(document_id, t)
+                    lambda checked, t=tag: self._remove_tag_from_document(
+                        document_id, t
+                    )
                 )
                 tags_menu.addAction(tag_action)
 
@@ -706,10 +708,16 @@ class DocumentBrowserPanel(Panel):
                 # Set up the document in the editor
                 if editor.document_manager:
                     try:
-                        success = editor.document_manager.load_document_format(doc_format)
+                        success = editor.document_manager.load_document_format(
+                            doc_format
+                        )
                         if not success:
-                            logger.error(f"Failed to load document format for {document_id}")
-                            MessageBox.error(self, "Error", "Failed to load document for editing")
+                            logger.error(
+                                f"Failed to load document format for {document_id}"
+                            )
+                            MessageBox.error(
+                                self, "Error", "Failed to load document for editing"
+                            )
                             editor.close()
                             return
                     except Exception as e:
@@ -722,78 +730,94 @@ class DocumentBrowserPanel(Panel):
                     MessageBox.error(self, "Error", "RTF Editor initialization failed")
                     editor.close()
                     return
-                
+
                 # Set a proper window title showing we're editing the document
                 editor.setWindowTitle(f"Edit Document - {qgem_document.name}")
-                
+
                 # Apply window flags to ensure it stays on top similar to WindowManager.configure_window()
                 editor.setWindowFlags(
                     editor.windowFlags()
                     | Qt.WindowType.Window
                     | Qt.WindowType.WindowStaysOnTopHint
                 )
-                
+
                 # Connect to document saved signal if available
                 if hasattr(editor, "document_saved"):
-                    editor.document_saved.connect(
-                        lambda doc: self._refresh()
-                    )
-                
+                    editor.document_saved.connect(lambda doc: self._refresh())
+
                 # Make the editor window modal to ensure changes are captured
                 editor.setWindowModality(Qt.WindowModality.ApplicationModal)
-                
+
                 # Store content that will be saved on window close
                 document_content_to_save = None
-                
+
                 # Define a function to capture content before window closes in fallback mode
                 def capture_content_for_fallback():
                     nonlocal document_content_to_save
                     # Get the current document from the editor
                     if hasattr(editor, "document_manager") and editor.document_manager:
                         try:
-                            document_content_to_save = editor.document_manager.get_document_format()
-                            logger.debug(f"Captured content for document {document_id} before window closes (fallback mode)")
-                            
+                            document_content_to_save = (
+                                editor.document_manager.get_document_format()
+                            )
+                            logger.debug(
+                                f"Captured content for document {document_id} before window closes (fallback mode)"
+                            )
+
                             # In fallback mode, save the document immediately when closing
                             if document_content_to_save:
                                 try:
                                     # Document ID is already in the document_content_to_save object
-                                    success = qgem_document_service.save_document_format(
-                                        document_content_to_save
+                                    success = (
+                                        qgem_document_service.save_document_format(
+                                            document_content_to_save
+                                        )
                                     )
                                     if success:
-                                        logger.info(f"Document {document_id} saved successfully from RTF editor (fallback mode)")
+                                        logger.info(
+                                            f"Document {document_id} saved successfully from RTF editor (fallback mode)"
+                                        )
                                         # Trigger a refresh of the document list
                                         self._refresh()
                                     else:
-                                        logger.error(f"Failed to save document {document_id} from RTF editor (fallback mode)")
+                                        logger.error(
+                                            f"Failed to save document {document_id} from RTF editor (fallback mode)"
+                                        )
                                 except Exception as e:
-                                    logger.error(f"Error saving document {document_id} from RTF editor (fallback mode): {e}")
+                                    logger.error(
+                                        f"Error saving document {document_id} from RTF editor (fallback mode): {e}"
+                                    )
                                     # Show error message if we're still able to access UI
                                     try:
-                                        MessageBox.error(self, "Save Error", f"Unable to save document changes: {e}")
+                                        MessageBox.error(
+                                            self,
+                                            "Save Error",
+                                            f"Unable to save document changes: {e}",
+                                        )
                                     except Exception:
                                         pass  # If UI is no longer accessible, just log the error
                         except Exception as e:
-                            logger.error(f"Error capturing document content before close (fallback mode): {e}")
-                
+                            logger.error(
+                                f"Error capturing document content before close (fallback mode): {e}"
+                            )
+
                 # Connect to the editor's closeEvent
                 old_close_event = editor.closeEvent
-                
+
                 def new_close_event(event):
                     capture_content_for_fallback()
                     old_close_event(event)
-                
+
                 editor.closeEvent = new_close_event
 
                 # Show the editor with proper focus management similar to WindowManager
                 editor.show()
                 editor.raise_()
                 editor.activateWindow()
-                
+
                 # Implement delayed focus like WindowManager._delayed_focus
                 QTimer.singleShot(100, lambda: self._delayed_focus_fallback(editor))
-                
+
                 # Log that we're using fallback method
                 logger.info(
                     f"Using fallback method to edit document {document_id} in RTF editor"
@@ -867,7 +891,11 @@ class DocumentBrowserPanel(Panel):
                             logger.error(f"Error saving document changes: {e}")
                             # Show error message if we're still able to access UI
                             try:
-                                MessageBox.error(self, "Save Error", f"Unable to save document changes: {e}")
+                                MessageBox.error(
+                                    self,
+                                    "Save Error",
+                                    f"Unable to save document changes: {e}",
+                                )
                             except Exception:
                                 pass  # If UI is no longer accessible, just log the error
                 except Exception as e:
@@ -964,7 +992,7 @@ class DocumentBrowserPanel(Panel):
         if ok and tag:
             # Add tag to document
             document.add_tag(tag.strip())
-            
+
             # Save document
             if self.document_service.update_document(document):
                 # Refresh to update the UI
@@ -991,7 +1019,7 @@ class DocumentBrowserPanel(Panel):
         # Remove tag
         if tag in document.tags:
             document.tags.remove(tag)
-            
+
             # Save document
             if self.document_service.update_document(document):
                 # Refresh to update the UI
@@ -1006,7 +1034,7 @@ class DocumentBrowserPanel(Panel):
     # Helper method to handle delayed focus for fallback windows
     def _delayed_focus_fallback(self, window):
         """Apply delayed focus to fallback windows to ensure they stay on top.
-        
+
         Args:
             window: The window to focus
         """

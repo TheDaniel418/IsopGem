@@ -641,6 +641,6 @@ class SearchPanel(QWidget):
 
         # Open the detail widget in a new window
         self.window_manager.open_window(window_id, detail_widget)
-        
+
         # Set the window title
         detail_widget.setWindowTitle(window_title)

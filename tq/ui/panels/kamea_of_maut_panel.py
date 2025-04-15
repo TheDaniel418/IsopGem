@@ -23,16 +23,14 @@ Related files:
 """
 
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 
 import pandas as pd
 from loguru import logger
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+from PyQt6.QtGui import QColor, QPainter, QPen
 from PyQt6.QtWidgets import (
     QButtonGroup,
-    QCheckBox,
-    QComboBox,
     QFrame,
     QGridLayout,
     QGroupBox,
@@ -42,13 +40,11 @@ from PyQt6.QtWidgets import (
     QRadioButton,
     QScrollArea,
     QSizePolicy,
-    QSlider,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
-from tq.utils.ternary_converter import decimal_to_ternary, ternary_to_decimal
 from tq.utils.ternary_transition import TernaryTransition
 
 
@@ -95,20 +91,30 @@ class KameaGridWidget(QWidget):
         """Load the Kamea data from CSV files."""
         try:
             # Get the absolute path to the CSV files
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            base_dir = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            )
             decimal_path = os.path.join(base_dir, "assets", "cvs", "Decimal Kamea.csv")
-            ternary_path = os.path.join(base_dir, "assets", "cvs", "Ternary Decimal.csv")
+            ternary_path = os.path.join(
+                base_dir, "assets", "cvs", "Ternary Decimal.csv"
+            )
 
             # Load the data
             self.decimal_data = pd.read_csv(decimal_path, header=None).values
             self.ternary_data = pd.read_csv(ternary_path, header=None).values
 
-            logger.debug(f"Loaded Kamea data: {self.decimal_data.shape} decimal, {self.ternary_data.shape} ternary")
+            logger.debug(
+                f"Loaded Kamea data: {self.decimal_data.shape} decimal, {self.ternary_data.shape} ternary"
+            )
         except Exception as e:
             logger.error(f"Error loading Kamea data: {e}")
             # Create empty grids if loading fails
-            self.decimal_data = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-            self.ternary_data = [["0" for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+            self.decimal_data = [
+                [0 for _ in range(self.grid_size)] for _ in range(self.grid_size)
+            ]
+            self.ternary_data = [
+                ["0" for _ in range(self.grid_size)] for _ in range(self.grid_size)
+            ]
 
     def set_view_mode(self, decimal_mode: bool):
         """Set the view mode (decimal or ternary).
@@ -148,7 +154,7 @@ class KameaGridWidget(QWidget):
             center_y,
             total_width - 2 * self.padding,
             self.cell_size,
-            QColor(230, 255, 230)  # Light green
+            QColor(230, 255, 230),  # Light green
         )
 
         # Fill center column with light green background
@@ -158,11 +164,13 @@ class KameaGridWidget(QWidget):
             self.padding,
             self.cell_size,
             total_height - 2 * self.padding,
-            QColor(230, 255, 230)  # Light green
+            QColor(230, 255, 230),  # Light green
         )
 
         # Draw the finest grid lines (for individual cells)
-        painter.setPen(QPen(QColor(230, 230, 230), 1))  # Very light gray for regular grid lines
+        painter.setPen(
+            QPen(QColor(230, 230, 230), 1)
+        )  # Very light gray for regular grid lines
 
         # Draw horizontal lines
         for i in range(self.grid_size + 1):
@@ -194,7 +202,9 @@ class KameaGridWidget(QWidget):
             painter.drawLine(x, self.padding, x, total_height - self.padding)
 
         # Draw bold lines for 9×9 areas
-        painter.setPen(QPen(QColor(80, 80, 80), 2))  # Darker gray and thicker for 9×9 grid lines
+        painter.setPen(
+            QPen(QColor(80, 80, 80), 2)
+        )  # Darker gray and thicker for 9×9 grid lines
 
         # Draw horizontal lines for 9×9 areas, ensuring they go through all cells including center
         # The 9×9 areas should be at positions 0, 9, 18, 27 (with 0-based indexing)
@@ -215,15 +225,39 @@ class KameaGridWidget(QWidget):
 
                 # Draw cell background based on selection/highlighting
                 if (row, col) == self.selected_cell:
-                    painter.fillRect(x + 1, y + 1, self.cell_size - 1, self.cell_size - 1, QColor(173, 216, 230))  # Light blue
+                    painter.fillRect(
+                        x + 1,
+                        y + 1,
+                        self.cell_size - 1,
+                        self.cell_size - 1,
+                        QColor(173, 216, 230),
+                    )  # Light blue
                 elif (row, col) in self.highlighted_cells:
-                    painter.fillRect(x + 1, y + 1, self.cell_size - 1, self.cell_size - 1, QColor(255, 255, 200))  # Light yellow
+                    painter.fillRect(
+                        x + 1,
+                        y + 1,
+                        self.cell_size - 1,
+                        self.cell_size - 1,
+                        QColor(255, 255, 200),
+                    )  # Light yellow
                 elif (row, col) in self.secondary_highlighted_cells:
-                    painter.fillRect(x + 1, y + 1, self.cell_size - 1, self.cell_size - 1, QColor(220, 190, 255))  # Light purple for OctaSet
+                    painter.fillRect(
+                        x + 1,
+                        y + 1,
+                        self.cell_size - 1,
+                        self.cell_size - 1,
+                        QColor(220, 190, 255),
+                    )  # Light purple for OctaSet
                 # Special styling for cells at the intersection of axes
                 elif row == self.grid_size // 2 and col == self.grid_size // 2:
                     # Origin point (0,0) gets a special color
-                    painter.fillRect(x + 1, y + 1, self.cell_size - 1, self.cell_size - 1, QColor(200, 255, 200))  # Brighter green
+                    painter.fillRect(
+                        x + 1,
+                        y + 1,
+                        self.cell_size - 1,
+                        self.cell_size - 1,
+                        QColor(200, 255, 200),
+                    )  # Brighter green
 
                 # Draw cell text with special colors for axes
                 # Set text color based on cell position
@@ -252,7 +286,14 @@ class KameaGridWidget(QWidget):
                 painter.setFont(font)
 
                 # Draw the text centered in the cell
-                painter.drawText(x, y, self.cell_size, self.cell_size, Qt.AlignmentFlag.AlignCenter, text)
+                painter.drawText(
+                    x,
+                    y,
+                    self.cell_size,
+                    self.cell_size,
+                    Qt.AlignmentFlag.AlignCenter,
+                    text,
+                )
 
     def mousePressEvent(self, event):
         """Handle mouse press events to select cells.
@@ -361,8 +402,12 @@ class KameaOfMautPanel(QFrame):
         grid_scroll = QScrollArea()
         grid_scroll.setWidgetResizable(True)
         grid_scroll.setFrameShape(QFrame.Shape.NoFrame)  # Remove frame border
-        grid_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Hide vertical scrollbar
-        grid_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Hide horizontal scrollbar
+        grid_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )  # Hide vertical scrollbar
+        grid_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )  # Hide horizontal scrollbar
         grid_scroll.setWidget(self.kamea_grid)
 
         # Add the grid to the content layout
@@ -532,7 +577,9 @@ class KameaOfMautPanel(QFrame):
         """
         # Convert grid coordinates to Cartesian coordinates
         x = col - self.kamea_grid.grid_size // 2
-        y = self.kamea_grid.grid_size // 2 - row  # Invert Y since grid Y increases downward
+        y = (
+            self.kamea_grid.grid_size // 2 - row
+        )  # Invert Y since grid Y increases downward
 
         # Update the coordinate spinboxes
         self.x_coord.setValue(x)
@@ -554,9 +601,11 @@ class KameaOfMautPanel(QFrame):
 
         # Calculate Kamea Locator (placeholder - implement actual calculation)
         # This would extract the bigrams and convert to decimal
-        self.kamea_locator_label.setText(f"Kamea Locator: (placeholder)")
+        self.kamea_locator_label.setText("Kamea Locator: (placeholder)")
 
-        logger.debug(f"Selected cell at grid ({row}, {col}), coords ({x}, {y}), value: {value}")
+        logger.debug(
+            f"Selected cell at grid ({row}, {col}), coords ({x}, {y}), value: {value}"
+        )
 
     def _on_go_to_coordinates(self):
         """Handle the Go to Coordinates button click."""
@@ -566,15 +615,22 @@ class KameaOfMautPanel(QFrame):
 
         # Convert to grid coordinates
         col = x + self.kamea_grid.grid_size // 2
-        row = self.kamea_grid.grid_size // 2 - y  # Invert Y since grid Y increases downward
+        row = (
+            self.kamea_grid.grid_size // 2 - y
+        )  # Invert Y since grid Y increases downward
 
         # Check if the coordinates are valid
-        if 0 <= row < self.kamea_grid.grid_size and 0 <= col < self.kamea_grid.grid_size:
+        if (
+            0 <= row < self.kamea_grid.grid_size
+            and 0 <= col < self.kamea_grid.grid_size
+        ):
             # Select the cell
             self.kamea_grid.selected_cell = (row, col)
 
             # Get the value and update information
-            value = self.kamea_grid.get_kamea_value(row, col, self.decimal_radio.isChecked())
+            value = self.kamea_grid.get_kamea_value(
+                row, col, self.decimal_radio.isChecked()
+            )
             self._on_cell_selected(row, col, value)
 
             # Update the display
@@ -599,19 +655,19 @@ class KameaOfMautPanel(QFrame):
 
         # Calculate the primary quadset coordinates (flipping signs)
         quadset_coords = [
-            (x, y),      # First quadrant
-            (-x, y),     # Second quadrant
-            (-x, -y),    # Third quadrant
-            (x, -y)      # Fourth quadrant
+            (x, y),  # First quadrant
+            (-x, y),  # Second quadrant
+            (-x, -y),  # Third quadrant
+            (x, -y),  # Fourth quadrant
         ]
 
         # Calculate the secondary quadset coordinates (reversing x and y)
         # This creates the other half of the OctaSet
         reversed_quadset_coords = [
-            (y, x),      # Reversed coordinates
-            (-y, x),     # Reversed with flipped y
-            (-y, -x),    # Reversed with both flipped
-            (y, -x)      # Reversed with flipped x
+            (y, x),  # Reversed coordinates
+            (-y, x),  # Reversed with flipped y
+            (-y, -x),  # Reversed with both flipped
+            (y, -x),  # Reversed with flipped x
         ]
 
         # Convert primary quadset to grid coordinates
@@ -619,7 +675,10 @@ class KameaOfMautPanel(QFrame):
         for qx, qy in quadset_coords:
             grid_row = self.kamea_grid.grid_size // 2 - qy
             grid_col = qx + self.kamea_grid.grid_size // 2
-            if 0 <= grid_row < self.kamea_grid.grid_size and 0 <= grid_col < self.kamea_grid.grid_size:
+            if (
+                0 <= grid_row < self.kamea_grid.grid_size
+                and 0 <= grid_col < self.kamea_grid.grid_size
+            ):
                 primary_grid_coords.append((grid_row, grid_col))
 
         # Convert secondary quadset to grid coordinates
@@ -627,7 +686,10 @@ class KameaOfMautPanel(QFrame):
         for qx, qy in reversed_quadset_coords:
             grid_row = self.kamea_grid.grid_size // 2 - qy
             grid_col = qx + self.kamea_grid.grid_size // 2
-            if 0 <= grid_row < self.kamea_grid.grid_size and 0 <= grid_col < self.kamea_grid.grid_size:
+            if (
+                0 <= grid_row < self.kamea_grid.grid_size
+                and 0 <= grid_col < self.kamea_grid.grid_size
+            ):
                 secondary_grid_coords.append((grid_row, grid_col))
 
         # Highlight the primary quadset with normal highlighting
@@ -640,19 +702,27 @@ class KameaOfMautPanel(QFrame):
         # Calculate and display the QuadSum for the primary quadset
         quad_sum = 0
         for grid_row, grid_col in primary_grid_coords:
-            value = self.kamea_grid.get_kamea_value(grid_row, grid_col, True)  # Get decimal value
+            value = self.kamea_grid.get_kamea_value(
+                grid_row, grid_col, True
+            )  # Get decimal value
             if value is not None:
                 quad_sum += value
 
         # Calculate the sum for the secondary quadset
         secondary_sum = 0
         for grid_row, grid_col in secondary_grid_coords:
-            value = self.kamea_grid.get_kamea_value(grid_row, grid_col, True)  # Get decimal value
+            value = self.kamea_grid.get_kamea_value(
+                grid_row, grid_col, True
+            )  # Get decimal value
             if value is not None:
                 secondary_sum += value
 
-        logger.debug(f"Primary Quadset for ({x}, {y}): {quadset_coords}, QuadSum: {quad_sum}")
-        logger.debug(f"Secondary Quadset (reversed x,y): {reversed_quadset_coords}, Sum: {secondary_sum}")
+        logger.debug(
+            f"Primary Quadset for ({x}, {y}): {quadset_coords}, QuadSum: {quad_sum}"
+        )
+        logger.debug(
+            f"Secondary Quadset (reversed x,y): {reversed_quadset_coords}, Sum: {secondary_sum}"
+        )
         logger.debug(f"OctaSet total sum: {quad_sum + secondary_sum}")
 
     def _on_show_transitions(self):
@@ -690,14 +760,22 @@ class KameaOfMautPanel(QFrame):
 
             # Get the ternary values
             val1 = self.kamea_grid.get_kamea_value(row, col, False)  # Ternary
-            val2 = self.kamea_grid.get_kamea_value(mirror_row, mirror_col, False)  # Ternary
-            axis_val = self.kamea_grid.get_kamea_value(axis_row, axis_col, False)  # Ternary
+            val2 = self.kamea_grid.get_kamea_value(
+                mirror_row, mirror_col, False
+            )  # Ternary
+            axis_val = self.kamea_grid.get_kamea_value(
+                axis_row, axis_col, False
+            )  # Ternary
 
             # Calculate the transition
             if val1 and val2:
                 try:
-                    transition_result = self.transition.apply_transition(str(val1), str(val2))
-                    transitions_info.append(f"Horizontal axis transition: {val1} + {val2} = {transition_result}, axis value: {axis_val}")
+                    transition_result = self.transition.apply_transition(
+                        str(val1), str(val2)
+                    )
+                    transitions_info.append(
+                        f"Horizontal axis transition: {val1} + {val2} = {transition_result}, axis value: {axis_val}"
+                    )
                 except Exception as e:
                     logger.error(f"Error calculating transition: {e}")
 
@@ -718,14 +796,22 @@ class KameaOfMautPanel(QFrame):
 
             # Get the ternary values
             val1 = self.kamea_grid.get_kamea_value(row, col, False)  # Ternary
-            val2 = self.kamea_grid.get_kamea_value(mirror_row, mirror_col, False)  # Ternary
-            axis_val = self.kamea_grid.get_kamea_value(axis_row, axis_col, False)  # Ternary
+            val2 = self.kamea_grid.get_kamea_value(
+                mirror_row, mirror_col, False
+            )  # Ternary
+            axis_val = self.kamea_grid.get_kamea_value(
+                axis_row, axis_col, False
+            )  # Ternary
 
             # Calculate the transition
             if val1 and val2:
                 try:
-                    transition_result = self.transition.apply_transition(str(val1), str(val2))
-                    transitions_info.append(f"Vertical axis transition: {val1} + {val2} = {transition_result}, axis value: {axis_val}")
+                    transition_result = self.transition.apply_transition(
+                        str(val1), str(val2)
+                    )
+                    transitions_info.append(
+                        f"Vertical axis transition: {val1} + {val2} = {transition_result}, axis value: {axis_val}"
+                    )
                 except Exception as e:
                     logger.error(f"Error calculating transition: {e}")
 
@@ -778,19 +864,25 @@ class KameaOfMautPanel(QFrame):
         msg.setWindowTitle("Bigram Analysis")
         msg.setText(f"Ternary Value: {ternary_str}")
         msg.setInformativeText(
-            f"First Bigram: {bigram1} (decimal: {bigram1_dec})\n" +
-            f"Second Bigram: {bigram2} (decimal: {bigram2_dec})\n" +
-            f"Third Bigram: {bigram3} (decimal: {bigram3_dec})\n\n" +
-            f"The third bigram determines the 9×9 region.\n" +
-            f"The second bigram determines the 3×3 area within that region.\n" +
-            f"The first bigram determines the specific cell within that 3×3 area."
+            f"First Bigram: {bigram1} (decimal: {bigram1_dec})\n"
+            + f"Second Bigram: {bigram2} (decimal: {bigram2_dec})\n"
+            + f"Third Bigram: {bigram3} (decimal: {bigram3_dec})\n\n"
+            + "The third bigram determines the 9×9 region.\n"
+            + "The second bigram determines the 3×3 area within that region.\n"
+            + "The first bigram determines the specific cell within that 3×3 area."
         )
         msg.setIcon(QMessageBox.Icon.Information)
 
         # Add buttons for highlighting
-        highlight_first = msg.addButton("Highlight Same Cell in 3×3 Areas", QMessageBox.ButtonRole.ActionRole)
-        highlight_second = msg.addButton("Highlight Same Position in 3×3 Areas", QMessageBox.ButtonRole.ActionRole)
-        highlight_third = msg.addButton("Highlight 9×9 Region", QMessageBox.ButtonRole.ActionRole)
+        highlight_first = msg.addButton(
+            "Highlight Same Cell in 3×3 Areas", QMessageBox.ButtonRole.ActionRole
+        )
+        highlight_second = msg.addButton(
+            "Highlight Same Position in 3×3 Areas", QMessageBox.ButtonRole.ActionRole
+        )
+        highlight_third = msg.addButton(
+            "Highlight 9×9 Region", QMessageBox.ButtonRole.ActionRole
+        )
         close_button = msg.addButton(QMessageBox.StandardButton.Close)
 
         # Show the dialog
@@ -826,11 +918,17 @@ class KameaOfMautPanel(QFrame):
 
         # Determine which bigram we're matching
         if bigram_index == 0:
-            logger.debug(f"Highlighting cells with first bigram {bigram_value} (same cell in 3x3 areas)")
+            logger.debug(
+                f"Highlighting cells with first bigram {bigram_value} (same cell in 3x3 areas)"
+            )
         elif bigram_index == 1:
-            logger.debug(f"Highlighting cells with second bigram {bigram_value} (same position in 3x3 areas)")
+            logger.debug(
+                f"Highlighting cells with second bigram {bigram_value} (same position in 3x3 areas)"
+            )
         elif bigram_index == 2:
-            logger.debug(f"Highlighting cells with third bigram {bigram_value} (9x9 region)")
+            logger.debug(
+                f"Highlighting cells with third bigram {bigram_value} (9x9 region)"
+            )
 
         # Search for cells with matching bigram
         for r in range(self.kamea_grid.grid_size):
@@ -866,8 +964,8 @@ class KameaOfMautPanel(QFrame):
                     total_sum += value
 
             # Show the sum in a non-modal dialog
-            from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
             from PyQt6.QtCore import Qt
+            from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout
 
             # Determine which bigram we highlighted
             bigram_type = ""
@@ -887,7 +985,9 @@ class KameaOfMautPanel(QFrame):
             layout = QVBoxLayout(summary_dialog)
 
             # Add information labels
-            title_label = QLabel(f"Highlighted {len(matching_cells)} cells with {bigram_type}")
+            title_label = QLabel(
+                f"Highlighted {len(matching_cells)} cells with {bigram_type}"
+            )
             title_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
             layout.addWidget(title_label)
 
@@ -904,7 +1004,9 @@ class KameaOfMautPanel(QFrame):
             summary_dialog.setModal(False)
             summary_dialog.show()
 
-            logger.debug(f"Highlighted {len(matching_cells)} cells with matching bigram, sum: {total_sum}")
+            logger.debug(
+                f"Highlighted {len(matching_cells)} cells with matching bigram, sum: {total_sum}"
+            )
 
     def _on_kamea_locator(self):
         """Handle the Kamea Locator button click."""
@@ -944,8 +1046,8 @@ class KameaOfMautPanel(QFrame):
         self.kamea_locator_label.setText(f"Kamea Locator: {locator}")
 
         # Show more detailed information in a non-modal dialog
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
         from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout
 
         # Create a non-modal dialog
         locator_dialog = QDialog(self, Qt.WindowType.Tool)
@@ -964,11 +1066,19 @@ class KameaOfMautPanel(QFrame):
         layout.addWidget(QLabel(f"Ternary Value: {ternary_str}"))
 
         # Add explanation
-        layout.addWidget(QLabel("\nThe Kamea Locator is formed by converting each bigram to decimal:"))
-        layout.addWidget(QLabel(f"Locator format: [9×9 region]-[3×3 area]-[cell]"))
-        layout.addWidget(QLabel(f"Bigram 3 (9×9 region): {bigram3} → {int(bigram3, 3)}"))
+        layout.addWidget(
+            QLabel(
+                "\nThe Kamea Locator is formed by converting each bigram to decimal:"
+            )
+        )
+        layout.addWidget(QLabel("Locator format: [9×9 region]-[3×3 area]-[cell]"))
+        layout.addWidget(
+            QLabel(f"Bigram 3 (9×9 region): {bigram3} → {int(bigram3, 3)}")
+        )
         layout.addWidget(QLabel(f"Bigram 2 (3×3 area): {bigram2} → {int(bigram2, 3)}"))
-        layout.addWidget(QLabel(f"Bigram 1 (cell in 3×3): {bigram1} → {int(bigram1, 3)}"))
+        layout.addWidget(
+            QLabel(f"Bigram 1 (cell in 3×3): {bigram1} → {int(bigram1, 3)}")
+        )
 
         # Add close button
         close_button = QPushButton("Close")
@@ -982,8 +1092,16 @@ class KameaOfMautPanel(QFrame):
     def _on_pattern_finder(self):
         """Handle the Pattern Finder button click."""
         # Create a non-modal dialog for pattern finding options
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QComboBox
         from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import (
+            QComboBox,
+            QDialog,
+            QHBoxLayout,
+            QLabel,
+            QLineEdit,
+            QPushButton,
+            QVBoxLayout,
+        )
 
         dialog = QDialog(self, Qt.WindowType.Tool)
         dialog.setWindowTitle("Pattern Finder")
@@ -1065,10 +1183,10 @@ class KameaOfMautPanel(QFrame):
 
                             # Calculate the quadset
                             quadset_coords = [
-                                (x, y),      # First quadrant
-                                (-x, y),     # Second quadrant
-                                (-x, -y),    # Third quadrant
-                                (x, -y)      # Fourth quadrant
+                                (x, y),  # First quadrant
+                                (-x, y),  # Second quadrant
+                                (-x, -y),  # Third quadrant
+                                (x, -y),  # Fourth quadrant
                             ]
 
                             # Convert to grid coordinates
@@ -1076,13 +1194,18 @@ class KameaOfMautPanel(QFrame):
                             for qx, qy in quadset_coords:
                                 grid_row = self.kamea_grid.grid_size // 2 - qy
                                 grid_col = qx + self.kamea_grid.grid_size // 2
-                                if 0 <= grid_row < self.kamea_grid.grid_size and 0 <= grid_col < self.kamea_grid.grid_size:
+                                if (
+                                    0 <= grid_row < self.kamea_grid.grid_size
+                                    and 0 <= grid_col < self.kamea_grid.grid_size
+                                ):
                                     grid_coords.append((grid_row, grid_col))
 
                             # Calculate the sum
                             quad_sum = 0
                             for grid_row, grid_col in grid_coords:
-                                value = self.kamea_grid.get_kamea_value(grid_row, grid_col, True)
+                                value = self.kamea_grid.get_kamea_value(
+                                    grid_row, grid_col, True
+                                )
                                 if value is not None:
                                     quad_sum += value
 
@@ -1095,12 +1218,16 @@ class KameaOfMautPanel(QFrame):
             # Highlight the matching cells
             if matching_cells:
                 self.kamea_grid.highlight_cells(matching_cells)
-                logger.debug(f"Found {len(matching_cells)} cells matching pattern '{pattern}' in mode '{search_mode}'")
+                logger.debug(
+                    f"Found {len(matching_cells)} cells matching pattern '{pattern}' in mode '{search_mode}'"
+                )
 
                 # Calculate the sum of the highlighted cells
                 total_sum = 0
                 for r, c in matching_cells:
-                    value = self.kamea_grid.get_kamea_value(r, c, True)  # Get decimal value
+                    value = self.kamea_grid.get_kamea_value(
+                        r, c, True
+                    )  # Get decimal value
                     if value is not None:
                         total_sum += value
 
@@ -1117,7 +1244,9 @@ class KameaOfMautPanel(QFrame):
 
                 results_layout.addWidget(QLabel(f"Search mode: {search_mode}"))
                 results_layout.addWidget(QLabel(f"Pattern: {pattern}"))
-                results_layout.addWidget(QLabel(f"Sum of all matching values: {total_sum}"))
+                results_layout.addWidget(
+                    QLabel(f"Sum of all matching values: {total_sum}")
+                )
 
                 # Add close button
                 close_results_button = QPushButton("Close")
@@ -1151,7 +1280,9 @@ class KameaOfMautPanel(QFrame):
                 no_results_dialog.setModal(False)
                 no_results_dialog.show()
 
-                logger.warning(f"No cells found matching pattern '{pattern}' in mode '{search_mode}'")
+                logger.warning(
+                    f"No cells found matching pattern '{pattern}' in mode '{search_mode}'"
+                )
 
             dialog.close()
 

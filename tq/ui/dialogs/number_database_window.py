@@ -41,7 +41,6 @@ from PyQt6.QtWidgets import (
 )
 
 from shared.ui.window_management import AuxiliaryWindow
-
 from tq.services import tq_analysis_service, tq_database_service
 from tq.utils.ternary_converter import decimal_to_ternary
 
@@ -597,7 +596,9 @@ class NumberDatabaseWindow(AuxiliaryWindow):
         if self.isVisible():
             self.raise_()
             self.activateWindow()
-            logger.debug(f"Applied delayed focus to NumberDatabaseWindow for {self.number}")
+            logger.debug(
+                f"Applied delayed focus to NumberDatabaseWindow for {self.number}"
+            )
 
 
 if __name__ == "__main__":

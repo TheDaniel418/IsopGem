@@ -23,14 +23,14 @@ Dependencies:
 """
 
 from .commands import (
+    AlignmentCommand,
     Command,
     CommandHistory,
-    TextCommand,
-    InsertTextCommand,
     DeleteTextCommand,
     FormatCommand,
-    AlignmentCommand,
     InsertImageCommand,
+    InsertTextCommand,
+    TextCommand,
 )
 from .document_manager import DocumentManager
 from .format_toolbar import FormatToolBar

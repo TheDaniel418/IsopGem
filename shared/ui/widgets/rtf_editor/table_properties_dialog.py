@@ -18,30 +18,30 @@ from PyQt6.QtWidgets import (
 
 class TablePropertiesDialog(QDialog):
     """Dialog for editing table properties.
-    
+
     This dialog allows users to view and modify properties of a table in the document,
     including:
     - Border width, style, and color
     - Cell spacing and padding
     - Background color
     - Width and alignment
-    
+
     It provides a user-friendly interface for configuring all aspects of table formatting.
-    
+
     Attributes:
         current_format (QTextTableFormat): The format of the table being edited
     """
 
     def __init__(self, current_format, parent=None):
         """Initialize the table properties dialog.
-        
+
         Creates a dialog for editing table properties based on the provided table format.
         Sets up the UI and loads the current format values.
-        
+
         Args:
             current_format (QTextTableFormat): The format of the table to edit
             parent (QWidget, optional): Parent widget for this dialog
-            
+
         Returns:
             None
         """
@@ -54,14 +54,14 @@ class TablePropertiesDialog(QDialog):
 
     def setup_ui(self):
         """Set up the dialog UI elements.
-        
+
         Creates and configures all UI components for the dialog, including:
         - Border controls (width, style, color)
         - Cell spacing and padding controls
         - Background color selector
         - Width and alignment controls
         - OK and Cancel buttons
-        
+
         Returns:
             None
         """
@@ -74,14 +74,18 @@ class TablePropertiesDialog(QDialog):
         # Cell padding with validation
         self.cell_padding_spin = QSpinBox()
         self.cell_padding_spin.setRange(0, 50)  # Reasonable limits
-        self.cell_padding_spin.setToolTip("Cell padding must be between 0 and 50 pixels")
+        self.cell_padding_spin.setToolTip(
+            "Cell padding must be between 0 and 50 pixels"
+        )
         self.cell_padding_spin.setStatusTip("Set the padding inside each cell (0-50)")
         general_layout.addRow("Cell Padding:", self.cell_padding_spin)
 
         # Cell spacing with validation
         self.cell_spacing_spin = QSpinBox()
         self.cell_spacing_spin.setRange(0, 50)  # Reasonable limits
-        self.cell_spacing_spin.setToolTip("Cell spacing must be between 0 and 50 pixels")
+        self.cell_spacing_spin.setToolTip(
+            "Cell spacing must be between 0 and 50 pixels"
+        )
         self.cell_spacing_spin.setStatusTip("Set the spacing between cells (0-50)")
         general_layout.addRow("Cell Spacing:", self.cell_spacing_spin)
 
@@ -94,7 +98,9 @@ class TablePropertiesDialog(QDialog):
         self.column_width_spin.setToolTip(
             "Set a uniform width for all columns (1-100%).\nValues must be between 1% and 100%."
         )
-        self.column_width_spin.setStatusTip("Set uniform column width as percentage of table width")
+        self.column_width_spin.setStatusTip(
+            "Set uniform column width as percentage of table width"
+        )
         general_layout.addRow("Uniform Column Width:", self.column_width_spin)
 
         general_group.setLayout(general_layout)
@@ -107,7 +113,9 @@ class TablePropertiesDialog(QDialog):
         # Border width with validation
         self.border_width_spin = QSpinBox()
         self.border_width_spin.setRange(0, 10)  # Reasonable limits
-        self.border_width_spin.setToolTip("Border width must be between 0 and 10 pixels")
+        self.border_width_spin.setToolTip(
+            "Border width must be between 0 and 10 pixels"
+        )
         self.border_width_spin.setStatusTip("Set the width of table borders (0-10)")
         border_layout.addRow("Border Width:", self.border_width_spin)
 
@@ -127,7 +135,9 @@ class TablePropertiesDialog(QDialog):
             ]
         )
         self.border_style_combo.setToolTip("Select the style for table borders")
-        self.border_style_combo.setStatusTip("Choose border style from predefined options")
+        self.border_style_combo.setStatusTip(
+            "Choose border style from predefined options"
+        )
         border_layout.addRow("Border Style:", self.border_style_combo)
 
         self.border_color_button = QPushButton("Choose Color...")
@@ -149,11 +159,11 @@ class TablePropertiesDialog(QDialog):
 
     def load_current_format(self):
         """Load settings from the current table format into the UI.
-        
+
         Retrieves all formatting properties from the current table format and
         updates the UI controls to reflect these values. Handles special cases
         like column width constraints and border styles.
-        
+
         Returns:
             None
         """
@@ -210,10 +220,10 @@ class TablePropertiesDialog(QDialog):
 
     def choose_border_color(self):
         """Open color dialog to choose border color.
-        
+
         Displays a color picker dialog and updates the border color
         if the user selects a valid color.
-        
+
         Returns:
             None
         """
@@ -224,14 +234,14 @@ class TablePropertiesDialog(QDialog):
 
     def update_color_button_style(self, button, color):
         """Update button background to show the selected color.
-        
+
         Changes the background color of a button to visually indicate
         the currently selected color.
-        
+
         Args:
             button (QPushButton): The button to update
             color (QColor): The color to apply to the button background
-            
+
         Returns:
             None
         """
@@ -239,7 +249,7 @@ class TablePropertiesDialog(QDialog):
 
     def get_new_format(self):
         """Create a new QTextTableFormat based on the dialog settings.
-        
+
         Builds a new QTextTableFormat object with all properties set according
         to the current values in the UI controls. This includes:
         - Cell padding and spacing
@@ -247,20 +257,20 @@ class TablePropertiesDialog(QDialog):
         - Background color
         - Column width constraints
         - Alignment
-        
+
         Returns:
             QTextTableFormat: A new table format with all properties set
         """
         new_format = QTextTableFormat()
-        
+
         # Validate and apply cell padding (ensure it's within valid range)
         cell_padding = max(0, min(50, self.cell_padding_spin.value()))
         new_format.setCellPadding(cell_padding)
-        
+
         # Validate and apply cell spacing (ensure it's within valid range)
         cell_spacing = max(0, min(50, self.cell_spacing_spin.value()))
         new_format.setCellSpacing(cell_spacing)
-        
+
         # Validate and apply border width (ensure it's within valid range)
         border_width = max(0, min(10, self.border_width_spin.value()))
         new_format.setBorder(border_width)
@@ -270,14 +280,14 @@ class TablePropertiesDialog(QDialog):
         if num_columns > 0:
             # Validate column width percentage (ensure it's within valid range)
             col_width_percent = max(1, min(100, self.column_width_spin.value()))
-            
+
             if col_width_percent > 0:  # Only apply if a value > 0 is set
                 constraints = []
-                
+
                 # Validate number of columns (prevent excessive columns)
                 max_columns = 100  # Reasonable limit
                 valid_columns = min(num_columns, max_columns)
-                
+
                 for _ in range(valid_columns):
                     constraints.append(
                         QTextLength(

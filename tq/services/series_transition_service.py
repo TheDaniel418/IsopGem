@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, TypedDict
 
 from loguru import logger
-from PyQt6.QtCore import QObject, QTimer, Qt
+from PyQt6.QtCore import QObject, Qt, QTimer
 
 from shared.services.number_properties_service import NumberPropertiesService
 from shared.services.service_locator import ServiceLocator
@@ -125,19 +125,21 @@ class SeriesTransitionService(QObject):
 
         # Ensure window is visible and focused using stronger focus methods
         self.window.show()
-        
+
         # Use multiple methods to force the window to the front
-        self.window.setWindowState(self.window.windowState() & ~Qt.WindowState.WindowMinimized)
+        self.window.setWindowState(
+            self.window.windowState() & ~Qt.WindowState.WindowMinimized
+        )
         self.window.raise_()
         self.window.activateWindow()
-        
+
         # If the window has an ensure_on_top method (inherits from AuxiliaryWindow), use it
         if hasattr(self.window, "ensure_on_top"):
             self.window.ensure_on_top()
-        
+
         # Use timer to attempt focus again after event loop processes other events
         QTimer.singleShot(100, lambda: self._delayed_focus())
-        
+
         logger.debug("Window visibility and focus operations complete")
 
     def _delayed_focus(self) -> None:

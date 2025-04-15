@@ -253,4 +253,4 @@ Areas for continued exploration:
 
 ---
 
-*This is a living document that will evolve as our understanding of the system develops.* 
+*This is a living document that will evolve as our understanding of the system develops.*

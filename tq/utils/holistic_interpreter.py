@@ -22,17 +22,13 @@ class HolisticInterpreter:
     """Generates holistic interpretations of ternary patterns."""
 
     # Element names for reference
-    ELEMENT_NAMES = {
-        0: "Aperture",
-        1: "Surge",
-        2: "Lattice"
-    }
+    ELEMENT_NAMES = {0: "Aperture", 1: "Surge", 2: "Lattice"}
 
     # Element qualities for reference
     ELEMENT_QUALITIES = {
         0: {"energy": "Receptive", "quality": "Openness"},
         1: {"energy": "Transformative", "quality": "Dynamic"},
-        2: {"energy": "Structural", "quality": "Stability"}
+        2: {"energy": "Structural", "quality": "Stability"},
     }
 
     def __init__(self):
@@ -42,8 +38,10 @@ class HolisticInterpreter:
     def generate_holistic_interpretation(
         self,
         ternary_digits: List[int],
-        _digit_interpretations: List[Dict],  # Not used directly but kept for API compatibility
-        triad_analysis: Dict
+        _digit_interpretations: List[
+            Dict
+        ],  # Not used directly but kept for API compatibility
+        triad_analysis: Dict,
     ) -> Dict[str, str]:
         """
         Generate a comprehensive holistic interpretation of the ternary pattern.
@@ -67,8 +65,9 @@ class HolisticInterpreter:
 
         # Generate triad integration analysis if we have multiple triads
         triad_integration = None
-        if (len(ternary_digits) >= 4 and
-            triad_analysis.get("process", {}).get("positions")):
+        if len(ternary_digits) >= 4 and triad_analysis.get("process", {}).get(
+            "positions"
+        ):
             triad_integration = self._analyze_triad_integration(
                 ternary_digits, triad_analysis
             )
@@ -79,7 +78,7 @@ class HolisticInterpreter:
             pattern_identity,
             flow_analysis,
             triad_integration,
-            meta_patterns
+            meta_patterns,
         )
 
         # Assemble the complete interpretation
@@ -87,7 +86,7 @@ class HolisticInterpreter:
             "pattern_identity": pattern_identity,
             "flow_analysis": flow_analysis,
             "meta_patterns": meta_patterns,
-            "synthesis": synthesis
+            "synthesis": synthesis,
         }
 
         if triad_integration:
@@ -114,7 +113,7 @@ class HolisticInterpreter:
         scores = [
             ("Stable", stability_score),
             ("Dynamic", dynamism_score),
-            ("Complex", complexity_score)
+            ("Complex", complexity_score),
         ]
 
         # Sort by score in descending order
@@ -128,7 +127,9 @@ class HolisticInterpreter:
 
         if primary_trait == "Stable":
             title = "Crystalline Pattern"
-            description = "A highly ordered system with clear structure and predictable behavior."
+            description = (
+                "A highly ordered system with clear structure and predictable behavior."
+            )
             if secondary_trait == "Dynamic":
                 title = "Evolving Structure"
                 description += " While primarily stable, it contains elements of change and adaptation."
@@ -161,7 +162,7 @@ class HolisticInterpreter:
             "secondary_trait": secondary_trait,
             "stability_score": f"{stability_score:.2f}",
             "dynamism_score": f"{dynamism_score:.2f}",
-            "complexity_score": f"{complexity_score:.2f}"
+            "complexity_score": f"{complexity_score:.2f}",
         }
 
     def _calculate_stability_score(self, ternary_digits: List[int]) -> float:
@@ -191,10 +192,14 @@ class HolisticInterpreter:
 
         # Combine factors
         lattice_factor = lattice_count / len(ternary_digits)
-        repeat_factor = repeats / (len(ternary_digits) - 1) if len(ternary_digits) > 1 else 0
+        repeat_factor = (
+            repeats / (len(ternary_digits) - 1) if len(ternary_digits) > 1 else 0
+        )
 
         # Weight the factors
-        stability_score = (0.5 * lattice_factor) + (0.3 * repeat_factor) + (0.2 * symmetry_score)
+        stability_score = (
+            (0.5 * lattice_factor) + (0.3 * repeat_factor) + (0.2 * symmetry_score)
+        )
 
         return min(1.0, stability_score * 1.5)  # Scale up slightly but cap at 1.0
 
@@ -223,17 +228,32 @@ class HolisticInterpreter:
         # Check for progressive sequences (0->1->2 or 2->1->0)
         progressions = 0
         for i in range(len(ternary_digits) - 2):
-            if (ternary_digits[i] == 0 and ternary_digits[i+1] == 1 and ternary_digits[i+2] == 2) or \
-               (ternary_digits[i] == 2 and ternary_digits[i+1] == 1 and ternary_digits[i+2] == 0):
+            if (
+                ternary_digits[i] == 0
+                and ternary_digits[i + 1] == 1
+                and ternary_digits[i + 2] == 2
+            ) or (
+                ternary_digits[i] == 2
+                and ternary_digits[i + 1] == 1
+                and ternary_digits[i + 2] == 0
+            ):
                 progressions += 1
 
         # Combine factors
         surge_factor = surge_count / len(ternary_digits)
-        transition_factor = transitions / (len(ternary_digits) - 1) if len(ternary_digits) > 1 else 0
-        progression_factor = progressions / (len(ternary_digits) - 2) if len(ternary_digits) > 2 else 0
+        transition_factor = (
+            transitions / (len(ternary_digits) - 1) if len(ternary_digits) > 1 else 0
+        )
+        progression_factor = (
+            progressions / (len(ternary_digits) - 2) if len(ternary_digits) > 2 else 0
+        )
 
         # Weight the factors
-        dynamism_score = (0.4 * surge_factor) + (0.4 * transition_factor) + (0.2 * progression_factor)
+        dynamism_score = (
+            (0.4 * surge_factor)
+            + (0.4 * transition_factor)
+            + (0.2 * progression_factor)
+        )
 
         return min(1.0, dynamism_score * 1.5)  # Scale up slightly but cap at 1.0
 
@@ -261,7 +281,9 @@ class HolisticInterpreter:
             if ternary_digits[i] != ternary_digits[i + 1]:
                 transitions += 1
 
-        entropy_factor = transitions / (len(ternary_digits) - 1) if len(ternary_digits) > 1 else 0
+        entropy_factor = (
+            transitions / (len(ternary_digits) - 1) if len(ternary_digits) > 1 else 0
+        )
 
         # Check for balanced distribution (more balance = more complex)
         counts = [ternary_digits.count(i) for i in range(3)]
@@ -269,7 +291,9 @@ class HolisticInterpreter:
         balance_factor = 1.0 - (max_count / len(ternary_digits))
 
         # Weight the factors
-        complexity_score = (0.3 * diversity_factor) + (0.4 * entropy_factor) + (0.3 * balance_factor)
+        complexity_score = (
+            (0.3 * diversity_factor) + (0.4 * entropy_factor) + (0.3 * balance_factor)
+        )
 
         return min(1.0, complexity_score * 1.5)  # Scale up slightly but cap at 1.0
 
@@ -307,20 +331,20 @@ class HolisticInterpreter:
         if len(ternary_digits) <= 1:
             return {
                 "pattern": "Singular",
-                "description": "With only one dimension active, the pattern represents a single point of focus."
+                "description": "With only one dimension active, the pattern represents a single point of focus.",
             }
 
         # Identify transitions
         transitions = []
         for i in range(len(ternary_digits) - 1):
-            if ternary_digits[i] != ternary_digits[i+1]:
+            if ternary_digits[i] != ternary_digits[i + 1]:
                 transitions.append(i)
 
         # Analyze flow pattern
         if not transitions:
             return {
                 "pattern": "Uniform",
-                "description": "Energy moves consistently through the system with minimal transformation."
+                "description": "Energy moves consistently through the system with minimal transformation.",
             }
 
         # Calculate transition density
@@ -331,34 +355,55 @@ class HolisticInterpreter:
         last_third = 2 * len(ternary_digits) // 3
 
         early_transitions = sum(1 for t in transitions if t < first_third)
-        middle_transitions = sum(1 for t in transitions if first_third <= t < last_third)
+        middle_transitions = sum(
+            1 for t in transitions if first_third <= t < last_third
+        )
         late_transitions = sum(1 for t in transitions if t >= last_third)
 
         # Determine flow pattern based on transition distribution
         if transition_density > 0.7:
             pattern = "Oscillating"
             description = "The pattern shows frequent alternation between states, creating a rhythmic, wave-like flow."
-        elif early_transitions > middle_transitions and early_transitions > late_transitions:
+        elif (
+            early_transitions > middle_transitions
+            and early_transitions > late_transitions
+        ):
             pattern = "Initiating"
             description = "The pattern establishes its dynamic early, then maintains a more consistent trajectory."
-        elif late_transitions > early_transitions and late_transitions > middle_transitions:
+        elif (
+            late_transitions > early_transitions
+            and late_transitions > middle_transitions
+        ):
             pattern = "Culminating"
             description = "The pattern maintains consistency before transforming significantly in its final stages."
-        elif middle_transitions > early_transitions and middle_transitions > late_transitions:
+        elif (
+            middle_transitions > early_transitions
+            and middle_transitions > late_transitions
+        ):
             pattern = "Transformative"
             description = "The pattern pivots at its core, with relatively stable entry and exit points."
         else:
             pattern = "Balanced"
-            description = "Transitions are distributed relatively evenly throughout the pattern."
+            description = (
+                "Transitions are distributed relatively evenly throughout the pattern."
+            )
 
         # Check for progressive flow (0->1->2 or 2->1->0)
         has_ascending = False
         has_descending = False
 
         for i in range(len(ternary_digits) - 2):
-            if ternary_digits[i] == 0 and ternary_digits[i+1] == 1 and ternary_digits[i+2] == 2:
+            if (
+                ternary_digits[i] == 0
+                and ternary_digits[i + 1] == 1
+                and ternary_digits[i + 2] == 2
+            ):
                 has_ascending = True
-            elif ternary_digits[i] == 2 and ternary_digits[i+1] == 1 and ternary_digits[i+2] == 0:
+            elif (
+                ternary_digits[i] == 2
+                and ternary_digits[i + 1] == 1
+                and ternary_digits[i + 2] == 0
+            ):
                 has_descending = True
 
         if has_ascending and not has_descending:
@@ -369,13 +414,15 @@ class HolisticInterpreter:
             description += " There is a clear dissolution from structure to potential."
         elif has_ascending and has_descending:
             pattern = "Cyclical"
-            description += " The pattern shows both building up and breaking down phases."
+            description += (
+                " The pattern shows both building up and breaking down phases."
+            )
 
         return {
             "pattern": pattern,
             "description": description,
             "transition_count": len(transitions),
-            "transition_density": f"{transition_density:.2f}"
+            "transition_density": f"{transition_density:.2f}",
         }
 
     def _identify_meta_patterns(self, ternary_digits: List[int]) -> Dict[str, str]:
@@ -399,8 +446,10 @@ class HolisticInterpreter:
         max_pattern_length = min(4, len(ternary_digits) // 2)
         for pattern_length in range(2, max_pattern_length + 1):
             for start in range(len(ternary_digits) - 2 * pattern_length + 1):
-                pattern = ternary_digits[start:start + pattern_length]
-                next_segment = ternary_digits[start + pattern_length:start + 2 * pattern_length]
+                pattern = ternary_digits[start : start + pattern_length]
+                next_segment = ternary_digits[
+                    start + pattern_length : start + 2 * pattern_length
+                ]
                 if pattern == next_segment:
                     has_repeating_pattern = True
                     repeating_pattern_length = pattern_length
@@ -413,7 +462,7 @@ class HolisticInterpreter:
         if len(ternary_digits) >= 4:
             alternating_count = 0
             for i in range(len(ternary_digits) - 2):
-                if ternary_digits[i] == ternary_digits[i+2]:
+                if ternary_digits[i] == ternary_digits[i + 2]:
                     alternating_count += 1
             if alternating_count >= (len(ternary_digits) - 2) * 0.7:
                 has_wave_structure = True
@@ -421,7 +470,9 @@ class HolisticInterpreter:
         # Determine the primary meta-pattern
         if symmetry_score > 0.8:
             pattern = "Reflective"
-            description = "The system mirrors itself, suggesting balance and self-reference."
+            description = (
+                "The system mirrors itself, suggesting balance and self-reference."
+            )
         elif has_repeating_pattern:
             pattern = "Fractal"
             description = f"The system shows self-similarity with a repeating pattern of length {repeating_pattern_length}."
@@ -437,13 +488,13 @@ class HolisticInterpreter:
             "description": description,
             "symmetry_score": f"{symmetry_score:.2f}",
             "has_repeating_pattern": has_repeating_pattern,
-            "has_wave_structure": has_wave_structure
+            "has_wave_structure": has_wave_structure,
         }
 
     def _analyze_triad_integration(
         self,
         _ternary_digits: List[int],  # Not used directly but kept for API compatibility
-        triad_analysis: Dict
+        triad_analysis: Dict,
     ) -> Dict[str, str]:
         """
         Analyze how the three triads integrate with each other.
@@ -461,19 +512,19 @@ class HolisticInterpreter:
         emergence_triad = []
 
         # Extract the potential triad digits
-        if triad_analysis.get('potential', {}).get('positions'):
-            potential_positions = triad_analysis['potential']['positions']
-            potential_triad = [pos.get('digit', 0) for pos in potential_positions]
+        if triad_analysis.get("potential", {}).get("positions"):
+            potential_positions = triad_analysis["potential"]["positions"]
+            potential_triad = [pos.get("digit", 0) for pos in potential_positions]
 
         # Extract the process triad digits
-        if triad_analysis.get('process', {}).get('positions'):
-            process_positions = triad_analysis['process']['positions']
-            process_triad = [pos.get('digit', 0) for pos in process_positions]
+        if triad_analysis.get("process", {}).get("positions"):
+            process_positions = triad_analysis["process"]["positions"]
+            process_triad = [pos.get("digit", 0) for pos in process_positions]
 
         # Extract the emergence triad digits
-        if triad_analysis.get('emergence', {}).get('positions'):
-            emergence_positions = triad_analysis['emergence']['positions']
-            emergence_triad = [pos.get('digit', 0) for pos in emergence_positions]
+        if triad_analysis.get("emergence", {}).get("positions"):
+            emergence_positions = triad_analysis["emergence"]["positions"]
+            emergence_triad = [pos.get("digit", 0) for pos in emergence_positions]
 
         # Calculate similarity between triads
         potential_process_similarity = 0.0
@@ -484,7 +535,10 @@ class HolisticInterpreter:
             min_length = min(len(potential_triad), len(process_triad))
             matches = 0
             for i in range(min_length):
-                if potential_triad[len(potential_triad) - 1 - i] == process_triad[len(process_triad) - 1 - i]:
+                if (
+                    potential_triad[len(potential_triad) - 1 - i]
+                    == process_triad[len(process_triad) - 1 - i]
+                ):
                     matches += 1
             potential_process_similarity = matches / min_length
 
@@ -493,7 +547,10 @@ class HolisticInterpreter:
             min_length = min(len(process_triad), len(emergence_triad))
             matches = 0
             for i in range(min_length):
-                if process_triad[len(process_triad) - 1 - i] == emergence_triad[len(emergence_triad) - 1 - i]:
+                if (
+                    process_triad[len(process_triad) - 1 - i]
+                    == emergence_triad[len(emergence_triad) - 1 - i]
+                ):
                     matches += 1
             process_emergence_similarity = matches / min_length
 
@@ -506,7 +563,9 @@ class HolisticInterpreter:
             foundation_description = "The process naturally extends from the foundation, maintaining core principles."
         elif potential_process_similarity > 0.33:
             foundation_development = "Evolving Development"
-            foundation_description = "The process builds upon the foundation while introducing new elements."
+            foundation_description = (
+                "The process builds upon the foundation while introducing new elements."
+            )
         else:
             foundation_development = "Transformative Development"
             foundation_description = "The process represents a significant shift from the foundation, introducing new dynamics."
@@ -535,21 +594,21 @@ class HolisticInterpreter:
             "foundation_development": {
                 "pattern": foundation_development,
                 "description": foundation_description,
-                "similarity_score": f"{potential_process_similarity:.2f}"
+                "similarity_score": f"{potential_process_similarity:.2f}",
             },
             "development_culmination": {
                 "pattern": development_culmination,
                 "description": culmination_description,
-                "similarity_score": f"{process_emergence_similarity:.2f}"
+                "similarity_score": f"{process_emergence_similarity:.2f}",
             },
-            "overall_pattern": overall_pattern
+            "overall_pattern": overall_pattern,
         }
 
     def _determine_overall_integration_pattern(
         self,
         potential_triad: List[int],
         process_triad: List[int],
-        emergence_triad: List[int]
+        emergence_triad: List[int],
     ) -> str:
         """
         Determine the overall integration pattern across all three triads.
@@ -576,25 +635,37 @@ class HolisticInterpreter:
         if potential_dominant == process_dominant == emergence_dominant:
             return f"Unified Pattern: The {self.ELEMENT_NAMES[potential_dominant]} element provides a consistent theme throughout all levels of manifestation."
 
-        if potential_dominant == 0 and process_dominant == 1 and emergence_dominant == 2:
+        if (
+            potential_dominant == 0
+            and process_dominant == 1
+            and emergence_dominant == 2
+        ):
             return "Evolutionary Progression: The pattern shows a classic evolution from potential (Aperture) through transformation (Surge) to structure (Lattice)."
 
-        if potential_dominant == 2 and process_dominant == 1 and emergence_dominant == 0:
+        if (
+            potential_dominant == 2
+            and process_dominant == 1
+            and emergence_dominant == 0
+        ):
             return "Dissolution Progression: The pattern shows a dissolution from structure (Lattice) through transformation (Surge) to potential (Aperture)."
 
-        if potential_dominant == process_dominant and process_dominant != emergence_dominant:
+        if (
+            potential_dominant == process_dominant
+            and process_dominant != emergence_dominant
+        ):
             return f"Breakthrough Pattern: The {self.ELEMENT_NAMES[potential_dominant]} element dominates the foundation and development before giving way to {self.ELEMENT_NAMES[emergence_dominant]} energy at the culmination."
 
-        if potential_dominant != process_dominant and process_dominant == emergence_dominant:
+        if (
+            potential_dominant != process_dominant
+            and process_dominant == emergence_dominant
+        ):
             return f"Transformative Foundation: The pattern begins with {self.ELEMENT_NAMES[potential_dominant]} energy before shifting to a consistent {self.ELEMENT_NAMES[process_dominant]} theme in its development and culmination."
 
         # Default case
         return f"Complex Integration: The pattern shows distinct qualities at each level - {self.ELEMENT_NAMES[potential_dominant]} foundation, {self.ELEMENT_NAMES[process_dominant]} development, and {self.ELEMENT_NAMES[emergence_dominant]} culmination."
 
     def _determine_partial_integration_pattern(
-        self,
-        potential_triad: List[int],
-        process_triad: List[int]
+        self, potential_triad: List[int], process_triad: List[int]
     ) -> str:
         """
         Determine the integration pattern for a pattern with only Potential and Process triads.
@@ -645,7 +716,7 @@ class HolisticInterpreter:
         pattern_identity: Dict[str, str],
         flow_analysis: Dict[str, str],
         triad_integration: Optional[Dict[str, Dict[str, str]]],
-        meta_patterns: Dict[str, str]
+        meta_patterns: Dict[str, str],
     ) -> str:
         """
         Synthesize an overall interpretation that ties together all the analyses.
@@ -682,45 +753,88 @@ class HolisticInterpreter:
         if num_digits >= 4 and triad_integration:
             if num_digits >= 7:
                 synthesis += f"Spanning all three levels of manifestation, it reveals a {triad_integration['overall_pattern'].split(':')[0].lower()} "
-                synthesis += f"from foundation through development to culmination. "
-                synthesis += self._analyze_complete_triad_journey(triad_integration) + " "
+                synthesis += "from foundation through development to culmination. "
+                synthesis += (
+                    self._analyze_complete_triad_journey(triad_integration) + " "
+                )
             else:
                 synthesis += f"Encompassing both foundation and development, it exhibits a {triad_integration['foundation_development']['pattern'].lower()} pattern "
-                synthesis += f"where {self._analyze_partial_triad_journey(triad_integration)}. "
+                synthesis += (
+                    f"where {self._analyze_partial_triad_journey(triad_integration)}. "
+                )
 
         # Add meta-pattern information with deeper insight
         synthesis += f"The {meta_patterns['pattern'].lower()} meta-structure creates a system where "
-        synthesis += self._elaborate_meta_pattern_implications(meta_patterns, pattern_identity) + " "
+        synthesis += (
+            self._elaborate_meta_pattern_implications(meta_patterns, pattern_identity)
+            + " "
+        )
 
         # Add element balance information with deeper implications
-        synthesis += self._analyze_element_balance_implications(element_counts, num_digits, pattern_identity) + " "
+        synthesis += (
+            self._analyze_element_balance_implications(
+                element_counts, num_digits, pattern_identity
+            )
+            + " "
+        )
 
         # Add transformational potential
-        synthesis += self._analyze_transformational_potential(ternary_digits, pattern_identity, flow_analysis) + " "
+        synthesis += (
+            self._analyze_transformational_potential(
+                ternary_digits, pattern_identity, flow_analysis
+            )
+            + " "
+        )
 
         # Add archetypal resonance
-        synthesis += self._identify_archetypal_resonance(ternary_digits, pattern_identity, flow_analysis, meta_patterns) + " "
+        synthesis += (
+            self._identify_archetypal_resonance(
+                ternary_digits, pattern_identity, flow_analysis, meta_patterns
+            )
+            + " "
+        )
 
         # Add final insight based on primary trait with practical applications
-        synthesis += self._provide_practical_applications(pattern_identity, flow_analysis, element_counts)
+        synthesis += self._provide_practical_applications(
+            pattern_identity, flow_analysis, element_counts
+        )
 
         return synthesis
 
-    def _get_core_principle(self, pattern_identity: Dict[str, str], flow_analysis: Dict[str, str]) -> str:
+    def _get_core_principle(
+        self, pattern_identity: Dict[str, str], flow_analysis: Dict[str, str]
+    ) -> str:
         """Identify the core principle embodied by the pattern."""
-        if pattern_identity['primary_trait'] == "Stable" and flow_analysis['pattern'] in ["Uniform", "Balanced"]:
+        if pattern_identity["primary_trait"] == "Stable" and flow_analysis[
+            "pattern"
+        ] in ["Uniform", "Balanced"]:
             return "structured harmony"
-        elif pattern_identity['primary_trait'] == "Stable" and flow_analysis['pattern'] in ["Oscillating", "Transformative"]:
+        elif pattern_identity["primary_trait"] == "Stable" and flow_analysis[
+            "pattern"
+        ] in ["Oscillating", "Transformative"]:
             return "dynamic equilibrium"
-        elif pattern_identity['primary_trait'] == "Dynamic" and flow_analysis['pattern'] in ["Ascending", "Initiating"]:
+        elif pattern_identity["primary_trait"] == "Dynamic" and flow_analysis[
+            "pattern"
+        ] in ["Ascending", "Initiating"]:
             return "progressive evolution"
-        elif pattern_identity['primary_trait'] == "Dynamic" and flow_analysis['pattern'] in ["Descending", "Culminating"]:
+        elif pattern_identity["primary_trait"] == "Dynamic" and flow_analysis[
+            "pattern"
+        ] in ["Descending", "Culminating"]:
             return "transformative dissolution"
-        elif pattern_identity['primary_trait'] == "Dynamic" and flow_analysis['pattern'] == "Oscillating":
+        elif (
+            pattern_identity["primary_trait"] == "Dynamic"
+            and flow_analysis["pattern"] == "Oscillating"
+        ):
             return "rhythmic transformation"
-        elif pattern_identity['primary_trait'] == "Complex" and flow_analysis['pattern'] == "Reflective":
+        elif (
+            pattern_identity["primary_trait"] == "Complex"
+            and flow_analysis["pattern"] == "Reflective"
+        ):
             return "self-referential integration"
-        elif pattern_identity['primary_trait'] == "Complex" and flow_analysis['pattern'] == "Fractal":
+        elif (
+            pattern_identity["primary_trait"] == "Complex"
+            and flow_analysis["pattern"] == "Fractal"
+        ):
             return "recursive complexity"
         else:
             return "multidimensional coherence"
@@ -732,7 +846,9 @@ class HolisticInterpreter:
 
         for digit, count in element_counts.items():
             if count >= threshold:
-                elements.append(f"{self.ELEMENT_QUALITIES[digit]['energy'].lower()} {self.ELEMENT_NAMES[digit].lower()}")
+                elements.append(
+                    f"{self.ELEMENT_QUALITIES[digit]['energy'].lower()} {self.ELEMENT_NAMES[digit].lower()}"
+                )
 
         if len(elements) == 1:
             return elements[0]
@@ -751,21 +867,25 @@ class HolisticInterpreter:
         # Check for progression from 0→1→2
         ascending = True
         for i in range(len(ternary_digits) - 2):
-            if not (ternary_digits[i] <= ternary_digits[i+1] <= ternary_digits[i+2]):
+            if not (
+                ternary_digits[i] <= ternary_digits[i + 1] <= ternary_digits[i + 2]
+            ):
                 ascending = False
                 break
 
         # Check for progression from 2→1→0
         descending = True
         for i in range(len(ternary_digits) - 2):
-            if not (ternary_digits[i] >= ternary_digits[i+1] >= ternary_digits[i+2]):
+            if not (
+                ternary_digits[i] >= ternary_digits[i + 1] >= ternary_digits[i + 2]
+            ):
                 descending = False
                 break
 
         # Check for alternating pattern
         alternating = True
         for i in range(len(ternary_digits) - 2):
-            if not (ternary_digits[i] == ternary_digits[i+2]):
+            if not (ternary_digits[i] == ternary_digits[i + 2]):
                 alternating = False
                 break
 
@@ -793,23 +913,35 @@ class HolisticInterpreter:
 
     def _analyze_complete_triad_journey(self, triad_integration: Dict) -> str:
         """Analyze the complete journey through all three triads."""
-        foundation_dev = triad_integration['foundation_development']['pattern']
-        dev_culmination = triad_integration['development_culmination']['pattern']
+        foundation_dev = triad_integration["foundation_development"]["pattern"]
+        dev_culmination = triad_integration["development_culmination"]["pattern"]
 
-        if foundation_dev == "Coherent Development" and dev_culmination == "Consistent Culmination":
+        if (
+            foundation_dev == "Coherent Development"
+            and dev_culmination == "Consistent Culmination"
+        ):
             return "This creates a harmonious progression where each level builds naturally upon the previous, resulting in a seamless evolution from seed to full manifestation."
-        elif foundation_dev == "Coherent Development" and dev_culmination == "Transcendent Culmination":
+        elif (
+            foundation_dev == "Coherent Development"
+            and dev_culmination == "Transcendent Culmination"
+        ):
             return "While the process develops naturally from the foundation, the emergence represents a quantum leap that transcends the established patterns, creating breakthrough potential."
-        elif foundation_dev == "Transformative Development" and dev_culmination == "Consistent Culmination":
+        elif (
+            foundation_dev == "Transformative Development"
+            and dev_culmination == "Consistent Culmination"
+        ):
             return "The dramatic shift between foundation and process eventually stabilizes into a coherent culmination, suggesting initial disruption that ultimately finds resolution."
-        elif foundation_dev == "Transformative Development" and dev_culmination == "Transcendent Culmination":
+        elif (
+            foundation_dev == "Transformative Development"
+            and dev_culmination == "Transcendent Culmination"
+        ):
             return "Each transition represents a significant transformation, creating a pattern of continuous reinvention that culminates in radical emergence."
         else:
             return "The journey through the triads reveals a nuanced interplay of continuity and transformation, creating a rich developmental narrative."
 
     def _analyze_partial_triad_journey(self, triad_integration: Dict) -> str:
         """Analyze the journey through the Potential and Process triads."""
-        pattern = triad_integration['foundation_development']['pattern']
+        pattern = triad_integration["foundation_development"]["pattern"]
 
         if pattern == "Coherent Development":
             return "the process dimensions naturally extend and elaborate the foundational qualities"
@@ -820,10 +952,12 @@ class HolisticInterpreter:
         else:
             return "the relationship between foundation and process creates a dynamic interplay of continuity and change"
 
-    def _elaborate_meta_pattern_implications(self, meta_patterns: Dict[str, str], pattern_identity: Dict[str, str]) -> str:
+    def _elaborate_meta_pattern_implications(
+        self, meta_patterns: Dict[str, str], pattern_identity: Dict[str, str]
+    ) -> str:
         """Elaborate on the implications of the meta-pattern."""
-        pattern = meta_patterns['pattern']
-        primary_trait = pattern_identity['primary_trait']
+        pattern = meta_patterns["pattern"]
+        primary_trait = pattern_identity["primary_trait"]
 
         if pattern == "Reflective":
             if primary_trait == "Stable":
@@ -854,7 +988,12 @@ class HolisticInterpreter:
             else:
                 return "complexity manifests through an original synthesis that integrates diverse elements in unprecedented ways."
 
-    def _analyze_element_balance_implications(self, element_counts: Dict[int, int], num_digits: int, pattern_identity: Dict[str, str]) -> str:
+    def _analyze_element_balance_implications(
+        self,
+        element_counts: Dict[int, int],
+        num_digits: int,
+        pattern_identity: Dict[str, str],
+    ) -> str:
         """Analyze the implications of the element balance."""
         max_count = max(element_counts.values())
         dominant_element = max(element_counts.items(), key=lambda x: x[1])[0]
@@ -867,7 +1006,9 @@ class HolisticInterpreter:
             else:  # Lattice dominant
                 return "The predominance of Lattice creates a highly structured system with clear organization and stability, though it may resist necessary change or lack the flexibility to adapt to new conditions."
         elif max_count > num_digits * 0.4:  # Moderate dominance
-            secondary_element = sorted(element_counts.items(), key=lambda x: x[1], reverse=True)[1][0]
+            secondary_element = sorted(
+                element_counts.items(), key=lambda x: x[1], reverse=True
+            )[1][0]
 
             if dominant_element == 0 and secondary_element == 1:
                 return "The balance between Aperture and Surge creates a system that maintains openness while engaging in dynamic transformation, capable of continuous renewal without losing its essential flexibility."
@@ -884,7 +1025,12 @@ class HolisticInterpreter:
         else:  # Balanced
             return "The balanced distribution of elements creates a highly integrated system that harmonizes stability, transformation, and potential, capable of maintaining integrity while evolving and remaining open to new possibilities."
 
-    def _analyze_transformational_potential(self, ternary_digits: List[int], pattern_identity: Dict[str, str], flow_analysis: Dict[str, str]) -> str:
+    def _analyze_transformational_potential(
+        self,
+        ternary_digits: List[int],
+        pattern_identity: Dict[str, str],
+        flow_analysis: Dict[str, str],
+    ) -> str:
         """Analyze the transformational potential of the pattern."""
         # Check for specific transformational indicators
         has_aperture_surge_sequence = False
@@ -892,15 +1038,17 @@ class HolisticInterpreter:
         has_lattice_aperture_sequence = False
 
         for i in range(len(ternary_digits) - 1):
-            if ternary_digits[i] == 0 and ternary_digits[i+1] == 1:
+            if ternary_digits[i] == 0 and ternary_digits[i + 1] == 1:
                 has_aperture_surge_sequence = True
-            elif ternary_digits[i] == 1 and ternary_digits[i+1] == 2:
+            elif ternary_digits[i] == 1 and ternary_digits[i + 1] == 2:
                 has_surge_lattice_sequence = True
-            elif ternary_digits[i] == 2 and ternary_digits[i+1] == 0:
+            elif ternary_digits[i] == 2 and ternary_digits[i + 1] == 0:
                 has_lattice_aperture_sequence = True
 
         # Analyze based on transformational indicators and pattern characteristics
-        if pattern_identity['primary_trait'] == "Dynamic" or flow_analysis['pattern'] in ["Transformative", "Oscillating", "Ascending", "Descending"]:
+        if pattern_identity["primary_trait"] == "Dynamic" or flow_analysis[
+            "pattern"
+        ] in ["Transformative", "Oscillating", "Ascending", "Descending"]:
             if has_aperture_surge_sequence and has_surge_lattice_sequence:
                 return "The pattern shows strong evolutionary potential, capable of activating latent possibilities and developing them into coherent structures."
             elif has_lattice_aperture_sequence and has_aperture_surge_sequence:
@@ -909,22 +1057,32 @@ class HolisticInterpreter:
                 return "The pattern exhibits cyclical transformation potential, moving through phases of consolidation and release that continuously renew the system."
             else:
                 return "The pattern contains significant transformational potential that manifests through its distinctive flow dynamics and elemental interactions."
-        elif pattern_identity['primary_trait'] == "Stable":
-            if has_aperture_surge_sequence or has_surge_lattice_sequence or has_lattice_aperture_sequence:
+        elif pattern_identity["primary_trait"] == "Stable":
+            if (
+                has_aperture_surge_sequence
+                or has_surge_lattice_sequence
+                or has_lattice_aperture_sequence
+            ):
                 return "Despite its overall stability, the pattern contains specific transition points that offer potential for controlled, strategic transformation when activated."
             else:
                 return "The pattern's transformational potential lies in its capacity to maintain integrity through changing conditions, adapting through subtle reconfiguration rather than dramatic change."
         else:  # Complex
             return "The pattern's transformational potential emerges from its intricate interrelationships, which can generate emergent properties and novel configurations through non-linear interactions."
 
-    def _identify_archetypal_resonance(self, ternary_digits: List[int], pattern_identity: Dict[str, str], flow_analysis: Dict[str, str], meta_patterns: Dict[str, str]) -> str:
+    def _identify_archetypal_resonance(
+        self,
+        ternary_digits: List[int],
+        pattern_identity: Dict[str, str],
+        flow_analysis: Dict[str, str],
+        meta_patterns: Dict[str, str],
+    ) -> str:
         """Identify archetypal patterns that resonate with this ternary configuration."""
         # Identify key characteristics for archetypal matching
-        is_cyclical = flow_analysis['pattern'] in ["Oscillating", "Cyclical"]
-        is_progressive = flow_analysis['pattern'] in ["Ascending", "Initiating"]
-        is_dissolving = flow_analysis['pattern'] in ["Descending", "Culminating"]
-        is_reflective = meta_patterns['pattern'] == "Reflective"
-        is_fractal = meta_patterns['pattern'] == "Fractal"
+        is_cyclical = flow_analysis["pattern"] in ["Oscillating", "Cyclical"]
+        is_progressive = flow_analysis["pattern"] in ["Ascending", "Initiating"]
+        is_dissolving = flow_analysis["pattern"] in ["Descending", "Culminating"]
+        is_reflective = meta_patterns["pattern"] == "Reflective"
+        is_fractal = meta_patterns["pattern"] == "Fractal"
 
         # Count elements for additional context
         aperture_count = ternary_digits.count(0)
@@ -942,25 +1100,38 @@ class HolisticInterpreter:
             return "This pattern resonates with the archetypal principle of polarity, embodying the complementary relationship between form and emptiness, structure and potential."
         elif is_fractal and surge_count > (aperture_count + lattice_count):
             return "This pattern resonates with the archetypal principle of organic growth, embodying the self-similar patterns of development seen throughout natural systems."
-        elif pattern_identity['primary_trait'] == "Stable" and lattice_count > (aperture_count + surge_count):
+        elif pattern_identity["primary_trait"] == "Stable" and lattice_count > (
+            aperture_count + surge_count
+        ):
             return "This pattern resonates with the archetypal principle of cosmic order, embodying the fundamental structures that provide coherence and meaning to experience."
-        elif pattern_identity['primary_trait'] == "Dynamic" and surge_count > (aperture_count + lattice_count):
+        elif pattern_identity["primary_trait"] == "Dynamic" and surge_count > (
+            aperture_count + lattice_count
+        ):
             return "This pattern resonates with the archetypal principle of creative transformation, embodying the dynamic forces that drive evolution and innovation."
-        elif pattern_identity['primary_trait'] == "Complex" and min(aperture_count, surge_count, lattice_count) >= len(ternary_digits) * 0.2:
+        elif (
+            pattern_identity["primary_trait"] == "Complex"
+            and min(aperture_count, surge_count, lattice_count)
+            >= len(ternary_digits) * 0.2
+        ):
             return "This pattern resonates with the archetypal principle of integration, embodying the harmonious relationship between diverse elements within a coherent whole."
         else:
             return "This pattern resonates with multiple archetypal principles, creating a unique synthesis that defies simple categorization."
 
-    def _provide_practical_applications(self, pattern_identity: Dict[str, str], flow_analysis: Dict[str, str], element_counts: Dict[int, int]) -> str:
+    def _provide_practical_applications(
+        self,
+        pattern_identity: Dict[str, str],
+        flow_analysis: Dict[str, str],
+        element_counts: Dict[int, int],
+    ) -> str:
         """Provide practical applications based on the pattern's characteristics."""
         applications = []
 
         # Applications based on primary trait
-        if pattern_identity['primary_trait'] == "Stable":
+        if pattern_identity["primary_trait"] == "Stable":
             applications.append("establishing enduring frameworks")
             applications.append("maintaining consistency through changing conditions")
             applications.append("creating reliable systems")
-        elif pattern_identity['primary_trait'] == "Dynamic":
+        elif pattern_identity["primary_trait"] == "Dynamic":
             applications.append("facilitating transformation processes")
             applications.append("navigating periods of significant change")
             applications.append("catalyzing innovation and evolution")
@@ -970,25 +1141,34 @@ class HolisticInterpreter:
             applications.append("developing nuanced understanding of complex systems")
 
         # Applications based on flow pattern
-        if flow_analysis['pattern'] in ["Oscillating", "Cyclical"]:
+        if flow_analysis["pattern"] in ["Oscillating", "Cyclical"]:
             applications.append("managing cyclical processes")
             applications.append("working with natural rhythms")
-        elif flow_analysis['pattern'] in ["Ascending", "Initiating"]:
+        elif flow_analysis["pattern"] in ["Ascending", "Initiating"]:
             applications.append("supporting developmental processes")
             applications.append("building progressive momentum")
-        elif flow_analysis['pattern'] in ["Descending", "Culminating"]:
+        elif flow_analysis["pattern"] in ["Descending", "Culminating"]:
             applications.append("facilitating release and completion")
             applications.append("managing transitions to new states")
 
         # Applications based on element balance
         dominant_element = max(element_counts.items(), key=lambda x: x[1])[0]
-        if dominant_element == 0 and element_counts[0] > sum(element_counts.values()) * 0.4:
+        if (
+            dominant_element == 0
+            and element_counts[0] > sum(element_counts.values()) * 0.4
+        ):
             applications.append("creating space for new possibilities")
             applications.append("maintaining receptivity to emerging potentials")
-        elif dominant_element == 1 and element_counts[1] > sum(element_counts.values()) * 0.4:
+        elif (
+            dominant_element == 1
+            and element_counts[1] > sum(element_counts.values()) * 0.4
+        ):
             applications.append("driving active change processes")
             applications.append("energizing stagnant situations")
-        elif dominant_element == 2 and element_counts[2] > sum(element_counts.values()) * 0.4:
+        elif (
+            dominant_element == 2
+            and element_counts[2] > sum(element_counts.values()) * 0.4
+        ):
             applications.append("establishing clear structures and boundaries")
             applications.append("crystallizing vague concepts into defined forms")
 
@@ -998,6 +1178,9 @@ class HolisticInterpreter:
         if len(selected_applications) == 1:
             return f"This pattern would be particularly effective for {selected_applications[0]}."
         else:
-            formatted_apps = ", ".join(selected_applications[:-1]) + ", and " + selected_applications[-1]
+            formatted_apps = (
+                ", ".join(selected_applications[:-1])
+                + ", and "
+                + selected_applications[-1]
+            )
             return f"This pattern would be particularly effective for {formatted_apps}."
-

@@ -122,7 +122,7 @@ class AstrologyTab(QWidget):
         """Open the birth chart window."""
         # Create the birth chart window
         birth_chart_window = BirthChartWindow()
-        
+
         # Set the window title
         birth_chart_window.setWindowTitle("Birth Chart")
 
@@ -133,7 +133,7 @@ class AstrologyTab(QWidget):
         """Open the astrological planner window."""
         # Create the planner window
         planner_window = PlannerWindow()
-        
+
         # Set the window title
         planner_window.setWindowTitle("Astrological Planner")
 
@@ -152,7 +152,7 @@ class AstrologyTab(QWidget):
         # Create a birth chart window with the chart
         birth_chart_window = BirthChartWindow()
         birth_chart_window.set_chart(chart)
-        
+
         # Set the window title
         birth_chart_window.setWindowTitle(f"Chart: {chart.name}")
 
@@ -163,7 +163,7 @@ class AstrologyTab(QWidget):
         """Open the cosmic cycle calculator window."""
         # Create the cycle calculator window
         cycle_calculator_window = CycleCalculatorWindow()
-        
+
         # Set the window title
         cycle_calculator_window.setWindowTitle("Cosmic Cycle Calculator")
 
@@ -184,7 +184,7 @@ class AstrologyTab(QWidget):
         # Create a birth chart window with the chart
         birth_chart_window = BirthChartWindow()
         birth_chart_window.set_chart(chart)
-        
+
         # Set the window title
         birth_chart_window.setWindowTitle(f"Chart: {chart.name}")
 

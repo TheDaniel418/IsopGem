@@ -24,7 +24,6 @@ Related files:
 - tq/utils/ternary_transition.py: Core transition functionality
 """
 
-import uuid
 from typing import Tuple
 
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -368,7 +367,7 @@ class TernaryTransitionWidget(QWidget):
 
             # Open the quadset analysis with the number
             panel = analysis_service.open_quadset_analysis(number)
-            
+
             # Find the window containing this panel and ensure it's on top
             parent = panel.window()
             if parent and hasattr(parent, "ensure_on_top"):
@@ -402,7 +401,7 @@ class TernaryTransitionWidget(QWidget):
                     f"Number Database: {number}",
                     (800, 600),
                 )
-                
+
                 # Explicitly ensure the new window is on top
                 window.ensure_on_top()
             else:

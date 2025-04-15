@@ -20,9 +20,9 @@ from PyQt6.QtWidgets import (
 
 from shared.ui.window_management import TabManager, WindowManager
 from tq.services import tq_analysis_service
-from tq.ui.panels.ternary_dimension_panel import TernaryDimensionalAnalysisPanel
-from tq.ui.panels.pair_finder_panel import PairFinderPanel
 from tq.ui.panels.kamea_of_maut_panel import KameaOfMautPanel
+from tq.ui.panels.pair_finder_panel import PairFinderPanel
+from tq.ui.panels.ternary_dimension_panel import TernaryDimensionalAnalysisPanel
 from tq.ui.widgets.planar_expansion_visualizer import PlanarExpansionVisualizer
 from tq.ui.widgets.ternary_visualizer import TernaryVisualizerPanel
 

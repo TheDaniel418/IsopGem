@@ -8,13 +8,7 @@ import random
 
 from loguru import logger
 from PyQt6.QtCore import QRectF, Qt, QTimer
-from PyQt6.QtGui import (
-    QColor,
-    QPainter,
-    QPainterPath,
-    QPen,
-    QPixmap,
-)
+from PyQt6.QtGui import QColor, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,

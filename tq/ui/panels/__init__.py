@@ -17,8 +17,8 @@ Related files:
 """
 
 from tq.ui.panels.pair_finder_panel import PairFinderPanel
-from tq.ui.panels.tq_grid_panel import TQGridPanel
 from tq.ui.panels.ternary_dimension_panel import TernaryDimensionalAnalysisPanel
+from tq.ui.panels.tq_grid_panel import TQGridPanel
 
 __all__ = [
     "PairFinderPanel",

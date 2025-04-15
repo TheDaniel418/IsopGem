@@ -175,10 +175,10 @@ class NumberPairWidget(QWidget):
 
             number = int(number_text)
             analysis_service = tq_analysis_service.get_instance()
-            
+
             # Open the quadset analysis with the number and ensure it's visible
             panel = analysis_service.open_quadset_analysis(number)
-            
+
             # Find the window containing this panel and ensure it's on top
             parent = panel.window()
             if parent and hasattr(parent, "ensure_on_top"):
@@ -201,7 +201,7 @@ class NumberPairWidget(QWidget):
                     f"Number Database: {number}",
                     (800, 600),
                 )
-                
+
                 # Explicitly ensure the new window is on top
                 window.ensure_on_top()
             else:
@@ -530,10 +530,10 @@ class SeriesTransitionWidget(QWidget):
 
             number = int(number_text)
             analysis_service = tq_analysis_service.get_instance()
-            
+
             # Open the quadset analysis with the number and ensure it's visible
             panel = analysis_service.open_quadset_analysis(number)
-            
+
             # Find the window containing this panel and ensure it's on top
             parent = panel.window()
             if parent and hasattr(parent, "ensure_on_top"):
@@ -556,7 +556,7 @@ class SeriesTransitionWidget(QWidget):
                     f"Number Database: {number}",
                     (800, 600),
                 )
-                
+
                 # Explicitly ensure the new window is on top
                 window.ensure_on_top()
             else:

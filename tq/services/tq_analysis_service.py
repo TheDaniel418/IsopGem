@@ -95,7 +95,7 @@ class TQAnalysisService(QObject):
             f"TQ Grid Explorer - {number}",
             (1000, 800),
         )
-        
+
         # Explicitly ensure the new window is on top
         window.ensure_on_top()
 

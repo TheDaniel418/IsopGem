@@ -21,7 +21,6 @@ from PyQt6.QtWidgets import (
 )
 
 from shared.ui.widgets.rtf_editor.utils.logging_utils import get_logger
-from shared.ui.widgets.rtf_editor.utils.error_utils import handle_error, handle_warning
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -29,16 +28,16 @@ logger = get_logger(__name__)
 
 class ImagePropertiesDialog(QDialog):
     """Dialog for viewing and editing image properties.
-    
+
     This dialog allows users to view and modify properties of an image in the document,
     including:
     - Width and height
     - Aspect ratio (with option to maintain or break it)
     - Original dimensions
     - Preview of the image
-    
+
     It works with both embedded images (data URIs) and linked images (file paths).
-    
+
     Attributes:
         image_format (QTextImageFormat): The format of the image being edited
         original_width (int): The original width of the image
@@ -48,14 +47,14 @@ class ImagePropertiesDialog(QDialog):
 
     def __init__(self, image_format, parent=None):
         """Initialize the image properties dialog.
-        
+
         Creates a dialog for editing image properties based on the provided image format.
         Loads the original dimensions of the image and sets up the UI.
-        
+
         Args:
             image_format (QTextImageFormat): The format of the image to edit
             parent (QWidget, optional): Parent widget for this dialog
-            
+
         Returns:
             None
         """
@@ -74,17 +73,17 @@ class ImagePropertiesDialog(QDialog):
 
     def load_original_dimensions(self):
         """Load original dimensions using Pillow, handling both file paths and data URIs.
-        
+
         Attempts to load the original dimensions of the image from either:
         1. A data URI embedded in the document
         2. A file path stored in the image format
-        
+
         Sets the original_width, original_height, and aspect_ratio properties.
         Falls back to the current format dimensions if the original can't be determined.
-        
+
         Returns:
             None
-            
+
         Raises:
             Exception: Handled internally for image loading errors
         """
@@ -115,7 +114,9 @@ class ImagePropertiesDialog(QDialog):
                     self.original_width = int(self.image_format.width())
                     self.original_height = int(self.image_format.height())
             except Exception as e:
-                logger.error(f"Error loading image dimensions from data URI: {e}", exc_info=True)
+                logger.error(
+                    f"Error loading image dimensions from data URI: {e}", exc_info=True
+                )
                 self.original_width = int(self.image_format.width())
                 self.original_height = int(self.image_format.height())
         elif path and Path(path).exists():
@@ -124,40 +125,44 @@ class ImagePropertiesDialog(QDialog):
                 # Input validation
                 if not path or not isinstance(path, str):
                     raise ValueError("Invalid image path")
-                
+
                 path_obj = Path(path)
-                
+
                 # Validate file exists and is readable
                 if not path_obj.is_file():
                     raise IsADirectoryError(f"Not a file: {path_obj}")
                 if not os.access(str(path_obj), os.R_OK):
                     raise PermissionError(f"No read permission for file: {path_obj}")
-                
+
                 # Validate file is an image by checking extension
-                valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
+                valid_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
                 if path_obj.suffix.lower() not in valid_extensions:
                     raise ValueError(f"Unsupported image format: {path_obj.suffix}")
-                
+
                 # Check file size to prevent loading extremely large images
                 max_size_mb = 10  # Maximum file size in MB
                 if path_obj.stat().st_size > max_size_mb * 1024 * 1024:
                     raise ValueError(f"Image too large (> {max_size_mb}MB): {path_obj}")
-                
+
                 # Load image and get dimensions
                 with Image.open(path_obj) as img:
                     self.original_width, self.original_height = img.size
-                    
+
                     # Validate image dimensions
                     if self.original_width <= 0 or self.original_height <= 0:
-                        raise ValueError(f"Invalid image dimensions: {self.original_width}x{self.original_height}")
-                    
+                        raise ValueError(
+                            f"Invalid image dimensions: {self.original_width}x{self.original_height}"
+                        )
+
                     self.aspect_ratio = self.original_height / self.original_width
 
                 # Also store the image data for preview
                 with open(path_obj, "rb") as f:
                     self.image_data = f.read()
             except Exception as e:
-                logger.error(f"Error loading original image dimensions: {e}", exc_info=True)
+                logger.error(
+                    f"Error loading original image dimensions: {e}", exc_info=True
+                )
                 self.original_width = int(self.image_format.width())
                 self.original_height = int(self.image_format.height())
         else:
@@ -174,14 +179,14 @@ class ImagePropertiesDialog(QDialog):
 
     def setup_ui(self):
         """Set up the dialog UI elements.
-        
+
         Creates and configures all UI components for the dialog, including:
         - Image preview
         - Dimension controls (width and height)
         - Aspect ratio maintenance checkbox
         - Original dimensions display
         - OK and Cancel buttons
-        
+
         Returns:
             None
         """
@@ -274,11 +279,11 @@ class ImagePropertiesDialog(QDialog):
 
     def load_current_format(self):
         """Load settings from the current image format into the UI.
-        
+
         Retrieves the current width and height from the image format and
         updates the UI controls to reflect these values. Also updates
         the image preview.
-        
+
         Returns:
             None
         """
@@ -298,13 +303,13 @@ class ImagePropertiesDialog(QDialog):
 
     def width_changed(self, new_width):
         """Handle width change, potentially updating height.
-        
+
         When the width is changed and aspect ratio lock is enabled,
         automatically updates the height to maintain the aspect ratio.
-        
+
         Args:
             new_width (int): The new width value
-            
+
         Returns:
             None
         """
@@ -316,13 +321,13 @@ class ImagePropertiesDialog(QDialog):
 
     def height_changed(self, new_height):
         """Handle height change, potentially updating width.
-        
+
         When the height is changed and aspect ratio lock is enabled,
         automatically updates the width to maintain the aspect ratio.
-        
+
         Args:
             new_height (int): The new height value
-            
+
         Returns:
             None
         """
@@ -334,10 +339,10 @@ class ImagePropertiesDialog(QDialog):
 
     def aspect_ratio_lock_changed(self):
         """Recalculate based on width if lock is enabled.
-        
+
         When the aspect ratio lock is toggled on, updates the height
         based on the current width to restore the proper aspect ratio.
-        
+
         Returns:
             None
         """
@@ -348,9 +353,9 @@ class ImagePropertiesDialog(QDialog):
 
     def get_new_dimensions(self):
         """Return the chosen width and height.
-        
+
         Provides the final dimensions selected by the user in the dialog.
-        
+
         Returns:
             tuple: A tuple containing (width, height) in pixels
         """

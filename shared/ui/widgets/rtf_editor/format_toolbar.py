@@ -1,9 +1,5 @@
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import (
-    QFont,
-    QTextCharFormat,
-    QTextListFormat,
-)
+from PyQt6.QtGui import QFont, QTextCharFormat, QTextListFormat
 from PyQt6.QtWidgets import (
     QColorDialog,
     QComboBox,
@@ -16,7 +12,7 @@ from PyQt6.QtWidgets import (
 
 class FormatToolBar(QToolBar):
     """Advanced formatting toolbar for RTF editor.
-    
+
     This class provides a comprehensive formatting toolbar for the RTF editor, including:
     - Font family and size selection
     - Bold, italic, underline, and strikethrough formatting
@@ -24,15 +20,15 @@ class FormatToolBar(QToolBar):
     - Text alignment (left, center, right, justify)
     - Bullet and numbered lists
     - Indentation controls
-    
+
     The toolbar monitors the current text selection and updates its controls to reflect
     the formatting of the selected text. It also emits signals when formatting is changed
     through the toolbar controls.
-    
+
     Attributes:
         format_changed (pyqtSignal): Signal emitted when text format is changed
         alignment_changed (pyqtSignal): Signal emitted when text alignment is changed
-        
+
     Signals:
         format_changed(QTextCharFormat): Emitted with the new format when changed
         alignment_changed(Qt.AlignmentFlag): Emitted with the new alignment when changed
@@ -44,13 +40,13 @@ class FormatToolBar(QToolBar):
 
     def __init__(self, parent=None):
         """Initialize the formatting toolbar.
-        
+
         Creates a toolbar with all formatting controls and connects their signals
         to appropriate slots. Sets up a timer for throttling rapid updates.
-        
+
         Args:
             parent (QWidget, optional): Parent widget for this toolbar
-            
+
         Returns:
             None
         """
@@ -78,26 +74,26 @@ class FormatToolBar(QToolBar):
         """Queue a toolbar update with throttling to prevent rapid updates."""
         # Completely disabled to prevent segfaults
         return
-        
+
         # Original implementation (disabled)
         # # Skip if auto-updates are disabled
         # if not self.auto_updates_enabled:
         #     return
-        # 
+        #
         # if not self.update_timer.isActive():
         #     self.update_timer.start()
 
     def _do_update_toolbar_state(self):
         """Actually perform the toolbar state update after throttling.
-        
+
         This method is completely disabled to prevent segfaults.
         """
         # Completely disabled to prevent segfaults
         return
-        
+
         # Original implementation (disabled)
         # """Actually perform the toolbar state update after throttling.
-        # 
+        #
         # This method updates the toolbar controls to reflect the formatting
         # at the current cursor position. It includes comprehensive error handling
         # to prevent segfaults that were previously occurring.
@@ -108,16 +104,16 @@ class FormatToolBar(QToolBar):
         #     parent = self.parent()
         #     if not parent:
         #         return
-        # 
+        #
         #     # Check if parent has text_edit attribute
         #     editor = getattr(parent, "text_edit", None)
         #     if not editor:
         #         return
-        #         
+        #
         #     # Check if editor is valid and visible
         #     if not editor.isVisible() or not editor.isEnabled():
         #         return
-        #         
+        #
         #     # Get cursor with error handling
         #     try:
         #         cursor = editor.textCursor()
@@ -127,7 +123,7 @@ class FormatToolBar(QToolBar):
         #     except Exception as e:
         #         print(f"Error getting text cursor: {e}")
         #         return
-        #         
+        #
         #     # Check if document is valid
         #     try:
         #         document = editor.document()
@@ -136,7 +132,7 @@ class FormatToolBar(QToolBar):
         #     except Exception as e:
         #         print(f"Error accessing document: {e}")
         #         return
-        # 
+        #
         #     # Get the character format at cursor with error handling
         #     try:
         #         char_format = cursor.charFormat()
@@ -223,54 +219,54 @@ class FormatToolBar(QToolBar):
 
     def connect_to_editor_signals(self):
         """Safely connect to text editor signals.
-        
+
         This method is completely disabled to prevent segfaults.
-        
+
         Returns:
             bool: Always returns False as connections are disabled
         """
         # Completely disabled to prevent segfaults
         return False
-        
+
         # Original implementation (disabled)
         # try:
         #     # Only connect if auto-updates are enabled
         #     if not self.auto_updates_enabled:
         #         return False
-        #         
+        #
         #     # Try to get the parent and text_edit
         #     parent = self.parent()
         #     if not parent or not hasattr(parent, "text_edit"):
         #         return False
-        #         
+        #
         #     text_edit = parent.text_edit
-        #     
+        #
         #     # Disconnect any existing connections first to prevent duplicates
         #     try:
         #         text_edit.cursorPositionChanged.disconnect(self.queue_update_toolbar_state)
         #     except:
         #         pass  # Ignore if not connected
-        #         
+        #
         #     try:
         #         text_edit.selectionChanged.disconnect(self.queue_update_toolbar_state)
         #     except:
         #         pass  # Ignore if not connected
-        #     
+        #
         #     # Connect signals with error handling
         #     text_edit.cursorPositionChanged.connect(self.queue_update_toolbar_state)
         #     text_edit.selectionChanged.connect(self.queue_update_toolbar_state)
-        #     
+        #
         #     return True
         # except Exception as e:
         #     print(f"Error connecting to editor signals: {e}")
         #     return False
-    
+
     # Legacy method for compatibility
     def update_toolbar_state(self):
         """Disabled to prevent segfaults."""
         # Completely disabled to prevent segfaults
         return
-        
+
         # Original implementation (disabled)
         # self.queue_update_toolbar_state()
 

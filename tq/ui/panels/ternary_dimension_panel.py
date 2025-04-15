@@ -201,8 +201,10 @@ class TernaryDimensionalAnalysisPanel(QWidget):
         # So we build the interpretations first, then add them in reverse order to the layout.
         position_frames = []
         for index in range(num_digits):
-            digit = int(ternary_str[num_digits - 1 - index]) # Get digit from right to left
-            dimension_number = index + 1 # Dimension number (1-based, right-to-left)
+            digit = int(
+                ternary_str[num_digits - 1 - index]
+            )  # Get digit from right to left
+            dimension_number = index + 1  # Dimension number (1-based, right-to-left)
 
             # Get the enhanced interpretation for the correct index
             interpretation = self.interpreter.interpret_digit(digit, index)
@@ -236,7 +238,9 @@ class TernaryDimensionalAnalysisPanel(QWidget):
             frame_layout.addWidget(header)
 
             # Element info - Use keys from the updated service response
-            element_info = QLabel(f"Element: {digit} - {interpretation['name']} ({interpretation['energy']} - {interpretation['quality']})" )
+            element_info = QLabel(
+                f"Element: {digit} - {interpretation['name']} ({interpretation['energy']} - {interpretation['quality']})"
+            )
             element_info.setFont(QFont("Arial", 11, QFont.Weight.Bold))
             frame_layout.addWidget(element_info)
 
@@ -246,7 +250,9 @@ class TernaryDimensionalAnalysisPanel(QWidget):
             frame_layout.addWidget(description)
 
             # Detailed dimensional meaning
-            dimensional_meaning = QLabel(f"<b>Contextual Meaning:</b> {interpretation['dimensional_meaning']}")
+            dimensional_meaning = QLabel(
+                f"<b>Contextual Meaning:</b> {interpretation['dimensional_meaning']}"
+            )
             dimensional_meaning.setWordWrap(True)
             frame_layout.addWidget(dimensional_meaning)
 
@@ -276,56 +282,75 @@ class TernaryDimensionalAnalysisPanel(QWidget):
 
         # 1. Distribution
         output_md += "## Element Distribution\n\n"
-        output_md += f"- Aperture (0): {analysis['distribution']['counts'][0]} appearances\n"
-        output_md += f"- Surge (1): {analysis['distribution']['counts'][1]} appearances\n"
-        output_md += f"- Lattice (2): {analysis['distribution']['counts'][2]} appearances\n\n"
-        output_md += f"- **Dominant Element:** {analysis['distribution']['dominant_element']}\n"
+        output_md += (
+            f"- Aperture (0): {analysis['distribution']['counts'][0]} appearances\n"
+        )
+        output_md += (
+            f"- Surge (1): {analysis['distribution']['counts'][1]} appearances\n"
+        )
+        output_md += (
+            f"- Lattice (2): {analysis['distribution']['counts'][2]} appearances\n\n"
+        )
+        output_md += (
+            f"- **Dominant Element:** {analysis['distribution']['dominant_element']}\n"
+        )
         output_md += f"- **Element Balance:** {analysis['distribution']['balance']}\n\n"
 
         # Note: Triad Analysis section removed as it's already included in the Core Narrative
         # We'll only keep the cross-triad resonance info if it's not already in the narrative
-        if analysis['patterns']['cross_triad_resonance'] and (analysis.get("narrative") is None or "Cross-Triad Resonance" not in analysis["narrative"]):
-             output_md += "## Cross-Triad Resonance\n\n"
-             output_md += "**Resonance Patterns:** " + "; ".join(analysis['patterns']['cross_triad_resonance']) + "\n\n"
+        if analysis["patterns"]["cross_triad_resonance"] and (
+            analysis.get("narrative") is None
+            or "Cross-Triad Resonance" not in analysis["narrative"]
+        ):
+            output_md += "## Cross-Triad Resonance\n\n"
+            output_md += (
+                "**Resonance Patterns:** "
+                + "; ".join(analysis["patterns"]["cross_triad_resonance"])
+                + "\n\n"
+            )
 
         # 3. Pattern Recognition Details
-        output_md += "## Pattern Details\n\n" # Renamed section header
+        output_md += "## Pattern Details\n\n"  # Renamed section header
         has_patterns = False
         # Repetitions / Absences
-        if analysis['patterns']['repetitions']:
+        if analysis["patterns"]["repetitions"]:
             has_patterns = True
             output_md += "**Repetitions/Absences:**\n"
-            for rep in analysis['patterns']['repetitions']:
+            for rep in analysis["patterns"]["repetitions"]:
                 if rep.get("absence"):
                     output_md += f"- Absence of {rep['element']}\n"
                 else:
-                     output_md += f"- {rep['element']} appears {rep['count']} times\n"
+                    output_md += f"- {rep['element']} appears {rep['count']} times\n"
             output_md += "\n"
         # Sequences
-        if analysis['patterns']['sequences']:
+        if analysis["patterns"]["sequences"]:
             has_patterns = True
             output_md += "**Sequences (3+ consecutive):**\n"
-            for seq in analysis['patterns']['sequences']:
+            for seq in analysis["patterns"]["sequences"]:
                 output_md += f"- {seq['element']} sequence of length {seq['length']} starting at Dimension {seq['position']}\n"
             output_md += "\n"
         # Symmetry
-        if analysis['patterns']['symmetry']['score'] > 0.0:
-             has_patterns = True
-             output_md += f"**Symmetry:** {analysis['patterns']['symmetry']['description']}\n\n"
+        if analysis["patterns"]["symmetry"]["score"] > 0.0:
+            has_patterns = True
+            output_md += (
+                f"**Symmetry:** {analysis['patterns']['symmetry']['description']}\n\n"
+            )
 
         if not has_patterns:
-            output_md += "No significant repetitions, sequences, or symmetry detected.\n\n"
+            output_md += (
+                "No significant repetitions, sequences, or symmetry detected.\n\n"
+            )
 
         # TODO: Display Progression, Oscillation when implemented
 
         # 4. Core Narrative (Generated by Service)
         if analysis.get("narrative"):
-            output_md += analysis["narrative"] # Use the pre-formatted narrative
+            output_md += analysis["narrative"]  # Use the pre-formatted narrative
 
         # 5. Holistic Interpretation (if available)
         if analysis.get("holistic"):
-            output_md += "\n" # Add extra space
-            output_md += analysis["holistic"] # Add the holistic interpretation
+            output_md += "\n"  # Add extra space
+            output_md += analysis["holistic"]  # Add the holistic interpretation
 
         # Set the text in markdown format
         self.pattern_text.setMarkdown(output_md.strip())

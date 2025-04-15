@@ -40,7 +40,6 @@ potential_triad_meanings = {
 *   **Greek Term:** Ἁρμονία (Harmonia) - *Meaning agreement, concord, the fitting together of parts into a balanced whole.*
 *   **Evocative Description:** *Potential (Aperture Seed) finds a stable, harmonious internal rhythm (Lattice Resonance), like a perfectly tuned instrument. This inner coherence then replicates outward as a similarly ordered, consistent structure (Lattice Echo).*
 *   **Detailed Analysis:** This foundation represents possibility naturally solidifying into consistent inner and outer form. It signifies potential manifesting as stable, reliable, and harmonious (Ἁρμονία) reality. Its strength is predictability and coherence, but its potential weakness is a lack of dynamism or adaptability if circumstances require change beyond its established structure.""",
-
     # --- Group 1: Surge Seed ---
     "100": """(Seed=1, Res=0, Echo=0) **Keyword:** Dissipating Impulse **Greek:** Ὁρμή (Horme)
 *   **Greek Term:** Ὁρμή (Horme) - *Representing impulse, urge, eagerness to act, often without full deliberation.*
@@ -78,7 +77,6 @@ potential_triad_meanings = {
 *   **Greek Term:** Στερέωμα (Stereoma) - *Referring to a solid body, foundation, firmness, the firmament.*
 *   **Evocative Description:** *A catalyst for change (Surge Seed) meets internal coherence (Lattice Resonance), solidifying its nature. This stable, energized core then replicates its structure consistently outward (Lattice Echo).*
 *   **Detailed Analysis:** This signifies initial dynamism leading to stable inner patterns that manifest as consistent external order, creating a solid foundation (Στερέωμα). Its strength is the transformation into durable, reliable form. It represents change creating lasting structure, potentially sacrificing further adaptability for persistence.""",
-
     # --- Group 2: Lattice Seed ---
     "200": """(Seed=2, Res=0, Echo=0) **Keyword:** Dissolving Order **Greek:** Κένωσις (Kenosis)
 *   **Greek Term:** Κένωσις (Kenosis) - *Signifying an emptying out, self-divestment, letting go of form.*
@@ -115,5 +113,5 @@ potential_triad_meanings = {
     "222": """(Seed=2, Res=2, Echo=2) **Keyword:** Foundational Rigidity **Greek:** Ἀνάγκη (Ananke)
 *   **Greek Term:** Ἀνάγκη (Ananke) - *Representing necessity, constraint, compulsion, fate.*
 *   **Evocative Description:** *Imagine a perfect, unchanging crystal: a defined blueprint (Lattice Seed) resonates with unwavering internal coherence (Lattice Resonance) and replicates outward as perfectly ordered structure (Lattice Echo). It is entirely consistent.*
-*   **Detailed Analysis:** This signifies extreme order, consistency, persistence, and potentially deterministic structure or necessity (Ἀνάγκη) at the system's core. Its strength is its absolute stability and predictability, but its major weakness is extreme resistance to change, potentially leading to brittleness, stagnation, or an inability to adapt to novel conditions."""
+*   **Detailed Analysis:** This signifies extreme order, consistency, persistence, and potentially deterministic structure or necessity (Ἀνάγκη) at the system's core. Its strength is its absolute stability and predictability, but its major weakness is extreme resistance to change, potentially leading to brittleness, stagnation, or an inability to adapt to novel conditions.""",
 }

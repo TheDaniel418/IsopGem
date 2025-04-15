@@ -8,14 +8,7 @@ import random
 
 from loguru import logger
 from PyQt6.QtCore import QRectF, Qt, QTime, QTimer
-from PyQt6.QtGui import (
-    QColor,
-    QFont,
-    QPainter,
-    QPen,
-    QPixmap,
-    QRadialGradient,
-)
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen, QPixmap, QRadialGradient
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -779,7 +772,7 @@ class GematriaTab(QWidget):
 
         # Open the window through the window manager - only pass window_id and content
         self.window_manager.open_window(final_window_id, window)
-        
+
         # Set the window title
         window.setWindowTitle(title)
 

@@ -31,8 +31,12 @@ from PyQt6.QtWidgets import (
 )
 
 from tq.services.tq_grid_service import TQGridService
-from tq.ui.styles.tq_colors import TQColors, apply_tq_styles
-from tq.utils.ternary_converter import decimal_to_ternary, format_ternary, ternary_to_decimal
+from tq.ui.styles.tq_colors import apply_tq_styles
+from tq.utils.ternary_converter import (
+    decimal_to_ternary,
+    format_ternary,
+    ternary_to_decimal,
+)
 from tq.utils.ternary_transition import TernaryTransition
 
 
@@ -111,7 +115,9 @@ class AdvancedPropertiesPanel(QFrame):
         # Add value label
         self.diff_trans_value = QLabel("--")
         self.diff_trans_value.setFont(QFont("Segoe UI", 12))
-        self.diff_trans_value.setStyleSheet("font-weight: bold; color: #1976D2;")  # Blue color for emphasis
+        self.diff_trans_value.setStyleSheet(
+            "font-weight: bold; color: #1976D2;"
+        )  # Blue color for emphasis
         diff_trans_layout.addWidget(self.diff_trans_value)
 
         # Add stretch to push everything to the left
@@ -133,7 +139,9 @@ class AdvancedPropertiesPanel(QFrame):
         # Add value label
         self.septad_value = QLabel("--")
         self.septad_value.setFont(QFont("Segoe UI", 12))
-        self.septad_value.setStyleSheet("font-weight: bold; color: #D81B60;")  # Pink color for emphasis
+        self.septad_value.setStyleSheet(
+            "font-weight: bold; color: #D81B60;"
+        )  # Pink color for emphasis
         septad_layout.addWidget(self.septad_value)
 
         # Add stretch to push everything to the left
@@ -154,12 +162,7 @@ class AdvancedPropertiesPanel(QFrame):
         grid = self.grid_service.get_current_grid()
 
         # Extract the values
-        values = [
-            grid.base_number,
-            grid.conrune,
-            grid.reversal,
-            grid.reversal_conrune
-        ]
+        values = [grid.base_number, grid.conrune, grid.reversal, grid.reversal_conrune]
 
         # Calculate the differences
         base_conrune_diff = abs(values[0] - values[1])
@@ -177,7 +180,9 @@ class AdvancedPropertiesPanel(QFrame):
 
         # Calculate the transition
         try:
-            transition_ternary = self.transition.apply_transition(first_ternary_padded, second_ternary_padded)
+            transition_ternary = self.transition.apply_transition(
+                first_ternary_padded, second_ternary_padded
+            )
             # Convert the ternary transition back to decimal
             transition_decimal = ternary_to_decimal(transition_ternary)
             # Display only the decimal value
@@ -185,7 +190,12 @@ class AdvancedPropertiesPanel(QFrame):
 
             # Calculate the Septad
             # Sum of all 4 quadset numbers + 2 absolute differences + differential trans
-            septad = sum(values) + base_conrune_diff + reversal_conrune_diff + transition_decimal
+            septad = (
+                sum(values)
+                + base_conrune_diff
+                + reversal_conrune_diff
+                + transition_decimal
+            )
             self.septad_value.setText(str(septad))
         except Exception as e:
             # Handle any errors in the calculation

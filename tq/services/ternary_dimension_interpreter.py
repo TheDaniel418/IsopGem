@@ -18,11 +18,11 @@ Related files:
 
 from typing import Dict, List, Union
 
-# Import the triad meanings from separate files
-from tq.utils.potential_triad_definitions import potential_triad_meanings
-
 # Import the holistic interpreter
 from tq.utils.holistic_interpreter import HolisticInterpreter
+
+# Import the triad meanings from separate files
+from tq.utils.potential_triad_definitions import potential_triad_meanings
 
 
 class TernaryDimensionInterpreter:
@@ -135,14 +135,14 @@ class TernaryDimensionInterpreter:
     }
 
     # Import the triad meanings from separate files
-    from tq.utils.process_triad_definitions import process_triad_meanings
     from tq.utils.emergence_triad_definitions import emergence_triad_meanings
+    from tq.utils.process_triad_definitions import process_triad_meanings
 
     # Add specific triad combination meanings (can be expanded)
     TRIAD_COMBINATION_MEANINGS = {
         "Potential": potential_triad_meanings,
         "Process": process_triad_meanings,
-        "Emergence": emergence_triad_meanings
+        "Emergence": emergence_triad_meanings,
     }
 
     def __init__(self):
@@ -171,7 +171,9 @@ class TernaryDimensionInterpreter:
         pos_modifier = self.POSITION_MODIFIERS[
             min(position, len(self.POSITION_MODIFIERS) - 1)
         ]
-        interpretation["position_name"] = pos_modifier  # Use position_name for consistency with framework
+        interpretation[
+            "position_name"
+        ] = pos_modifier  # Use position_name for consistency with framework
 
         # Determine Triad
         if position_1_based <= 3:
@@ -183,20 +185,24 @@ class TernaryDimensionInterpreter:
         interpretation["triad_name"] = triad_name
 
         # Add position value
-        interpretation["position_value"] = str(3 ** position)
+        interpretation["position_value"] = str(3**position)
 
         # Add the detailed dimensional interpretation
         dimensional_meaning = "Unknown position"
         if position_1_based in self.DIMENSIONAL_INTERPRETATIONS:
             if digit in self.DIMENSIONAL_INTERPRETATIONS[position_1_based]:
-                dimensional_meaning = self.DIMENSIONAL_INTERPRETATIONS[position_1_based][digit]
+                dimensional_meaning = self.DIMENSIONAL_INTERPRETATIONS[
+                    position_1_based
+                ][digit]
         interpretation["dimensional_meaning"] = dimensional_meaning
 
         # Update context to include more details
-        interpretation["context"] = f"{pos_modifier} ({triad_name}): {dimensional_meaning}"
+        interpretation[
+            "context"
+        ] = f"{pos_modifier} ({triad_name}): {dimensional_meaning}"
 
         # Add the original digit to the interpretation dictionary
-        interpretation['digit'] = digit
+        interpretation["digit"] = digit
 
         return interpretation
 
@@ -252,7 +258,7 @@ class TernaryDimensionInterpreter:
         )
 
         result = {
-            "digits": digits_interpretation, # Detailed interpretation for each digit
+            "digits": digits_interpretation,  # Detailed interpretation for each digit
             "triads": triad_analysis,
             "patterns": pattern_analysis,
             "distribution": {
@@ -278,22 +284,32 @@ class TernaryDimensionInterpreter:
 
         # Potential Triad (positions 1-3)
         if num_digits >= 1:
-            potential_digits = digits_interpretation[max(0, num_digits - 3) : num_digits]
+            potential_digits = digits_interpretation[
+                max(0, num_digits - 3) : num_digits
+            ]
             triad_analysis["potential"]["positions"] = potential_digits
             # Add summary logic based on framework (e.g., Lattice-Surge-Aperture: A structured beginning opening...)
-            triad_analysis["potential"]["summary"] = self._summarize_triad(potential_digits, "Potential")
+            triad_analysis["potential"]["summary"] = self._summarize_triad(
+                potential_digits, "Potential"
+            )
 
         # Process Triad (positions 4-6)
         if num_digits >= 4:
-            process_digits = digits_interpretation[max(0, num_digits - 6) : num_digits - 3]
+            process_digits = digits_interpretation[
+                max(0, num_digits - 6) : num_digits - 3
+            ]
             triad_analysis["process"]["positions"] = process_digits
-            triad_analysis["process"]["summary"] = self._summarize_triad(process_digits, "Process")
+            triad_analysis["process"]["summary"] = self._summarize_triad(
+                process_digits, "Process"
+            )
 
         # Emergence Triad (positions 7-9)
         if num_digits >= 7:
             emergence_digits = digits_interpretation[0 : num_digits - 6]
             triad_analysis["emergence"]["positions"] = emergence_digits
-            triad_analysis["emergence"]["summary"] = self._summarize_triad(emergence_digits, "Emergence")
+            triad_analysis["emergence"]["summary"] = self._summarize_triad(
+                emergence_digits, "Emergence"
+            )
 
         return triad_analysis
 
@@ -304,7 +320,9 @@ class TernaryDimensionInterpreter:
 
         # Generate key based on LEFT-TO-RIGHT order as seen in the number
         # The input triad_digits list is already left-to-right for that triad segment
-        digit_sequence = "".join([str(d['digit']) for d in triad_digits]) # No reversal needed
+        digit_sequence = "".join(
+            [str(d["digit"]) for d in triad_digits]
+        )  # No reversal needed
 
         # Basic description (using the L-to-R key for display)
         summary = f"({digit_sequence}): Describes "
@@ -320,7 +338,7 @@ class TernaryDimensionInterpreter:
             # For incomplete triads (less than 3 digits), pad with zeros to get a valid key
             lookup_key = digit_sequence
             if len(digit_sequence) < 3:
-                lookup_key = digit_sequence.ljust(3, '0')
+                lookup_key = digit_sequence.ljust(3, "0")
                 # No note needed - the interpretation is valid as is
 
             if lookup_key in self.TRIAD_COMBINATION_MEANINGS[triad_name]:
@@ -328,8 +346,8 @@ class TernaryDimensionInterpreter:
                 # Seed-Resonance-Echo (or Weave-Pulse-Flow, etc.) pattern for this L-to-R sequence
                 summary += f"**Specific Pattern:** {self.TRIAD_COMBINATION_MEANINGS[triad_name][lookup_key]}"
             # else:
-                # Optionally add a default message if a specific combo isn't defined yet
-                # summary += "Specific combination meaning not yet defined."
+            # Optionally add a default message if a specific combo isn't defined yet
+            # summary += "Specific combination meaning not yet defined."
 
         # TODO: Add more nuanced descriptions based on element counts within the triad
 
@@ -340,7 +358,10 @@ class TernaryDimensionInterpreter:
         patterns = {
             "repetitions": [],
             "sequences": [],
-            "symmetry": {"score": 0.0, "description": "No significant symmetry detected."},
+            "symmetry": {
+                "score": 0.0,
+                "description": "No significant symmetry detected.",
+            },
             "cross_triad_resonance": [],
         }
 
@@ -355,14 +376,15 @@ class TernaryDimensionInterpreter:
         # --- Repetition Patterns ---
         for digit, count in counts.items():
             if count >= 3:
-                patterns["repetitions"].append({"element": self.DIGIT_MEANINGS[digit]['name'], "count": count})
+                patterns["repetitions"].append(
+                    {"element": self.DIGIT_MEANINGS[digit]["name"], "count": count}
+                )
         if counts[0] == 0:
             patterns["repetitions"].append({"element": "Aperture", "absence": True})
         if counts[1] == 0:
             patterns["repetitions"].append({"element": "Surge", "absence": True})
         if counts[2] == 0:
             patterns["repetitions"].append({"element": "Lattice", "absence": True})
-
 
         # --- Sequence Patterns (Consecutive) ---
         current_sequence_digit = -1
@@ -373,21 +395,29 @@ class TernaryDimensionInterpreter:
                 current_sequence_length += 1
             else:
                 if current_sequence_length >= 3:
-                    patterns["sequences"].append({
-                        "element": self.DIGIT_MEANINGS[current_sequence_digit]['name'],
-                        "length": current_sequence_length,
-                        # Position needs mapping back to dimension number (1-based right-to-left)
-                        "position": num_digits - (i - current_sequence_length) # Start dimension number
-                    })
+                    patterns["sequences"].append(
+                        {
+                            "element": self.DIGIT_MEANINGS[current_sequence_digit][
+                                "name"
+                            ],
+                            "length": current_sequence_length,
+                            # Position needs mapping back to dimension number (1-based right-to-left)
+                            "position": num_digits
+                            - (i - current_sequence_length),  # Start dimension number
+                        }
+                    )
                 current_sequence_digit = digit
                 current_sequence_length = 1
         # Check trailing sequence
         if current_sequence_length >= 3:
-            patterns["sequences"].append({
-                "element": self.DIGIT_MEANINGS[current_sequence_digit]['name'],
-                "length": current_sequence_length,
-                "position": num_digits - (num_digits - current_sequence_length) # Start dimension number
-            })
+            patterns["sequences"].append(
+                {
+                    "element": self.DIGIT_MEANINGS[current_sequence_digit]["name"],
+                    "length": current_sequence_length,
+                    "position": num_digits
+                    - (num_digits - current_sequence_length),  # Start dimension number
+                }
+            )
 
         # --- Symmetry Analysis (Basic Palindrome Check) ---
         symmetry_matches = 0
@@ -399,9 +429,13 @@ class TernaryDimensionInterpreter:
                     symmetry_matches += 1
             patterns["symmetry"]["score"] = symmetry_matches / comparisons
             if patterns["symmetry"]["score"] > 0.75:
-                patterns["symmetry"]["description"] = f"High symmetry detected (Score: {patterns['symmetry']['score']:.2f}). Suggests harmonic balance or structural reflection."
+                patterns["symmetry"][
+                    "description"
+                ] = f"High symmetry detected (Score: {patterns['symmetry']['score']:.2f}). Suggests harmonic balance or structural reflection."
             elif patterns["symmetry"]["score"] > 0.4:
-                patterns["symmetry"]["description"] = f"Moderate symmetry detected (Score: {patterns['symmetry']['score']:.2f}). Suggests some internal balance or mirroring."
+                patterns["symmetry"][
+                    "description"
+                ] = f"Moderate symmetry detected (Score: {patterns['symmetry']['score']:.2f}). Suggests some internal balance or mirroring."
 
         # --- Cross-Triad Resonance (Positions 1, 4, 7 | 2, 5, 8 | 3, 6, 9) ---
         # Map dimension number (1-based right-to-left) to digit
@@ -410,21 +444,33 @@ class TernaryDimensionInterpreter:
         if num_digits >= 7:
             # Check position 1, 4, 7
             if pos_map.get(1) == pos_map.get(4) == pos_map.get(7):
-                patterns["cross_triad_resonance"].append(f"Seed(1)-Weave(4)-Nexus(7) resonant on {self.DIGIT_MEANINGS[pos_map[1]]['name']}")
+                patterns["cross_triad_resonance"].append(
+                    f"Seed(1)-Weave(4)-Nexus(7) resonant on {self.DIGIT_MEANINGS[pos_map[1]]['name']}"
+                )
             # Check position 2, 5, 8
             if pos_map.get(2) == pos_map.get(5) == pos_map.get(8):
-                patterns["cross_triad_resonance"].append(f"Resonance(2)-Pulse(5)-Horizon(8) resonant on {self.DIGIT_MEANINGS[pos_map[2]]['name']}")
+                patterns["cross_triad_resonance"].append(
+                    f"Resonance(2)-Pulse(5)-Horizon(8) resonant on {self.DIGIT_MEANINGS[pos_map[2]]['name']}"
+                )
             # Check position 3, 6, 9
             if num_digits >= 9 and pos_map.get(3) == pos_map.get(6) == pos_map.get(9):
-                patterns["cross_triad_resonance"].append(f"Echo(3)-Flow(6)-Nova(9) resonant on {self.DIGIT_MEANINGS[pos_map[3]]['name']}")
+                patterns["cross_triad_resonance"].append(
+                    f"Echo(3)-Flow(6)-Nova(9) resonant on {self.DIGIT_MEANINGS[pos_map[3]]['name']}"
+                )
         elif num_digits >= 4:
             # Check resonance between Potential and Process triads
             if pos_map.get(1) == pos_map.get(4):
-                patterns["cross_triad_resonance"].append(f"Seed(1)-Weave(4) resonant on {self.DIGIT_MEANINGS[pos_map[1]]['name']}")
+                patterns["cross_triad_resonance"].append(
+                    f"Seed(1)-Weave(4) resonant on {self.DIGIT_MEANINGS[pos_map[1]]['name']}"
+                )
             if num_digits >= 5 and pos_map.get(2) == pos_map.get(5):
-                patterns["cross_triad_resonance"].append(f"Resonance(2)-Pulse(5) resonant on {self.DIGIT_MEANINGS[pos_map[2]]['name']}")
+                patterns["cross_triad_resonance"].append(
+                    f"Resonance(2)-Pulse(5) resonant on {self.DIGIT_MEANINGS[pos_map[2]]['name']}"
+                )
             if num_digits >= 6 and pos_map.get(3) == pos_map.get(6):
-                patterns["cross_triad_resonance"].append(f"Echo(3)-Flow(6) resonant on {self.DIGIT_MEANINGS[pos_map[3]]['name']}")
+                patterns["cross_triad_resonance"].append(
+                    f"Echo(3)-Flow(6) resonant on {self.DIGIT_MEANINGS[pos_map[3]]['name']}"
+                )
 
         # TODO: Implement Progression (0->1->2), Oscillation (0->1->0) sequence detection
 
@@ -447,7 +493,7 @@ class TernaryDimensionInterpreter:
     def _get_balance_interpretation(self, counts: Dict[int, int]) -> str:
         """Get the balance interpretation based on Surge vs Lattice counts."""
         if not counts:
-             return "N/A"
+            return "N/A"
         balance_score = counts.get(1, 0) - counts.get(2, 0)
         if balance_score > 0:
             return self.BALANCE_INTERPRETATIONS["transformative"]
@@ -456,37 +502,59 @@ class TernaryDimensionInterpreter:
         else:
             return self.BALANCE_INTERPRETATIONS["balanced"]
 
-    def _synthesize_narrative(self, digits_interpretation: List[Dict], triad_analysis: Dict, pattern_analysis: Dict, counts: Dict) -> str:
+    def _synthesize_narrative(
+        self,
+        digits_interpretation: List[Dict],
+        triad_analysis: Dict,
+        pattern_analysis: Dict,
+        counts: Dict,
+    ) -> str:
         """Synthesize the analyses into a core narrative based on the framework."""
-        narrative = "## Core Narrative Synthesis\n\n" # Double newline after header
+        narrative = "## Core Narrative Synthesis\n\n"  # Double newline after header
 
         num_digits = len(digits_interpretation)
-        scale = "Potential" if num_digits <= 3 else "Process" if num_digits <= 6 else "Emergence"
-        narrative += f"This is an **{scale}-scale** number ({num_digits} digits), activating triads up to {scale}.\n\n" # Double newline
+        scale = (
+            "Potential"
+            if num_digits <= 3
+            else "Process"
+            if num_digits <= 6
+            else "Emergence"
+        )
+        narrative += f"This is an **{scale}-scale** number ({num_digits} digits), activating triads up to {scale}.\n\n"  # Double newline
 
         # 1. Dominant Element Theme
         dominant_desc = self._get_dominant_element(counts)
         narrative += f"**Dominant Theme:** {dominant_desc}. "
         if "Aperture" in dominant_desc:
-            narrative += "The primary theme revolves around potential, openness, and receptivity.\n\n" # Double newline
+            narrative += "The primary theme revolves around potential, openness, and receptivity.\n\n"  # Double newline
         elif "Surge" in dominant_desc:
-            narrative += "The primary theme revolves around transformation, dynamism, and change.\n\n" # Double newline
+            narrative += "The primary theme revolves around transformation, dynamism, and change.\n\n"  # Double newline
         elif "Lattice" in dominant_desc:
-            narrative += "The primary theme revolves around structure, stability, and defined patterns.\n\n" # Double newline
-        else: # Mixed
-            narrative += "The system shows a balance or mix of elemental influences without a single dominant theme.\n\n" # Double newline
+            narrative += "The primary theme revolves around structure, stability, and defined patterns.\n\n"  # Double newline
+        else:  # Mixed
+            narrative += "The system shows a balance or mix of elemental influences without a single dominant theme.\n\n"  # Double newline
 
         # 2. Dimensional Emphasis & Triad Interaction
-        narrative += "**Dimensional Emphasis & Triad Interaction:**\n" # Single newline before list
-        narrative += f"- **POTENTIAL TRIAD:** {triad_analysis['potential']['summary']}\n"
+        narrative += "**Dimensional Emphasis & Triad Interaction:**\n"  # Single newline before list
+        narrative += (
+            f"- **POTENTIAL TRIAD:** {triad_analysis['potential']['summary']}\n"
+        )
         if num_digits >= 4:
-            narrative += f"- **PROCESS TRIAD:** {triad_analysis['process']['summary']}\n"
+            narrative += (
+                f"- **PROCESS TRIAD:** {triad_analysis['process']['summary']}\n"
+            )
         if num_digits >= 7:
-            narrative += f"- **EMERGENCE TRIAD:** {triad_analysis['emergence']['summary']}\n"
+            narrative += (
+                f"- **EMERGENCE TRIAD:** {triad_analysis['emergence']['summary']}\n"
+            )
         # Cross-Triad Resonance
         if pattern_analysis["cross_triad_resonance"]:
-            narrative += "- **Cross-Triad Resonance Detected:** " + "; ".join(pattern_analysis["cross_triad_resonance"]) + "\n"
-        narrative += "\n" # Double newline after list
+            narrative += (
+                "- **Cross-Triad Resonance Detected:** "
+                + "; ".join(pattern_analysis["cross_triad_resonance"])
+                + "\n"
+            )
+        narrative += "\n"  # Double newline after list
 
         # 3. Transitional Flow & Patterns
         narrative += "**Transitional Flow & Key Patterns:**\n"
@@ -496,8 +564,10 @@ class TernaryDimensionInterpreter:
             # Display sequences with start dimension
             seq_descs = []
             for s in pattern_analysis["sequences"]:
-                start_dim = s['position']
-                seq_descs.append(f"{s['length']} {s['element']} (starting at Dim {start_dim})")
+                start_dim = s["position"]
+                seq_descs.append(
+                    f"{s['length']} {s['element']} (starting at Dim {start_dim})"
+                )
             narrative += "; ".join(seq_descs) + ".\n"
         else:
             narrative += "- Frequent element shifts suggest dynamic interplay without prolonged intensification.\n"
@@ -505,8 +575,10 @@ class TernaryDimensionInterpreter:
         if pattern_analysis["repetitions"]:
             for rep in pattern_analysis["repetitions"]:
                 if rep.get("absence"):
-                    narrative += f"- Noteable absence of the {rep['element']} element.\n"
-                elif rep['count'] / num_digits > 0.5: # If > 50%
+                    narrative += (
+                        f"- Noteable absence of the {rep['element']} element.\n"
+                    )
+                elif rep["count"] / num_digits > 0.5:  # If > 50%
                     narrative += f"- Strong presence of {rep['element']} ({rep['count']} times).\n"
         # Symmetry
         if pattern_analysis["symmetry"]["score"] > 0.4:
@@ -515,14 +587,19 @@ class TernaryDimensionInterpreter:
         narrative += "\n"
 
         # 4. Harmonic Resolution (Balance)
-        narrative += f"**Harmonic Balance:** {self._get_balance_interpretation(counts)}\n\n" # Double newline
+        narrative += f"**Harmonic Balance:** {self._get_balance_interpretation(counts)}\n\n"  # Double newline
 
         # 5. Interpretive Weighting (Mention)
         narrative += "**Interpretive Weighting:** Note that Seed(1), Pulse(5), and Nova(9) dimensions often carry primary significance. Adjacency and cross-triad resonances amplify influence.\n\n"
 
         # TODO: Add Element Combination Meanings
 
-    def _generate_holistic_interpretation(self, ternary_digits: List[int], digits_interpretation: List[Dict], triad_analysis: Dict) -> str:
+    def _generate_holistic_interpretation(
+        self,
+        ternary_digits: List[int],
+        digits_interpretation: List[Dict],
+        triad_analysis: Dict,
+    ) -> str:
         """
         Generate a holistic interpretation of the ternary pattern.
 
@@ -543,7 +620,9 @@ class TernaryDimensionInterpreter:
         holistic_md = "## Holistic Pattern Interpretation\n\n"
 
         # Pattern Identity
-        holistic_md += f"**Pattern Identity:** {holistic_data['pattern_identity']['title']}\n"
+        holistic_md += (
+            f"**Pattern Identity:** {holistic_data['pattern_identity']['title']}\n"
+        )
         holistic_md += f"*{holistic_data['pattern_identity']['description']}*\n\n"
 
         # Dimensional Flow
@@ -554,43 +633,51 @@ class TernaryDimensionInterpreter:
         holistic_md += "**Triad Analysis:**\n"
 
         # Always include Potential Triad
-        potential_summary = triad_analysis['potential']['summary']
+        potential_summary = triad_analysis["potential"]["summary"]
         holistic_md += f"- **POTENTIAL TRIAD:** {potential_summary}\n"
 
         # Include Process Triad if available
-        if triad_analysis.get('process', {}).get('summary'):
-            process_summary = triad_analysis['process']['summary']
+        if triad_analysis.get("process", {}).get("summary"):
+            process_summary = triad_analysis["process"]["summary"]
             holistic_md += f"- **PROCESS TRIAD:** {process_summary}\n"
 
         # Include Emergence Triad if available
-        if triad_analysis.get('emergence', {}).get('summary'):
-            emergence_summary = triad_analysis['emergence']['summary']
+        if triad_analysis.get("emergence", {}).get("summary"):
+            emergence_summary = triad_analysis["emergence"]["summary"]
             holistic_md += f"- **EMERGENCE TRIAD:** {emergence_summary}\n"
 
         holistic_md += "\n"
 
         # Triad Integration (only if we have more than one triad)
-        if 'triad_integration' in holistic_data:
+        if "triad_integration" in holistic_data:
             holistic_md += "**Triad Integration:**\n"
 
             # Overall pattern
-            if 'overall_pattern' in holistic_data['triad_integration']:
-                holistic_md += f"*{holistic_data['triad_integration']['overall_pattern']}*\n\n"
+            if "overall_pattern" in holistic_data["triad_integration"]:
+                holistic_md += (
+                    f"*{holistic_data['triad_integration']['overall_pattern']}*\n\n"
+                )
 
             # Foundation-Development relationship (if Process Triad exists)
-            if 'foundation_development' in holistic_data['triad_integration']:
-                fd = holistic_data['triad_integration']['foundation_development']
-                holistic_md += f"- **Potential-Process Relationship:** {fd['pattern']}\n"
+            if "foundation_development" in holistic_data["triad_integration"]:
+                fd = holistic_data["triad_integration"]["foundation_development"]
+                holistic_md += (
+                    f"- **Potential-Process Relationship:** {fd['pattern']}\n"
+                )
                 holistic_md += f"  *{fd['description']}*\n"
 
             # Development-Culmination relationship (if Emergence Triad exists)
-            if 'development_culmination' in holistic_data['triad_integration']:
-                dc = holistic_data['triad_integration']['development_culmination']
-                holistic_md += f"- **Process-Emergence Relationship:** {dc['pattern']}\n"
+            if "development_culmination" in holistic_data["triad_integration"]:
+                dc = holistic_data["triad_integration"]["development_culmination"]
+                holistic_md += (
+                    f"- **Process-Emergence Relationship:** {dc['pattern']}\n"
+                )
                 holistic_md += f"  *{dc['description']}*\n\n"
 
         # Meta-Pattern
-        holistic_md += f"**Meta-Pattern:** {holistic_data['meta_patterns']['pattern']} Pattern\n"
+        holistic_md += (
+            f"**Meta-Pattern:** {holistic_data['meta_patterns']['pattern']} Pattern\n"
+        )
         holistic_md += f"*{holistic_data['meta_patterns']['description']}*\n\n"
 
         # Overall Synthesis

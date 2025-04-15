@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import List
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QImage, QPainter, QPixmap, QClipboard
+from PyQt6.QtGui import QColor, QImage, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -61,7 +61,7 @@ class TernaryDigitVisualizer(QWidget):
     def __init__(self, parent=None, color_scheme="standard"):
         """
         Initialize the visualizer widget.
-        
+
         Args:
             parent: Parent widget
             color_scheme: Color scheme for digit images ("standard", "blue", "green", "purple")
@@ -76,23 +76,25 @@ class TernaryDigitVisualizer(QWidget):
         # Available color schemes with RGB tint values
         self.color_schemes = {
             "standard": None,  # No tint for standard
-            "blue": (80, 120, 240),    # Blue tint
-            "green": (80, 200, 120),   # Green tint
+            "blue": (80, 120, 240),  # Blue tint
+            "green": (80, 200, 120),  # Green tint
             "purple": (180, 100, 220),  # Purple tint
-            "custom": None     # Will be set when user selects a custom color
+            "custom": None,  # Will be set when user selects a custom color
         }
-        
+
         # Current color scheme
-        self.current_color_scheme = color_scheme if color_scheme in self.color_schemes else "standard"
-        
+        self.current_color_scheme = (
+            color_scheme if color_scheme in self.color_schemes else "standard"
+        )
+
         # Original digit images (without tint)
         self.original_digit_images = {}
         # Tinted digit images for display
         self.digit_images = {}
-        
+
         # Load the original digit images
         self._load_original_images()
-        
+
         # Apply the initial color scheme
         self._apply_color_scheme()
 
@@ -110,11 +112,11 @@ class TernaryDigitVisualizer(QWidget):
 
         # Set size policy
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        
+
     def _load_original_images(self):
         """Load the original digit images without any tint."""
         self.original_digit_images.clear()
-        
+
         for digit in ["0", "1", "2"]:
             path = os.path.join("assets", "ternary_digit", f"{digit}_optimized.png")
             if os.path.exists(path):
@@ -122,14 +124,14 @@ class TernaryDigitVisualizer(QWidget):
                 self.original_digit_images[digit] = pixmap
             else:
                 print(f"Warning: Original digit image not found: {path}")
-                
+
     def _apply_color_scheme(self):
         """Apply the current color scheme to the original images."""
         self.digit_images.clear()
-        
+
         # Get the tint color for the current scheme
         tint = self.color_schemes[self.current_color_scheme]
-        
+
         for digit, original_pixmap in self.original_digit_images.items():
             if tint is None:
                 # For standard scheme, use original images
@@ -137,87 +139,98 @@ class TernaryDigitVisualizer(QWidget):
             else:
                 # For colored schemes, apply tint to a copy of the original image
                 image = original_pixmap.toImage()
-                
+
                 # Create a new image with the same format
                 tinted_image = QImage(image.size(), QImage.Format.Format_ARGB32)
-                
+
                 # Apply tint to each pixel
                 for y in range(image.height()):
                     for x in range(image.width()):
                         pixel = image.pixel(x, y)
-                        
+
                         # Get alpha value (transparency)
                         alpha = (pixel >> 24) & 0xFF
-                        
+
                         if alpha > 0:  # Only process non-transparent pixels
                             # Get original RGB values
                             orig_r = (pixel >> 16) & 0xFF
                             orig_g = (pixel >> 8) & 0xFF
                             orig_b = pixel & 0xFF
-                            
+
                             # Calculate grayscale value to determine if pixel is part of the foreground
                             # Using luminance formula: 0.299*R + 0.587*G + 0.114*B
                             grayscale = 0.299 * orig_r + 0.587 * orig_g + 0.114 * orig_b
-                            
+
                             # Check if pixel is background (white or very light)
                             # Threshold of 240 (out of 255) identifies very light pixels as background
                             is_background = grayscale > 240
-                            
+
                             if is_background:
                                 # Keep background pixels unchanged
                                 tinted_image.setPixel(x, y, pixel)
                             else:
                                 # Apply tint to foreground pixels
                                 tint_r, tint_g, tint_b = tint
-                                
+
                                 # Adaptive blend factor based on darkness
                                 # Darker pixels get more tint, preserving details in mid-tones
                                 darkness = 1.0 - (grayscale / 255.0)
                                 blend_factor = min(0.8, 0.4 + (darkness * 0.5))
-                                
+
                                 # Calculate blended RGB values
-                                r = int(orig_r * (1 - blend_factor) + tint_r * blend_factor)
-                                g = int(orig_g * (1 - blend_factor) + tint_g * blend_factor)
-                                b = int(orig_b * (1 - blend_factor) + tint_b * blend_factor)
-                                
+                                r = int(
+                                    orig_r * (1 - blend_factor) + tint_r * blend_factor
+                                )
+                                g = int(
+                                    orig_g * (1 - blend_factor) + tint_g * blend_factor
+                                )
+                                b = int(
+                                    orig_b * (1 - blend_factor) + tint_b * blend_factor
+                                )
+
                                 # Ensure values are in valid range
                                 r = max(0, min(255, r))
                                 g = max(0, min(255, g))
                                 b = max(0, min(255, b))
-                                
+
                                 # Create tinted pixel (preserve alpha)
                                 tinted_pixel = (alpha << 24) | (r << 16) | (g << 8) | b
                                 tinted_image.setPixel(x, y, tinted_pixel)
                         else:
                             # Keep transparent pixels transparent
                             tinted_image.setPixel(x, y, pixel)
-                
+
                 # Convert back to pixmap
                 self.digit_images[digit] = QPixmap.fromImage(tinted_image)
-                
+
     def set_color_scheme(self, color_scheme):
         """
         Change the color scheme for digit images.
-        
+
         Args:
             color_scheme: Name of the color scheme ("standard", "blue", "green", "purple")
         """
-        if color_scheme in self.color_schemes and color_scheme != self.current_color_scheme:
+        if (
+            color_scheme in self.color_schemes
+            and color_scheme != self.current_color_scheme
+        ):
             self.current_color_scheme = color_scheme
-            
+
             # Apply the new color scheme
             self._apply_color_scheme()
-            
+
             # Get the current ternary number from the visualization
             current_ternary = ""
-            for label in reversed(self.digit_labels):  # Collect current ternary from bottom to top
+            for label in reversed(
+                self.digit_labels
+            ):  # Collect current ternary from bottom to top
                 for digit in ["0", "1", "2"]:
                     # We can't compare pixmaps directly anymore since they're dynamically generated
                     # Instead, we'll check the label's text property which we'll set when creating labels
-                    if hasattr(label, 'digit_value') and label.digit_value == digit:
+                    if hasattr(label, "digit_value") and label.digit_value == digit:
                         current_ternary = digit + current_ternary
                         break
-            
+
             # Only update if we successfully reconstructed the ternary number
             if current_ternary and all(d in "012" for d in current_ternary):
                 self.set_ternary(current_ternary)
@@ -246,13 +259,13 @@ class TernaryDigitVisualizer(QWidget):
             )  # Remove any borders
             label.setFrameStyle(0)  # Remove frame
             label.setMargin(0)  # Remove margin
-            
+
             # Store the digit value in the label for later reference
             label.digit_value = digit
-            
+
             self.layout.addWidget(label)
             self.digit_labels.append(label)
-            
+
         # Force layout update and repaint
         self.layout.update()
         self.update()
@@ -273,27 +286,31 @@ class TernaryDigitVisualizer(QWidget):
             self.layout.removeWidget(label)
             label.deleteLater()
         self.digit_labels.clear()
-        
+
         # Ensure the layout updates properly
         self.layout.update()
 
     def create_image(self) -> QImage:
         """
         Create an image of the current visualization with transparency.
-        
+
         Returns:
             QImage: The created image
         """
         # Create a transparent image
         total_height = sum(label.height() for label in self.digit_labels)
-        max_width = max(label.width() for label in self.digit_labels) if self.digit_labels else 100
-        
+        max_width = (
+            max(label.width() for label in self.digit_labels)
+            if self.digit_labels
+            else 100
+        )
+
         image = QImage(max_width, total_height, QImage.Format.Format_ARGB32)
         image.fill(Qt.GlobalColor.transparent)
-        
+
         # Create painter
         painter = QPainter(image)
-        
+
         # Draw each digit
         y_offset = 0
         for label in reversed(self.digit_labels):  # Reverse to draw from top to bottom
@@ -301,34 +318,34 @@ class TernaryDigitVisualizer(QWidget):
             x = (max_width - pixmap.width()) // 2  # Center horizontally
             painter.drawPixmap(x, y_offset, pixmap)
             y_offset += pixmap.height()
-        
+
         painter.end()
-        
+
         return image
-    
+
     def copy_to_clipboard(self) -> bool:
         """
         Copy the current visualization to the system clipboard.
-        
+
         Returns:
             bool: True if copy was successful, False otherwise
         """
         try:
             # Create the image
             image = self.create_image()
-            
+
             # Get the system clipboard
             clipboard = QApplication.clipboard()
-            
+
             # Copy the image to clipboard
             clipboard.setImage(image)
-            
+
             return True
-            
+
         except Exception as e:
             print(f"Error copying to clipboard: {e}")
             return False
-    
+
     def export_to_png(self, filepath: str) -> bool:
         """
         Export the current visualization to a PNG file with transparency.
@@ -342,7 +359,7 @@ class TernaryDigitVisualizer(QWidget):
         try:
             # Create the image
             image = self.create_image()
-            
+
             # Save the image
             return image.save(filepath, "PNG")
 
@@ -361,7 +378,7 @@ class TernaryVisualizerPanel(QFrame):
     def __init__(self, parent=None):
         """Initialize the visualizer panel."""
         super().__init__(parent)
-        
+
         # Set minimum width for better horizontal space
         self.setMinimumWidth(600)
 
@@ -373,7 +390,9 @@ class TernaryVisualizerPanel(QFrame):
         # Create title
         title_label = QLabel("Ternary Digit Visualizer")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
+        title_label.setStyleSheet(
+            "font-size: 18px; font-weight: bold; margin-bottom: 10px;"
+        )
         main_layout.addWidget(title_label)
 
         # Create a grid layout for the control panel
@@ -382,11 +401,11 @@ class TernaryVisualizerPanel(QFrame):
         control_panel.setColumnStretch(1, 1)  # Second column takes more space
         control_panel.setHorizontalSpacing(20)
         control_panel.setVerticalSpacing(10)
-        
+
         # === Input Section (Left Column) ===
         input_group = QGroupBox("Number Input")
         input_layout = QVBoxLayout(input_group)
-        
+
         # Input type selection
         input_type_layout = QHBoxLayout()
         self.input_type_group = QButtonGroup(self)
@@ -395,11 +414,11 @@ class TernaryVisualizerPanel(QFrame):
         self.input_type_group.addButton(self.ternary_radio)
         self.input_type_group.addButton(self.decimal_radio)
         self.ternary_radio.setChecked(True)  # Default selection
-        
+
         input_type_layout.addWidget(self.ternary_radio)
         input_type_layout.addWidget(self.decimal_radio)
         input_layout.addLayout(input_type_layout)
-        
+
         # Number input field
         number_layout = QHBoxLayout()
         number_layout.addWidget(QLabel("Number:"))
@@ -408,20 +427,20 @@ class TernaryVisualizerPanel(QFrame):
         self.number_input.textChanged.connect(self._validate_input)
         number_layout.addWidget(self.number_input)
         input_layout.addLayout(number_layout)
-        
+
         # Display button
         self.display_button = QPushButton("Display")
         self.display_button.setMinimumHeight(30)
         self.display_button.clicked.connect(self._update_visualization)
         input_layout.addWidget(self.display_button)
-        
+
         # Add input group to the left column
         control_panel.addWidget(input_group, 0, 0)
-        
+
         # === Actions Section (Right Column) ===
         actions_group = QGroupBox("Actions")
         actions_layout = QVBoxLayout(actions_group)
-        
+
         # Transformation buttons
         transform_layout = QHBoxLayout()
         self.conrune_button = QPushButton("Apply Conrune")
@@ -431,7 +450,7 @@ class TernaryVisualizerPanel(QFrame):
         transform_layout.addWidget(self.conrune_button)
         transform_layout.addWidget(self.reversal_button)
         actions_layout.addLayout(transform_layout)
-        
+
         # Export and Copy buttons
         export_layout = QHBoxLayout()
         self.export_button = QPushButton("Export PNG")
@@ -441,43 +460,45 @@ class TernaryVisualizerPanel(QFrame):
         export_layout.addWidget(self.export_button)
         export_layout.addWidget(self.copy_button)
         actions_layout.addLayout(export_layout)
-        
+
         # Add actions group to the right column
         control_panel.addWidget(actions_group, 0, 1)
-        
+
         # === Appearance Section (Full Width) ===
         appearance_group = QGroupBox("Appearance")
         appearance_layout = QHBoxLayout(appearance_group)
-        
+
         # Color scheme selection
         appearance_layout.addWidget(QLabel("Color Scheme:"))
         self.color_combo = QComboBox()
         self.color_combo.addItems(["Standard", "Blue", "Green", "Purple", "Custom..."])
         self.color_combo.currentTextChanged.connect(self._change_color_scheme)
         appearance_layout.addWidget(self.color_combo)
-        
+
         # Color indicator
         self.color_indicator = QLabel()
         self.color_indicator.setFixedSize(24, 24)
-        self.color_indicator.setStyleSheet("background-color: transparent; border: 1px solid gray;")
+        self.color_indicator.setStyleSheet(
+            "background-color: transparent; border: 1px solid gray;"
+        )
         appearance_layout.addWidget(self.color_indicator)
-        
+
         # Color picker button
         self.color_picker_button = QPushButton("Pick Color")
         self.color_picker_button.clicked.connect(self._open_color_picker)
         self.color_picker_button.setVisible(False)  # Initially hidden
         appearance_layout.addWidget(self.color_picker_button)
-        
+
         # Add appearance group spanning both columns
         control_panel.addWidget(appearance_group, 1, 0, 1, 2)
-        
+
         # Add the control panel to the main layout
         main_layout.addLayout(control_panel)
 
         # Create a container for the visualizer with a border
         visualizer_container = QGroupBox("Visualization")
         visualizer_layout = QVBoxLayout(visualizer_container)
-        
+
         # Create scroll area for the visualizer
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -497,16 +518,16 @@ class TernaryVisualizerPanel(QFrame):
         # Create the visualizer widget
         self.visualizer = TernaryDigitVisualizer()
         scroll_area.setWidget(self.visualizer)
-        
+
         # Add scroll area to the visualizer container
         visualizer_layout.addWidget(scroll_area)
-        
+
         # Add the visualizer container to the main layout with stretch factor
         main_layout.addWidget(visualizer_container, 1)
 
         # Create the ternary transition utility
         self.transition = TernaryTransition()
-        
+
         # Initialize toggle state variables
         self._original_ternary = None
         self._original_input = None
@@ -576,7 +597,7 @@ class TernaryVisualizerPanel(QFrame):
             self._is_reversed = False
             self.conrune_button.setText("Apply Conrune")
             self.reversal_button.setText("Apply Reversal")
-            
+
             if self.ternary_radio.isChecked():
                 if all(digit in "012" for digit in text):
                     self.visualizer.set_ternary(text)
@@ -602,7 +623,7 @@ class TernaryVisualizerPanel(QFrame):
                 )
             else:
                 QMessageBox.warning(self, "Error", "Failed to export visualization")
-                
+
     def _copy_to_clipboard(self) -> None:
         """Copy the current visualization to the system clipboard."""
         if self.visualizer.copy_to_clipboard():
@@ -610,7 +631,9 @@ class TernaryVisualizerPanel(QFrame):
                 self, "Success", "Visualization copied to clipboard"
             )
         else:
-            QMessageBox.warning(self, "Error", "Failed to copy visualization to clipboard")
+            QMessageBox.warning(
+                self, "Error", "Failed to copy visualization to clipboard"
+            )
 
     def _apply_conrune(self) -> None:
         """Apply the Conrune transformation to the current number."""
@@ -632,7 +655,7 @@ class TernaryVisualizerPanel(QFrame):
                 original_input = text  # Store original decimal input
 
             # Store the original value if this is the first transformation
-            if not hasattr(self, '_original_ternary') or self._original_ternary is None:
+            if not hasattr(self, "_original_ternary") or self._original_ternary is None:
                 self._original_ternary = ternary_str
                 self._original_input = original_input
                 # Apply conrune transformation
@@ -668,7 +691,9 @@ class TernaryVisualizerPanel(QFrame):
                 # Convert transformed ternary back to decimal for display
                 transformed_decimal = str(ternary_to_decimal(transformed_ternary))
                 self.number_input.setText(transformed_decimal)
-                self.visualizer.set_ternary(transformed_ternary)  # Visualizer always uses ternary
+                self.visualizer.set_ternary(
+                    transformed_ternary
+                )  # Visualizer always uses ternary
             else:
                 # In ternary mode, just display the transformed ternary
                 self.number_input.setText(transformed_ternary)
@@ -676,7 +701,7 @@ class TernaryVisualizerPanel(QFrame):
 
         except (ValueError, Exception) as e:
             QMessageBox.warning(self, "Error", f"Invalid input: {str(e)}")
-            
+
     def _apply_reversal(self) -> None:
         """Apply the digit reversal transformation to the current number."""
         text = self.number_input.text()
@@ -697,7 +722,10 @@ class TernaryVisualizerPanel(QFrame):
                 original_input = text  # Store original decimal input
 
             # Store the original value if this is the first transformation
-            if not hasattr(self, '_original_ternary_for_reversal') or self._original_ternary_for_reversal is None:
+            if (
+                not hasattr(self, "_original_ternary_for_reversal")
+                or self._original_ternary_for_reversal is None
+            ):
                 self._original_ternary_for_reversal = ternary_str
                 self._original_input_for_reversal = original_input
                 # Apply reversal transformation
@@ -733,7 +761,9 @@ class TernaryVisualizerPanel(QFrame):
                 # Convert transformed ternary back to decimal for display
                 transformed_decimal = str(ternary_to_decimal(transformed_ternary))
                 self.number_input.setText(transformed_decimal)
-                self.visualizer.set_ternary(transformed_ternary)  # Visualizer always uses ternary
+                self.visualizer.set_ternary(
+                    transformed_ternary
+                )  # Visualizer always uses ternary
             else:
                 # In ternary mode, just display the transformed ternary
                 self.number_input.setText(transformed_ternary)
@@ -741,11 +771,11 @@ class TernaryVisualizerPanel(QFrame):
 
         except (ValueError, Exception) as e:
             QMessageBox.warning(self, "Error", f"Invalid input: {str(e)}")
-            
+
     def _change_color_scheme(self, color_text):
         """
         Change the color scheme of the ternary digit visualizer.
-        
+
         Args:
             color_text: The selected color scheme text from the combo box
         """
@@ -766,11 +796,11 @@ class TernaryVisualizerPanel(QFrame):
             self.color_picker_button.setVisible(False)
             color_scheme = color_text.lower()
             self.visualizer.set_color_scheme(color_scheme)
-            
+
             # Update color indicator
             tint = self.visualizer.color_schemes[color_scheme]
             self._update_color_indicator(tint)
-    
+
     def _open_color_picker(self):
         """Open a color picker dialog and apply the selected color."""
         # Get initial color (use current custom color if available)
@@ -778,32 +808,32 @@ class TernaryVisualizerPanel(QFrame):
         if self.visualizer.color_schemes["custom"] is not None:
             r, g, b = self.visualizer.color_schemes["custom"]
             initial_color = QColor(r, g, b)
-        
+
         # Open color dialog
         color = QColorDialog.getColor(
-            initial_color, 
+            initial_color,
             self,
             "Select Custom Color",
-            QColorDialog.ColorDialogOption.ShowAlphaChannel
+            QColorDialog.ColorDialogOption.ShowAlphaChannel,
         )
-        
+
         # If a valid color was selected
         if color.isValid():
             # Extract RGB components
             r, g, b = color.red(), color.green(), color.blue()
-            
+
             # Update custom color in visualizer
             self.visualizer.color_schemes["custom"] = (r, g, b)
             self.visualizer.set_color_scheme("custom")
-            
+
             # Update color indicator
             self._update_color_indicator((r, g, b))
-            
+
             # Make sure "Custom..." is selected in the combo box
             index = self.color_combo.findText("Custom...")
             if index >= 0:
                 self.color_combo.setCurrentIndex(index)
-    
+
     def _update_color_indicator(self, tint):
         """Update the color indicator with the current tint color."""
         if tint is None:

@@ -98,7 +98,9 @@ class QuadsetAnalysisPanel(QFrame):
         # Create a frame for the differences section
         diff_frame = QFrame()
         diff_frame.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
-        diff_frame.setStyleSheet(f"background-color: {TQColors.DIFFERENCE_BG}; border-radius: 6px; padding: 5px;")
+        diff_frame.setStyleSheet(
+            f"background-color: {TQColors.DIFFERENCE_BG}; border-radius: 6px; padding: 5px;"
+        )
         diff_layout = QVBoxLayout(diff_frame)
 
         # Section header
@@ -106,7 +108,9 @@ class QuadsetAnalysisPanel(QFrame):
         diff_header.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         diff_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         diff_header.setProperty("isSubtitle", "true")
-        diff_header.setStyleSheet(f"color: {TQColors.PRIMARY_DARK}; background-color: transparent;")
+        diff_header.setStyleSheet(
+            f"color: {TQColors.PRIMARY_DARK}; background-color: transparent;"
+        )
         diff_layout.addWidget(diff_header)
 
         # Create grid for differences
@@ -121,7 +125,7 @@ class QuadsetAnalysisPanel(QFrame):
             TQColors.BASE_NUMBER,
             TQColors.CONRUNE,
             TQColors.REVERSAL,
-            TQColors.REVERSAL_CONRUNE
+            TQColors.REVERSAL_CONRUNE,
         ]
 
         for i, header in enumerate(headers):
@@ -130,7 +134,9 @@ class QuadsetAnalysisPanel(QFrame):
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setMinimumWidth(100)  # Set minimum width for better spacing
             if i > 0:  # Skip the empty cell
-                label.setStyleSheet(f"background-color: {header_colors[i]}; color: white; border-radius: 4px;")
+                label.setStyleSheet(
+                    f"background-color: {header_colors[i]}; color: white; border-radius: 4px;"
+                )
             diff_grid.addWidget(label, 0, i)
 
         # Row headers with colors
@@ -139,7 +145,9 @@ class QuadsetAnalysisPanel(QFrame):
             label.setProperty("isHeader", "true")
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setMinimumWidth(100)  # Set minimum width for better spacing
-            label.setStyleSheet(f"background-color: {header_colors[i]}; color: white; border-radius: 4px;")
+            label.setStyleSheet(
+                f"background-color: {header_colors[i]}; color: white; border-radius: 4px;"
+            )
             diff_grid.addWidget(label, i, 0)
 
         # Create value labels for the differences
@@ -175,7 +183,9 @@ class QuadsetAnalysisPanel(QFrame):
         # Create a frame for the sums section
         sums_frame = QFrame()
         sums_frame.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
-        sums_frame.setStyleSheet(f"background-color: {TQColors.SUM_BG}; border-radius: 6px; padding: 5px;")
+        sums_frame.setStyleSheet(
+            f"background-color: {TQColors.SUM_BG}; border-radius: 6px; padding: 5px;"
+        )
         sums_layout = QVBoxLayout(sums_frame)
 
         # Section header
@@ -183,7 +193,9 @@ class QuadsetAnalysisPanel(QFrame):
         sums_header.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         sums_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sums_header.setProperty("isSubtitle", "true")
-        sums_header.setStyleSheet(f"color: {TQColors.PRIMARY_DARK}; background-color: transparent;")
+        sums_header.setStyleSheet(
+            f"color: {TQColors.PRIMARY_DARK}; background-color: transparent;"
+        )
         sums_layout.addWidget(sums_header)
 
         # Create grid for sums
@@ -198,7 +210,7 @@ class QuadsetAnalysisPanel(QFrame):
             TQColors.BASE_NUMBER,
             TQColors.CONRUNE,
             TQColors.REVERSAL,
-            TQColors.REVERSAL_CONRUNE
+            TQColors.REVERSAL_CONRUNE,
         ]
 
         for i, header in enumerate(headers):
@@ -207,7 +219,9 @@ class QuadsetAnalysisPanel(QFrame):
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setMinimumWidth(100)  # Set minimum width for better spacing
             if i > 0:  # Skip the empty cell
-                label.setStyleSheet(f"background-color: {header_colors[i]}; color: white; border-radius: 4px;")
+                label.setStyleSheet(
+                    f"background-color: {header_colors[i]}; color: white; border-radius: 4px;"
+                )
             sums_grid.addWidget(label, 0, i)
 
         # Row headers with colors
@@ -216,7 +230,9 @@ class QuadsetAnalysisPanel(QFrame):
             label.setProperty("isHeader", "true")
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.setMinimumWidth(100)  # Set minimum width for better spacing
-            label.setStyleSheet(f"background-color: {header_colors[i]}; color: white; border-radius: 4px;")
+            label.setStyleSheet(
+                f"background-color: {header_colors[i]}; color: white; border-radius: 4px;"
+            )
             sums_grid.addWidget(label, i, 0)
 
         # Create value labels for the sums
@@ -247,7 +263,9 @@ class QuadsetAnalysisPanel(QFrame):
                     label = QLabel("↑")
                     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                     label.setProperty("isValue", "true")
-                    label.setStyleSheet("background-color: #F0F0F0; font-style: italic; color: #757575;")
+                    label.setStyleSheet(
+                        "background-color: #F0F0F0; font-style: italic; color: #757575;"
+                    )
                     label.setMinimumWidth(100)  # Set minimum width for better spacing
                     sums_grid.addWidget(label, row, col)
 
@@ -267,27 +285,20 @@ class QuadsetAnalysisPanel(QFrame):
         self.grid_service.unregister_callback(self.update_analysis)
         super().closeEvent(event)
 
-
-
     def update_analysis(self):
         """Update the analysis with current quadset values."""
         # Get the current grid values
         grid = self.grid_service.get_current_grid()
 
         # Extract the values
-        values = [
-            grid.base_number,
-            grid.conrune,
-            grid.reversal,
-            grid.reversal_conrune
-        ]
+        values = [grid.base_number, grid.conrune, grid.reversal, grid.reversal_conrune]
 
         # Update the differences
         for row in range(1, 5):
             for col in range(1, 5):
                 if row != col:
                     # Calculate absolute difference
-                    diff = abs(values[row-1] - values[col-1])
+                    diff = abs(values[row - 1] - values[col - 1])
 
                     # Update the label
                     label = self.diff_labels[(row, col)]
@@ -297,14 +308,16 @@ class QuadsetAnalysisPanel(QFrame):
                     # Larger differences get darker background
                     intensity = min(255, max(220, 255 - int(diff * 0.1)))
                     bg_color = f"rgb({intensity}, {intensity}, 255)"
-                    label.setStyleSheet(f"background-color: {bg_color}; font-weight: bold;")
+                    label.setStyleSheet(
+                        f"background-color: {bg_color}; font-weight: bold;"
+                    )
 
         # Update the sums
         for row in range(1, 5):
             for col in range(1, 5):
                 if row <= col:
                     # Calculate sum
-                    sum_value = values[row-1] + values[col-1]
+                    sum_value = values[row - 1] + values[col - 1]
 
                     # Update the label
                     label = self.sum_labels[(row, col)]
@@ -314,4 +327,6 @@ class QuadsetAnalysisPanel(QFrame):
                     # Larger sums get darker background
                     intensity = min(255, max(220, 255 - int(sum_value * 0.05)))
                     bg_color = f"rgb(255, {intensity}, {intensity})"
-                    label.setStyleSheet(f"background-color: {bg_color}; font-weight: bold;")
+                    label.setStyleSheet(
+                        f"background-color: {bg_color}; font-weight: bold;"
+                    )

@@ -1,5 +1,3 @@
-import os
-import base64
 from datetime import datetime
 from pathlib import Path
 
@@ -27,12 +25,10 @@ from PyQt6.QtWidgets import (
 )
 
 from .commands import (
-    CommandHistory,
-    InsertTextCommand,
-    DeleteTextCommand,
-    FormatCommand,
     AlignmentCommand,
-    InsertImageCommand
+    CommandHistory,
+    FormatCommand,
+    InsertImageCommand,
 )
 from .document_manager import DocumentManager
 from .format_toolbar import FormatToolBar
@@ -45,7 +41,7 @@ from .zoom_manager import ZoomManager
 
 class RTFEditorWindow(QMainWindow):
     """Main RTF editor window with full editing capabilities.
-    
+
     This class serves as the main window for the RTF editor application, integrating all components:
     - Text editing area (QTextEdit)
     - Document management (loading, saving)
@@ -54,10 +50,10 @@ class RTFEditorWindow(QMainWindow):
     - Image handling
     - Zoom controls
     - Undo/redo history
-    
+
     It provides a complete rich text editing experience with support for text formatting,
     tables, images, and document management.
-    
+
     Attributes:
         text_edit (QTextEdit): The main text editing widget
         document_manager (DocumentManager): Handles document operations
@@ -70,60 +66,62 @@ class RTFEditorWindow(QMainWindow):
 
     def __init__(self, parent=None):
         """Initialize the RTF editor window.
-        
+
         Creates the main editor window and initializes all components.
         Sets up the UI, menus, toolbars, and connects signals.
-        
+
         Args:
             parent (QWidget, optional): Parent widget for this window
-            
+
         Returns:
             None
         """
         # Set up exception handling for the entire application
         self.setup_exception_handling()
-        
+
         # Set window flags to ensure this window stays on top
         flags = Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint
         super().__init__(parent, flags)
-        
+
         self.setWindowTitle("RTF Editor")
         self.resize(800, 600)
-        
+
         # Enable delete on close to ensure proper cleanup
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize components
         self.setup_ui()
-        
+
         # Initialize command history for undo/redo
         self.command_history = CommandHistory()
-        
+
         # Initialize document and content managers
         self.document_manager = DocumentManager(self)
         self.table_manager = TableManager(self.text_edit)
         self.setup_menubar()
         self.setup_toolbars()
-        
+
         # Initialize image manager with document ID from document manager
         document_id = None
-        if hasattr(self, "document_manager") and hasattr(self.document_manager, "document_id"):
+        if hasattr(self, "document_manager") and hasattr(
+            self.document_manager, "document_id"
+        ):
             document_id = self.document_manager.document_id
-        
+
         self.image_manager = ImageManager(self.text_edit, self, document_id)
         self.image_manager.add_menu_actions(self.menuBar())
 
         # Connect command history signals to UI updates
         self.command_history.undo_available.connect(self._update_undo_action)
         self.command_history.redo_available.connect(self._update_redo_action)
-        
+
         # Connect signals
         self.text_edit.textChanged.connect(self.on_text_changed)
         self.text_edit.cursorPositionChanged.connect(self.on_cursor_position_changed)
         self.text_edit.selectionChanged.connect(self.on_selection_changed)
         self.table_manager.table_modified.connect(self.on_text_changed)
         self.image_manager.content_changed.connect(self.on_text_changed)
-        
+
         # Connect document manager signals
         self.document_manager.status_updated.connect(self.show_status_message)
         self.document_manager.recovery_available.connect(self.handle_recovery_files)
@@ -140,10 +138,10 @@ class RTFEditorWindow(QMainWindow):
 
     def setup_ui(self):
         """Set up the main UI components.
-        
+
         Creates and configures the central widget, layout, and text editor.
         Sets up the status bar and ensures all components are properly visible.
-        
+
         Returns:
             None
         """
@@ -188,10 +186,10 @@ class RTFEditorWindow(QMainWindow):
 
     def setup_toolbars(self):
         """Set up formatting toolbars.
-        
+
         Creates and configures the formatting toolbar and view toolbar.
         Connects toolbar signals to appropriate slots and adds them to the window.
-        
+
         Returns:
             None
         """
@@ -204,7 +202,7 @@ class RTFEditorWindow(QMainWindow):
             self.format_toolbar.format_changed.connect(self.apply_format)
         if hasattr(self.format_toolbar, "alignment_changed"):
             self.format_toolbar.alignment_changed.connect(self.set_alignment)
-            
+
         # Ensure the format toolbar is connected to the text editor signals
         if hasattr(self.format_toolbar, "connect_to_editor_signals"):
             self.format_toolbar.connect_to_editor_signals()
@@ -245,48 +243,48 @@ class RTFEditorWindow(QMainWindow):
         save_as_action = file_menu.addAction("Save &As...")
         save_as_action.setShortcut("Ctrl+Shift+S")
         save_as_action.triggered.connect(self.document_manager.save_document_as)
-        
+
         # Add separator
         file_menu.addSeparator()
-        
+
         # Recover Documents
         recover_action = file_menu.addAction("&Recover Documents...")
         recover_action.triggered.connect(self.show_recovery_dialog)
-        
+
         # Add Edit menu with undo/redo
         edit_menu = menubar.addMenu("&Edit")
-        
+
         # Undo
         self.undo_action = edit_menu.addAction("&Undo")
         self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
         self.undo_action.triggered.connect(self.undo)
         self.undo_action.setEnabled(False)
-        
+
         # Redo
         self.redo_action = edit_menu.addAction("&Redo")
         self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
         self.redo_action.triggered.connect(self.redo)
         self.redo_action.setEnabled(False)
-        
+
         edit_menu.addSeparator()
-        
+
         # Cut
         cut_action = edit_menu.addAction("Cu&t")
         cut_action.setShortcut(QKeySequence.StandardKey.Cut)
         cut_action.triggered.connect(self.text_edit.cut)
-        
+
         # Copy
         copy_action = edit_menu.addAction("&Copy")
         copy_action.setShortcut(QKeySequence.StandardKey.Copy)
         copy_action.triggered.connect(self.text_edit.copy)
-        
+
         # Paste
         paste_action = edit_menu.addAction("&Paste")
         paste_action.setShortcut(QKeySequence.StandardKey.Paste)
         paste_action.triggered.connect(self.text_edit.paste)
-        
+
         edit_menu.addSeparator()
-        
+
         # Select All
         select_all_action = edit_menu.addAction("Select &All")
         select_all_action.setShortcut(QKeySequence.StandardKey.SelectAll)
@@ -426,45 +424,45 @@ class RTFEditorWindow(QMainWindow):
 
     def setup_document_change_tracking(self):
         """Set up tracking for document changes for undo/redo functionality.
-        
+
         This method is intentionally empty because we handle document changes
         through our own mechanisms rather than connecting directly to the
         QTextDocument's signals, which can be too granular.
-        
+
         Returns:
             None
         """
         # We handle document changes in text_edit.textChanged
         # and specific operations (format, alignment, etc.)
         pass
-    
+
     def _update_undo_action(self, available):
         """Update the undo action enabled state.
-        
+
         Args:
             available (bool): Whether undo is available
-            
+
         Returns:
             None
         """
-        if hasattr(self, 'undo_action'):
+        if hasattr(self, "undo_action"):
             self.undo_action.setEnabled(available)
-    
+
     def _update_redo_action(self, available):
         """Update the redo action enabled state.
-        
+
         Args:
             available (bool): Whether redo is available
-            
+
         Returns:
             None
         """
-        if hasattr(self, 'redo_action'):
+        if hasattr(self, "redo_action"):
             self.redo_action.setEnabled(available)
-    
+
     def undo(self):
         """Undo the last operation.
-        
+
         Returns:
             bool: True if successful, False otherwise
         """
@@ -475,10 +473,10 @@ class RTFEditorWindow(QMainWindow):
             self.update_status_bar()
             return True
         return False
-    
+
     def redo(self):
         """Redo the last undone operation.
-        
+
         Returns:
             bool: True if successful, False otherwise
         """
@@ -492,13 +490,13 @@ class RTFEditorWindow(QMainWindow):
 
     def apply_format(self, format):
         """Apply the format to the current selection or cursor position.
-        
+
         Applies character formatting to the current selection or cursor position
         with error handling to prevent crashes.
-        
+
         Args:
             format (QTextCharFormat): The format to apply
-            
+
         Returns:
             None
         """
@@ -506,24 +504,25 @@ class RTFEditorWindow(QMainWindow):
             # Check if text_edit is valid
             if not self.text_edit or not self.text_edit.isVisible():
                 return
-                
+
             # Create and execute a FormatCommand
             command = FormatCommand(self.text_edit, format)
             self.command_history.push(command)
-            
+
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Error applying format: {e}", exc_info=True)
 
     def set_alignment(self, alignment):
         """Set the alignment of the current paragraph.
-        
+
         Sets the alignment of the current paragraph with error handling
         to prevent crashes.
-        
+
         Args:
             alignment (Qt.AlignmentFlag): The alignment to apply
-            
+
         Returns:
             None
         """
@@ -531,44 +530,48 @@ class RTFEditorWindow(QMainWindow):
             # Check if text_edit is valid
             if not self.text_edit or not self.text_edit.isVisible():
                 return
-                
+
             # Create and execute an AlignmentCommand
             command = AlignmentCommand(self.text_edit, alignment)
             self.command_history.push(command)
-            
+
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Error setting alignment: {e}", exc_info=True)
 
     def on_text_changed(self):
         """Handle text changes in the editor."""
         # Note: We don't create a command here because text editing operations
-        # like typing, cutting, pasting, etc. should be handled by tracking 
+        # like typing, cutting, pasting, etc. should be handled by tracking
         # document changes through the QTextDocument signals. The Command pattern
         # should not interfere with the normal undo/redo mechanism for text edits.
-        
+
         # Mark the document as modified
         self.document_manager.set_modified(True)
         self.update_status_bar()
-        
+
         # Reconnect format toolbar if needed
         self.reconnect_format_toolbar()
 
     def reconnect_format_toolbar(self):
         """Reconnect the format toolbar to the text editor.
-        
+
         This method ensures that the format toolbar is properly connected
         to the text editor signals. It's called after text changes to
         maintain the connection.
-        
+
         Returns:
             None
         """
         try:
-            if hasattr(self, "format_toolbar") and hasattr(self.format_toolbar, "connect_to_editor_signals"):
+            if hasattr(self, "format_toolbar") and hasattr(
+                self.format_toolbar, "connect_to_editor_signals"
+            ):
                 self.format_toolbar.connect_to_editor_signals()
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Error reconnecting format toolbar: {e}", exc_info=True)
 
     def update_status_bar_without_toolbar(self):
@@ -591,100 +594,106 @@ class RTFEditorWindow(QMainWindow):
                 f"Words: {word_count} | "
                 f"Lines: {line_count}"
             )
-            
+
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Error updating status bar: {e}", exc_info=True)
-            
+
     def update_status_bar(self):
         """Update the status bar with document statistics."""
         try:
             # Just call the version without toolbar updates to avoid segfaults
             self.update_status_bar_without_toolbar()
-            
+
             # Disabled to prevent segfaults
             # Update format toolbar state
             # self._safe_update_format_toolbar()
-            
+
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Error updating status bar: {e}", exc_info=True)
-            
+
     def update_format_toolbar(self):
         """Update the format toolbar state to reflect current formatting.
-        
+
         This method safely updates the format toolbar state to reflect
         the formatting at the current cursor position.
-        
+
         Returns:
             None
         """
         try:
-            if hasattr(self, "format_toolbar") and hasattr(self.format_toolbar, "update_toolbar_state"):
+            if hasattr(self, "format_toolbar") and hasattr(
+                self.format_toolbar, "update_toolbar_state"
+            ):
                 self.format_toolbar.update_toolbar_state()
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Error updating format toolbar: {e}", exc_info=True)
-            
+
     def _safe_update_format_toolbar(self):
         """Safely update the format toolbar with additional error handling.
-        
+
         This is a wrapper around update_format_toolbar that adds an extra
         layer of error handling to prevent any exceptions from propagating.
-        
+
         Note: This method is currently disabled to prevent segfaults.
-        
+
         Returns:
             None
         """
         # Completely disabled to prevent segfaults
         return
-        
+
         # Original implementation (disabled)
         # try:
         #     self.update_format_toolbar()
         # except Exception as e:
         #     from loguru import logger
         #     logger.error(f"Error in _safe_update_format_toolbar: {e}", exc_info=True)
-            
+
     def on_cursor_position_changed(self):
         """Handle cursor position changes in the editor.
-        
+
         Updates the status bar when the cursor position changes.
         Format toolbar updates are disabled to prevent segfaults.
-        
+
         Returns:
             None
         """
         try:
             # Update the status bar only
             self.update_status_bar_without_toolbar()
-            
+
             # Format toolbar updates are disabled to prevent segfaults
             # from PyQt6.QtCore import QTimer
             # QTimer.singleShot(50, self._safe_update_format_toolbar)
-            
+
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Error handling cursor position change: {e}", exc_info=True)
-            
+
     def on_selection_changed(self):
         """Handle selection changes in the editor.
-        
+
         Format toolbar updates are disabled to prevent segfaults.
-        
+
         Returns:
             None
         """
         # Completely disabled to prevent segfaults
         return
-        
+
         # Original implementation (disabled)
         # try:
         #     # Update the format toolbar with a slight delay to ensure stability
         #     from PyQt6.QtCore import QTimer
         #     QTimer.singleShot(50, self._safe_update_format_toolbar)
-        #     
+        #
         # except Exception as e:
         #     from loguru import logger
         #     logger.error(f"Error handling selection change: {e}", exc_info=True)
@@ -845,7 +854,9 @@ class RTFEditorWindow(QMainWindow):
                     with Image.open(path_obj) as img:
                         original_width, original_height = img.size
                 except Exception as e:
-                    print(f"Could not load original image {path_obj} for dimensions: {e}")
+                    print(
+                        f"Could not load original image {path_obj} for dimensions: {e}"
+                    )
                     original_width, original_height = 100, 100  # Safe default
             else:
                 original_width, original_height = 100, 100  # Safe default if no path
@@ -1165,26 +1176,26 @@ class RTFEditorWindow(QMainWindow):
         else:
             # Pass to default handler
             super().wheelEvent(event)
-            
+
     def _get_mime_type_from_path(self, file_path):
         """Get MIME type from file path using pathlib.
-        
+
         Args:
             file_path (str): Path to the file
-            
+
         Returns:
             str: MIME type for the file
         """
         import mimetypes
-        
+
         # Try using mimetypes first
         mime_type, _ = mimetypes.guess_type(file_path)
-        
+
         if not mime_type:
             # Fallback to extension-based detection
             path_obj = Path(file_path)
             suffix = path_obj.suffix.lower()
-            
+
             if suffix in [".jpg", ".jpeg"]:
                 mime_type = "image/jpeg"
             elif suffix == ".png":
@@ -1193,23 +1204,23 @@ class RTFEditorWindow(QMainWindow):
                 mime_type = "image/gif"
             else:
                 mime_type = "image/png"  # Default
-                
+
         return mime_type
-        
+
     def handle_recovery_files(self, recovery_files):
         """Handle available recovery files.
-        
+
         Shows a dialog asking the user if they want to recover from auto-saved files.
-        
+
         Args:
             recovery_files (list): List of Path objects pointing to recovery files
-            
+
         Returns:
             None
         """
         if not recovery_files:
             return
-            
+
         # Ask user if they want to recover
         response = QMessageBox.question(
             self,
@@ -1217,73 +1228,73 @@ class RTFEditorWindow(QMainWindow):
             f"Found {len(recovery_files)} auto-saved document(s) from a previous session.\n\n"
             "Would you like to recover the most recent one?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes
+            QMessageBox.StandardButton.Yes,
         )
-        
+
         if response == QMessageBox.StandardButton.Yes:
             # Recover the most recent file (first in the list)
             self.document_manager.recover_document(recovery_files[0])
-            
+
             # Show a message about other recovery files if there are more
             if len(recovery_files) > 1:
                 QMessageBox.information(
                     self,
                     "Additional Recovery Files",
                     f"There are {len(recovery_files) - 1} additional recovery files available.\n\n"
-                    "You can access them from the File menu if needed."
+                    "You can access them from the File menu if needed.",
                 )
-                
+
                 # TODO: Add a menu item to access other recovery files
-                
+
     def on_auto_save_completed(self):
         """Handle auto-save completion.
-        
+
         Updates the status bar with a temporary message.
-        
+
         Returns:
             None
         """
         # Show a temporary status message
         self.statusBar().showMessage("Auto-save completed", 3000)  # Show for 3 seconds
-        
+
     def show_status_message(self, message):
         """Show a message in the status bar.
-        
+
         Args:
             message (str): The message to display
-            
+
         Returns:
             None
         """
         self.statusBar().showMessage(message, 5000)  # Show for 5 seconds
-        
+
     def show_recovery_dialog(self):
         """Show the recovery dialog.
-        
+
         Checks for available recovery files and shows a dialog allowing
         the user to select and recover from them.
-        
+
         Returns:
             None
         """
         # Check for recovery files
-        recovery_files = self.document_manager.auto_save_manager.check_for_recovery_files()
-        
+        recovery_files = (
+            self.document_manager.auto_save_manager.check_for_recovery_files()
+        )
+
         if not recovery_files:
             QMessageBox.information(
-                self,
-                "No Recovery Files",
-                "No recovery files were found."
+                self, "No Recovery Files", "No recovery files were found."
             )
             return
-            
+
         # If there are recovery files, show a dialog to select one
         file_items = []
         for file in recovery_files:
             # Get file info
             timestamp = file.stem.split("_")[-1]
             doc_id = "_".join(file.stem.split("_")[:-1])
-            
+
             # Format timestamp for display
             try:
                 # Convert YYYYMMDD_HHMMSS to a more readable format
@@ -1291,10 +1302,10 @@ class RTFEditorWindow(QMainWindow):
                 formatted_time = dt.strftime("%Y-%m-%d %H:%M:%S")
             except:
                 formatted_time = timestamp
-                
+
             # Add to list
             file_items.append(f"{doc_id} ({formatted_time})")
-            
+
         # Show selection dialog
         selected_item, ok = QInputDialog.getItem(
             self,
@@ -1302,121 +1313,127 @@ class RTFEditorWindow(QMainWindow):
             "Select a recovery file to restore:",
             file_items,
             0,  # Default to first item
-            False  # Not editable
+            False,  # Not editable
         )
-        
+
         if ok and selected_item:
             # Find the corresponding file
             index = file_items.index(selected_item)
             recovery_file = recovery_files[index]
-            
+
             # Recover the document
             self.document_manager.recover_document(recovery_file)
-            
+
     def setup_exception_handling(self):
         """Set up global exception handling for the application.
-        
+
         Installs a custom exception hook to catch unhandled exceptions,
         create error reports, and attempt recovery.
-        
+
         Returns:
             None
         """
         import sys
-        from shared.ui.widgets.rtf_editor.utils.recovery_utils import create_error_report, recover_from_error
-        
+
+        from shared.ui.widgets.rtf_editor.utils.recovery_utils import (
+            create_error_report,
+        )
+
         # Store the original exception hook
         original_excepthook = sys.excepthook
-        
+
         def custom_excepthook(exc_type, exc_value, exc_traceback):
             """Custom exception hook to handle unhandled exceptions.
-            
+
             Args:
                 exc_type: Exception type
                 exc_value: Exception value
                 exc_traceback: Exception traceback
-                
+
             Returns:
                 None
             """
             try:
                 # Create an error report
                 error_report = create_error_report(exc_value, "unhandled exception")
-                
+
                 # Log the exception
                 logger.critical(
                     f"Unhandled exception: {exc_type.__name__}: {exc_value}",
-                    exc_info=(exc_type, exc_value, exc_traceback)
+                    exc_info=(exc_type, exc_value, exc_traceback),
                 )
-                
+
                 # Attempt recovery
-                if hasattr(self, 'document_manager') and hasattr(self.document_manager, 'auto_save_manager'):
+                if hasattr(self, "document_manager") and hasattr(
+                    self.document_manager, "auto_save_manager"
+                ):
                     # Force an auto-save
                     try:
                         self.document_manager.auto_save_manager.auto_save()
                         logger.info("Emergency auto-save completed")
                     except Exception as e:
                         logger.error(f"Emergency auto-save failed: {str(e)}")
-                
+
                 # Show error dialog
                 from PyQt6.QtWidgets import QMessageBox
+
                 QMessageBox.critical(
                     None,
                     "Application Error",
                     f"An unhandled error occurred: {exc_value}\n\n"
                     f"An error report has been created at: {error_report}\n\n"
-                    "The application will now attempt to recover."
+                    "The application will now attempt to recover.",
                 )
-                
+
                 # Call the original exception hook
                 original_excepthook(exc_type, exc_value, exc_traceback)
-                
+
             except Exception as e:
                 # If our error handling fails, fall back to the original exception hook
                 logger.critical(f"Error in custom exception hook: {str(e)}")
                 original_excepthook(exc_type, exc_value, exc_traceback)
-        
+
         # Install the custom exception hook
         sys.excepthook = custom_excepthook
 
     def document_loaded(self, content):
         """Handle document loading completion.
-        
+
         This method is called when a document is loaded, either from a file
         or from the database. It sets the text editor content and clears
         the command history.
-        
+
         Args:
             content (str): The document content (HTML)
-            
+
         Returns:
             None
         """
         # Set the document content
         self.text_edit.setHtml(content)
-        
+
         # Clear the command history
         self.command_history.clear()
-        
+
         # Reset document modified state
         self.document_manager.set_modified(False)
-        
+
         # Update UI
         self.update_status_bar()
-        
+
         logger.debug("Document loaded and command history cleared")
 
     def image_manager_insert_image(self, image_format, position=None):
         """Insert an image using the command pattern.
-        
+
         This method is called by the image manager to insert an image.
         It creates and executes an InsertImageCommand.
-        
+
         Args:
             image_format (QTextImageFormat): The image format to insert
             position (int, optional): Position to insert the image at.
                 If None, the current cursor position is used.
-                
+
         Returns:
             bool: True if successful, False otherwise
         """

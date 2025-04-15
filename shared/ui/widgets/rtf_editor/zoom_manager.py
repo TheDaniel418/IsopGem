@@ -1,13 +1,8 @@
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
-    QComboBox,
-    QHBoxLayout,
-    QToolButton,
-    QWidget,
-)
+from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QToolButton, QWidget
 
-from shared.ui.widgets.rtf_editor.utils.logging_utils import get_logger
 from shared.ui.widgets.rtf_editor.utils.error_utils import handle_error, handle_warning
+from shared.ui.widgets.rtf_editor.utils.logging_utils import get_logger
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -15,15 +10,15 @@ logger = get_logger(__name__)
 
 class ZoomManager(QWidget):
     """Manages zoom functionality for the RTF editor.
-    
+
     This class provides a complete zoom management system for a QTextEdit-based editor,
     including a UI with zoom controls and the ability to scale both text and embedded images.
-    
+
     Attributes:
         zoom_changed (pyqtSignal): Signal emitted when zoom level changes, with the new zoom factor
         ZOOM_LEVELS (list): Predefined zoom levels as percentages
         DEFAULT_ZOOM (int): Default zoom level (100%)
-        
+
     Signals:
         zoom_changed(float): Emitted when zoom level changes, with zoom factor (1.0 = 100%)
     """
@@ -44,7 +39,7 @@ class ZoomManager(QWidget):
         Args:
             editor (QTextEdit): The text editor to apply zoom to
             parent (QWidget, optional): Parent widget for this control
-            
+
         Raises:
             TypeError: If editor is not a QTextEdit or compatible object
         """
@@ -60,15 +55,15 @@ class ZoomManager(QWidget):
 
     def setup_ui(self):
         """Set up the zoom controls UI.
-        
+
         Creates and configures the UI components for the zoom manager:
         - Zoom out button (-)
         - Zoom level combo box with predefined and custom levels
         - Zoom in button (+)
         - Reset zoom button (100%)
-        
+
         All components are connected to their respective handlers.
-        
+
         Returns:
             None
         """
@@ -127,10 +122,10 @@ class ZoomManager(QWidget):
 
         Args:
             index (int): Index of the selected item in the combo box
-            
+
         Returns:
             None
-            
+
         Note:
             This method is connected to the combo box's currentIndexChanged signal.
         """
@@ -148,13 +143,13 @@ class ZoomManager(QWidget):
 
         Args:
             text (str): The text entered in the combobox
-            
+
         Returns:
             None
-            
+
         Raises:
             ValueError: Handled internally when text cannot be converted to a valid zoom level
-            
+
         Note:
             This method is connected to the combo box's editTextChanged signal.
         """
@@ -163,27 +158,27 @@ class ZoomManager(QWidget):
             # Validate input is not empty
             if not text:
                 return
-                
+
             # Remove non-digit characters and convert to int
             zoom_text = "".join(filter(str.isdigit, text))
             if not zoom_text:
                 logger.warning(f"Invalid zoom text entered: {text}")
                 return
-                
+
             # Convert to integer with validation
             try:
                 zoom_level = int(zoom_text)
             except ValueError:
                 logger.warning(f"Could not convert zoom text to integer: {zoom_text}")
                 return
-                
+
             # Validate zoom level is within acceptable range
             if zoom_level < 10 or zoom_level > 500:
                 logger.warning(f"Zoom level out of range: {zoom_level}")
-                
+
             # Limit zoom level to a reasonable range
             zoom_level = max(10, min(zoom_level, 500))
-            
+
             # Log the validated zoom level
             logger.debug(f"Validated zoom level: {zoom_level}%")
 
@@ -193,20 +188,22 @@ class ZoomManager(QWidget):
                 self.apply_zoom(zoom_level)
         except ValueError:
             # Handle invalid input
-            handle_warning(self, "Invalid zoom value, using current zoom level", show_dialog=False)
+            handle_warning(
+                self, "Invalid zoom value, using current zoom level", show_dialog=False
+            )
             # Reset to current zoom if input is invalid
             self.update_display()
 
     def zoom_in(self):
         """Increase the zoom level.
-        
+
         Finds the next predefined zoom level higher than the current level
         and applies it. If already at the highest predefined level, increases
         by 50% increments.
-        
+
         Returns:
             None
-            
+
         Note:
             This method is connected to the zoom in button's clicked signal.
         """
@@ -221,14 +218,14 @@ class ZoomManager(QWidget):
 
     def zoom_out(self):
         """Decrease the zoom level.
-        
+
         Finds the next predefined zoom level lower than the current level
         and applies it. If already at the lowest predefined level, decreases
         by 50% increments but never goes below 10%.
-        
+
         Returns:
             None
-            
+
         Note:
             This method is connected to the zoom out button's clicked signal.
         """
@@ -244,12 +241,12 @@ class ZoomManager(QWidget):
 
     def reset_zoom(self):
         """Reset zoom to the default level (100%).
-        
+
         Resets the zoom level to the default (100%), regardless of the current level.
-        
+
         Returns:
             None
-            
+
         Note:
             This method is connected to the reset zoom button's clicked signal.
         """
@@ -263,10 +260,10 @@ class ZoomManager(QWidget):
 
         Args:
             level (int): Zoom level as a percentage (e.g., 100 for 100%)
-            
+
         Returns:
             None
-            
+
         Note:
             This method can be called programmatically or connected to UI elements.
         """
@@ -278,19 +275,19 @@ class ZoomManager(QWidget):
         Attempts to scale all images in the document using two different methods:
         1. Selection-based scaling: Iterates through the document character by character
         2. Fragment-based scaling: Iterates through document fragments
-        
+
         Both methods are used for redundancy to ensure images are properly scaled.
 
         Args:
             document (QTextDocument): The document containing images
             scale_factor (float): The factor to scale images by (e.g., 1.25 for 125%)
-            
+
         Returns:
             None
-            
+
         Raises:
             Exception: Handled internally for any errors during scaling
-            
+
         Note:
             This is an internal method called by apply_zoom.
         """
@@ -317,19 +314,19 @@ class ZoomManager(QWidget):
         First method for scaling images: iterates through the document character by character,
         checking each character for image formats. When an image is found, it's scaled
         by the given factor.
-        
+
         This method uses QTextCursor to select and modify each character.
 
         Args:
             document (QTextDocument): The document containing images
             scale_factor (float): The factor to scale images by
-            
+
         Returns:
             None
-            
+
         Raises:
             Exception: Handled internally for any errors during scaling
-            
+
         Note:
             This is a private method called by scale_images.
         """
@@ -427,28 +424,25 @@ class ZoomManager(QWidget):
         Second method for scaling images: iterates through document blocks and fragments,
         checking each fragment for image formats. When an image is found, it's scaled
         by the given factor.
-        
+
         This method uses document block and fragment iteration which may catch images
         that the selection method misses.
 
         Args:
             document (QTextDocument): The document containing images
             scale_factor (float): The factor to scale images by
-            
+
         Returns:
             None
-            
+
         Raises:
             Exception: Handled internally for any errors during scaling
-            
+
         Note:
             This is a private method called by scale_images as a backup to _scale_images_by_selection.
         """
         try:
-            from PyQt6.QtGui import (
-                QTextCursor,
-                QTextImageFormat,
-            )
+            from PyQt6.QtGui import QTextCursor, QTextImageFormat
 
             logger.debug("Trying to scale images by fragment method")
 
@@ -505,7 +499,9 @@ class ZoomManager(QWidget):
                             # Apply the format
                             cursor.setCharFormat(new_fmt)
 
-                            logger.debug(f"Scaled fragment image to {new_width}x{new_height}")
+                            logger.debug(
+                                f"Scaled fragment image to {new_width}x{new_height}"
+                            )
 
                     # Move to next fragment
                     it += 1
@@ -533,10 +529,10 @@ class ZoomManager(QWidget):
 
         Args:
             level (int): Zoom level as a percentage (e.g., 100 for 100%)
-            
+
         Returns:
             None
-            
+
         Note:
             This is the main implementation method called by all other zoom methods.
         """
@@ -545,23 +541,27 @@ class ZoomManager(QWidget):
             if not isinstance(level, (int, float)):
                 logger.warning(f"Invalid zoom level type: {type(level)}")
                 level = self.current_zoom  # Use current zoom if invalid type
-            
+
             # Convert to int if it's a float
             if isinstance(level, float):
                 level = int(level)
-                
+
             # Validate zoom level range
             if level < 10 or level > 500:
-                logger.warning(f"Zoom level out of range: {level}%, constraining to 10-500%")
-                
+                logger.warning(
+                    f"Zoom level out of range: {level}%, constraining to 10-500%"
+                )
+
             # Constrain zoom level to reasonable limits
             level = max(10, min(level, 500))  # Limit zoom to 10%-500%
-            
+
             logger.debug(f"Applying zoom level: {level}%")
         except Exception as e:
             logger.error(f"Error validating zoom level: {e}")
             level = self.current_zoom  # Use current zoom if validation fails
-            handle_warning(self, f"Invalid zoom level, using {level}%", show_dialog=False)
+            handle_warning(
+                self, f"Invalid zoom level, using {level}%", show_dialog=False
+            )
 
         # Calculate zoom factor relative to previous zoom
         relative_factor = level / self.current_zoom
@@ -621,11 +621,11 @@ class ZoomManager(QWidget):
 
     def update_display(self):
         """Update the zoom combo box to reflect the current zoom level.
-        
+
         Updates the UI to show the current zoom level. If the current level
         is one of the predefined levels, selects it in the combo box.
         Otherwise, sets a custom text value.
-        
+
         Returns:
             None
         """
@@ -642,13 +642,13 @@ class ZoomManager(QWidget):
 
         Implements Ctrl+Wheel zooming functionality. When the user holds Ctrl
         and scrolls the mouse wheel, the zoom level is increased or decreased.
-        
+
         Args:
             event (QWheelEvent): The wheel event containing scroll information
-            
+
         Returns:
             None
-            
+
         Note:
             This method overrides QWidget.wheelEvent.
         """

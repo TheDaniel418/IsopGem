@@ -1,16 +1,18 @@
 import sys
-from pathlib import Path
 
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
-from PyQt6.QtGui import (
-    QTextTable,
-    QTextTableCellFormat,
-    QTextTableFormat,
+from PyQt6.QtGui import QTextTable, QTextTableCellFormat, QTextTableFormat
+from PyQt6.QtWidgets import (
+    QApplication,
+    QInputDialog,
+    QMainWindow,
+    QMenu,
+    QTextEdit,
 )
-from PyQt6.QtWidgets import QApplication, QInputDialog, QMainWindow, QMenu, QMessageBox, QTextEdit
 
+from shared.ui.widgets.rtf_editor.utils.error_utils import handle_warning
 from shared.ui.widgets.rtf_editor.utils.logging_utils import get_logger
-from shared.ui.widgets.rtf_editor.utils.error_utils import handle_error, handle_warning
+
 from .table_properties_dialog import TablePropertiesDialog  # Import the dialog
 
 # Initialize logger
@@ -19,20 +21,20 @@ logger = get_logger(__name__)
 
 class TableManager(QObject):
     """Manages table operations for the RTF editor.
-    
+
     This class handles all table-related functionality for the RTF editor, including:
     - Creating and inserting tables
     - Modifying table properties (borders, spacing, etc.)
     - Adding and removing rows and columns
     - Merging and splitting cells
-    
+
     It provides a complete table menu with actions for all table operations
     and handles the technical details of working with Qt's table implementation.
-    
+
     Attributes:
         table_inserted (pyqtSignal): Signal emitted when a new table is inserted
         table_modified (pyqtSignal): Signal emitted when a table is modified
-        
+
     Signals:
         table_inserted(QTextTable): Emitted with the new table when inserted
         table_modified(): Emitted when any table property is modified
@@ -44,13 +46,13 @@ class TableManager(QObject):
 
     def __init__(self, editor):
         """Initialize the TableManager.
-        
+
         Sets up the table manager with a reference to the editor and
         initializes the table menu.
-        
+
         Args:
             editor (QTextEdit): The text editor where tables will be managed
-            
+
         Returns:
             None
         """
@@ -60,13 +62,13 @@ class TableManager(QObject):
 
     def setup_table_menu(self):
         """Create the table menu.
-        
+
         Sets up the Table menu with all table-related actions, including:
         - Insert table
         - Table properties
         - Add/remove rows and columns
         - Merge/split cells
-        
+
         Returns:
             None
         """
@@ -108,10 +110,10 @@ class TableManager(QObject):
 
     def get_table_menu(self):
         """Return the table menu for the menubar.
-        
+
         Provides access to the table menu for adding to the main menubar
         or context menu.
-        
+
         Returns:
             QMenu: The table menu with all table-related actions
         """
@@ -119,9 +121,9 @@ class TableManager(QObject):
 
     def get_current_table(self):
         """Get the table at the current cursor position.
-        
+
         Retrieves the QTextTable at the current cursor position, if any.
-        
+
         Returns:
             QTextTable: The table at the current cursor position, or None if not in a table
         """
@@ -130,32 +132,32 @@ class TableManager(QObject):
 
     def insert_table(self):
         """Insert a new table at the current cursor position.
-        
+
         Prompts the user for the number of rows and columns, then creates
         a new table with the specified dimensions at the current cursor position.
-        
+
         The table is created with default properties, which can be modified later
         using the table properties dialog.
-        
+
         Returns:
             None
-            
+
         Signals:
             table_inserted: Emitted with the new table after insertion
         """
         # Get number of rows with validation
         rows, ok = QInputDialog.getInt(
-            self.editor, 
-            "Insert Table", 
-            "Number of rows (1-50):", 
+            self.editor,
+            "Insert Table",
+            "Number of rows (1-50):",
             3,  # Default value
             1,  # Minimum value
-            50, # Maximum value - prevent excessive rows
-            1   # Step
+            50,  # Maximum value - prevent excessive rows
+            1,  # Step
         )
         if not ok:
             return
-            
+
         # Validate rows (extra safety check)
         if rows < 1 or rows > 50:
             logger.warning(f"Invalid row count: {rows}, constraining to 1-50")
@@ -163,17 +165,17 @@ class TableManager(QObject):
 
         # Get number of columns with validation
         cols, ok = QInputDialog.getInt(
-            self.editor, 
-            "Insert Table", 
-            "Number of columns (1-20):", 
+            self.editor,
+            "Insert Table",
+            "Number of columns (1-20):",
             3,  # Default value
             1,  # Minimum value
-            20, # Maximum value - prevent excessive columns
-            1   # Step
+            20,  # Maximum value - prevent excessive columns
+            1,  # Step
         )
         if not ok:
             return
-            
+
         # Validate columns (extra safety check)
         if cols < 1 or cols > 20:
             logger.warning(f"Invalid column count: {cols}, constraining to 1-20")
@@ -213,13 +215,13 @@ class TableManager(QObject):
 
     def add_row(self):
         """Add a row after the current row.
-        
+
         Inserts a new row after the row containing the current cursor position.
         If the cursor is not in a table, nothing happens.
-        
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if a row is added
         """
@@ -237,13 +239,13 @@ class TableManager(QObject):
 
     def remove_row(self):
         """Remove the current row.
-        
+
         Removes the row containing the current cursor position.
         If the cursor is not in a table or if it's the last row, nothing happens.
-        
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if a row is removed
         """
@@ -259,13 +261,13 @@ class TableManager(QObject):
 
     def add_column(self):
         """Add a column after the current column.
-        
+
         Inserts a new column after the column containing the current cursor position.
         If the cursor is not in a table, nothing happens.
-        
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if a column is added
         """
@@ -283,13 +285,13 @@ class TableManager(QObject):
 
     def remove_column(self):
         """Remove the current column.
-        
+
         Removes the column containing the current cursor position.
         If the cursor is not in a table or if it's the last column, nothing happens.
-        
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if a column is removed
         """
@@ -305,13 +307,13 @@ class TableManager(QObject):
 
     def merge_cells(self):
         """Merge selected cells.
-        
+
         Merges multiple selected cells into a single cell.
         The selection must be within a table and must include multiple cells.
-        
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if cells are merged
         """
@@ -324,13 +326,13 @@ class TableManager(QObject):
 
     def split_cells(self):
         """Split merged cells.
-        
+
         Splits a merged cell back into individual cells.
         The cursor must be inside a merged cell (one that spans multiple rows or columns).
-        
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if a cell is split
         """
@@ -349,15 +351,15 @@ class TableManager(QObject):
 
     def format_table(self, table_format):
         """Apply formatting to the current table.
-        
+
         Applies the specified format to the table at the current cursor position.
-        
+
         Args:
             table_format (QTextTableFormat): The format to apply to the table
-            
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if the table format is changed
         """
@@ -368,21 +370,21 @@ class TableManager(QObject):
 
     def show_table_properties(self):
         """Open a dialog to edit properties of the current table.
-        
+
         Displays a dialog allowing the user to modify table properties such as:
         - Border width, style, and color
         - Cell spacing and padding
         - Background color
         - Alignment
-        
+
         If the cursor is not currently inside a table, shows a warning message.
-        
+
         Returns:
             None
-            
+
         Signals:
             table_modified: Emitted if the table properties are changed
-            
+
         Raises:
             Warning: Handled internally if cursor is not in a table
         """
@@ -406,16 +408,16 @@ class TableManager(QObject):
 
     def apply_cell_borders(self, table, table_format):
         """Helper to apply consistent cell borders after table format change.
-        
+
         Ensures that all cells in the table have consistent border formatting
         that matches the table's overall format. This is necessary because
         Qt's table implementation doesn't automatically propagate border changes
         to all cells.
-        
+
         Args:
             table (QTextTable): The table to update
             table_format (QTextTableFormat): The format to apply to cell borders
-            
+
         Returns:
             None
         """

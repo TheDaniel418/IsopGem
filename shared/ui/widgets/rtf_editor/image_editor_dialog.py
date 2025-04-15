@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Union, cast
 
 # These imports are used dynamically in the code
 # import base64
@@ -7,6 +6,8 @@ from typing import Any, Callable, Optional, Union, cast
 # import os
 # import re
 from pathlib import Path
+from typing import Any, Callable, Optional, Union, cast
+
 import numpy as np
 from PIL import (
     Image,
@@ -503,7 +504,6 @@ class ImageEditorDialog(QDialog):
                     )
 
                     # Create a temporary file to enable editing and saving
-                    import os
                     import tempfile
 
                     temp_dir = tempfile.gettempdir()
@@ -1889,7 +1889,7 @@ class ImageEditorDialog(QDialog):
 
                 # Generate a unique filename
                 file_ext = ".png"  # Default
-                
+
                 # Use Path for safer extension handling
                 if isinstance(orig_path, str) and not orig_path.startswith("data:"):
                     path_obj = Path(orig_path)

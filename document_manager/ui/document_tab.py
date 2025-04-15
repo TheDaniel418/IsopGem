@@ -354,10 +354,10 @@ class DocumentTab(QWidget):
 
         # Create the panel
         panel = DocumentManagerPanel()
-        
+
         # Create and open the document browser window
         self.window_manager.open_window("document_browser", panel)
-        
+
         # Set the window title
         panel.setWindowTitle("Document Browser")
 
@@ -371,10 +371,10 @@ class DocumentTab(QWidget):
 
         # Create the panel
         panel = DocumentAnalysisPanel()
-        
+
         # Create and open the document analysis window
         self.window_manager.open_window("document_analysis", panel)
-        
+
         # Set the window title
         panel.setWindowTitle("Document Analysis")
 
@@ -393,7 +393,7 @@ class DocumentTab(QWidget):
 
         # Open the window using the window manager
         self.window_manager.open_window("rtf_editor", editor)
-        
+
         # Set the window title
         editor.setWindowTitle("Rich Text Editor")
 
