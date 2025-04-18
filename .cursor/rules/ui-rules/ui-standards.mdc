@@ -1,0 +1,148 @@
+---
+description: UI development standards and best practices
+globs: ["**/*.tsx", "**/*.css", "**/*.scss"]
+alwaysApply: true
+---
+
+# UI Development Standards
+
+## Component Architecture
+
+1. Component Structure
+   - One component per file
+   - Follow atomic design principles
+   - Implement proper prop typing
+   - Use functional components
+
+2. Component Organization
+   - Atoms (basic building blocks)
+   - Molecules (groups of atoms)
+   - Organisms (complex components)
+   - Templates (page layouts)
+   - Pages (complete views)
+
+## Styling Standards
+
+1. CSS Organization
+   - Use CSS modules or styled-components
+   - Follow BEM naming convention
+   - Maintain consistent spacing units
+   - Use design tokens for values
+
+2. Responsive Design
+   - Mobile-first approach
+   - Use relative units (rem/em)
+   - Implement proper breakpoints
+   - Test across devices
+
+## Accessibility (a11y)
+
+1. Core Requirements
+   - Proper ARIA attributes
+   - Semantic HTML elements
+   - Keyboard navigation
+   - Screen reader support
+
+2. Implementation
+   - Color contrast compliance
+   - Focus management
+   - Alt text for images
+   - Form accessibility
+
+## State Management
+
+1. Local State
+   - Use hooks appropriately
+   - Keep state minimal
+   - Lift state when needed
+   - Document state purpose
+
+2. Global State
+   - Clear state structure
+   - Action type constants
+   - Proper error handling
+   - State documentation
+
+## Example Patterns
+
+### Component Structure
+```tsx
+interface ButtonProps {
+  variant: 'primary' | 'secondary';
+  size?: 'small' | 'medium' | 'large';
+  onClick: () => void;
+  children: React.ReactNode;
+}
+
+export const Button: React.FC<ButtonProps> = ({
+  variant,
+  size = 'medium',
+  onClick,
+  children
+}) => {
+  return (
+    <button
+      className={`btn btn-${variant} btn-${size}`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+};
+```
+
+### Styling Pattern
+```scss
+.component {
+  &__element {
+    // Base styles
+
+    &--modifier {
+      // Modifier styles
+    }
+
+    @media (min-width: 768px) {
+      // Responsive styles
+    }
+  }
+}
+```
+
+## Performance Guidelines
+
+1. Component Optimization
+   - Use memo when needed
+   - Implement proper keys
+   - Lazy load components
+   - Optimize re-renders
+
+2. Asset Optimization
+   - Compress images
+   - Use proper image formats
+   - Implement lazy loading
+   - Cache static assets
+
+## Testing Requirements
+
+1. Component Testing
+   - Unit tests for logic
+   - Snapshot tests
+   - Integration tests
+   - Accessibility tests
+
+2. Visual Testing
+   - Storybook documentation
+   - Visual regression tests
+   - Cross-browser testing
+   - Responsive testing
+
+## Review Checklist
+
+- [ ] Component properly typed
+- [ ] Accessibility implemented
+- [ ] Responsive design tested
+- [ ] Performance optimized
+- [ ] Tests written
+- [ ] Documentation complete
+- [ ] Proper styling
+- [ ] Browser tested

@@ -12,11 +12,13 @@ Dependencies:
 - PyQt6: For the user interface components
 - tq.services.tq_grid_service: For accessing the current quadset values
 - tq.utils.ternary_transition: For calculating transitions between numbers
+- tq.utils.difftrans_calculator: For calculating differential transitions
 
 Related files:
 - tq/ui/panels/tq_grid_panel.py: Main panel that hosts this advanced properties panel
 - tq/services/tq_grid_service.py: Service that provides the quadset data
 - tq/utils/ternary_transition.py: Utility for calculating ternary transitions
+- tq/utils/difftrans_calculator.py: Utility for calculating differential transitions
 """
 
 from PyQt6.QtCore import Qt
@@ -32,11 +34,7 @@ from PyQt6.QtWidgets import (
 
 from tq.services.tq_grid_service import TQGridService
 from tq.ui.styles.tq_colors import apply_tq_styles
-from tq.utils.ternary_converter import (
-    decimal_to_ternary,
-    format_ternary,
-    ternary_to_decimal,
-)
+from tq.utils.difftrans_calculator import DiffTransCalculator
 from tq.utils.ternary_transition import TernaryTransition
 
 
@@ -164,37 +162,20 @@ class AdvancedPropertiesPanel(QFrame):
         # Extract the values
         values = [grid.base_number, grid.conrune, grid.reversal, grid.reversal_conrune]
 
-        # Calculate the differences
-        base_conrune_diff = abs(values[0] - values[1])
-        reversal_conrune_diff = abs(values[2] - values[3])
-
-        # Calculate the actual transition using the TernaryTransition utility
-        # Convert the differences to ternary strings
-        first_ternary = decimal_to_ternary(base_conrune_diff)
-        second_ternary = decimal_to_ternary(reversal_conrune_diff)
-
-        # Ensure both ternary strings have the same length
-        max_length = max(len(first_ternary), len(second_ternary))
-        first_ternary_padded = format_ternary(first_ternary, pad_length=max_length)
-        second_ternary_padded = format_ternary(second_ternary, pad_length=max_length)
-
-        # Calculate the transition
+        # Calculate the DiffTrans using the canonical utility
         try:
-            transition_ternary = self.transition.apply_transition(
-                first_ternary_padded, second_ternary_padded
-            )
-            # Convert the ternary transition back to decimal
-            transition_decimal = ternary_to_decimal(transition_ternary)
-            # Display only the decimal value
-            self.diff_trans_value.setText(str(transition_decimal))
+            difftrans = DiffTransCalculator.compute_difftrans(values)
+            self.diff_trans_value.setText(str(difftrans["decimal"]))
 
             # Calculate the Septad
             # Sum of all 4 quadset numbers + 2 absolute differences + differential trans
+            base_conrune_diff = abs(values[0] - values[1])
+            reversal_conrune_diff = abs(values[2] - values[3])
             septad = (
                 sum(values)
                 + base_conrune_diff
                 + reversal_conrune_diff
-                + transition_decimal
+                + difftrans["decimal"]
             )
             self.septad_value.setText(str(septad))
         except Exception as e:

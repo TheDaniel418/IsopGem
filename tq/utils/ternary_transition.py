@@ -122,7 +122,15 @@ class TernaryTransition:
                 )
 
             x, y, z = match.groups()
-            transition_map[(int(x), int(y))] = int(z)
+            x_int = int(x)
+            y_int = int(y)
+            z_int = int(z)
+            # Ensure the key is a valid TernaryPair
+            if 0 <= x_int <= 2 and 0 <= y_int <= 2 and 0 <= z_int <= 2:
+                pair = cast(TernaryPair, (x_int, y_int))
+                transition_map[pair] = cast(TernaryDigit, z_int)
+            else:
+                raise ValueError(f"Invalid ternary digits in rule: {rule}")
 
         return cls(transition_map)
 

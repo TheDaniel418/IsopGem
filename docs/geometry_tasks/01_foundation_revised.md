@@ -6,21 +6,27 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 
 ### 1.1 Create Sacred Geometry Explorer Module Structure
 
-**Description:** Set up the basic module structure for the Sacred Geometry Explorer.
+**Description:** Set up the basic module structure for the Sacred Geometry Explorer with proper window management integration.
 
 **Subtasks:**
 1. Create the `geometry/ui/sacred_geometry` directory structure
 2. Set up the necessary `__init__.py` files
-3. Create the main `explorer.py` file for the Sacred Geometry Explorer
-4. Set up the basic imports and dependencies
-5. Create placeholder files for major components
+3. Create the main `explorer.py` file inheriting from `AuxiliaryWindow`
+4. Set up imports including window management dependencies
+5. Create placeholder files for major components:
+   - tool_system/
+   - canvas/
+   - objects/
+   - properties/
+   - commands/
+   - utils/
 
 **Acceptance Criteria:**
-- Module structure is properly set up
+- Module structure is properly set up with window management integration
 - All necessary `__init__.py` files are in place
-- Main `explorer.py` file is created
-- Basic imports and dependencies are set up
-- Placeholder files for major components are created
+- Main `explorer.py` file created with proper window management inheritance
+- All required window management imports are set up
+- Component directories and placeholders are created
 
 **Dependencies:** None
 
@@ -28,21 +34,49 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 
 ### 1.2 Implement Sacred Geometry Explorer Window
 
-**Description:** Create the main Sacred Geometry Explorer window class.
+**Description:** Create the main Sacred Geometry Explorer window class inheriting from AuxiliaryWindow to ensure proper focus-based window management, with support for multiple instances.
 
 **Subtasks:**
-1. Implement `SacredGeometryExplorer` class that inherits from `QWidget`
-2. Set up the basic layout structure (toolbar area, canvas area, properties panel)
-3. Implement window initialization and configuration
-4. Connect the window to the existing "Sacred Geometry" button in the Geometry tab
-5. Add basic window management functionality
+1. Implement `SacredGeometryExplorer` class inheriting from `AuxiliaryWindow` with:
+   - Instance-specific identifiers
+   - Tool state persistence per instance
+   - Window geometry tracking
+2. Set up window layout with:
+   - Toolbar area (top)
+   - Canvas area (center)
+   - Properties panel (right, collapsible)
+   - Status bar (bottom)
+   - Window instance indicator
+3. Implement window initialization with:
+   - Window title and icon
+   - Default size (800x600)
+   - Window flags for proper focus handling
+   - Window state persistence
+   - Instance-specific settings storage
+4. Connect to existing window management system:
+   - Register with WindowManager using unique instance ID
+   - Implement proper window ID handling
+   - Set up window state save/restore per instance
+   - Add window visibility handlers
+   - Implement focus event handling
+5. Add window management functionality:
+   - Focus management with visual feedback
+   - Window state persistence per instance
+   - Z-order handling with instance awareness
+   - Window destruction cleanup
+   - Tool state transfer between instances
 
 **Acceptance Criteria:**
-- `SacredGeometryExplorer` class is implemented
-- Basic layout structure is set up
-- Window initializes and configures properly
-- Window opens when the "Sacred Geometry" button is clicked
-- Window management functionality works correctly
+- SacredGeometryExplorer properly inherits from AuxiliaryWindow
+- Layout structure follows application standards
+- Window initializes with correct instance-specific settings
+- Window properly registers with WindowManager using unique ID
+- Window state persists between sessions per instance
+- Focus management follows application standards with visual feedback
+- Window cleanup handles instance-specific resources
+- Tool states transfer smoothly between instances
+- Visual feedback indicates active/inactive window state
+- Properties panel updates based on window focus
 
 **Dependencies:** 1.1
 
@@ -226,21 +260,46 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 
 ### 1.11 Connect to Existing Geometry Tab
 
-**Description:** Connect the Sacred Geometry Explorer to the existing "Sacred Geometry" button in the Geometry tab.
+**Description:** Connect the Sacred Geometry Explorer to the existing Geometry tab with robust window management integration.
 
 **Subtasks:**
-1. Implement the `_open_sacred_geometry` method in the `GeometryTab` class
-2. Create the connection between the button and the method
-3. Implement proper window creation and management
-4. Add error handling for window creation
-5. Ensure proper focus management
+1. Update GeometryTab integration:
+   - Add Sacred Geometry button with proper styling
+   - Implement `_open_sacred_geometry` method
+   - Add window instance tracking
+   - Implement window reuse logic
+2. Implement window instance management:
+   - Create unique window ID generation
+   - Track active instances
+   - Handle instance reuse vs new creation
+   - Manage instance-specific resources
+3. Add window management hooks:
+   - Connect to WindowManager events
+   - Handle window focus changes
+   - Manage window z-ordering
+   - Implement window state persistence
+4. Implement error handling:
+   - Add window creation error handling
+   - Implement resource cleanup on errors
+   - Add user feedback for errors
+   - Handle window initialization failures
+5. Add user experience features:
+   - Visual feedback when opening windows
+   - Progress indication for large constructions
+   - Smooth window transitions
+   - Instance indicators in window titles
 
 **Acceptance Criteria:**
-- Sacred Geometry Explorer opens when the button is clicked
-- Window is created and managed properly
-- Error handling prevents crashes
-- Focus management follows the application's focus-based approach
-- Explorer window integrates with the application's window management system
+- Sacred Geometry button works reliably
+- Window instances are properly managed
+- Focus changes work smoothly
+- Errors are handled gracefully
+- User gets appropriate feedback
+- Window states persist correctly
+- Resources are cleaned up properly
+- Multiple instances work correctly
+- Visual transitions are smooth
+- Instance management is reliable
 
 **Dependencies:** 1.2
 
@@ -265,6 +324,30 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 - Performance is acceptable
 
 **Dependencies:** 1.1 through 1.11
+
+---
+
+### 1.13 Implement Multi-Window Management
+
+**Description:** Implement support for multiple Sacred Geometry Explorer windows with proper focus management.
+
+**Subtasks:**
+1. Add multi-window tracking in WindowManager
+2. Implement window state persistence per instance
+3. Create unique window IDs for each explorer instance
+4. Add window instance registry
+5. Implement proper focus handling between instances
+
+**Acceptance Criteria:**
+- Multiple Sacred Geometry Explorer windows can be open simultaneously
+- Each window maintains its own state
+- Windows have unique identifiers
+- Window registry tracks all instances
+- Focus handling works correctly between windows
+
+**Dependencies:** 1.2, 1.11
+
+---
 
 ## Next Chapter
 

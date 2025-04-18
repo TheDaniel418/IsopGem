@@ -132,7 +132,12 @@ def ternary_to_decimal(ternary_str: TernaryString) -> int:
     ...
 
 
-def ternary_to_decimal(ternary_str: TernaryString) -> int:
+@overload
+def ternary_to_decimal(ternary_str: str) -> int:
+    ...
+
+
+def ternary_to_decimal(ternary_str: Union[TernaryString, str]) -> int:
     """Convert a ternary string to its decimal representation.
 
     Args:
@@ -230,11 +235,24 @@ def format_ternary(
         ternary_str = group_separator.join(groups)
 
     # Restore negative sign if needed
-    result = "-" + ternary_str if is_negative else ternary_str
-    return TernaryString(result)
+    result_str = "-" + ternary_str if is_negative else ternary_str
+    # Cast to TernaryString for type safety
+    from typing import cast
+
+    return cast(TernaryString, TernaryString(result_str))
 
 
+@overload
 def split_ternary_digits(ternary_str: TernaryString) -> List[TernaryDigit]:
+    ...
+
+
+@overload
+def split_ternary_digits(ternary_str: str) -> List[TernaryDigit]:
+    ...
+
+
+def split_ternary_digits(ternary_str: Union[TernaryString, str]) -> List[TernaryDigit]:
     """Split a ternary string into a list of individual digits.
 
     Args:
@@ -262,12 +280,16 @@ def split_ternary_digits(ternary_str: TernaryString) -> List[TernaryDigit]:
             f"Invalid ternary string: {ternary_str} (must contain only digits 0, 1, 2)"
         )
 
-    # Convert to list of integers
-    digits = [int(digit) for digit in ternary_str]
+    # Convert to list of integers and cast to TernaryDigit
+    from typing import cast
+
+    digits = [cast(TernaryDigit, int(digit)) for digit in ternary_str]
 
     # Apply negative sign to first digit if needed (for display purposes)
     if is_negative and digits:
-        digits[0] = -digits[0]
+        # This is just for display, the actual value will be handled elsewhere
+        # We'll cast back to TernaryDigit after operations
+        digits[0] = cast(TernaryDigit, -digits[0])
 
     return digits
 
@@ -313,11 +335,21 @@ def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString:
     ...
 
 
-def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString:
+@overload
+def decimal_to_balanced_ternary(
+    decimal_num: int, *, pad_length: int = 0
+) -> BalancedTernaryString:
+    ...
+
+
+def decimal_to_balanced_ternary(
+    decimal_num: int, *, pad_length: int = 0
+) -> BalancedTernaryString:
     """Convert a decimal number to balanced ternary representation.
 
     Args:
         decimal_num: The decimal integer to convert
+        pad_length: Length to pad the result to with leading zeros
 
     Returns:
         The balanced ternary string representation using T (-1), 0, and 1
@@ -329,7 +361,10 @@ def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString:
         raise TypeError("Input must be an integer")
 
     if decimal_num == 0:
-        return BalancedTernaryString("0")
+        result = "0"
+        if pad_length > 0:
+            result = result.zfill(pad_length)
+        return BalancedTernaryString(result)
 
     digits = []
     while decimal_num:
@@ -340,7 +375,13 @@ def decimal_to_balanced_ternary(decimal_num: int) -> BalancedTernaryString:
         digits.append("T" if remainder == -1 else str(remainder))
         decimal_num //= 3
 
-    return BalancedTernaryString("".join(reversed(digits)))
+    result = "".join(reversed(digits))
+
+    # Apply padding if needed
+    if pad_length > 0 and len(result) < pad_length:
+        result = "0" * (pad_length - len(result)) + result
+
+    return BalancedTernaryString(result)
 
 
 @overload
@@ -348,7 +389,14 @@ def balanced_to_original(balanced_str: BalancedTernaryString) -> TernaryString:
     ...
 
 
-def balanced_to_original(balanced_str: BalancedTernaryString) -> TernaryString:
+@overload
+def balanced_to_original(balanced_str: str) -> TernaryString:
+    ...
+
+
+def balanced_to_original(
+    balanced_str: Union[BalancedTernaryString, str]
+) -> TernaryString:
     """Convert a balanced ternary string to standard ternary.
 
     In balanced ternary, digits are {T,0,1} for {-1,0,1}.
@@ -383,7 +431,12 @@ def balanced_ternary_to_decimal(balanced_str: BalancedTernaryString) -> int:
     ...
 
 
-def balanced_ternary_to_decimal(balanced_str: BalancedTernaryString) -> int:
+@overload
+def balanced_ternary_to_decimal(balanced_str: str) -> int:
+    ...
+
+
+def balanced_ternary_to_decimal(balanced_str: Union[BalancedTernaryString, str]) -> int:
     """Convert a balanced ternary string to its decimal representation.
 
     Args:

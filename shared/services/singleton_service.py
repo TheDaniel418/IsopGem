@@ -16,12 +16,12 @@ Related files:
 - gematria/services/search_service.py: Uses singleton pattern
 """
 
-from typing import Optional, Type, TypeVar
+from typing import Generic, Optional, Type, TypeVar
 
 T = TypeVar("T", bound="SingletonService")
 
 
-class SingletonService:
+class SingletonService(Generic[T]):
     """Base class for implementing the Singleton pattern.
 
     This class provides a base implementation for services that should only
@@ -61,7 +61,10 @@ class SingletonService:
         """
         if cls._instance is None:
             cls._instance = cls()
-        return cls._instance
+        # Use cast to ensure the return type is correct
+        from typing import cast
+
+        return cast(T, cls._instance)
 
     @classmethod
     def has_instance(cls) -> bool:

@@ -42,10 +42,31 @@ class TernaryPatternResult(
         self, **kwargs: Union[Dict[int, int], List[Dict[str, int]], int, float]
     ) -> None:
         super().__init__(**kwargs)
-        self.digit_counts = kwargs.get("digit_counts", {})
-        self.sequences = kwargs.get("sequences", [])
-        self.dominant_digit = kwargs.get("dominant_digit", 0)
-        self.balance_score = kwargs.get("balance_score", 0.0)
+        digit_counts_val = kwargs.get("digit_counts", {})
+        sequences_val = kwargs.get("sequences", [])
+        dominant_digit_val = kwargs.get("dominant_digit", 0)
+        balance_score_val = kwargs.get("balance_score", 0.0)
+
+        # Type checking and conversion
+        if isinstance(digit_counts_val, dict):
+            self.digit_counts = digit_counts_val
+        else:
+            self.digit_counts = {}
+
+        if isinstance(sequences_val, list):
+            self.sequences = sequences_val
+        else:
+            self.sequences = []
+
+        if isinstance(dominant_digit_val, int):
+            self.dominant_digit = dominant_digit_val
+        else:
+            self.dominant_digit = 0
+
+        if isinstance(balance_score_val, (int, float)):
+            self.balance_score = float(balance_score_val)
+        else:
+            self.balance_score = 0.0
 
 
 class TernaryPatternAnalysis(TypedDict):
@@ -85,12 +106,22 @@ def decimal_to_ternary(decimal: int) -> TernaryNumber:
     if decimal < 0:
         # For negative numbers, convert to balanced ternary
         for i in range(len(ternary)):
+            # Ensure we're working with integers
+            if isinstance(ternary[i], str):
+                ternary[i] = int(ternary[i])
+
             if ternary[i] == 2:
                 ternary[i] = -1
                 if i + 1 >= len(ternary):
                     ternary.append(1)
                 else:
-                    ternary[i + 1] += 1
+                    # Ensure the next element is an integer
+                    # Convert to int if it's a string
+                    next_index = i + 1
+                    if isinstance(ternary[next_index], str):
+                        ternary[next_index] = int(ternary[next_index])
+                    # Now it's definitely an int, so we can increment it
+                    ternary[next_index] += 1
 
     return list(reversed(ternary))
 

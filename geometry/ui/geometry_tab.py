@@ -398,8 +398,25 @@ class GeometryTab(QWidget):
         button_layout.setContentsMargins(5, 5, 5, 5)
         button_layout.setSpacing(5)
 
-        # Placeholder for future geometry tools
-        # We've removed the Sacred Geometry button as we're implementing a new approach
+        # Sacred Geometry button
+        sacred_geometry_btn = QPushButton("Sacred Geometry")
+        sacred_geometry_btn.setToolTip("Open Sacred Geometry Explorer")
+        sacred_geometry_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #009688;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #00796b;
+            }
+        """
+        )
+        sacred_geometry_btn.clicked.connect(self._open_sacred_geometry)
+        button_layout.addWidget(sacred_geometry_btn)
 
         # Golden Ratio button
         golden_ratio_btn = QPushButton("Golden Ratio")
@@ -568,5 +585,32 @@ class GeometryTab(QWidget):
         # Raise the canvas to be on top of everything else after a delay
         QTimer.singleShot(1000, self._ensure_canvas_on_top)
 
-    # The Sacred Geometry Explorer implementation has been removed
-    # We'll implement a new approach for geometry tools
+    def _open_sacred_geometry(self) -> None:
+        """Open the Sacred Geometry Explorer window."""
+        logger.debug("Opening Sacred Geometry Explorer")
+
+        # Import here to avoid circular imports
+        # Generate a unique instance ID for multi-window support
+        import uuid
+
+        from geometry.ui.sacred_geometry import SacredGeometryExplorer
+        from geometry.ui.sacred_geometry.tool_system.selection_tool import SelectionTool
+
+        instance_id = f"sacred_geometry_{uuid.uuid4().hex[:8]}"
+
+        # Create a new Sacred Geometry Explorer instance
+        explorer = SacredGeometryExplorer(self.window_manager, instance_id)
+
+        # Add tools
+        explorer.add_tool(SelectionTool())
+
+        # Register the window with the window manager
+        self.window_manager._auxiliary_windows[instance_id] = explorer
+
+        # Configure and show the window
+        self.window_manager.configure_window(explorer)
+
+        # Activate the selection tool by default
+        explorer.set_active_tool("Selection")
+
+        logger.debug(f"Opened Sacred Geometry Explorer with instance ID: {instance_id}")

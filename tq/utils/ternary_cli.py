@@ -22,9 +22,11 @@ import sys
 from typing import List, Optional
 
 from tq.utils.ternary_converter import (
+    TernaryString,
     decimal_to_ternary,
     format_ternary,
     get_ternary_digit_positions,
+    is_valid_ternary_string,
     split_ternary_digits,
     ternary_to_decimal,
 )
@@ -36,13 +38,18 @@ def display_ternary_info(ternary_str: str) -> None:
     Args:
         ternary_str: The ternary string to analyze
     """
-    decimal_value = ternary_to_decimal(ternary_str)
-    ternary_digits = split_ternary_digits(ternary_str)
-    digit_positions = get_ternary_digit_positions(decimal_value)
+    # Convert to TernaryString type for type safety
+    ternary_string = (
+        TernaryString(ternary_str)
+        if is_valid_ternary_string(ternary_str)
+        else TernaryString("0")
+    )
+    decimal_value = ternary_to_decimal(ternary_string)
+    ternary_digits = split_ternary_digits(ternary_string)
 
     print(f"Ternary number: {ternary_str}")
     print(f"Decimal value: {decimal_value}")
-    print(f"Formatted (grouped): {format_ternary(ternary_str, group_size=3)}")
+    print(f"Formatted (grouped): {format_ternary(ternary_string, group_size=3)}")
 
     print("\nDigit breakdown:")
     for i, digit in enumerate(ternary_digits):
@@ -155,8 +162,10 @@ def main(args: Optional[List[str]] = None) -> int:
             if parsed_args.info:
                 display_decimal_info(parsed_args.number)
             else:
+                # Convert int to TernaryString
                 result = decimal_to_ternary(parsed_args.number)
                 if parsed_args.pad > 0 or parsed_args.group > 0:
+                    # result is already a TernaryString
                     result = format_ternary(
                         result, pad_length=parsed_args.pad, group_size=parsed_args.group
                     )
@@ -166,12 +175,24 @@ def main(args: Optional[List[str]] = None) -> int:
             if parsed_args.info:
                 display_ternary_info(parsed_args.number)
             else:
-                result = ternary_to_decimal(parsed_args.number)
+                # Convert to TernaryString for type safety
+                ternary_string = (
+                    TernaryString(parsed_args.number)
+                    if is_valid_ternary_string(parsed_args.number)
+                    else TernaryString("0")
+                )
+                result = ternary_to_decimal(ternary_string)
                 print(result)
 
         elif parsed_args.command == "format":
+            # Convert to TernaryString for type safety
+            ternary_string = (
+                TernaryString(parsed_args.number)
+                if is_valid_ternary_string(parsed_args.number)
+                else TernaryString("0")
+            )
             result = format_ternary(
-                parsed_args.number,
+                ternary_string,
                 pad_length=parsed_args.pad,
                 group_size=parsed_args.group,
                 group_separator=parsed_args.separator,

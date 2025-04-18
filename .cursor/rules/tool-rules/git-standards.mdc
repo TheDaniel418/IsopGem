@@ -1,0 +1,132 @@
+---
+description: Git usage standards and best practices
+globs: [".git/**/*", ".gitignore"]
+alwaysApply: true
+---
+
+# Git Usage Standards
+
+## Commit Guidelines
+
+1. Commit Message Format
+   - Type: feat, fix, docs, style, refactor, test, chore
+   - Scope: component or feature affected
+   - Subject: imperative, present tense
+   - Body: detailed explanation when needed
+
+2. Example Format
+   ```
+   type(scope): subject
+
+   body (optional)
+
+   footer (optional)
+   ```
+
+## Branch Management
+
+1. Branch Naming
+   - feature/description
+   - bugfix/description
+   - hotfix/description
+   - release/version
+   - main/master (primary branch)
+
+2. Branch Strategy
+   - Git Flow for release management
+   - Branch from develop
+   - Merge via pull requests
+   - Delete after merge
+
+## Pull Request Process
+
+1. PR Requirements
+   - Clear description
+   - Link to issue/ticket
+   - Tests included
+   - Documentation updated
+
+2. Review Process
+   - Code review required
+   - CI checks passing
+   - No merge conflicts
+   - Approved by maintainer
+
+## Git Operations
+
+1. Common Operations
+   - Use pull --rebase for updates
+   - Squash commits when appropriate
+   - Use meaningful commit messages
+   - Keep commits atomic
+
+2. Repository Maintenance
+   - Regular cleanup
+   - Archive old branches
+   - Maintain clean history
+   - Tag releases properly
+
+## Example Patterns
+
+### Good Commit Messages
+```
+feat(auth): implement OAuth2 login system
+
+- Add OAuth2 authentication flow
+- Implement token refresh mechanism
+- Add user session management
+
+Closes #123
+```
+
+### Branch Management
+```bash
+# Feature development
+git checkout -b feature/new-auth
+git commit -m "feat(auth): add login component"
+git push origin feature/new-auth
+
+# Cleanup after merge
+git checkout main
+git pull --rebase
+git branch -d feature/new-auth
+```
+
+## Best Practices
+
+1. Commits
+   - One logical change per commit
+   - Clear, descriptive messages
+   - Reference issues when relevant
+   - Keep commits small
+
+2. Workflow
+   - Regular small commits
+   - Feature branches
+   - Regular rebasing
+   - Clean history
+
+## Validation Rules
+
+1. Commit Validation
+   - Proper format
+   - Meaningful message
+   - Linked to issues
+   - Passes hooks
+
+2. Branch Validation
+   - Proper naming
+   - Up to date
+   - No conflicts
+   - Tests passing
+
+## Review Checklist
+
+- [ ] Commit messages follow format
+- [ ] Branch named correctly
+- [ ] PR description complete
+- [ ] Tests included
+- [ ] Documentation updated
+- [ ] CI checks passing
+- [ ] No merge conflicts
+- [ ] Properly reviewed

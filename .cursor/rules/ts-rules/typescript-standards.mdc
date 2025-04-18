@@ -1,0 +1,132 @@
+---
+description: TypeScript coding standards and best practices
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: true
+---
+
+# TypeScript Coding Standards
+
+## Type System Usage
+
+1. Type Annotations
+   - Prefer explicit return types on functions
+   - Use interface over type for object definitions
+   - Leverage union and intersection types appropriately
+   - Use generics for reusable components
+
+2. Type Safety
+   - Avoid `any` type unless absolutely necessary
+   - Use strict null checks
+   - Implement proper error handling with types
+   - Use discriminated unions for complex state
+
+## Naming Conventions
+
+1. Files
+   - Use kebab-case for filenames
+   - Add `.interface.ts` suffix for interface files
+   - Add `.type.ts` suffix for type definition files
+   - Add `.enum.ts` suffix for enum files
+
+2. Symbols
+   - Use PascalCase for types, interfaces, classes
+   - Use camelCase for variables, functions, methods
+   - Use UPPER_CASE for constants
+   - Use 'I' prefix for interfaces (optional)
+
+## Code Organization
+
+1. File Structure
+   - One concept per file
+   - Exports at bottom of file
+   - Types/interfaces at top
+   - Implementation in middle
+
+2. Module Structure
+   - Group related functionality
+   - Use barrel exports (index.ts)
+   - Maintain clear dependencies
+   - Document public APIs
+
+## Best Practices
+
+1. Functions
+   - Use arrow functions for consistency
+   - Keep functions pure when possible
+   - Use async/await over promises
+   - Implement proper error handling
+
+2. Classes
+   - Prefer composition over inheritance
+   - Use private members appropriately
+   - Implement interfaces explicitly
+   - Document class responsibilities
+
+3. Error Handling
+   - Use custom error types
+   - Handle all promise rejections
+   - Provide meaningful error messages
+   - Log errors appropriately
+
+## Example Patterns
+
+### Interface Definition
+```typescript
+interface IUserService {
+  getUser(id: string): Promise<User>;
+  updateUser(user: User): Promise<void>;
+  deleteUser(id: string): Promise<boolean>;
+}
+```
+
+### Type Guards
+```typescript
+function isUser(obj: any): obj is User {
+  return 'id' in obj && 'name' in obj;
+}
+```
+
+### Error Handling
+```typescript
+try {
+  const result = await apiCall();
+  handleSuccess(result);
+} catch (error) {
+  if (error instanceof ApiError) {
+    handleApiError(error);
+  } else {
+    handleUnknownError(error);
+  }
+}
+```
+
+## Validation Rules
+
+1. Code Quality
+   - No any types without justification
+   - No unused variables or imports
+   - No implicit any
+   - No non-null assertions without comment
+
+2. Style
+   - Consistent naming conventions
+   - Proper indentation
+   - Consistent spacing
+   - File organization
+
+3. Documentation
+   - JsDoc for public APIs
+   - Interface documentation
+   - Complex type documentation
+   - Error handling documentation
+
+## Review Checklist
+
+- [ ] Types properly defined
+- [ ] Error handling implemented
+- [ ] Documentation complete
+- [ ] No any types
+- [ ] Consistent naming
+- [ ] File organization correct
+- [ ] Tests implemented
+- [ ] No TypeScript errors

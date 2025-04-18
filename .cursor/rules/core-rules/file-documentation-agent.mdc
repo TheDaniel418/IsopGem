@@ -1,153 +1,69 @@
 ---
-description: `This rule enforces comprehensive documentation for all new files added to the IsopGem codebase. It requires adding clear file-level documentation that explains the file's purpose, functionality, and relationship to the broader application architecture. This documentation ensures maintainability as the application grows in size and complexity.`
-globs: 
+description: Enforces comprehensive documentation standards for all files
+globs: ["**/*"]
 alwaysApply: true
 ---
 
-# File Documentation Rule
+# File Documentation Rules
 
-## Critical Guidelines
+## Critical Rules
 
-1. Every new file MUST begin with clear documentation explaining:
-   - The file's primary purpose and responsibility
-   - Its role within the application architecture
-   - Key components/functions contained within
-   - Dependencies and relationships with other modules
-   - Any important implementation details or design decisions
+1. Every new file must include:
+   - File purpose description at the top
+   - Author information
+   - Creation date
+   - Last modified date
+   - Dependencies and requirements
 
-2. Documentation format should match the language-specific conventions:
-   - Python: Multi-line docstring comments at the top of the file
-   - TypeScript/JavaScript: JSDoc-style comments at the top of the file
-   - CSS/SCSS: Comment block at the top of the file
-   - Other file types: Appropriate comment syntax for the language
+2. Code files must have:
+   - Function/class documentation
+   - Parameter descriptions
+   - Return value documentation
+   - Usage examples where appropriate
 
-3. Documentation must specifically mention which architectural pillar the file belongs to (gematria, geometry, document_manager, astrology, tq) and its component type (UI, service, model, repository, utility).
-
-4. When creating new files that implement common patterns (e.g., services, repositories, models), documentation should reference similar existing files to maintain consistency.
-
-5. When creating test files, documentation should clearly state what functionality is being tested and the testing approach.
+3. Documentation files must:
+   - Follow markdown best practices
+   - Include a table of contents for files > 100 lines
+   - Have clear section headers
+   - Include relevant links to related documentation
 
 ## Documentation Templates
 
-### Python Files
-
-```python
-"""
-Purpose: [Brief description of what this file does]
-
-This file is part of the [PILLAR_NAME] pillar and serves as a [COMPONENT_TYPE].
-It is responsible for [PRIMARY_RESPONSIBILITY] within the application.
-
-Key components:
-- [CLASS/FUNCTION_NAME]: [Brief description]
-- [CLASS/FUNCTION_NAME]: [Brief description]
-
-Dependencies:
-- [DEPENDENCY]: [Reason for dependency]
-
-Related files:
-- [RELATED_FILE]: [Relationship description]
-"""
+### Code File Header
 ```
-
-### TypeScript/JavaScript Files
-
-```typescript
 /**
- * Purpose: [Brief description of what this file does]
- *
- * This file is part of the [PILLAR_NAME] pillar and serves as a [COMPONENT_TYPE].
- * It is responsible for [PRIMARY_RESPONSIBILITY] within the application.
- *
- * Key components:
- * - [CLASS/FUNCTION_NAME]: [Brief description]
- * - [CLASS/FUNCTION_NAME]: [Brief description]
- *
- * Dependencies:
- * - [DEPENDENCY]: [Reason for dependency]
- *
- * Related files:
- * - [RELATED_FILE]: [Relationship description]
+ * @file {filename}
+ * @description {file purpose}
+ * @author {author}
+ * @created {YYYY-MM-DD}
+ * @lastModified {YYYY-MM-DD}
+ * @dependencies {list of dependencies}
  */
 ```
 
-### CSS/SCSS Files
-
-```css
-/*
- * Purpose: [Brief description of what this file does]
- *
- * This file is part of the [PILLAR_NAME] pillar and serves as [COMPONENT_TYPE] styling.
- * It is responsible for [PRIMARY_RESPONSIBILITY] within the application.
- *
- * Key selectors/components:
- * - [SELECTOR_NAME]: [Brief description]
- * - [SELECTOR_NAME]: [Brief description]
- *
- * Related files:
- * - [RELATED_FILE]: [Relationship description]
- */
+### Function Documentation
 ```
-
-## Examples
-
-### Example: Python Service Implementation
-
-```python
-"""
-Purpose: Provides Gematria calculation services for Hebrew text analysis
-
-This file is part of the gematria pillar and serves as a service component.
-It is responsible for performing various types of gematria calculations on
-Hebrew text and maintaining calculation history.
-
-Key components:
-- GematriaService: Main service class that handles calculation requests
-- calculate_value: Core calculation function supporting multiple methods
-- get_calculation_history: Retrieves history of calculations
-
-Dependencies:
-- gematria.models.calculation_type: Defines available calculation methods
-- shared.services.history_service: For storing calculation history
-
-Related files:
-- gematria/ui/panels/calculator_panel.py: UI that uses this service
-- gematria/models/calculation_result.py: Data model for calculation results
-"""
-```
-
-### Example: TypeScript Component
-
-```typescript
 /**
- * Purpose: Renders the Gematria calculator interface
- *
- * This file is part of the gematria pillar and serves as a UI component.
- * It provides the main user interface for performing gematria calculations,
- * viewing results, and accessing calculation history.
- *
- * Key components:
- * - GematriaCalculator: Main component with input fields and results display
- * - MethodSelector: Dropdown for selecting calculation methods
- * - ResultsTable: Displays calculation results in tabular format
- *
- * Dependencies:
- * - gematria/services/GematriaService: For performing calculations
- * - shared/components/HistoryPanel: For displaying calculation history
- *
- * Related files:
- * - gematria/models/CalculationType.ts: Defines calculation method types
- * - gematria/styles/calculator.scss: Styling for this component
+ * @function {functionName}
+ * @description {function purpose}
+ * @param {paramType} paramName - parameter description
+ * @returns {returnType} - return value description
+ * @example
+ * // Usage example
  */
 ```
 
-## Implementation
+## Validation Rules
 
-When implementing this rule:
+1. Documentation must be up to date with code changes
+2. All public APIs must have examples
+3. Documentation must match actual implementation
+4. Links must be valid and point to existing resources
 
-1. Add the appropriate documentation template at the beginning of each new file
-2. Fill in all placeholder sections with specific, relevant information
-3. Ensure the documentation accurately reflects the file's current and intended purpose
-4. Update documentation when file functionality changes significantly
+## Review Checklist
 
-Following this rule consistently will create a self-documenting codebase that remains maintainable as it grows in size and complexity. 
+- [ ] File header complete
+- [ ] All functions documented
+- [ ] Examples provided where needed
+- [ ] Dependencies listed
+- [ ] Last modified date updated

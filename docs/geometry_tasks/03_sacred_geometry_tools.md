@@ -1,32 +1,77 @@
 # Chapter 3: Sacred Geometry Specialized Tools
 
-This chapter focuses on implementing specialized tools for sacred geometry constructions, building upon the basic geometric tools established in the previous chapter.
+This chapter focuses on implementing specialized tools for sacred geometry constructions, building upon the basic geometric tools established in the previous chapter. All tools must integrate with the focus-based window management system.
 
 ## Tasks
 
-### 3.1 Implement Golden Ratio Tools
+### 3.1 Implement Tool State Management Framework
 
-**Description:** Create tools for working with the golden ratio in various geometric forms.
+**Description:** Create a robust framework for managing tool states across multiple Sacred Geometry Explorer windows.
 
 **Subtasks:**
-1. Implement `GoldenRatioLineTool` for dividing a line segment in golden ratio
-2. Create `GoldenRectangleTool` for constructing golden rectangles
-3. Implement `GoldenSpiralTool` for drawing golden spirals
-4. Add `GoldenTriangleTool` for creating golden triangles and pentagrams
-5. Create visual indicators for golden ratio relationships
+1. Create `SacredGeometryToolManager` class:
+   - Tool instance registry per window
+   - Tool state synchronization between windows
+   - Tool option persistence per window
+2. Implement tool state persistence:
+   - Tool settings serialization
+   - Window-specific tool states
+   - Cross-window tool state transfer
+   - Focus-based state activation
+3. Add tool synchronization features:
+   - Tool option synchronization
+   - Tool preview coordination
+   - Multi-window tool feedback
+   - Tool state conflict resolution
+4. Create tool state UI components:
+   - Tool state indicators
+   - Window-specific tool options
+   - Tool synchronization controls
+   - Tool state reset functionality
+5. Implement state change handlers:
+   - Focus change handlers
+   - Window activation handlers
+   - Tool state transfer handlers
+   - Error recovery handlers
 
 **Acceptance Criteria:**
-- Line segments can be divided according to the golden ratio
-- Golden rectangles can be constructed from a line segment
-- Golden spirals can be drawn with configurable iterations
-- Golden triangles and pentagrams can be created
-- Golden ratio relationships are visually indicated
+- Tool states persist per window
+- Tool settings sync appropriately between windows
+- Tool previews work correctly across windows
+- Tool states transfer smoothly with focus
+- Tool options maintain consistency
+- Visual feedback shows tool states clearly
+- Tool conflicts resolve gracefully
+- Performance remains good with multiple windows
+- Error handling works reliably
+
+**Dependencies:** Chapter 1, Chapter 2
+
+---
+
+### 3.2 Implement Base Sacred Geometry Tool Framework
+
+**Description:** Create the foundation classes for sacred geometry tools that integrate with window management.
+
+**Subtasks:**
+1. Create `SacredGeometryTool` base class inheriting from `GeometryTool`
+2. Implement sacred geometry tool state management
+3. Add sacred geometry tool activation/deactivation handlers
+4. Implement tool option persistence through window state system
+5. Create common sacred geometry tool interfaces
+
+**Acceptance Criteria:**
+- Base sacred geometry tool class is implemented
+- Tool states persist through window focus changes
+- Tools activate/deactivate properly with window focus
+- Tool options persist with window state
+- Common interfaces are well-defined
 
 **Dependencies:** Chapter 2 basic tools
 
 ---
 
-### 3.2 Implement Vesica Piscis Tool
+### 3.3 Implement Vesica Piscis Tool
 
 **Description:** Create a tool for constructing the Vesica Piscis, a fundamental sacred geometry shape.
 
@@ -47,7 +92,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.3 Implement Seed of Life Tool
+### 3.4 Implement Seed of Life Tool
 
 **Description:** Create a tool for constructing the Seed of Life pattern.
 
@@ -68,7 +113,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.4 Implement Flower of Life Tool
+### 3.5 Implement Flower of Life Tool
 
 **Description:** Create a tool for constructing the Flower of Life pattern.
 
@@ -89,7 +134,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.5 Implement Tree of Life Tool
+### 3.6 Implement Tree of Life Tool
 
 **Description:** Create a tool for constructing the Kabbalistic Tree of Life.
 
@@ -110,7 +155,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.6 Implement Sacred Polygon Tools
+### 3.7 Implement Sacred Polygon Tools
 
 **Description:** Create tools for constructing sacred polygons and stars.
 
@@ -131,7 +176,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.7 Implement Metatron's Cube Tool
+### 3.8 Implement Metatron's Cube Tool
 
 **Description:** Create a tool for constructing Metatron's Cube.
 
@@ -152,7 +197,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.8 Implement Sri Yantra Tool
+### 3.9 Implement Sri Yantra Tool
 
 **Description:** Create a tool for constructing the Sri Yantra.
 
@@ -173,7 +218,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.9 Implement Harmonic Ratio Tools
+### 3.10 Implement Harmonic Ratio Tools
 
 **Description:** Create tools for working with harmonic ratios in sacred geometry.
 
@@ -195,7 +240,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.10 Implement Mandala Construction Tools
+### 3.11 Implement Mandala Construction Tools
 
 **Description:** Create tools for constructing geometric mandalas.
 
@@ -217,7 +262,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.11 Implement Sacred Architecture Tools
+### 3.12 Implement Sacred Architecture Tools
 
 **Description:** Create tools for working with sacred architectural proportions.
 
@@ -239,7 +284,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.12 Implement Tiling Pattern Tools
+### 3.13 Implement Tiling Pattern Tools
 
 **Description:** Create tools for constructing geometric tiling patterns.
 
@@ -261,7 +306,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 
 ---
 
-### 3.13 Test and Refine Sacred Geometry Tools
+### 3.14 Test and Refine Sacred Geometry Tools
 
 **Description:** Perform comprehensive testing and refinement of all sacred geometry tools.
 
@@ -279,7 +324,7 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 - Tools perform efficiently
 - User interaction is smooth and intuitive
 
-**Dependencies:** 3.1 through 3.12
+**Dependencies:** 3.1 through 3.13
 
 ## Next Chapter
 

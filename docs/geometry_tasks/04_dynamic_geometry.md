@@ -1,28 +1,46 @@
 # Chapter 4: Dynamic Geometry System
 
-This chapter focuses on implementing the constraint-based dynamic geometry system that will allow objects to maintain their mathematical relationships when moved or modified.
+This chapter focuses on implementing the constraint-based dynamic geometry system that allows objects to maintain mathematical relationships as they are manipulated. The system must work seamlessly across multiple explorer windows.
 
 ## Tasks
 
-### 4.1 Design Constraint System Architecture
+### 4.1 Design Dynamic Geometry Architecture
 
-**Description:** Design the architecture for the constraint-based dynamic geometry system.
+**Description:** Design the core architecture for the dynamic geometry system with multi-window support.
 
 **Subtasks:**
-1. Define constraint types and hierarchy
-2. Design constraint solver architecture
-3. Create constraint representation model
-4. Define constraint priority system
-5. Design constraint visualization system
+1. Create `DynamicGeometryManager` class that integrates with WindowManager:
+   - Window-specific constraint tracking
+   - Cross-window constraint synchronization
+   - Constraint state persistence per window
+2. Design the constraint system architecture:
+   - Hierarchical constraint structure
+   - Relationship type definitions
+   - Window-aware update propagation
+3. Define object dependency tracking:
+   - Per-window dependency graphs
+   - Cross-window reference handling
+   - Circular dependency detection
+4. Plan update scheduling system:
+   - Window-specific update queues
+   - Cross-window update coordination
+   - Focus-aware update prioritization
+5. Design constraint persistence:
+   - Per-window state serialization
+   - Cross-window relationship persistence
+   - Focus state handling
 
 **Acceptance Criteria:**
-- Constraint system architecture is well-defined
-- Constraint types cover all necessary geometric relationships
-- Constraint solver approach is mathematically sound
-- Constraint priority system handles conflicts appropriately
-- Constraint visualization system is intuitive
+- Architecture supports multi-window dynamic geometry
+- Constraints work within and across windows
+- Dependencies are tracked per window instance
+- Updates propagate correctly across windows
+- State persistence works per window
+- System handles window focus changes gracefully
+- Cross-window relationships maintain consistency
+- Performance scales with multiple windows
 
-**Dependencies:** Chapters 1-3
+**Dependencies:** Chapter 1
 
 ---
 

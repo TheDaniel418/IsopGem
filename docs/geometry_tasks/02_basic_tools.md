@@ -2,6 +2,16 @@
 
 This chapter focuses on implementing the fundamental geometric construction tools that will form the basis of the Geometry tab's functionality.
 
+## Implementation Notes
+
+**Important:** These tools have not been implemented yet. Special attention will be paid to proper object lifecycle management to ensure that temporary construction points do not remain as separate objects after creating geometric objects (lines, circles, polygons, etc). This will be handled through:
+
+1. Temporary point tracking in the base tool class
+2. Proper cleanup of temporary points on operation completion
+3. Clear distinction between construction points and final geometric objects
+4. Proper event handling for operation cancellation
+5. Resource cleanup on tool state changes
+
 ## Tasks
 
 ### 2.1 Implement Point Tool

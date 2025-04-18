@@ -211,6 +211,14 @@ class AstrologyTab(QWidget):
                 f"Could not open database manager: {str(e)}",
             )
 
+    def _open_cosmic_calendar(self):
+        """Open the Cosmic Calendar placeholder window."""
+        QMessageBox.information(
+            self,
+            "Cosmic Calendar",
+            "Cosmic Calendar UI coming soon!\nThis will be your portal to the Kamea Cosmic Calendar visualization.",
+        )
+
     def _init_ui(self) -> None:
         """Initialize the UI components."""
         # Main layout for the tab
@@ -265,6 +273,12 @@ class AstrologyTab(QWidget):
         planner_btn.setToolTip("Open the astrological daily planner")
         planner_btn.clicked.connect(self._open_planner)
         button_layout.addWidget(planner_btn)
+
+        # Cosmic Calendar button
+        cosmic_calendar_btn = QPushButton("Cosmic Calendar")
+        cosmic_calendar_btn.setToolTip("Visualize the Kamea Cosmic Calendar")
+        cosmic_calendar_btn.clicked.connect(self._open_cosmic_calendar)
+        button_layout.addWidget(cosmic_calendar_btn)
 
         # Database Manager button
         db_manager_btn = QPushButton("Database Manager")

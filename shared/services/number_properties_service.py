@@ -29,6 +29,8 @@ try:
 except ImportError:
     SYMPY_AVAILABLE = False
 
+from tq.utils.ternary_transition import TernaryTransition
+
 logger = logging.getLogger(__name__)
 
 
@@ -450,25 +452,19 @@ class NumberPropertiesService:
 
     def ternary_to_conrune(self, ternary_str: str) -> int:
         """
-        Convert a ternary string to its conrune value.
+        Convert a ternary string to its conrune value using the canonical transformation.
 
         Args:
             ternary_str: The ternary representation as a string
 
         Returns:
-            The conrune value
+            The conrune value (as decimal)
         """
         if not ternary_str:
             return 0
-
-        conrune = 0
-        for digit in ternary_str:
-            if digit == "1":
-                conrune += 1
-            elif digit == "2":
-                conrune -= 1
-
-        return conrune
+        transition = TernaryTransition()
+        conrune_str = transition.apply_conrune(ternary_str)
+        return int(conrune_str, 3)
 
     def get_reverse_ternary_decimal(self, number: int) -> int:
         """
@@ -501,53 +497,31 @@ class NumberPropertiesService:
 
         return result
 
+    def get_conrune(self, ternary: str) -> int:
+        """Convert a ternary string to its conrune decimal value using the canonical transformation."""
+        if not ternary or ternary == "0":
+            return 1  # Special case: 0 becomes 1
+        is_negative = ternary.startswith("-")
+        if is_negative:
+            ternary = ternary[1:]
+        transition = TernaryTransition()
+        conrune_str = transition.apply_conrune(ternary)
+        result = int(conrune_str, 3)
+        return -result if is_negative else result
+
     def get_quadset_properties(self, number: int) -> Dict[str, Any]:
         """
-        Get the quadset properties for a given number.
-
-        A quadset consists of:
-        1. The original number
-        2. Its conrune value
-        3. The reverse ternary value
-        4. The conrune of the reverse ternary value
-
-        Args:
-            number: The number to analyze
-
-        Returns:
-            A dictionary containing the quadset properties
+        Get the quadset properties for a given number using the canonical conrune transformation.
         """
         # Convert to ternary
-        ternary = ""
-        n = number
-        while n > 0:
-            remainder = n % 3
-            ternary = str(remainder) + ternary
-            n //= 3
-
-        if not ternary:
-            ternary = "0"
-
-        # Calculate conrune
-        conrune = self.ternary_to_conrune(ternary)
-
-        # Calculate reverse ternary decimal
+        ternary = self.get_ternary(number)
+        transition = TernaryTransition()
+        conrune_str = transition.apply_conrune(ternary)
+        conrune = int(conrune_str, 3)
         reverse_ternary_decimal = self.get_reverse_ternary_decimal(number)
-
-        # Calculate reverse ternary
-        reverse_ternary = ""
-        n = reverse_ternary_decimal
-        while n > 0:
-            remainder = n % 3
-            reverse_ternary = str(remainder) + reverse_ternary
-            n //= 3
-
-        if not reverse_ternary:
-            reverse_ternary = "0"
-
-        # Calculate conrune of reverse ternary
-        reverse_conrune = self.ternary_to_conrune(reverse_ternary)
-
+        reverse_ternary = self.get_ternary(reverse_ternary_decimal)
+        reverse_conrune_str = transition.apply_conrune(reverse_ternary)
+        reverse_conrune = int(reverse_conrune_str, 3)
         return {
             "number": number,
             "ternary": ternary,
@@ -598,45 +572,6 @@ class NumberPropertiesService:
                 return True, base
 
         return False, None
-
-    def get_conrune(self, ternary: str) -> int:
-        """Convert a ternary string to its conrune decimal value.
-
-        The conrune transformation replaces each digit in ternary:
-        0 -> 1
-        1 -> 2
-        2 -> 0
-
-        Args:
-            ternary: Ternary string to transform
-
-        Returns:
-            Decimal value of the conrune transformation
-        """
-        if not ternary or ternary == "0":
-            return 1  # Special case: 0 becomes 1
-
-        # Handle negative numbers
-        is_negative = ternary.startswith("-")
-        if is_negative:
-            ternary = ternary[1:]
-
-        # Apply conrune transformation
-        conrune = ""
-        for digit in ternary:
-            if digit == "0":
-                conrune += "1"
-            elif digit == "1":
-                conrune += "2"
-            elif digit == "2":
-                conrune += "0"
-
-        # Convert back to decimal
-        result = 0
-        for digit in conrune:
-            result = result * 3 + int(digit)
-
-        return -result if is_negative else result
 
     def get_ternary_reversal(self, number: int) -> int:
         """Get the decimal value of a number's reversed ternary representation.

@@ -1,142 +1,107 @@
 ---
-description: This rule governs the project architecture based on a 5-pillar structure. It should be applied whenever (1) creating new components, services, models, repositories or utilities, (2) refactoring existing code to fit the architecture, (3) discussing architectural decisions, or (4) evaluating where new functionality should be placed. This architecture organizes code by domain pillar (gematria, geometry, document_manager, astrology, tq) with consistent internal structure for UI components, services, models, repositories, and utilities. It's particularly important when designing new features or determining proper code organization to maintain consistent, maintainable, and extensible code.
-globs: 
-alwaysApply: false
+description: Enforces the 5-pillar architecture pattern across the project
+globs: ["**/*"]
+alwaysApply: true
 ---
 
-# IsopGem Project Architecture
+# Project Architecture Rules
+
+## 5-Pillar Architecture
+
+Every major feature module must follow the 5-pillar structure:
+
+1. Models
+   - Data structures and types
+   - Domain entities
+   - Interfaces and type definitions
+
+2. Repositories
+   - Data access layer
+   - Database interactions
+   - External API integrations
+   - Cache management
+
+3. Services
+   - Business logic
+   - Data transformation
+   - Complex operations
+   - Service-to-service communication
+
+4. UI (if applicable)
+   - Components
+   - State management
+   - Event handlers
+   - Styling
+
+5. Utils
+   - Helper functions
+   - Common utilities
+   - Shared constants
+   - Type guards
+
+## Directory Structure Rules
+
+```
+feature/
+├── models/
+│   ├── types.ts
+│   ├── interfaces.ts
+│   └── entities.ts
+├── repositories/
+│   ├── feature.repository.ts
+│   └── interfaces.ts
+├── services/
+│   ├── feature.service.ts
+│   └── interfaces.ts
+├── ui/
+│   ├── components/
+│   └── hooks/
+└── utils/
+    ├── helpers.ts
+    └── constants.ts
+```
 
 ## Critical Rules
 
-- Follow the 5-pillar structure for all project organization:
-  - `pillar_name/` (e.g., gematria/, geometry/, document_manager/, astrology/, tq/)
-  - Each pillar must maintain consistent internal structure
-- Every pillar must contain these directories:
-  - `ui/` - All visual components specific to the pillar
-  - `services/` - Business logic and operations
-  - `models/` - Data structures and domain objects
-  - `repositories/` - Data storage and retrieval
-  - `utils/` - Helper functions specific to the pillar
-- UI components must be organized into:
-  - `pillar_tab.py` - Main tab for this pillar
-  - `panels/` - Dockable/movable panels
-  - `dialogs/` - Modal or non-modal dialog windows
-  - `widgets/` - Custom UI controls
-- Services must coordinate between UI and repositories
-- Each pillar must have a `__init__.py` to make it a package
-- Cross-pillar shared code must go in a dedicated shared folder
-- Code should be placed in its proper directory based on its responsibility
-- New features must be evaluated to determine proper pillar placement
-- Never mix responsibilities between different layers
+1. Each pillar must have clear responsibilities
+2. No cross-pillar imports except through defined interfaces
+3. Services must not directly access repositories of other features
+4. UI components must only interact with services through facades
+5. Utils must be pure functions without side effects
 
-## Component Responsibilities
+## Best Practices
 
-### UI (User Interface)
-- Contains all visual components specific to a pillar
-- Main Tab: Primary tab appearing in the application
-- Panels: Dockable/movable panels within the tab
-- Dialogs: Modal or non-modal dialog windows
-- Widgets: Custom UI controls specific to the pillar
-- UI components should only handle presentation logic
+1. Models
+   - Use interfaces over classes when possible
+   - Keep models focused and single-purpose
+   - Include validation rules
 
-### Services
-- Implements business logic and operations
-- Primary Service: Main service coordinating operations
-- Specialized Services: Focused on specific functionality
-- Services use repositories for data access
-- Services implement core algorithms and processes
-- No direct UI manipulation from services
+2. Repositories
+   - Abstract data access behind interfaces
+   - Handle all data persistence
+   - Include error handling
 
-### Models
-- Contains data structures and domain objects
-- Domain entities representing key concepts
-- Value objects for immutable values
-- Data transfer objects (DTOs) for data exchange
-- Data validation logic
-- Models should be UI-agnostic
+3. Services
+   - Implement business logic only
+   - Use dependency injection
+   - Handle complex operations
 
-### Repositories
-- Handles data storage and retrieval
-- Database access implementations
-- File system operations
-- External API calls
-- Data conversion between storage and domain models
-- No business logic in repositories
+4. UI
+   - Keep components small and focused
+   - Separate business logic from presentation
+   - Use composition over inheritance
 
-### Utils (Utilities)
-- Contains pillar-specific helper functions
-- Specialized calculations
-- Formatting functions
-- Conversion utilities
-- Helper functions used within the pillar only
-- Stateless, pure utility functions
+5. Utils
+   - Keep utilities generic and reusable
+   - Document edge cases
+   - Include unit tests
 
-## Cross-Pillar Shared Components
-- Shared components must be placed in dedicated shared directory
-- Common UI components used across pillars
-- Shared services for cross-cutting concerns
-- Base models extended by pillar-specific models
-- Common repositories or data access patterns
-- Utility functions used by multiple pillars
+## Validation Checklist
 
-## Examples
-
-<example>
-# Proper structure for the Gematria pillar
-gematria/
-├── ui/
-│   ├── gematria_tab.py
-│   ├── panels/
-│   │   └── calculation_panel.py
-│   ├── dialogs/
-│   │   └── result_dialog.py
-│   └── widgets/
-│       └── number_display.py
-├── services/
-│   ├── gematria_service.py
-│   └── calculation_service.py
-├── models/
-│   ├── gematria_result.py
-│   └── calculation_type.py
-├── repositories/
-│   └── gematria_repository.py
-├── utils/
-│   └── hebrew_helpers.py
-└── __init__.py
-
-# Shared component example
-shared/
-├── ui/
-│   └── widgets/
-│       └── searchable_list.py
-├── services/
-│   └── logging_service.py
-├── models/
-│   └── base_model.py
-└── utils/
-    └── string_utils.py
-</example>
-
-<example type="invalid">
-# Incorrect structure - Missing key directories
-gematria/
-├── gematria_tab.py
-├── calculation_service.py
-└── hebrew_helpers.py
-
-# Incorrect responsibility placement
-gematria/
-├── ui/
-│   └── gematria_tab.py  # Contains database queries
-├── services/
-│   └── gematria_service.py  # Contains UI rendering code
-└── repositories/
-    └── gematria_repository.py  # Contains business logic
-
-# Incorrect mixing of pillars
-gematria/
-├── ui/
-│   └── astrology_widget.py  # Wrong pillar
-└── services/
-    └── geometry_calculator.py  # Should be in geometry pillar
-</example> 
+- [ ] Feature follows 5-pillar structure
+- [ ] Each pillar has clear responsibilities
+- [ ] Interfaces properly defined
+- [ ] No circular dependencies
+- [ ] Proper error handling
+- [ ] Documentation complete
+- [ ] Tests implemented

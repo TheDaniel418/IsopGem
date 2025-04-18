@@ -1,33 +1,113 @@
 ---
-description: 
-globs:
+description: Defines emoji usage standards in communication
+globs: ["**/*"]
 alwaysApply: true
 ---
 
-# Emoji Communication Guidelines
+# Emoji Communication Standards
 
-## Critical Rules
+## Core Principles
 
-  - Use emojis purposefully to enhance meaning, but feel free to be creative and fun
-  - Place emojis at the end of statements or sections
-  - Maintain professional tone while surprising users with clever choices
-  - Limit emoji usage to 1-2 per major section
-  - Choose emojis that are both fun and contextually appropriate
-  - Place emojis at the end of statements, not at the beginning or middle
-  - Don't be afraid to tell a mini-story with your emoji choice 
+1. Purpose
+   - Enhance message clarity
+   - Add appropriate emotion
+   - Highlight important points
+   - Maintain professionalism
 
-## Examples
+2. Usage Guidelines
+   - Use sparingly and purposefully
+   - Maintain consistency
+   - Keep professional context
+   - Avoid overuse
 
-<example>
-  "I've optimized your database queries 🏃‍♂️"
-  "Your bug has been squashed 🥾🐛"
-  "I've cleaned up the legacy code 🧹✨"
-  "Fixed the performance issue 🐌➡️🐆"
-</example>
+## Emoji Categories
 
-<example type="invalid">
-  "Multiple 🎉 emojis 🎊 in 🌟 one message"
-  "Using irrelevant emojis 🥑"
-  "Placing the emoji in the middle ⭐️ of a sentence"
-  "Great Job!!!" - lack of obvious use of an emoji
-</example>
+1. Status Indicators
+   - ✅ Success/Completion
+   - ❌ Error/Failure
+   - ⚠️ Warning/Caution
+   - ℹ️ Information
+   - 🚧 Work in Progress
+
+2. Development Actions
+   - 🔨 Building/Implementation
+   - 🐛 Bug Fix
+   - 🧪 Testing
+   - 📝 Documentation
+   - 🔄 Refactoring
+
+3. Communication
+   - 💡 Suggestion/Idea
+   - ❓ Question
+   - 💭 Thinking/Processing
+   - 👍 Approval/Agreement
+   - 🎯 Goal/Target
+
+4. Technical Context
+   - 🗄️ Database
+   - 🌐 Network/API
+   - 🔐 Security
+   - 🎨 UI/Design
+   - ⚡ Performance
+
+## Usage Patterns
+
+### Status Updates
+```
+✅ Tests passing
+⚠️ Performance issue detected
+❌ Build failed
+```
+
+### Development Progress
+```
+🔨 Implementing new feature
+🐛 Fixing reported bug
+📝 Updating documentation
+```
+
+### Communication Flow
+```
+❓ Need clarification on X
+💡 Here's a suggestion
+👍 Changes approved
+```
+
+## Best Practices
+
+1. Consistency
+   - Use same emoji for same context
+   - Maintain standard meanings
+   - Follow established patterns
+   - Document new usages
+
+2. Professionalism
+   - Keep emoji relevant
+   - Avoid excessive use
+   - Maintain clarity
+   - Consider context
+
+## Context Guidelines
+
+1. Technical Discussion
+   - Use technical emojis
+   - Keep minimal
+   - Support clarity
+   - Match severity
+
+2. Status Updates
+   - Clear indicators
+   - Progress markers
+   - Result signifiers
+   - Action items
+
+## Review Checklist
+
+- [ ] Appropriate emoji used
+- [ ] Context maintained
+- [ ] Not overused
+- [ ] Adds clarity
+- [ ] Consistent usage
+- [ ] Professional tone
+- [ ] Documented pattern
+- [ ] Clear meaning

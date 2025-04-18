@@ -1,86 +1,90 @@
 ---
-description: `This rule creates and maintains a file tracker document that mirrors the project's file structure, providing a centralized overview of all files and their purposes. Every time a new file is added or modified, this tracker is updated to reflect the changes, helping maintain a clear map of the growing codebase.`
-globs: 
+description: Maintains and updates the project's file tracking documentation
+globs: ["**/*"]
 alwaysApply: true
 ---
 
-# File Tracker Rule
+# File Tracker Rules
 
-## Critical Guidelines
+## Purpose
 
-1. Maintain a central document at `docs/FILE_TRACKER.md` that catalogs all application files by directory structure.
+Maintain a comprehensive and up-to-date record of all project files and their purposes in the FILE_TRACKER.md document.
 
-2. Every time a new file is created or significantly modified:
-   - Add an entry to the file tracker document
-   - Include the file's relative path within the project
-   - Add a brief description extracted from the file's documentation
-   - Categorize by pillar and component type
-   - Preserve the hierarchical directory structure in the document
+## Critical Rules
 
-3. Structure the file tracker document with:
-   - Clear hierarchical headings for directories (use ## for top-level, ### for second-level, etc.)
-   - Bullet points for individual files
-   - Code formatting for file paths
-   - Tables for important files with columns for path, description, pillar, and type
+1. File Addition/Modification
+   - Every new file must be documented in FILE_TRACKER.md
+   - File purpose must be clearly described
+   - File relationships must be documented
+   - Changes to file purposes must be updated
 
-4. When removing or renaming files:
-   - Update the corresponding entry in the file tracker
-   - Maintain a "Recently Changed" section at the top to highlight recent modifications
+2. Directory Structure
+   - Maintain accurate directory tree representation
+   - Document directory purposes
+   - Track directory relationships
+   - Update structure on directory changes
 
-5. Periodically suggest to consolidate and reorganize the tracker document when it becomes too large or unwieldy.
+3. Module Documentation
+   - Document module responsibilities
+   - Track module dependencies
+   - Maintain module relationship diagrams
+   - Update on architectural changes
 
-## File Tracker Template
+## File Tracker Format
 
-```markdown
-# IsopGem File Tracker
+### Directory Entry Format
+```md
+### /path/to/directory
+Description of directory's purpose and contents.
 
-This document provides a centralized overview of all files in the IsopGem project, organized by directory structure. Each entry includes the file path and a brief description of its purpose.
-
-## Recently Changed
-| File | Description | Date | Change Type |
-|------|-------------|------|------------|
-| `path/to/new/file.py` | Brief description | YYYY-MM-DD | Added |
-| `path/to/modified/file.ts` | Brief description | YYYY-MM-DD | Modified |
-
-## Directory Structure
-
-### /shared
-Core shared components, utilities, and services used across multiple pillars.
-
-#### /shared/services
-- `history_service.py`: Provides unified history tracking functionality for various operations across pillars.
-- `logging_service.py`: Centralized logging functionality with configurable log levels.
-
-### /gematria
-Components related to Hebrew gematria calculations and analysis.
-
-#### /gematria/models
-- `calculation_type.py`: Defines various calculation methods used in Gematria.
-- `calculation_result.py`: Data model for storing and retrieving calculation results.
-
-#### /gematria/services
-- `gematria_service.py`: Core service providing Hebrew text analysis and gematria calculations.
-
-#### /gematria/ui/panels
-- `calculator_panel.py`: UI panel providing a user interface for calculating gematria values.
-- `history_panel.py`: Panel displaying the history of gematria calculations.
-
-### /geometry
-Components for geometric analysis and visualization.
-
-...
+#### Key Files
+- `filename.ext`: Brief description of file purpose
+- `another-file.ext`: What this file does
 ```
 
-## Implementation
+### Module Entry Format
+```md
+### Module Name
+Purpose: Brief description of module's responsibility
+Dependencies: List of other modules this depends on
+Key Components:
+- Component 1: Description
+- Component 2: Description
+```
 
-When implementing this rule:
+## Update Triggers
 
-1. Create the file tracker document if it doesn't exist
-2. Update it each time a file is created or significantly modified
-3. Maintain the hierarchical structure matching the project's directory organization
-4. Extract brief descriptions from file documentation
-5. Organize by pillars and component types
-6. Keep the "Recently Changed" section up to date
-7. Periodically suggest reorganization when the tracker becomes unwieldy
+1. File System Changes
+   - New file creation
+   - File deletion
+   - File movement
+   - Directory restructuring
 
-This file tracker will serve as a living map of the codebase, providing a valuable resource for both developers and AI assistants to quickly understand the project structure and find specific components. 
+2. Content Changes
+   - Major functionality changes
+   - Purpose changes
+   - Dependency changes
+   - Interface changes
+
+## Validation Rules
+
+1. Structure Validation
+   - All files must be documented
+   - Directory structure must be accurate
+   - File purposes must be clear
+   - Dependencies must be tracked
+
+2. Content Validation
+   - Descriptions must be meaningful
+   - Relations must be accurate
+   - Documentation must be current
+   - Links must be valid
+
+## Review Checklist
+
+- [ ] All new files documented
+- [ ] Directory structure accurate
+- [ ] Module purposes clear
+- [ ] Dependencies tracked
+- [ ] Relationships documented
+- [ ] Documentation current

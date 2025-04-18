@@ -11,7 +11,7 @@ Key components:
 Dependencies:
 - PyQt6: For the user interface components
 - tq.utils.ternary_converter: For converting between decimal and ternary
-- tq.services.ternary_dimension_interpreter: For interpreting ternary numbers
+- tq.services.ternary_dimension_interpreter_new: For interpreting ternary numbers
 
 Related files:
 - tq/ui/tq_tab.py: Main tab that opens this panel
@@ -34,7 +34,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from tq.services.ternary_dimension_interpreter import TernaryDimensionInterpreter
+from tq.services.ternary_dimension_interpreter_new import HexagramInterpreter
 from tq.utils.ternary_converter import decimal_to_ternary
 
 
@@ -49,8 +49,8 @@ class TernaryDimensionalAnalysisPanel(QWidget):
         """
         super().__init__(parent)
 
-        # Create interpreter
-        self.interpreter = TernaryDimensionInterpreter()
+        # Create interpreter (new logic)
+        self.interpreter = HexagramInterpreter()
 
         # Initialize the UI
         self._init_ui()
@@ -142,6 +142,15 @@ class TernaryDimensionalAnalysisPanel(QWidget):
         self.position_layout = position_layout
         self.results_layout.addWidget(self.position_group)
 
+        # Trigram analysis section
+        self.trigram_group = QGroupBox("Trigram Analysis")
+        trigram_layout = QVBoxLayout(self.trigram_group)
+        self.trigram_text = QTextEdit()
+        self.trigram_text.setReadOnly(True)
+        self.trigram_text.setMinimumHeight(150)
+        trigram_layout.addWidget(self.trigram_text)
+        self.results_layout.addWidget(self.trigram_group)
+
         # Overall pattern analysis
         self.pattern_group = QGroupBox("Pattern Interpretation")
         pattern_layout = QVBoxLayout(self.pattern_group)
@@ -151,13 +160,24 @@ class TernaryDimensionalAnalysisPanel(QWidget):
         pattern_layout.addWidget(self.pattern_text)
         self.results_layout.addWidget(self.pattern_group)
 
+        # Kamea full interpretation section
+        self.kamea_group = QGroupBox("Kamea Full Interpretation")
+        kamea_layout = QVBoxLayout(self.kamea_group)
+        self.kamea_text = QTextEdit()
+        self.kamea_text.setReadOnly(True)
+        self.kamea_text.setMinimumHeight(300)
+        kamea_layout.addWidget(self.kamea_text)
+        self.results_layout.addWidget(self.kamea_group)
+
         # Add results to scroll area
         scroll_area.setWidget(self.results_container)
         main_layout.addWidget(scroll_area, 1)  # Give it stretch
 
-        # Set the position group and pattern group initially hidden
+        # Set all result groups initially hidden
         self.position_group.setVisible(False)
+        self.trigram_group.setVisible(False)
         self.pattern_group.setVisible(False)
+        self.kamea_group.setVisible(False)
 
     def _analyze_number(self):
         """Analyze the input number and display dimensional interpretation."""
@@ -176,11 +196,15 @@ class TernaryDimensionalAnalysisPanel(QWidget):
 
         # Analyze and display results
         self._display_position_analysis(ternary_str)
+        self._display_trigram_analysis(ternary_str)
         self._display_pattern_analysis(ternary_str)
+        self._display_kamea_interpretation(ternary_str)
 
         # Show the results sections
         self.position_group.setVisible(True)
+        self.trigram_group.setVisible(True)
         self.pattern_group.setVisible(True)
+        self.kamea_group.setVisible(True)
 
     def _display_position_analysis(self, ternary_str: str):
         """Display the position-by-position dimensional analysis.
@@ -261,6 +285,43 @@ class TernaryDimensionalAnalysisPanel(QWidget):
         # Add frames to layout in reverse order (highest dimension first)
         for frame in reversed(position_frames):
             self.position_layout.addWidget(frame)
+
+    def _display_trigram_analysis(self, ternary_str: str):
+        """Display the trigram analysis using the get_trigram_meanings method.
+
+        Args:
+            ternary_str: The ternary string to analyze
+        """
+        # Get trigram meanings
+        trigram_meanings = self.interpreter.get_trigram_meanings(ternary_str)
+
+        # Format the trigram analysis for display
+        output_md = "## Trigram Analysis\n\n"
+
+        # Upper Trigram
+        upper = trigram_meanings["Upper Trigram"]
+        output_md += "### Upper Trigram\n\n"
+        if upper["trigram"]:
+            output_md += f"**Trigram:** {upper['trigram']}\n\n"
+            output_md += f"**Name:** {upper['english_name']} ({upper['name']})\n\n"
+            output_md += f"**Transliteration:** {upper['transliteration']}\n\n"
+            output_md += f"**Interpretation:** {upper['interpretation']}\n\n"
+        else:
+            output_md += "*Upper trigram not available for numbers with fewer than 6 digits.*\n\n"
+
+        # Lower Trigram
+        lower = trigram_meanings["Lower Trigram"]
+        output_md += "### Lower Trigram\n\n"
+        if lower["trigram"]:
+            output_md += f"**Trigram:** {lower['trigram']}\n\n"
+            output_md += f"**Name:** {lower['english_name']} ({lower['name']})\n\n"
+            output_md += f"**Transliteration:** {lower['transliteration']}\n\n"
+            output_md += f"**Interpretation:** {lower['interpretation']}\n\n"
+        else:
+            output_md += "*Lower trigram not available for numbers with fewer than 3 digits.*\n\n"
+
+        # Set the text in markdown format
+        self.trigram_text.setMarkdown(output_md.strip())
 
     def _display_pattern_analysis(self, ternary_str: str):
         """Display the overall pattern analysis using the enhanced service format."""
@@ -355,10 +416,97 @@ class TernaryDimensionalAnalysisPanel(QWidget):
         # Set the text in markdown format
         self.pattern_text.setMarkdown(output_md.strip())
 
+    def _display_kamea_interpretation(self, ternary_str: str):
+        """Display the full Kamea interpretation using the interpret method.
+
+        Args:
+            ternary_str: The ternary string to analyze
+        """
+        # Ensure we have a 6-digit ternary string for the full interpretation
+        # Pad with zeros if needed, or truncate if too long
+        ditrune = ternary_str.zfill(6)[-6:]
+
+        # Get the full interpretation
+        try:
+            interpretation = self.interpreter.interpret(ditrune)
+        except Exception as e:
+            self.kamea_text.setMarkdown(f"**Error:** {str(e)}")
+            return
+
+        # Format the interpretation for display
+        output_md = "## Kamea Hexagram Interpretation\n\n"
+
+        # Basic information
+        output_md += f"**Ditrune:** {interpretation.get('Ditrune', ditrune)}\n\n"
+        output_md += (
+            f"**Decimal Value:** {interpretation.get('Decimal Value', 'N/A')}\n\n"
+        )
+        output_md += (
+            f"**Kamea Locator:** {interpretation.get('Kamea Locator', 'N/A')}\n\n"
+        )
+        output_md += f"**Family:** {interpretation.get('Family', 'N/A')}\n\n"
+        output_md += f"**Level:** {interpretation.get('Level', 'N/A')}\n\n"
+        output_md += (
+            f"**Core Essence:** {interpretation.get('CORE ESSENCE', 'N/A')}\n\n"
+        )
+
+        # Ditrune type and mythic overlay
+        ditrune_type = interpretation.get("ditrune_type", "unknown")
+        output_md += f"**Ditrune Type:** {ditrune_type.capitalize()}\n\n"
+
+        # Hierophant (Prime) information
+        if "Hierophant" in interpretation and interpretation["Hierophant"]:
+            hierophant = interpretation["Hierophant"]
+            output_md += "### Hierophant (Prime)\n\n"
+            output_md += f"**Name:** {hierophant.get('name', 'N/A')}\n\n"
+            output_md += f"**Greek:** {hierophant.get('greek', 'N/A')}\n\n"
+            output_md += (
+                f"**Mythic Meaning:** {hierophant.get('mythic_meaning', 'N/A')}\n\n"
+            )
+            output_md += (
+                f"**Core Essence:** {hierophant.get('core_essence', 'N/A')}\n\n"
+            )
+
+        # Acolyte (Composite) information
+        if "Acolyte" in interpretation and interpretation["Acolyte"]:
+            acolyte = interpretation["Acolyte"]
+            output_md += "### Acolyte (Composite)\n\n"
+            output_md += f"**Title:** {acolyte.get('title', 'N/A')}\n\n"
+            output_md += f"**Greek:** {acolyte.get('greek', 'N/A')}\n\n"
+            output_md += f"**Function:** {acolyte.get('function', 'N/A')}\n\n"
+            output_md += f"**Nature:** {acolyte.get('nature', 'N/A')}\n\n"
+            output_md += f"**Serves:** {acolyte.get('serves', 'N/A')}\n\n"
+            output_md += f"**Influence:** {acolyte.get('influence', 'N/A')}\n\n"
+
+        # Temple (Concurrent) information
+        if "Temple" in interpretation and interpretation["Temple"]:
+            temple = interpretation["Temple"]
+            output_md += "### Temple (Concurrent)\n\n"
+            output_md += f"**Full Name:** {temple.get('full_name', 'N/A')}\n\n"
+            output_md += f"**Temple Type:** {temple.get('temple_type', 'N/A')} ({temple.get('temple_type_greek', 'N/A')})\n\n"
+            output_md += (
+                f"**Element Descriptor:** {temple.get('element_descriptor', 'N/A')}\n\n"
+            )
+
+        # Dimensional Analysis
+        if "Dimensional Analysis" in interpretation:
+            output_md += "### Dimensional Analysis\n\n"
+            for line in interpretation["Dimensional Analysis"]:
+                output_md += f"**Position {line['position']}:** {line['name']} - {line['interpretation'][:100]}...\n\n"
+
+        # Bigram information
+        if "Bigrams" in interpretation:
+            output_md += "### Bigram Analysis\n\n"
+            for bigram in interpretation["Bigrams"]:
+                output_md += f"**{bigram['label']}:** {bigram['name']} - {bigram['interpretation']}\n\n"
+
+        # Set the text in markdown format
+        self.kamea_text.setMarkdown(output_md.strip())
+
     def _show_help_dialog(self):
-        """Show a dialog with detailed explanation of the calculation methods."""
+        """Show a dialog with information about the Kamea system."""
         help_dialog = QDialog(self)
-        help_dialog.setWindowTitle("Ternary Dimensional Analysis - Framework")
+        help_dialog.setWindowTitle("Kamea Ternary Analysis System")
         help_dialog.setMinimumSize(800, 600)
 
         # Main layout
@@ -374,10 +522,10 @@ class TernaryDimensionalAnalysisPanel(QWidget):
         overview_text.setReadOnly(True)
         overview_text.setMarkdown(
             """
-        # Ternary Dimensional Analysis Overview
+        # Kamea Ternary Analysis System
 
         This tool analyzes ternary numbers (base-3 numbers consisting of digits 0, 1, and 2)
-        through a dimensional interpretive framework. In this system, each ternary digit represents
+        through the Kamea interpretive framework. In this system, each ternary digit represents
         a specific element in the dimensional structure:
 
         - **0 (Aperture)**: Represents openings, potential, receptivity, and the unmanifest.
@@ -390,104 +538,14 @@ class TernaryDimensionalAnalysisPanel(QWidget):
 
         ## Key Analysis Components
 
-        - **Dimensional Analysis**: Interprets each digit based on its dimensional position (1-9)
-        - **Triad Framework**: Groups dimensions into Potential (1-3), Process (4-6), and Emergence (7-9)
-        - **Pattern Recognition**: Identifies significant patterns within and across triads
-        - **Element Interactions**: Examines how different elements influence each other
-        - **Dimensional Geometry**: Explores symmetry, directionality, and transformational dynamics
+        - **Dimensional Analysis**: Interprets each digit based on its dimensional position
+        - **Trigram Analysis**: Examines upper and lower trigrams for deeper meaning
+        - **Pattern Recognition**: Identifies significant patterns and symmetries
+        - **Element Distribution**: Analyzes the balance and dominance of elements
         """
         )
         overview_layout.addWidget(overview_text)
         tab_widget.addTab(overview_tab, "Overview")
-
-        # Elements tab
-        elements_tab = QWidget()
-        elements_layout = QVBoxLayout(elements_tab)
-        elements_text = QTextEdit()
-        elements_text.setReadOnly(True)
-        elements_text.setMarkdown(
-            """
-        # The Three Elements
-
-        The foundation of this system consists of three fundamental elements that represent distinct modes of existence and transformation:
-
-        ## Aperture (0)
-
-        An opening of possibility; the space through which potential emerges.
-
-        **Nature**: Non-directed openness; a space of pure potential
-        **Movement**: Radial expansion or contraction; creates space for emergence
-        **Relation to Time**: Exists beyond temporality; holds all possibilities simultaneously
-        **Manifestation**: Appears as gaps, pauses, spaces of opportunity, or undefined regions
-        **When Dominant**: Indicates deep potential, awaiting conditions for activation
-
-        ## Surge (1)
-
-        A flowing current of change; the active principle of transformation.
-
-        **Nature**: Directed energy; an active principle of transformation
-        **Movement**: Vectored, flowing in specific directions or along paths of least resistance
-        **Relation to Time**: Engages with temporal processes; the principle of becoming
-        **Manifestation**: Appears as growth, change, evolution, energy transfer, or active transformation
-        **When Dominant**: Indicates dynamic systems undergoing significant transformation or exchange
-
-        ## Lattice (2)
-
-        A crystallized pattern; the structure that gives form to possibility.
-
-        **Nature**: Patterned structure; a coherent arrangement of relationships
-        **Movement**: Geometric organization; creates stable networks and frameworks
-        **Relation to Time**: Persists through time; embodies remembered patterns
-        **Manifestation**: Appears as form, structure, organization, or defined boundaries
-        **When Dominant**: Indicates crystallized patterns resistant to change but rich in complexity
-        """
-        )
-        elements_layout.addWidget(elements_text)
-        tab_widget.addTab(elements_tab, "Elements")
-
-        # Dimensions tab
-        dimensions_tab = QWidget()
-        dimensions_layout = QVBoxLayout(dimensions_tab)
-        dimensions_text = QTextEdit()
-        dimensions_text.setReadOnly(True)
-        dimensions_text.setMarkdown(
-            """
-        # The Nine Dimensions
-
-        The system uses 9 positions, organized as three triads, each representing a distinct domain of experience:
-
-        ## Dimensions of Potential (Positions 1-3)
-        *These dimensions describe the foundational qualities and inner dynamics of a system.*
-
-        1. **Seed** - The generative core or initial impulse
-        2. **Resonance** - The internal vibratory pattern and self-relation
-        3. **Echo** - The ripple effect; how the core pattern reverberates outward
-
-        ## Dimensions of Process (Positions 4-6)
-        *These dimensions describe how systems interact, transform, and develop over time.*
-
-        4. **Weave** - The interconnection pattern; how elements join and separate
-        5. **Pulse** - The rhythm and timing; the temporal aspect of transformation
-        6. **Flow** - The directional movement; how energy or information is channeled
-
-        ## Dimensions of Emergence (Positions 7-9)
-        *These dimensions describe how systems culminate, transcend, and transform completely.*
-
-        7. **Nexus** - The point of convergence; where multiple patterns meet and intensify
-        8. **Horizon** - The edge of perception; the boundary between known and unknown
-        9. **Nova** - The point of complete transformation; fundamental shift of the entire system
-
-        ## Scale-Based Categorization
-
-        The magnitude of a ternary number determines which triads are activated:
-
-        - **Potential Numbers** (1-3 digits, 001-222): Focus solely on foundational qualities
-        - **Process Numbers** (4-6 digits, 1000-222222): Include both potential and developmental aspects
-        - **Emergence Numbers** (7-9 digits, 1000000-222222222): Represent the complete picture
-        """
-        )
-        dimensions_layout.addWidget(dimensions_text)
-        tab_widget.addTab(dimensions_tab, "Dimensions")
 
         main_layout.addWidget(tab_widget)
 

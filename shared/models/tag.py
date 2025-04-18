@@ -48,7 +48,7 @@ class Tag:
     children: Set["Tag"] = field(default_factory=set)
     """Child tags of this tag"""
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """
         Compare tags for equality based on their IDs.
 
@@ -62,7 +62,7 @@ class Tag:
             return False
         return self.id == other.id
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """
         Hash function for Tag, enabling use in sets and as dictionary keys.
 
