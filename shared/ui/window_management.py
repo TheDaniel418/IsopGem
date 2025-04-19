@@ -9,6 +9,7 @@ from enum import Enum, auto
 from typing import Callable, Dict, Optional, Tuple, cast
 
 from loguru import logger
+from PyQt6 import sip
 from PyQt6.QtCore import QObject, QSettings, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QBrush, QCloseEvent, QColor, QPainter, QPen
 from PyQt6.QtWidgets import (
@@ -655,6 +656,7 @@ class AuxiliaryWindow(QMainWindow):
         if not widget:
             logger.error("Attempted to set None as window content")
             return
+
         # Clear existing layout without hiding widgets
         # This respects that widgets might be used in other windows
         while self.main_layout.count():
@@ -677,7 +679,6 @@ class AuxiliaryWindow(QMainWindow):
         logger.debug(f"Successfully set content for window {self.windowTitle()}")
 
         # Update the layout
-        self.central_widget.setLayout(self.main_layout)
         self.central_widget.update()
 
     def closeEvent(self, event: QCloseEvent) -> None:
@@ -912,7 +913,18 @@ class WindowManager(QObject):
         # Save auxiliary window states - only for valid windows
         for window_id, window in list(self._auxiliary_windows.items()):
             # Check if window is still valid
-            if not window.isVisible():
+            try:
+                # First check if the window object is still valid
+                if window and not sip.isdeleted(window):
+                    if not window.isVisible():
+                        self._auxiliary_windows.pop(window_id, None)
+                        continue
+                else:
+                    # Window has been deleted, remove it from our tracking
+                    self._auxiliary_windows.pop(window_id, None)
+                    continue
+            except (RuntimeError, ReferenceError):
+                # Window has been deleted, remove it from our tracking
                 self._auxiliary_windows.pop(window_id, None)
                 continue
 
@@ -956,26 +968,50 @@ class WindowManager(QObject):
             panel.setFloating(floating)
 
         # Restore auxiliary window states
-        for window_id, window in self._auxiliary_windows.items():
-            geometry = settings.value(f"auxiliaryWindows/{window_id}/geometry")
-            visible = settings.value(
-                f"auxiliaryWindows/{window_id}/visible", False, type=bool
-            )
+        for window_id, window in list(self._auxiliary_windows.items()):
+            try:
+                # Check if window is still valid
+                if window and not sip.isdeleted(window):
+                    geometry = settings.value(f"auxiliaryWindows/{window_id}/geometry")
+                    visible = settings.value(
+                        f"auxiliaryWindows/{window_id}/visible", False, type=bool
+                    )
 
-            if geometry:
-                window.restoreGeometry(geometry)
+                    if geometry:
+                        window.restoreGeometry(geometry)
 
-            window.setVisible(visible)
+                    window.setVisible(visible)
+                else:
+                    # Window has been deleted, remove it from tracking
+                    self._auxiliary_windows.pop(window_id, None)
+            except (RuntimeError, ReferenceError):
+                # Window might have been deleted, remove from tracking
+                logger.warning(
+                    f"Error restoring window {window_id} state, removing reference"
+                )
+                self._auxiliary_windows.pop(window_id, None)
 
     def close_all_windows(self) -> None:
         """Close all panels and auxiliary windows."""
         # Close panels
         for panel in list(self._panels.values()):
-            panel.close()
+            try:
+                if panel and not sip.isdeleted(panel):
+                    panel.close()
+            except (RuntimeError, ReferenceError):
+                pass  # Panel already deleted, ignore
 
         # Close auxiliary windows
-        for window in list(self._auxiliary_windows.values()):
-            window.close()
+        for window_id, window in list(self._auxiliary_windows.items()):
+            try:
+                if window and not sip.isdeleted(window):
+                    window.close()
+                else:
+                    # Window has been deleted, remove it from tracking
+                    self._auxiliary_windows.pop(window_id, None)
+            except (RuntimeError, ReferenceError):
+                # Window might have been deleted, remove from tracking
+                self._auxiliary_windows.pop(window_id, None)
 
         # Clear our maps
         self._panels.clear()

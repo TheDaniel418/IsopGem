@@ -238,6 +238,7 @@ class CalculationDetailWidget(QWidget):
     edit_tags_clicked = pyqtSignal(str)  # calculation_id
     edit_notes_clicked = pyqtSignal(str)  # calculation_id
     toggle_favorite_clicked = pyqtSignal(str)  # calculation_id
+    send_to_polygon_clicked = pyqtSignal(int)  # result_value
 
     def __init__(self, parent=None):
         """Initialize the widget.
@@ -381,6 +382,13 @@ class CalculationDetailWidget(QWidget):
         self.favorite_btn = QPushButton("Mark as Favorite")
         self.favorite_btn.clicked.connect(self._on_toggle_favorite)
         buttons_layout.addWidget(self.favorite_btn)
+
+        self.send_to_polygon_btn = QPushButton("Send to Polygon Calculator")
+        self.send_to_polygon_btn.setStyleSheet(
+            "background-color: #27ae60; color: white; font-weight: bold;"
+        )
+        self.send_to_polygon_btn.clicked.connect(self._on_send_to_polygon)
+        buttons_layout.addWidget(self.send_to_polygon_btn)
 
         buttons_layout.addStretch(1)
 
@@ -569,6 +577,11 @@ class CalculationDetailWidget(QWidget):
         """Handle toggle favorite button click."""
         if self.calculation:
             self.toggle_favorite_clicked.emit(self.calculation.id)
+
+    def _on_send_to_polygon(self):
+        """Handle send to polygon calculator button click."""
+        if self.calculation:
+            self.send_to_polygon_clicked.emit(self.calculation.result_value)
 
     def _refresh_calculation_display(self, calc_id: str):
         """Refresh the calculation display.
@@ -775,6 +788,14 @@ class CalculationHistoryPanel(Panel):
         self.delete_button.setEnabled(False)
         button_layout.addWidget(self.delete_button)
 
+        self.send_to_polygon_button = QPushButton("Send to Polygon Calculator")
+        self.send_to_polygon_button.setStyleSheet(
+            "background-color: #27ae60; color: white; font-weight: bold;"
+        )
+        self.send_to_polygon_button.clicked.connect(self._on_send_to_polygon)
+        self.send_to_polygon_button.setEnabled(False)
+        button_layout.addWidget(self.send_to_polygon_button)
+
         details_layout.addLayout(button_layout)
 
         splitter.addWidget(self.calculation_list)
@@ -837,6 +858,7 @@ class CalculationHistoryPanel(Panel):
             self.selected_calculation = None
             self.view_details_button.setEnabled(False)
             self.delete_button.setEnabled(False)
+            self.send_to_polygon_button.setEnabled(False)
             self.details_title.setText("Select a calculation to view details")
             self.details_value.setText("")
             self.details_method.setText("")
@@ -851,6 +873,7 @@ class CalculationHistoryPanel(Panel):
             self.selected_calculation = calculation
             self.view_details_button.setEnabled(True)
             self.delete_button.setEnabled(True)
+            self.send_to_polygon_button.setEnabled(True)
 
             self.details_title.setText(f"Calculation: {calculation.input_text}")
             self.details_value.setText(f"Result: {calculation.result_value}")
@@ -938,7 +961,7 @@ class CalculationHistoryPanel(Panel):
                 dialog = CalculationDetailsDialog(
                     calculation, self.calculation_service, self
                 )
-                dialog.calculation_updated.connect(self._on_refresh)
+                dialog.calculationUpdated.connect(self._on_refresh)
                 dialog.exec()
             except Exception as e:
                 logger.error(f"Error opening calculation details: {e}")
@@ -1162,4 +1185,22 @@ class CalculationHistoryPanel(Panel):
                 self,
                 "Error",
                 f"An error occurred while opening Quadset Analysis: {str(e)}",
+            )
+
+    def _on_send_to_polygon(self):
+        """Send the selected calculation value to the Regular Polygon Calculator."""
+        if not self.selected_calculation:
+            return
+
+        try:
+            # Import the dialog
+            from gematria.ui.dialogs.send_to_polygon_dialog import SendToPolygonDialog
+
+            # Create and show the dialog
+            dialog = SendToPolygonDialog(self.selected_calculation.result_value, self)
+            dialog.exec()
+        except Exception as e:
+            logger.error(f"Error sending to polygon calculator: {e}")
+            QMessageBox.warning(
+                self, "Error", f"Failed to send to polygon calculator: {e}"
             )

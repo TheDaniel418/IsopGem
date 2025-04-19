@@ -1,0 +1,5 @@
+"""Geometry UI panels package."""
+
+from geometry.ui.panels.regular_polygon_panel import RegularPolygonPanel
+
+__all__ = ["RegularPolygonPanel"]

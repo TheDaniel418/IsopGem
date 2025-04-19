@@ -418,6 +418,12 @@ class GeometryTab(QWidget):
         sacred_geometry_btn.clicked.connect(self._open_sacred_geometry)
         button_layout.addWidget(sacred_geometry_btn)
 
+        # Regular Polygon Calculator button
+        regular_polygon_btn = QPushButton("Regular Polygon")
+        regular_polygon_btn.setToolTip("Open Regular Polygon Calculator")
+        regular_polygon_btn.clicked.connect(self._open_regular_polygon)
+        button_layout.addWidget(regular_polygon_btn)
+
         # Golden Ratio button
         golden_ratio_btn = QPushButton("Golden Ratio")
         golden_ratio_btn.setToolTip("Open Golden Ratio Calculator")
@@ -426,8 +432,22 @@ class GeometryTab(QWidget):
 
         # Platonic Solids button
         platonic_btn = QPushButton("Platonic Solids")
-        platonic_btn.setToolTip("Explore Platonic Solids")
-        # platonic_btn.clicked.connect(lambda: self._open_platonic_solids())
+        platonic_btn.setToolTip("Open Platonic Solids Calculator")
+        platonic_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #673AB7;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #5E35B1;
+            }
+            """
+        )
+        platonic_btn.clicked.connect(self._open_platonic_solids)
         button_layout.addWidget(platonic_btn)
 
         # Add stretch to push buttons to the left
@@ -614,3 +634,61 @@ class GeometryTab(QWidget):
         explorer.set_active_tool("Selection")
 
         logger.debug(f"Opened Sacred Geometry Explorer with instance ID: {instance_id}")
+
+    def _open_regular_polygon(self) -> None:
+        """Open the Regular Polygon Calculator window."""
+        logger.debug("Opening Regular Polygon Calculator")
+
+        # Import here to avoid circular imports
+        import uuid
+
+        from geometry.ui.panels.regular_polygon_panel import RegularPolygonPanel
+
+        # Generate a unique instance ID for multi-window support
+        instance_id = f"regular_polygon_{uuid.uuid4().hex[:8]}"
+
+        # Create a window for the calculator
+        window = self.window_manager.create_auxiliary_window(
+            instance_id, "Regular Polygon Calculator"
+        )
+
+        # Create the calculator panel
+        calculator_panel = RegularPolygonPanel()
+
+        # Set the panel as the window content
+        window.set_content(calculator_panel)
+
+        # Configure and show the window
+        window.setMinimumSize(900, 600)
+        window.show()
+
+        logger.debug(
+            f"Opened Regular Polygon Calculator with instance ID: {instance_id}"
+        )
+
+    def _open_platonic_solids(self) -> None:
+        """Open the Platonic Solids Calculator window."""
+        logger.debug("Opening Platonic Solids Calculator")
+
+        # Import here to avoid circular imports
+        import uuid
+
+        from geometry.ui.windows.platonic_solid_window import PlatonicSolidWindow
+
+        # Generate a unique instance ID for multi-window support
+        instance_id = f"platonic_solid_{uuid.uuid4().hex[:8]}"
+
+        # Create the Platonic Solids window
+        window = PlatonicSolidWindow(instance_id, self)
+
+        # Register the window with the window manager
+        self.window_manager._auxiliary_windows[instance_id] = window
+
+        # Configure and show the window
+        self.window_manager.configure_window(window)
+        window.setMinimumSize(900, 600)
+        window.show()
+
+        logger.debug(
+            f"Opened Platonic Solids Calculator with instance ID: {instance_id}"
+        )

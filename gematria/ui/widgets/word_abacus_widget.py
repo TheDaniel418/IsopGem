@@ -45,6 +45,8 @@ from gematria.services.gematria_service import GematriaService
 from gematria.services.history_service import HistoryService
 from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
 
+# Import the polygon service for sending values to the Regular Polygon Calculator
+
 # Define method type as a union of CalculationType and CustomCipherConfig
 MethodType = Union[CalculationType, CustomCipherConfig]
 
@@ -168,6 +170,16 @@ class WordAbacusWidget(QWidget):
         # Connection to _calculate is handled in _connect_signals
         self._calc_button.setEnabled(False)  # Disabled until text is entered
 
+        # Add "Send to PolyCalc" button
+        self._send_to_polycalc_button = QPushButton("Send to PolyCalc")
+        self._send_to_polycalc_button.setStyleSheet(
+            "background-color: #27ae60; color: white; font-weight: bold; padding: 8px 16px;"
+        )
+        self._send_to_polycalc_button.setEnabled(
+            False
+        )  # Disabled until calculation is performed
+        self._send_to_polycalc_button.clicked.connect(self._send_to_polygon_calculator)
+
         self._result_label = QLabel("Result: ")
         self._result_value = QLabel("0")
         self._result_value.setStyleSheet(
@@ -175,6 +187,7 @@ class WordAbacusWidget(QWidget):
         )
 
         result_layout.addWidget(self._calc_button)
+        result_layout.addWidget(self._send_to_polycalc_button)
         result_layout.addWidget(self._result_label)
         result_layout.addWidget(self._result_value)
         result_layout.addStretch()
@@ -427,6 +440,9 @@ class WordAbacusWidget(QWidget):
         # Update result display
         self._result_value.setText(str(result_value))
 
+        # Enable the "Send to PolyCalc" button
+        self._send_to_polycalc_button.setEnabled(True)
+
         # Create calculation result and add to history
         from loguru import logger
 
@@ -507,6 +523,23 @@ class WordAbacusWidget(QWidget):
         self._type_combo.setCurrentIndex(0)
 
         self._calc_button.setEnabled(False)
+        self._send_to_polycalc_button.setEnabled(False)
+
+    def _send_to_polygon_calculator(self) -> None:
+        """Send the current calculation result to the Regular Polygon Calculator."""
+        # Get the current result value
+        try:
+            result_value = float(self._result_value.text())
+        except ValueError:
+            # If the result is not a valid number, do nothing
+            return
+
+        # Use the SendToPolygonDialog to let the user choose options
+        from gematria.ui.dialogs.send_to_polygon_dialog import SendToPolygonDialog
+
+        # Create and show the dialog
+        dialog = SendToPolygonDialog(result_value, self)
+        dialog.exec()
 
     def _open_custom_cipher_manager(self) -> None:
         """Open the custom cipher manager dialog."""

@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 
 from shared.ui.window_management import TabManager, WindowManager
 from tq.services import tq_analysis_service
+from tq.ui.panels.geometric_transition_panel import GeometricTransitionPanel
 from tq.ui.panels.kamea_of_maut_panel import KameaOfMautPanel
 from tq.ui.panels.pair_finder_panel import PairFinderPanel
 from tq.ui.panels.ternary_dimension_panel import TernaryDimensionalAnalysisPanel
@@ -410,6 +411,14 @@ class TQTab(QWidget):
         kamea_btn.clicked.connect(self._open_kamea_of_maut)
         button_layout.addWidget(kamea_btn)
 
+        # 2D Geometric Transitions button
+        geo_trans_btn = QPushButton("2D Geometric Trans")
+        geo_trans_btn.setToolTip(
+            "Calculate transitions between vertices of regular polygons"
+        )
+        geo_trans_btn.clicked.connect(self._open_geometric_transitions)
+        button_layout.addWidget(geo_trans_btn)
+
         # Add stretch to push buttons to the left
         button_layout.addStretch()
 
@@ -633,4 +642,11 @@ class TQTab(QWidget):
         panel = KameaOfMautPanel()
         self.window_manager.open_multi_window(
             "tq_kamea_of_maut", panel, "Kamea of Maut Explorer", (1500, 1100)
+        )
+
+    def _open_geometric_transitions(self) -> None:
+        """Open the 2D Geometric Transitions panel in a new window."""
+        panel = GeometricTransitionPanel()
+        self.window_manager.open_multi_window(
+            "tq_geometric_transitions", panel, "2D Geometric Transitions", (1200, 700)
         )
