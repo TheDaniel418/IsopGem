@@ -24,7 +24,6 @@ from tq.ui.panels.geometric_transition_panel import GeometricTransitionPanel
 from tq.ui.panels.kamea_of_maut_panel import KameaOfMautPanel
 from tq.ui.panels.pair_finder_panel import PairFinderPanel
 from tq.ui.panels.ternary_dimension_panel import TernaryDimensionalAnalysisPanel
-from tq.ui.widgets.planar_expansion_visualizer import PlanarExpansionVisualizer
 from tq.ui.widgets.ternary_visualizer import TernaryVisualizerPanel
 
 
@@ -375,12 +374,6 @@ class TQTab(QWidget):
         elemental_btn.clicked.connect(self._open_cosmic_force_analysis)
         button_layout.addWidget(elemental_btn)
 
-        # Chart Creator button
-        chart_btn = QPushButton("Chart Creator")
-        chart_btn.setToolTip("Create and save TQ charts")
-        chart_btn.clicked.connect(self._open_planar_expansion)
-        button_layout.addWidget(chart_btn)
-
         # Ternary Visualizer button
         visualizer_btn = QPushButton("Ternary Visualizer")
         visualizer_btn.setToolTip("Visualize and transform ternary numbers")
@@ -579,13 +572,6 @@ class TQTab(QWidget):
             number: The decimal number to analyze
         """
         tq_analysis_service.get_instance().open_quadset_analysis(number)
-
-    def _open_planar_expansion(self) -> None:
-        """Open the planar expansion visualizer panel in a new window."""
-        panel = PlanarExpansionVisualizer()
-        self.window_manager.open_multi_window(
-            "tq_planar_expansion", panel, "Planar Expansion Visualizer", (800, 600)
-        )
 
     def _open_ternary_transition(self) -> None:
         """Open the ternary transition calculator in a new window."""
