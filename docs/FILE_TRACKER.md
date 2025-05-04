@@ -226,6 +226,9 @@ Components for geometric analysis and visualization.
 
 ##### /geometry/ui/panels
 - `__init__.py`: Initialization and exports for geometry UI panels.
+- `regular_polygon_panel.py`: Panel for calculating properties of regular polygons
+- `platonic_solid_panel.py`: Panel for calculating properties of Platonic solids
+- `vault_of_hestia_panel.py`: Panel for exploring the Vault of Hestia geometric design (square, isosceles triangle, inscribed circle)
 
 ##### /geometry/ui/widgets
 - `__init__.py`: Initialization and exports for geometry UI widgets.

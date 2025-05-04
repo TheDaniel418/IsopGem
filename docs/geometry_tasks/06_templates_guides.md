@@ -36,6 +36,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 3. Implement template loading functionality
 4. Add template metadata editing
 5. Create template organization tools
+6. Allow templates to be loaded into a new or specified layer.
 
 **Acceptance Criteria:**
 - Templates can be created from existing constructions
@@ -43,6 +44,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 - Templates can be loaded into the canvas
 - Template metadata can be edited
 - Templates can be organized into categories
+- Templates can be loaded into a new or specified layer
 
 **Dependencies:** 6.1
 
@@ -58,6 +60,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 3. Create templates for sacred polygons and stars
 4. Implement templates for Tree of Life variations
 5. Create templates for other key sacred geometry patterns
+6. Each template should specify its default layer or group.
 
 **Acceptance Criteria:**
 - Platonic solid templates are available
@@ -65,6 +68,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 - Sacred polygon and star templates are available
 - Tree of Life variation templates are available
 - Other key sacred geometry templates are available
+- Each template specifies its default layer or group
 
 **Dependencies:** 6.2, Chapter 3
 
@@ -80,6 +84,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 3. Create guide playback system
 4. Add guide annotation capabilities
 5. Implement guide export and sharing
+6. Guides should operate on objects in the correct layer and respect layer visibility/lock.
 
 **Acceptance Criteria:**
 - Guide data structure supports sequential steps
@@ -87,6 +92,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 - Guides can be played back step-by-step
 - Steps can be annotated with text and visuals
 - Guides can be exported and shared
+- Guides operate on objects in the correct layer and respect layer visibility/lock
 
 **Dependencies:** 6.1
 
@@ -102,6 +108,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 3. Create guides for golden ratio constructions
 4. Implement guides for sacred polygon construction
 5. Create guides for complex sacred geometry patterns
+6. Guides should operate on objects in the correct layer and respect layer visibility/lock.
 
 **Acceptance Criteria:**
 - Basic sacred geometry construction guides are available
@@ -109,6 +116,7 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 - Golden ratio construction guides are available
 - Sacred polygon construction guides are available
 - Complex sacred geometry pattern guides are available
+- Guides operate on objects in the correct layer and respect layer visibility/lock
 
 **Dependencies:** 6.4, Chapter 3
 
@@ -287,6 +295,22 @@ This chapter focuses on implementing templates, step-by-step guides, and educati
 - Educational content is clear and accurate
 
 **Dependencies:** 6.1 through 6.12
+
+### 6.10 Layer Integration for Templates and Guides
+
+**Description:** Ensure all template and guide operations are aware of and respect the current layer system.
+
+**Subtasks:**
+1. Ensure all template and guide operations only affect objects in the correct, unlocked, visible layers
+2. Update template/guide loading, editing, and deletion logic to respect layer state
+3. Ensure undo/redo operations for templates/guides are layer-aware
+4. Test template and guide behavior with multiple layers and various visibility/lock settings
+
+**Acceptance Criteria:**
+- Templates and guides do not modify or select objects in locked or hidden layers
+- Loading, editing, and deletion only affect objects in the correct/unlocked/visible layer
+- Undo/redo operations for templates/guides respect layer assignments
+- All template and guide operations are layer-aware and tested with multiple layers
 
 ## Next Chapter
 

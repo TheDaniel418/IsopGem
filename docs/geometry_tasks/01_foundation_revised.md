@@ -114,6 +114,7 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 3. Design the object hierarchy with proper inheritance
 4. Implement serialization/deserialization for geometric objects
 5. Create factory methods for object creation
+6. Integrate layer reference into `GeometricObject` and ensure all objects are assigned to a layer upon creation.
 
 **Acceptance Criteria:**
 - Object model supports all basic geometric entities
@@ -121,6 +122,7 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 - Object properties can be accessed and modified
 - Objects can be serialized and deserialized
 - Factory methods create objects correctly
+- All objects are assigned to a layer and reference their parent layer
 
 **Dependencies:** None
 
@@ -136,6 +138,7 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 3. Implement styling system for objects (color, line style, etc.)
 4. Add selection highlighting and handles
 5. Ensure proper z-ordering of objects
+6. Render objects according to their layer order and respect layer visibility and lock status.
 
 **Acceptance Criteria:**
 - All geometric objects render correctly on the canvas
@@ -143,12 +146,34 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 - Selected objects show appropriate highlighting
 - Objects maintain proper visual layering
 - Rendering system integrates with the canvas framework
+- Layer order and visibility/lock are respected in rendering
 
 **Dependencies:** 1.3, 1.4
 
 ---
 
-### 1.6 Create Tool System Framework
+### 1.6 Implement Layering System
+
+**Description:** Add foundational support for layers in the Sacred Geometry Explorer.
+
+**Subtasks:**
+1. Implement `Layer` class with name, visibility, lock status, and object list
+2. Add layer management to the Explorer (create, delete, rename, reorder, set active)
+3. Integrate layer assignment into object creation and deletion
+4. Implement serialization/deserialization for layers and their objects
+5. Add basic UI for layer management (list, add, remove, reorder, set active, toggle visibility/lock)
+
+**Acceptance Criteria:**
+- Users can create, delete, rename, and reorder layers
+- Objects are always assigned to a layer
+- Layer visibility and lock status affect rendering and editing
+- Layer state is saved and restored with the Explorer
+
+**Dependencies:** 1.4, 1.5
+
+---
+
+### 1.7 Create Tool System Framework
 
 **Description:** Implement the framework for geometric construction tools.
 
@@ -170,7 +195,7 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 
 ---
 
-### 1.7 Implement Properties Panel
+### 1.8 Implement Properties Panel
 
 **Description:** Create the properties panel for viewing and editing object properties.
 
@@ -192,7 +217,7 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 
 ---
 
-### 1.8 Create Command System for Undo/Redo
+### 1.9 Create Command System for Undo/Redo
 
 **Description:** Implement a command-based system for undo/redo functionality.
 
@@ -211,28 +236,6 @@ This chapter focuses on establishing the foundational architecture and basic UI 
 - Command system integrates with the object model
 
 **Dependencies:** 1.4
-
----
-
-### 1.9 Implement Basic File Operations
-
-**Description:** Add support for saving and loading geometry constructions.
-
-**Subtasks:**
-1. Design the file format for geometry constructions
-2. Implement save functionality
-3. Implement load functionality
-4. Add "New Construction" functionality
-5. Create file operation UI controls
-
-**Acceptance Criteria:**
-- Constructions can be saved to files
-- Saved constructions can be loaded
-- New constructions can be created
-- UI provides access to file operations
-- File operations integrate with the object model
-
-**Dependencies:** 1.4, 1.8
 
 ---
 

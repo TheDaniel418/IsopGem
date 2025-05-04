@@ -81,12 +81,14 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 3. Create option for automatic construction of related elements (axis line, height)
 4. Implement proportion analysis for the Vesica Piscis
 5. Add visual annotations for key points and measurements
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Vesica Piscis can be constructed by selecting two points
 - Related elements can be automatically included
 - Proportions are analyzed and displayed
 - Key points and measurements are annotated
+- All created objects are assigned to the active layer
 
 **Dependencies:** 2.1, 2.3
 
@@ -102,12 +104,14 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 3. Create step-by-step construction animation option
 4. Implement customization for number of circles
 5. Add highlighting of key geometric relationships
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Seed of Life can be constructed by selecting center and radius
 - Construction can be animated step-by-step
 - Number of circles can be customized
 - Key geometric relationships are highlighted
+- All created objects are assigned to the active layer
 
 **Dependencies:** 2.3
 
@@ -123,12 +127,14 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 3. Create options for different iterations (1-7)
 4. Implement partial pattern options (sector, hemisphere)
 5. Add highlighting of embedded patterns (Seed of Life, Fruit of Life)
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Flower of Life can be constructed by selecting center and radius
 - Different iteration levels can be selected
 - Partial patterns can be created
 - Embedded patterns can be highlighted
+- All created objects are assigned to the active layer
 
 **Dependencies:** 3.3
 
@@ -144,12 +150,14 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 3. Create options for different traditional layouts
 4. Implement automatic labeling of Sephiroth
 5. Add path highlighting options
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Tree of Life can be constructed by selecting boundary points
 - Different traditional layouts can be selected
 - Sephiroth are automatically labeled
 - Paths can be highlighted according to different systems
+- All created objects are assigned to the active layer
 
 **Dependencies:** 2.1, 2.2
 
@@ -165,12 +173,14 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 3. Implement `EnneagramTool` for nine-pointed stars
 4. Add `DodecagramTool` for twelve-pointed stars
 5. Create options for inscribed/circumscribed circles
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Various sacred star polygons can be constructed
 - Stars can be created with proper geometric proportions
 - Inscribed and circumscribed circles can be included
 - Tool maintains proper geometric relationships
+- All created objects are assigned to the active layer
 
 **Dependencies:** 2.5
 
@@ -186,12 +196,14 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 3. Create options for different levels of detail
 4. Implement highlighting of embedded Platonic solid projections
 5. Add annotations for key geometric relationships
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Metatron's Cube can be constructed by selecting center and radius
 - Different detail levels can be selected
 - Embedded Platonic solid projections can be highlighted
 - Key geometric relationships are annotated
+- All created objects are assigned to the active layer
 
 **Dependencies:** 3.4
 
@@ -325,6 +337,24 @@ This chapter focuses on implementing specialized tools for sacred geometry const
 - User interaction is smooth and intuitive
 
 **Dependencies:** 3.1 through 3.13
+
+### 3.10 Layer Integration for Specialized Tools
+
+**Description:** Ensure all specialized tools and operations are aware of and respect the current layer system.
+
+**Subtasks:**
+1. Ensure all specialized tools only operate on objects in unlocked, visible layers
+2. Allow users to specify the target layer for new constructions
+3. Update selection, editing, and deletion logic to respect layer state
+4. Ensure undo/redo operations are layer-aware
+5. Test tool behavior with multiple layers and various visibility/lock settings
+
+**Acceptance Criteria:**
+- Specialized tools do not modify or select objects in locked or hidden layers
+- Users can specify the target layer for new constructions
+- Selection, editing, and deletion only affect objects in the active/unlocked/visible layer
+- Undo/redo operations respect layer assignments
+- All specialized tool operations are layer-aware and tested with multiple layers
 
 ## Next Chapter
 

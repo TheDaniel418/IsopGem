@@ -24,12 +24,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Implement point dragging functionality
 4. Add snapping to grid and existing objects
 5. Create point style customization options
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Points can be created by clicking on the canvas
 - Points can be selected and dragged
 - Points snap to grid and existing objects when appropriate
 - Point appearance can be customized
+- Points are assigned to the active layer
 
 **Dependencies:** Chapter 1 foundation
 
@@ -45,12 +47,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Implement preview during creation
 4. Add support for infinite lines, rays, and line segments
 5. Implement line style customization
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Lines can be created by selecting two points
 - Preview shows during creation process
 - Different line types (infinite, ray, segment) are supported
 - Line appearance can be customized
+- Lines are assigned to the active layer
 
 **Dependencies:** 2.1
 
@@ -66,12 +70,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Implement preview during creation
 4. Add support for circles with fixed radius
 5. Implement circle style customization
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Circles can be created by selecting center and radius
 - Preview shows during creation process
 - Fixed radius circles can be created
 - Circle appearance can be customized
+- Circles are assigned to the active layer
 
 **Dependencies:** 2.1
 
@@ -87,12 +93,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Implement preview during creation
 4. Add completion mechanisms (double-click, close to start)
 5. Implement polygon style customization
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Polygons can be created by selecting vertices
 - Preview shows during creation process
 - Polygons can be completed through various methods
 - Polygon appearance can be customized
+- Polygons are assigned to the active layer
 
 **Dependencies:** 2.1
 
@@ -108,12 +116,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Implement side count selection
 4. Add orientation options (vertex at top, side at top)
 5. Implement preview during creation
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Regular polygons can be created with specified number of sides
 - User can select number of sides (3-20)
 - Orientation can be controlled
 - Preview shows during creation process
+- Regular polygons are assigned to the active layer
 
 **Dependencies:** 2.4
 
@@ -129,12 +139,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Add intersection detection between lines and circles
 4. Add intersection detection between circles
 5. Implement automatic intersection point creation
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Intersections between different object types can be found
 - Intersection points are created automatically
 - Tool handles multiple intersections appropriately
 - Intersections update when objects move
+- Intersection points are assigned to the active layer
 
 **Dependencies:** 2.1, 2.2, 2.3
 
@@ -150,12 +162,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Add perpendicular line creation through point on line
 4. Implement preview during creation
 5. Ensure perpendicular constraint is maintained
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Perpendicular lines can be created from point to line
 - Perpendicular lines can be created through points on lines
 - Preview shows during creation process
 - Perpendicularity is maintained when objects move
+- Perpendicular lines are assigned to the active layer
 
 **Dependencies:** 2.2
 
@@ -171,12 +185,14 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Implement preview during creation
 4. Add distance measurement option
 5. Ensure parallel constraint is maintained
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Parallel lines can be created through points
 - Preview shows during creation process
 - Distance between parallel lines can be measured
 - Parallelism is maintained when objects move
+- Parallel lines are assigned to the active layer
 
 **Dependencies:** 2.2
 
@@ -192,35 +208,34 @@ This chapter focuses on implementing the fundamental geometric construction tool
 3. Add angle bisector creation from two lines
 4. Implement preview during creation
 5. Ensure bisector constraint is maintained
+6. Assign new objects to the active layer upon creation.
 
 **Acceptance Criteria:**
 - Angle bisectors can be created from three points
 - Angle bisectors can be created from two lines
 - Preview shows during creation process
 - Bisector property is maintained when objects move
+- Angle bisectors are assigned to the active layer
 
-**Dependencies:** 2.2
+**Dependencies:** 2.1, 2.2
 
 ---
 
-### 2.10 Implement Compass Tool
+### 2.10 Layer-Aware Tool Behavior
 
-**Description:** Create the tool for drawing circles with radius equal to a given distance.
+**Description:** Ensure all tools and operations are aware of and respect the current layer system.
 
 **Subtasks:**
-1. Implement `CompassTool` class
-2. Add radius selection by two points
-3. Add circle creation with selected radius
-4. Implement preview during creation
-5. Add support for transferring measurements
+1. Ensure all tools only operate on objects in unlocked, visible layers
+2. Update selection, editing, and deletion logic to respect layer state
+3. Ensure undo/redo operations are layer-aware
+4. Test tool behavior with multiple layers and various visibility/lock settings
 
 **Acceptance Criteria:**
-- Circles can be created with radius equal to distance between two points
-- Preview shows during creation process
-- Multiple circles with same radius can be created
-- Tool supports classical compass-and-straightedge construction
-
-**Dependencies:** 2.1, 2.3
+- Tools do not modify or select objects in locked or hidden layers
+- Selection, editing, and deletion only affect objects in the active/unlocked/visible layer
+- Undo/redo operations respect layer assignments
+- All tool operations are layer-aware and tested with multiple layers
 
 ---
 
