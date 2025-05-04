@@ -474,11 +474,46 @@ class DocumentService:
             logger.error(f"Error extracting text: {e}")
             return None
 
-    def _extract_text_from_pdf(self, document: Document) -> bool:
+    def _remove_page_numbers(self, text: str) -> str:
+        """Remove page numbers from extracted text.
+
+        This function identifies and removes common page number patterns:
+        - Standalone numbers at the beginning or end of a line
+        - Numbers with "Page" prefix (e.g., "Page 1", "Page 2")
+        - Roman numerals (i, ii, iii, iv, etc.) at line boundaries
+
+        Args:
+            text: The text to process
+
+        Returns:
+            Text with page numbers removed
+        """
+        # Pattern 1: Standalone numbers at beginning or end of a line
+        text = re.sub(r'^\s*\d+\s*$', '', text, flags=re.MULTILINE)
+        text = re.sub(r'^\s*\d+\s*\n', '\n', text, flags=re.MULTILINE)
+        text = re.sub(r'\n\s*\d+\s*$', '\n', text, flags=re.MULTILINE)
+
+        # Pattern 2: "Page X" or "Page X of Y" patterns
+        text = re.sub(r'^\s*Page\s+\d+(\s+of\s+\d+)?\s*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
+        text = re.sub(r'\n\s*Page\s+\d+(\s+of\s+\d+)?\s*\n', '\n', text, flags=re.MULTILINE | re.IGNORECASE)
+
+        # Pattern 3: Roman numerals at line boundaries
+        # Match i, ii, iii, iv, v, vi, vii, viii, ix, x, etc.
+        roman_pattern = r'^\s*[ivxlcdm]+\s*$'
+        text = re.sub(roman_pattern, '', text, flags=re.MULTILINE | re.IGNORECASE)
+
+        # Replace single line breaks with double line breaks where page numbers were removed
+        # This preserves the spacing in the original document
+        text = re.sub(r'\n\n\n+', '\n\n', text)
+
+        return text
+
+    def _extract_text_from_pdf(self, document: Document, remove_page_numbers: bool = True) -> bool:
         """Extract text from a PDF document.
 
         Args:
             document: PDF document
+            remove_page_numbers: Whether to remove page numbers from the extracted text (default: True)
 
         Returns:
             True if successful, False otherwise
@@ -491,6 +526,8 @@ class DocumentService:
 
             # Extract text from each page
             for page in pdf:
+                # Use the "text" option which gives plain text without page numbers in headers/footers
+                # The default PyMuPDF text extraction preserves whitespace and ligatures
                 page_text = page.get_text()
 
                 # Convert any Symbol font Greek characters to Unicode
@@ -500,6 +537,11 @@ class DocumentService:
                 page_count += 1
                 # Approximate word count
                 word_count += len(page_text.split())
+
+            # Remove page numbers if requested
+            if remove_page_numbers:
+                text = self._remove_page_numbers(text)
+                document.metadata["page_numbers_removed"] = True
 
             # Update document with extracted text and metadata
             document.content = text

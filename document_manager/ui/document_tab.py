@@ -139,8 +139,11 @@ class DocumentTab(QWidget):
         rtf_btn.clicked.connect(self._open_rtf_editor)
         button_layout.addWidget(rtf_btn)
 
-        # Add stretch to push buttons to the left
-        button_layout.addStretch()
+        # Document Database Manager button
+        db_manager_btn = QPushButton("Database Manager")
+        db_manager_btn.setToolTip("Manage documents in the database")
+        db_manager_btn.clicked.connect(self._open_document_database_manager)
+        button_layout.addWidget(db_manager_btn)
 
         # Help button (right-aligned)
         help_btn = QPushButton("Help")
@@ -161,6 +164,9 @@ class DocumentTab(QWidget):
         )
         # help_btn.clicked.connect(self._show_help)
         button_layout.addWidget(help_btn)
+
+        # Add stretch to push buttons to the left
+        button_layout.addStretch()
 
         # Add button bar to content layout
         content_layout.addWidget(button_bar)
@@ -398,3 +404,20 @@ class DocumentTab(QWidget):
         editor.setWindowTitle("Rich Text Editor")
 
         logger.debug("RTF Editor window opened")
+
+    def _open_document_database_manager(self) -> None:
+        """Open the Document Database Utility window."""
+        from document_manager.ui.panels.document_database_utility_panel import (
+            DocumentDatabaseUtilityPanel,
+        )
+
+        # Create the panel
+        panel = DocumentDatabaseUtilityPanel()
+
+        # Create and open the document database utility window
+        self.window_manager.open_window("document_database_utility", panel)
+
+        # Set the window title
+        panel.setWindowTitle("Document Database Utility")
+
+        logger.debug("Opened Document Database Utility window")

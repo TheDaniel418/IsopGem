@@ -190,25 +190,15 @@ class DocumentAnalysisPanel(Panel):
 
         self.method_combo = QComboBox()
         self.method_combo.setStyleSheet("font-size: 10px;")
-        # Add Hebrew methods
-        self.method_combo.addItem(
-            "Standard (Mispar Hechrachi)", CalculationType.MISPAR_HECHRACHI
-        )
-        self.method_combo.addItem(
-            "Ordinal (Mispar Siduri)", CalculationType.MISPAR_SIDURI
-        )
-        self.method_combo.addItem(
-            "Reduced (Mispar Katan)", CalculationType.MISPAR_KATAN
-        )
-        self.method_combo.addItem("Albam", CalculationType.ALBAM)
+        # Add gematria methods
+        self.method_combo.addItem("Standard (Mispar Hechrachi)", CalculationType.MISPAR_HECHRACHI)
+        self.method_combo.addItem("Ordinal (Mispar Siduri)", CalculationType.MISPAR_SIDURI)
+        # Removed deprecated methods
         self.method_combo.addItem("Atbash", CalculationType.ATBASH)
-        self.method_combo.addItem("Mispar Gadol", CalculationType.MISPAR_GADOL)
-        self.method_combo.addItem("Mispar Boneh", CalculationType.MISPAR_BONEH)
-        self.method_combo.addItem("Mispar Kidmi", CalculationType.MISPAR_KIDMI)
-        self.method_combo.addItem("Mispar Perati", CalculationType.MISPAR_PERATI)
-        self.method_combo.addItem("Mispar Shemi", CalculationType.MISPAR_SHEMI)
-        self.method_combo.addItem("Mispar Neelam", CalculationType.MISPAR_NEELAM)
-        self.method_combo.addItem("Mispar Musafi", CalculationType.MISPAR_MUSAFI)
+        self.method_combo.addItem("Albam", CalculationType.ALBAM)
+        # More methods can be added here
+        
+        # Removed deprecated method Mispar Neelam
 
         # Add Greek methods
         self.method_combo.insertSeparator(self.method_combo.count())
