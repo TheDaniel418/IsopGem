@@ -4,7 +4,7 @@
   <h1 align="center">🔯✨ IsopGem ✨🔯</h1>
 </p>
 
-A comprehensive tool for sacred geometry, gematria, and esoteric document analysis. IsopGem provides scholars, researchers, and enthusiasts with a unified environment for exploring numerical patterns in ancient texts, geometric principles in sacred architecture, and interconnected symbolic systems.
+A comprehensive suite for esoteric research, combining sacred geometry, gematria, document analysis, and cosmic patterns. IsopGem provides scholars, researchers, and enthusiasts with a unified environment for exploring numerical patterns in ancient texts, geometric principles in sacred architecture, cosmic calendars, and interconnected symbolic systems.
 
 ## 🔍 Features
 
@@ -13,27 +13,43 @@ A comprehensive tool for sacred geometry, gematria, and esoteric document analys
 - Over 20 calculation methods across all language systems
 - Word/phrase analysis with extensive results
 - Custom cipher creation and management
+- Virtual keyboard for special characters
 - Calculation history with search, filtering, and tagging
 - Word abacus for rapid computations
 - Import word lists from spreadsheets with automatic language detection
 
 ### Sacred Geometry Tools
-- Platonic solid visualizations and measurements
+- Platonic solid visualizations with OpenGL
+- Polygonal number systems visualization with interactive controls
+- Star number visualizations and calculations
+- Vault of Hestia sacred geometric templates
 - Golden ratio calculator and visualizer
-- Sacred geometric pattern generator
 - Measurement conversion between ancient and modern units
 
-### Document Analysis
+### Document Management
 - Text pattern recognition across multiple languages
+- Document database with duplicate detection
+- Rich Text Format (RTF) editor with recovery utilities
+- Non-modal editing for multitasking
+- Document categorization and tagging
 - Concordance generator
 - Frequency analysis of words and phrases
 - Integration with gematria calculations
 
-### Astrological Calculations
-- Planetary position calculations
-- Astrological chart generation
-- Timing calculations for celestial events
-- Integration with document and gematria analysis
+### Kamea Cosmic Calendar
+- Interactive visualization of the Kamea calendar system
+- Zodiacal position mapping with precise angle calculations
+- Factor connection visualization (2, 3, 4, 5, 6, 8, 9, 10, 12)
+- Conrune reversal pair analysis
+- Radial and circular visualization modes
+- Interactive lookup and information panel
+
+### Cosmological & Mathematical Tools
+- Trigrammaton QBLH analysis
+- Ternary dimension visualization
+- Number properties explorer
+- Pair finder with pattern detection
+- Quadset analysis tools
 
 ## 🏗️ Architecture
 
@@ -41,8 +57,8 @@ IsopGem follows a domain-pillar architecture with five main pillars:
 
 1. **Gematria** - Hebrew, Greek, and English numerical analysis tools
 2. **Geometry** - Sacred geometry visualization and calculation tools
-3. **Document Manager** - Analysis of texts and documents
-4. **Astrology** - Astrological calculations and visualizations
+3. **Document Manager** - Analysis and organization of texts and documents
+4. **Astrology** - Cosmic calendar, zodiacal mappings, and visualizations
 5. **TQ** - Trigrammaton QBLH integration and advanced pattern analysis
 
 Each pillar is organized into consistent components:
@@ -65,14 +81,14 @@ Each pillar is organized into consistent components:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/isopgem.git
-cd isopgem
+git clone https://github.com/TheDaniel418/IsopGem.git
+cd IsopGem
 ```
 
 2. Create a virtual environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv venv_py311
+source venv_py311/bin/activate  # On Windows: venv_py311\Scripts\activate
 ```
 
 3. Install dependencies using the main requirements file:
@@ -152,15 +168,15 @@ pillars:
   geometry:
     enabled: true
   document_manager:
-    enabled: false
+    enabled: true
   astrology:
-    enabled: false
+    enabled: true
   tq:
-    enabled: false
+    enabled: true
 
 ui:
   window:
-    title: "IsopGem - Sacred Geometry & Gematria"
+    title: "IsopGem - Esoteric Research Suite"
     width: 1200
     height: 800
     maximize_on_start: false
@@ -209,130 +225,119 @@ We use pre-commit hooks to enforce code quality standards. Hooks include:
 - ruff
 - mypy
 
-Note: Test files are excluded from pre-commit checks.
-
 ## 📁 Project Structure
 
 ```
-isopgem/
-├── astrology/            # Astrology pillar
-├── config/               # Configuration files
-├── docs/                 # Documentation
-│   └── FILE_TRACKER.md   # File tracking and documentation
-├── document_manager/     # Document analysis pillar
-├── gematria/             # Gematria pillar
-│   ├── models/           # Data models
-│   ├── repositories/     # Data access
-│   ├── services/         # Business logic
-│   ├── ui/               # User interface
-│   │   ├── dialogs/      # Popup dialogs
-│   │   ├── panels/       # Main panels
-│   │   ├── widgets/      # Reusable UI components
-│   │   └── windows/      # Window components
-│   └── utils/            # Utilities
-├── geometry/             # Sacred geometry pillar
-├── shared/               # Shared components
-│   ├── models/           # Shared data models
-│   ├── services/         # Shared services
-│   ├── ui/               # Shared UI components
-│   │   └── window_management.py  # Window manager
-│   └── utils/            # Shared utilities
-│       ├── app.py        # Application initialization
-│       ├── cli.py        # Command-line interface
-│       └── config.py     # Configuration management
-├── tq/                   # Trigammaton Qabalah pillar
-├── main.py               # Application entry point
-├── pyproject.toml        # Project metadata
-├── README.md             # Project documentation
-└── requirements/         # Dependency specifications
-    ├── base.txt          # Base dependencies
-    ├── dev.txt           # Development dependencies
-    └── test.txt          # Testing dependencies
+IsopGem/
+├── astrology/                        # Astrology pillar
+│   ├── models/                       # Data models
+│   ├── repositories/                 # Data access
+│   ├── services/                     # Business logic
+│   ├── ui/                           # User interface
+│   │   ├── dialogs/                  # Popup dialogs
+│   │   ├── panels/                   # Main panels
+│   │   ├── widgets/                  # Reusable UI components
+│   │   │   └── kamea_calendar/       # Kamea Cosmic Calendar components
+│   │   └── windows/                  # Window components
+│   └── utils/                        # Utilities
+├── assets/                           # Static assets
+│   ├── cvs/                          # CSV data files
+│   └── geometry/                     # Geometry assets
+├── config/                           # Configuration files
+├── docs/                             # Documentation
+│   ├── kamea/                        # Kamea Cosmic Calendar documentation
+│   ├── geometry_tasks/               # Geometry implementation documentation
+│   ├── note_manager_tasks/           # Note manager documentation
+│   └── FILE_TRACKER.md               # File tracking and documentation
+├── document_manager/                 # Document analysis pillar
+│   ├── models/                       # Document models
+│   ├── repositories/                 # Document data access
+│   ├── services/                     # Document business logic
+│   └── ui/                           # Document UI
+│       ├── dialogs/                  # Document dialogs
+│       ├── panels/                   # Document panels
+│       └── widgets/                  # Document widgets
+├── gematria/                         # Gematria pillar
+│   ├── models/                       # Data models
+│   ├── repositories/                 # Data access
+│   ├── services/                     # Business logic
+│   ├── ui/                           # User interface
+│   │   ├── dialogs/                  # Popup dialogs
+│   │   ├── panels/                   # Main panels
+│   │   ├── widgets/                  # Reusable UI components
+│   │   └── windows/                  # Window components
+│   └── utils/                        # Utilities
+├── geometry/                         # Sacred geometry pillar
+│   ├── calculator/                   # Geometry calculators
+│   ├── models/                       # Geometry models
+│   ├── services/                     # Geometry services
+│   └── ui/                           # Geometry UI
+│       ├── dialogs/                  # Geometry dialogs
+│       ├── panels/                   # Geometry panels
+│       └── widgets/                  # Geometry widgets
+├── shared/                           # Shared components
+│   ├── models/                       # Shared data models
+│   ├── repositories/                 # Shared repositories
+│   ├── services/                     # Shared services
+│   ├── ui/                           # Shared UI components
+│   │   ├── components/               # Reusable UI components
+│   │   ├── dialogs/                  # Common dialogs
+│   │   ├── widgets/                  # Shared widgets
+│   │   │   └── rtf_editor/           # Rich Text Format editor
+│   │   └── window_management.py      # Window manager
+│   └── utils/                        # Shared utilities
+│       ├── app.py                    # Application initialization
+│       ├── cli.py                    # Command-line interface
+│       └── config.py                 # Configuration management
+├── tests/                            # Test suite
+│   ├── integration/                  # Integration tests
+│   └── unit/                         # Unit tests
+│       ├── document_manager/         # Document manager tests
+│       ├── note_manager/             # Note manager tests
+│       └── shared/                   # Shared component tests
+├── tq/                               # Trigrammaton Qabalah pillar
+│   ├── models/                       # TQ models
+│   ├── repositories/                 # TQ data access
+│   ├── services/                     # TQ services
+│   ├── ui/                           # TQ UI components
+│   │   ├── dialogs/                  # TQ dialogs
+│   │   ├── panels/                   # TQ panels
+│   │   ├── styles/                   # TQ styling
+│   │   └── widgets/                  # TQ widgets
+│   └── utils/                        # TQ utilities
+├── main.py                           # Application entry point
+├── pyproject.toml                    # Project metadata
+├── README.md                         # Project documentation
+└── requirements.txt                  # Dependency specifications
+
 ```
 
-## 🌌 Pillars Overview
+## 🌟 Key Features Highlight
 
-### Trigammaton Qabalah (TQ)
+### Kamea Cosmic Calendar
+The Kamea Cosmic Calendar provides a unique visualization of temporal and zodiacal patterns. The interactive radial display makes it easy to identify relationships between differentials, with precise calculations for zodiacal positions. The calendar offers factor connection visualization at key geometric intervals (60°, 120°, etc.) and conrune reversal pair analysis.
 
-The TQ pillar implements an innovative metaphysical-mathematical system based on ternary (base-3) numbers. Key features include:
+### Polygonal Number Visualization
+The geometry module now includes comprehensive tools for visualizing and calculating polygonal number systems. The interactive controls allow real-time manipulation of geometric parameters, supporting triangular, square, pentagonal, hexagonal, and other polygonal sequences.
 
-- **Ternary Number System**: Uses 0, 1, and 2 digits to represent Tao/Void, Yang/Active, and Yin/Receptive forces
-- **Geometric Mapping**: Maps ternary numbers to geometric elements (vertices, edges, faces) in multi-dimensional hypercubes
-- **Quadset Analysis**: Tools for analyzing relationships between sets of four related ternary numbers
-- **Ternary Transitions**: Implementation of the Ternary Transition System for transformational operations
-- **Conrune Visualization**: Visual representation system for ternary numbers
-- **Metaphysical Framework**: Combines mathematical precision with philosophical depth
+### Enhanced Document Management
+The document manager now includes duplicate detection, database utilities, and a fully-featured RTF editor with recovery capabilities. The non-modal editing interface allows for multitasking while maintaining document integrity.
 
-The TQ system creates a bridge between number, form, and metaphysical principles, offering a unique approach to pattern analysis and transformation.
+### Virtual Keyboard for Special Characters
+A specialized virtual keyboard has been added to assist with entering characters from esoteric alphabets and symbol systems, making gematria calculations more accessible.
 
-### Gematria
+## 🔮 Future Directions
 
-The Gematria pillar provides tools for analyzing and working with Hebrew, Greek, and other alphanumeric systems. Key features include:
+- Note manager with advanced tagging system
+- Cross-pillar search capabilities
+- Enhanced visualization export options
+- Mobile companion application
+- Cloud synchronization for research data
 
-- **Multiple Calculation Methods**: Support for traditional and modern gematria calculation methods
-- **Cross-Reference Analysis**: Find words and phrases with matching gematria values
-- **Semantic Insights**: Discover meaningful connections between terms with equivalent numeric values
-- **Historical Context**: Access to traditional and historical gematria interpretations
-- **Export and Sharing**: Save and share gematria analysis results
+## 📜 License
 
-This pillar facilitates deep exploration of the numerical relationships within sacred texts and other written works.
+This project is proprietary software.
 
-### Geometry
+## 🙏 Acknowledgments
 
-The Geometry pillar focuses on sacred geometry principles and visualization. Key features include:
-
-- **Sacred Shape Generation**: Create and manipulate traditional sacred geometry forms
-- **Geometric Analysis**: Analyze proportions and relationships within geometric constructions
-- **Measurement Tools**: Precise tools for working with sacred measurements and ratios
-- **Dynamic Visualization**: Interactive visualization of geometric transformations
-- **Overlay System**: Compare and align different geometric systems
-
-This pillar helps users explore the mathematical beauty and significance of sacred geometry patterns.
-
-### Document Manager
-
-The Document Manager pillar provides capabilities for importing, organizing, and analyzing documents. Key features include:
-
-- **Multi-format Support**: Import and work with PDF, DOCX, TXT and other document formats
-- **Text Extraction**: Automatically extract text content for analysis
-- **Organization System**: Categorize and tag documents for easy retrieval
-- **Search Capabilities**: Powerful full-text search across document collections
-- **Cross-pillar Integration**: Connect document content with other pillars for comprehensive analysis
-
-This pillar serves as a research foundation, helping users organize and extract insights from their document collections.
-
-### Astrology
-
-The Astrology pillar offers tools for astrological calculations and chart analysis. Key features include:
-
-- **Chart Generation**: Create natal, transit, and other astrological charts
-- **Multiple Traditions**: Support for Western, Vedic, and other astrological systems
-- **Aspect Analysis**: Identify and analyze planetary aspects and configurations
-- **Timing Tools**: Determine auspicious times using astrological principles
-- **Visual Representation**: Clear visual presentation of astrological data
-
-This pillar provides precise astrological calculations and interpretations for personal and research purposes.
-
-## 🌐 Contributing
-
-Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on our code of conduct and the process for submitting pull requests.
-
-### Development Workflow
-
-1. Create a new branch for your feature or bugfix
-2. Make your changes
-3. Run tests to ensure functionality
-4. Run pre-commit hooks to ensure code quality
-5. Submit a pull request
-
-## 📚 Documentation
-
-Additional documentation is available in the `docs/` directory.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📧 Contact
-
-For questions or support, please contact us at support@isopgem.com
+Special thanks to the esoteric research community for their valuable feedback and support.
