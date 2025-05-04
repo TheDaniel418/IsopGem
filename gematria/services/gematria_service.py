@@ -399,15 +399,28 @@ class GematriaService:
         # Strip any diacritical marks for Hebrew and Greek
         cleaned_text = self._strip_diacritical_marks(text)
 
+        # Normalize Greek to lowercase for all standard (non-custom) calculations
+        greek_types = [
+            CalculationType.GREEK_ISOPSOPHY,
+            CalculationType.GREEK_ORDINAL,
+            CalculationType.GREEK_SQUARED,
+            CalculationType.GREEK_REVERSAL,
+            CalculationType.GREEK_ALPHA_MU,
+            CalculationType.GREEK_ALPHA_OMEGA,
+            CalculationType.GREEK_BUILDING,
+            CalculationType.GREEK_TRIANGULAR,
+            CalculationType.GREEK_HIDDEN,
+            CalculationType.GREEK_FULL_NAME,
+            CalculationType.GREEK_ADDITIVE,
+        ]
+        if calculation_type in greek_types:
+            cleaned_text = cleaned_text.lower()
+
         # Handle Hebrew calculations
         if calculation_type == CalculationType.MISPAR_HECHRACHI:
             return self._calculate_standard(cleaned_text)
         elif calculation_type == CalculationType.MISPAR_SIDURI:
             return self._calculate_ordinal(cleaned_text)
-        elif calculation_type == CalculationType.MISPAR_KATAN:
-            return self._calculate_reduced(cleaned_text)
-        elif calculation_type == CalculationType.MISPAR_KATAN_MISPARI:
-            return self._calculate_integral_reduced(cleaned_text)
         elif calculation_type == CalculationType.ALBAM:
             return self._calculate_albam(cleaned_text)
         elif calculation_type == CalculationType.ATBASH:
@@ -418,8 +431,6 @@ class GematriaService:
             return self._calculate_building(cleaned_text)
         elif calculation_type == CalculationType.MISPAR_KIDMI:
             return self._calculate_triangular(cleaned_text)
-        elif calculation_type == CalculationType.MISPAR_NEELAM:
-            return self._calculate_hidden(cleaned_text)
         elif calculation_type == CalculationType.MISPAR_PERATI:
             return self._calculate_individual_square(cleaned_text)
         elif calculation_type == CalculationType.MISPAR_SHEMI:
@@ -432,10 +443,6 @@ class GematriaService:
             return self._calculate_greek_standard(cleaned_text)
         elif calculation_type == CalculationType.GREEK_ORDINAL:
             return self._calculate_greek_ordinal(cleaned_text)
-        elif calculation_type == CalculationType.GREEK_REDUCED:
-            return self._calculate_greek_reduced(cleaned_text)
-        elif calculation_type == CalculationType.GREEK_INTEGRAL_REDUCED:
-            return self._calculate_greek_integral_reduced(cleaned_text)
         elif calculation_type == CalculationType.GREEK_SQUARED:
             return self._calculate_greek_squared(cleaned_text)
         elif calculation_type == CalculationType.GREEK_REVERSAL:
@@ -444,16 +451,12 @@ class GematriaService:
             return self._calculate_greek_alpha_mu(cleaned_text)
         elif calculation_type == CalculationType.GREEK_ALPHA_OMEGA:
             return self._calculate_greek_alpha_omega(cleaned_text)
-        elif calculation_type == CalculationType.GREEK_LARGE:
-            return self._calculate_greek_large(cleaned_text)
         elif calculation_type == CalculationType.GREEK_BUILDING:
             return self._calculate_greek_building(cleaned_text)
         elif calculation_type == CalculationType.GREEK_TRIANGULAR:
             return self._calculate_greek_triangular(cleaned_text)
         elif calculation_type == CalculationType.GREEK_HIDDEN:
             return self._calculate_greek_hidden(cleaned_text)
-        elif calculation_type == CalculationType.GREEK_INDIVIDUAL_SQUARE:
-            return self._calculate_greek_individual_square(cleaned_text)
         elif calculation_type == CalculationType.GREEK_FULL_NAME:
             return self._calculate_greek_full_name(cleaned_text)
         elif calculation_type == CalculationType.GREEK_ADDITIVE:
@@ -634,69 +637,45 @@ class GematriaService:
                 total += self._letter_positions[char]
         return total
 
-    def _calculate_reduced(self, text: str) -> int:
-        """Calculate reduced gematria (Mispar Katan).
+    def _calculate_albam(self, text: str) -> int:
+        """Calculate Albam gematria.
 
         Args:
             text: Text to calculate
 
         Returns:
-            Reduced gematria value
+            Albam gematria value
         """
-        total = 0
+        # First substitute letters according to Albam cipher
+        substituted = ""
         for char in text:
-            if char in self._letter_values:
-                # Reduce to single digit (modulo 9, but 9 instead of 0)
-                value = self._letter_values[char] % 9
-                if value == 0 and self._letter_values[char] > 0:
-                    value = 9
-                total += value
-        return total
+            if char in self._albam_map:
+                substituted += self._albam_map[char]
+            else:
+                substituted += char
 
-    def _calculate_integral_reduced(self, text: str) -> int:
-        """Calculate integral reduced gematria (Mispar Katan Mispari).
+        # Then calculate standard value
+        return self._calculate_standard(substituted)
 
-        Args:
-            text: Text to calculate
-
-        Returns:
-            Integral reduced gematria value
-        """
-        # First calculate standard value
-        value = self._calculate_standard(text)
-
-        # Then reduce to a single digit
-        while value >= 10:
-            value = sum(int(digit) for digit in str(value))
-
-        return value
-
-    def _calculate_absolute(self, text: str) -> int:
-        """Calculate absolute gematria (Mispar HaAkhor).
+    def _calculate_atbash(self, text: str) -> int:
+        """Calculate Atbash gematria.
 
         Args:
             text: Text to calculate
 
         Returns:
-            Absolute gematria value
+            Atbash gematria value
         """
-        # This is a simplified implementation
-        return self._calculate_standard(text)
-
-    def _calculate_squared(self, text: str) -> int:
-        """Calculate squared gematria (Mispar HaMerubah HaKlali).
-
-        Args:
-            text: Text to calculate
-
-        Returns:
-            Squared gematria value
-        """
-        total = 0
+        # First substitute letters according to Atbash cipher
+        substituted = ""
         for char in text:
-            if char in self._letter_values:
-                total += self._letter_values[char] ** 2
-        return total
+            if char in self._atbash_map:
+                substituted += self._atbash_map[char]
+            else:
+                substituted += char
+
+        # Then calculate standard value
+        return self._calculate_standard(substituted)
 
     def _calculate_reversal(self, text: str) -> int:
         """Calculate reversal gematria (Mispar Meshupach).
@@ -744,58 +723,6 @@ class GematriaService:
             if char in reversal_values:
                 total += reversal_values[char]
         return total
-
-    def _calculate_albam(self, text: str) -> int:
-        """Calculate Albam gematria.
-
-        Args:
-            text: Text to calculate
-
-        Returns:
-            Albam gematria value
-        """
-        # First substitute letters according to Albam cipher
-        substituted = ""
-        for char in text:
-            if char in self._albam_map:
-                substituted += self._albam_map[char]
-            else:
-                substituted += char
-
-        # Then calculate standard value
-        return self._calculate_standard(substituted)
-
-    def _calculate_atbash(self, text: str) -> int:
-        """Calculate Atbash gematria.
-
-        Args:
-            text: Text to calculate
-
-        Returns:
-            Atbash gematria value
-        """
-        # First substitute letters according to Atbash cipher
-        substituted = ""
-        for char in text:
-            if char in self._atbash_map:
-                substituted += self._atbash_map[char]
-            else:
-                substituted += char
-
-        # Then calculate standard value
-        return self._calculate_standard(substituted)
-
-    def _calculate_full(self, text: str) -> int:
-        """Calculate full gematria (Mispar HaPanim).
-
-        Args:
-            text: Text to calculate
-
-        Returns:
-            Full gematria value
-        """
-        # This is a simplified implementation
-        return self._calculate_standard(text)
 
     def _calculate_large(self, text: str) -> int:
         """Calculate large gematria (Mispar Gadol) with final forms 500-900.
@@ -980,23 +907,6 @@ class GematriaService:
         "ץ": 14,
     }
 
-    def _calculate_hidden(self, text: str) -> int:
-        """Calculate the hidden gematria (Mispar Neelam) value.
-
-        In this method, the values of all final forms are ignored.
-
-        Args:
-            text: The text to calculate
-
-        Returns:
-            The calculated value
-        """
-        total = 0
-        for char in text:
-            if char in self._letter_values and char not in ["ך", "ם", "ן", "ף", "ץ"]:
-                total += self._letter_values[char]
-        return total
-
     def _calculate_individual_square(self, text: str) -> int:
         """Calculate the individual square gematria (Mispar Perati) value.
 
@@ -1115,43 +1025,6 @@ class GematriaService:
                 total += self._greek_positions[char]
         return total
 
-    def _calculate_greek_reduced(self, text: str) -> int:
-        """Calculate reduced Greek isopsophy (Arithmos Mikros).
-
-        Args:
-            text: Greek text to calculate
-
-        Returns:
-            Reduced isopsophy value
-        """
-        total = 0
-        for char in text:
-            if char in self._greek_values:
-                # Reduce to single digit (modulo 9, but 9 instead of 0)
-                value = self._greek_values[char] % 9
-                if value == 0 and self._greek_values[char] > 0:
-                    value = 9
-                total += value
-        return total
-
-    def _calculate_greek_integral_reduced(self, text: str) -> int:
-        """Calculate integral reduced Greek isopsophy (Arithmos Mikros Olistikos).
-
-        Args:
-            text: Greek text to calculate
-
-        Returns:
-            Integral reduced isopsophy value
-        """
-        # First calculate standard value
-        value = self._calculate_greek_standard(text)
-
-        # Then reduce to a single digit
-        while value >= 10:
-            value = sum(int(digit) for digit in str(value))
-
-        return value
-
     def _calculate_greek_squared(self, text: str) -> int:
         """Calculate squared Greek isopsophy (Arithmos Tetragonos).
 
@@ -1259,160 +1132,6 @@ class GematriaService:
         # Then calculate standard value
         return self._calculate_greek_standard(substituted)
 
-    # Greek letter names and their values
-    _greek_letter_names = {
-        "α": {"name": "ἄλφα", "value": 532},  # alpha
-        "β": {"name": "βῆτα", "value": 311},  # beta
-        "γ": {"name": "γάμμα", "value": 85},  # gamma
-        "δ": {"name": "δέλτα", "value": 340},  # delta
-        "ε": {"name": "ἒψιλον", "value": 865},  # epsilon
-        "ζ": {"name": "ζῆτα", "value": 316},  # zeta
-        "η": {"name": "ἦτα", "value": 309},  # eta
-        "θ": {"name": "θῆτα", "value": 318},  # theta
-        "ι": {"name": "ἰῶτα", "value": 1111},  # iota
-        "κ": {"name": "κάππα", "value": 182},  # kappa
-        "λ": {"name": "λάμβδα", "value": 78},  # lambda
-        "μ": {"name": "μῦ", "value": 440},  # mu
-        "ν": {"name": "νῦ", "value": 450},  # nu
-        "ξ": {"name": "ξῖ", "value": 70},  # xi
-        "ο": {"name": "ὂμικρον", "value": 360},  # omicron
-        "π": {"name": "πῖ", "value": 90},  # pi
-        "ρ": {"name": "ῥῶ", "value": 900},  # rho
-        "σ": {"name": "σίγμα", "value": 254},  # sigma
-        "τ": {"name": "ταῦ", "value": 701},  # tau
-        "υ": {"name": "ὒψιλον", "value": 1260},  # upsilon
-        "φ": {"name": "φῖ", "value": 510},  # phi
-        "χ": {"name": "χῖ", "value": 610},  # chi
-        "ψ": {"name": "ψῖ", "value": 710},  # psi
-        "ω": {"name": "ὦμέγα", "value": 849},  # omega
-        "ς": {"name": "σίγμα τελικόν", "value": 254},  # final sigma
-        "ϲ": {"name": "σίγμα τελικόν", "value": 254},  # final sigma variant
-    }
-
-    # Greek letter names without the letter itself - hidden values
-    _greek_letter_hidden_values = {
-        "α": 531,  # alpha without alpha
-        "β": 306,  # beta without beta
-        "γ": 142,  # gamma without gamma
-        "δ": 335,  # delta without delta
-        "ε": 653,  # epsilon without epsilon
-        "ϝ": 443,  # digamma without digamma
-        "ζ": 301,  # zeta without zeta
-        "η": 306,  # eta without eta
-        "θ": 309,  # theta without theta
-        "ι": 801,  # iota without iota
-        "κ": 302,  # kappa without kappa
-        "λ": 348,  # lambda without lambda
-        "μ": 400,  # mu without mu
-        "ν": 400,  # nu without nu
-        "ξ": 10,  # xi without xi
-        "ο": 360,  # omicron without omicron
-        "π": 10,  # pi without pi
-        "ϙ": 301,  # koppa without koppa
-        "ρ": 1000,  # rho without rho
-        "σ": 174,  # sigma without sigma
-        "τ": 401,  # tau without tau
-        "υ": 950,  # upsilon without upsilon
-        "φ": 10,  # phi without phi
-        "χ": 10,  # chi without chi
-        "ψ": 10,  # psi without psi
-        "ω": 571,  # omega without omega
-        "ς": 174,  # final sigma without sigma
-        "ϲ": 174,  # final sigma variant without sigma
-    }
-
-    # Greek large values including archaic/extended letters
-    _greek_large_values = {
-        # Standard letters
-        "α": 1,
-        "β": 2,
-        "γ": 3,
-        "δ": 4,
-        "ε": 5,
-        "ϝ": 6,
-        "ζ": 7,
-        "η": 8,
-        "θ": 9,
-        "ι": 10,
-        "κ": 20,
-        "λ": 30,
-        "μ": 40,
-        "ν": 50,
-        "ξ": 60,
-        "ο": 70,
-        "π": 80,
-        "ϙ": 90,
-        "ρ": 100,
-        "σ": 200,
-        "τ": 300,
-        "υ": 400,
-        "φ": 500,
-        "χ": 600,
-        "ψ": 700,
-        "ω": 800,
-        # Additional archaic/extended values
-        "ϡ": 900,  # sampi
-        "ϛ": 6,  # stigma (alternate for digamma)
-        "ϟ": 90,  # koppa variant
-        "ϸ": 800,  # archaic sampi
-        "ͱ": 1000,  # extended value
-        "ͳ": 2000,  # extended value
-        "ͷ": 3000,  # extended value
-        # Variant forms
-        "ς": 200,
-        "ϲ": 200,
-    }
-
-    # Greek triangular values (sum of all preceding letters)
-    _greek_triangular_values = {
-        "α": 1,
-        "β": 3,
-        "γ": 6,
-        "δ": 10,
-        "ε": 15,
-        "ϝ": 21,
-        "ζ": 28,
-        "η": 36,
-        "θ": 45,
-        "ι": 55,
-        "κ": 75,
-        "λ": 105,
-        "μ": 145,
-        "ν": 195,
-        "ξ": 255,
-        "ο": 325,
-        "π": 405,
-        "ϙ": 495,
-        "ρ": 595,
-        "σ": 795,
-        "τ": 1095,
-        "υ": 1495,
-        "φ": 1995,
-        "χ": 2595,
-        "ψ": 3295,
-        "ω": 4095,
-        # Variant forms
-        "ς": 795,
-        "ϲ": 795,
-    }
-
-    def _calculate_greek_large(self, text: str) -> int:
-        """Calculate Greek large value (Arithmos Megalos).
-
-        Uses archaic/extended Greek letter values.
-
-        Args:
-            text: Greek text to calculate
-
-        Returns:
-            Greek large value
-        """
-        total = 0
-        for char in text:
-            if char in self._greek_large_values:
-                total += self._greek_large_values[char]
-        return total
-
     def _calculate_greek_building(self, text: str) -> int:
         """Calculate Greek building value (Arithmos Oikodomikos).
 
@@ -1467,23 +1186,6 @@ class GematriaService:
         for char in text:
             if char in self._greek_letter_hidden_values:
                 total += self._greek_letter_hidden_values[char]
-        return total
-
-    def _calculate_greek_individual_square(self, text: str) -> int:
-        """Calculate Greek individual square (Arithmos Atomikos).
-
-        Each letter's standard value is squared.
-
-        Args:
-            text: Greek text to calculate
-
-        Returns:
-            Greek individual square value
-        """
-        total = 0
-        for char in text:
-            if char in self._greek_values:
-                total += self._greek_values[char] ** 2
         return total
 
     def _calculate_greek_full_name(self, text: str) -> int:

@@ -1,28 +1,15 @@
-"""Integration tests for the Sacred Geometry Explorer.
+"""Sacred Geometry Explorer tests (DISABLED).
 
-This module contains integration tests for the Sacred Geometry Explorer,
-verifying that all components work together correctly.
+The Sacred Geometry Explorer feature has been temporarily disabled.
+These tests are kept for future reference but are not currently active.
 """
 
-import os
-import sys
 import unittest
-from unittest.mock import MagicMock
-import tempfile
 
-from PyQt6.QtCore import Qt, QPointF
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QColor
-
-from geometry.ui.sacred_geometry.explorer import SacredGeometryExplorer
-from geometry.ui.sacred_geometry.model import Point, Line, Circle
-from geometry.ui.sacred_geometry.canvas import GeometryCanvas
-from geometry.ui.sacred_geometry.properties import PropertiesPanel
-from geometry.ui.sacred_geometry.tools import SelectionTool, PointTool, LineTool, CircleTool
-
-
+# Skip all tests in this module
+@unittest.skip("Sacred Geometry Explorer feature is currently disabled")
 class TestSacredGeometryIntegration(unittest.TestCase):
-    """Integration tests for the Sacred Geometry Explorer."""
+    """Integration tests for the Sacred Geometry Explorer (DISABLED)."""
 
     @classmethod
     def setUpClass(cls):

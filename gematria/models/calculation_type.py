@@ -43,18 +43,6 @@ class CalculationType(Enum):
     # Ordinal (Mispar Siduri) - position in alphabet (alef=1, bet=2, etc.)
     MISPAR_SIDURI = auto()
 
-    # Reduced (Mispar Katan) - reduced to single digit where possible
-    MISPAR_KATAN = auto()
-
-    # Integral Reduced (Mispar Katan Mispari) - convergence to a single digit
-    MISPAR_KATAN_MISPARI = auto()
-
-    # Absolute (Mispar HaAkhor) - value of the letter name
-    MISPAR_HAAKHOR = auto()
-
-    # Squared (Mispar HaMerubah HaKlali) - square of standard value
-    MISPAR_HAMERUBAH_HAKLALI = auto()
-
     # Reversal (Mispar Meshupach) - letter values reversed (alef=400, tav=1)
     MISPAR_MESHUPACH = auto()
 
@@ -64,9 +52,6 @@ class CalculationType(Enum):
     # Atbash - letter substitution cipher (alef↔tav, bet↔shin, etc.)
     ATBASH = auto()
 
-    # Full (Mispar HaPanim) - value of the full letter name
-    MISPAR_HAPANIM = auto()
-
     # Large (Mispar Gadol) - final letters have values 500-900
     MISPAR_GADOL = auto()
 
@@ -75,9 +60,6 @@ class CalculationType(Enum):
 
     # Triangular (Mispar Kidmi) - sum of all letters up to the current one in alphabet
     MISPAR_KIDMI = auto()
-
-    # Hidden (Mispar Ne'elam) - value of letter name without the letter itself
-    MISPAR_NEELAM = auto()
 
     # Individual Square (Mispar Perati) - each letter value is squared
     MISPAR_PERATI = auto()
@@ -96,12 +78,6 @@ class CalculationType(Enum):
     # Greek Ordinal (Arithmos Taktikos) - position in Greek alphabet
     GREEK_ORDINAL = auto()
 
-    # Greek Reduced (Arithmos Mikros) - reduced to single digit
-    GREEK_REDUCED = auto()
-
-    # Greek Integral Reduced (Arithmos Mikros Olistikos) - convergence to a single digit
-    GREEK_INTEGRAL_REDUCED = auto()
-
     # Greek Squared (Arithmos Tetragonos) - square of standard value
     GREEK_SQUARED = auto()
 
@@ -114,9 +90,6 @@ class CalculationType(Enum):
     # Greek Alpha-Omega Cipher (Kryptos Alpha-Omega) - similar to Hebrew Atbash
     GREEK_ALPHA_OMEGA = auto()
 
-    # Greek Large Value (Arithmos Megalos) - uses extended values for additional letters
-    GREEK_LARGE = auto()
-
     # Greek Building Value (Arithmos Oikodomikos) - cumulative value of letters
     GREEK_BUILDING = auto()
 
@@ -125,9 +98,6 @@ class CalculationType(Enum):
 
     # Greek Hidden Value (Arithmos Kryptos) - letter name value without the letter
     GREEK_HIDDEN = auto()
-
-    # Greek Individual Square (Arithmos Atomikos) - square of each letter value
-    GREEK_INDIVIDUAL_SQUARE = auto()
 
     # Greek Full Name Value (Arithmos Onomatos) - value of the full letter name
     GREEK_FULL_NAME = auto()
@@ -154,18 +124,12 @@ class CalculationType(Enum):
             return [
                 cls.MISPAR_HECHRACHI,
                 cls.MISPAR_SIDURI,
-                cls.MISPAR_KATAN,
-                cls.MISPAR_KATAN_MISPARI,
-                cls.MISPAR_HAAKHOR,
-                cls.MISPAR_HAMERUBAH_HAKLALI,
                 cls.MISPAR_MESHUPACH,
                 cls.ALBAM,
                 cls.ATBASH,
-                cls.MISPAR_HAPANIM,
                 cls.MISPAR_GADOL,
                 cls.MISPAR_BONEH,
                 cls.MISPAR_KIDMI,
-                cls.MISPAR_NEELAM,
                 cls.MISPAR_PERATI,
                 cls.MISPAR_SHEMI,
                 cls.MISPAR_MUSAFI,
@@ -174,17 +138,13 @@ class CalculationType(Enum):
             return [
                 cls.GREEK_ISOPSOPHY,
                 cls.GREEK_ORDINAL,
-                cls.GREEK_REDUCED,
-                cls.GREEK_INTEGRAL_REDUCED,
                 cls.GREEK_SQUARED,
                 cls.GREEK_REVERSAL,
                 cls.GREEK_ALPHA_MU,
                 cls.GREEK_ALPHA_OMEGA,
-                cls.GREEK_LARGE,
                 cls.GREEK_BUILDING,
                 cls.GREEK_TRIANGULAR,
                 cls.GREEK_HIDDEN,
-                cls.GREEK_INDIVIDUAL_SQUARE,
                 cls.GREEK_FULL_NAME,
                 cls.GREEK_ADDITIVE,
             ]

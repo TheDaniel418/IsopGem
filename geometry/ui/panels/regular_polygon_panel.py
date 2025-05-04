@@ -6,7 +6,7 @@ This module provides a panel for calculating properties of regular polygons.
 import math
 
 from PyQt6.QtCore import QPointF, Qt
-from PyQt6.QtGui import QBrush, QColor, QPainter, QPen, QPolygonF
+from PyQt6.QtGui import QBrush, QColor, QPainter, QPen, QPolygonF, QAction
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -16,6 +16,8 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QMenu,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSpinBox,
@@ -26,6 +28,13 @@ from PyQt6.QtWidgets import (
 
 from geometry.calculator.regular_polygon_calculator import RegularPolygonCalculator
 from geometry.services.polygon_service import PolygonService
+
+# Check if TQ module is available
+try:
+    from tq.services import tq_analysis_service
+    TQ_AVAILABLE = True
+except ImportError:
+    TQ_AVAILABLE = False
 
 
 class RegularPolygonVisualization(QWidget):
@@ -158,11 +167,11 @@ class RegularPolygonVisualization(QWidget):
         self.show_measurements = show
         self.update()
 
-    def paintEvent(self, event) -> None:
+    def paintEvent(self, _) -> None:
         """Paint the visualization.
 
         Args:
-            event: Paint event
+            _: Paint event (unused)
         """
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -231,7 +240,7 @@ class RegularPolygonVisualization(QWidget):
 
         # Draw the apothems
         if self.show_apothem:
-            apothem = self.calculator.calculate_apothem() * scale_factor
+            # Scale factor is used for drawing the apothems
             painter.setPen(QPen(QColor(100, 255, 100), 1, Qt.PenStyle.DashLine))
 
             # Draw an apothem to each side
@@ -430,6 +439,9 @@ class RegularPolygonPanel(QWidget):
             "Circumcircle Area",
         ]
 
+        # Dictionary to store value labels for context menu access
+        self.value_labels = {}
+
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -549,7 +561,7 @@ class RegularPolygonPanel(QWidget):
         row, col = 0, 0
         for name, sides in presets:
             button = QPushButton(name)
-            button.clicked.connect(lambda checked, s=sides: self._set_preset(s))
+            button.clicked.connect(lambda _, s=sides: self._set_preset(s))
             preset_layout.addWidget(button, row, col)
             col += 1
             if col > 2:
@@ -590,19 +602,39 @@ class RegularPolygonPanel(QWidget):
 
         # Number of sides - read-only display of the spinner value
         self.sides_label = QLabel()
+        self.sides_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.sides_label.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.sides_label, "Sides")
+        )
         basic_layout.addRow("Number of Sides:", self.sides_label)
+        self.value_labels["Sides"] = self.sides_label
 
         # Interior angle - calculated value
         self.interior_angle_label = QLabel()
+        self.interior_angle_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.interior_angle_label.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.interior_angle_label, "Interior Angle")
+        )
         basic_layout.addRow("Interior Angle:", self.interior_angle_label)
+        self.value_labels["Interior Angle"] = self.interior_angle_label
 
         # Exterior angle - calculated value
         self.exterior_angle_label = QLabel()
+        self.exterior_angle_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.exterior_angle_label.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.exterior_angle_label, "Exterior Angle")
+        )
         basic_layout.addRow("Exterior Angle:", self.exterior_angle_label)
+        self.value_labels["Exterior Angle"] = self.exterior_angle_label
 
         # Central angle - calculated value
         self.central_angle_label = QLabel()
+        self.central_angle_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.central_angle_label.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.central_angle_label, "Central Angle")
+        )
         basic_layout.addRow("Central Angle:", self.central_angle_label)
+        self.value_labels["Central Angle"] = self.central_angle_label
 
         # Edge length - editable field
         self.edge_length_spin = QDoubleSpinBox()
@@ -610,7 +642,12 @@ class RegularPolygonPanel(QWidget):
         self.edge_length_spin.setDecimals(4)
         self.edge_length_spin.setSingleStep(1.0)
         self.edge_length_spin.editingFinished.connect(self._edge_length_changed)
+        self.edge_length_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.edge_length_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.edge_length_spin, "Edge Length")
+        )
         basic_layout.addRow("Edge Length:", self.edge_length_spin)
+        self.value_labels["Edge Length"] = self.edge_length_spin
 
         # Perimeter - editable field
         self.perimeter_spin = QDoubleSpinBox()
@@ -618,7 +655,12 @@ class RegularPolygonPanel(QWidget):
         self.perimeter_spin.setDecimals(4)
         self.perimeter_spin.setSingleStep(10.0)
         self.perimeter_spin.editingFinished.connect(self._perimeter_changed)
+        self.perimeter_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.perimeter_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.perimeter_spin, "Perimeter")
+        )
         basic_layout.addRow("Perimeter:", self.perimeter_spin)
+        self.value_labels["Perimeter"] = self.perimeter_spin
 
         # Area - editable field
         self.area_spin = QDoubleSpinBox()
@@ -626,7 +668,12 @@ class RegularPolygonPanel(QWidget):
         self.area_spin.setDecimals(4)
         self.area_spin.setSingleStep(100.0)
         self.area_spin.editingFinished.connect(self._area_changed)
+        self.area_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.area_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.area_spin, "Area")
+        )
         basic_layout.addRow("Area:", self.area_spin)
+        self.value_labels["Area"] = self.area_spin
 
         scroll_layout.addWidget(basic_group)
 
@@ -641,7 +688,12 @@ class RegularPolygonPanel(QWidget):
         self.radius_spin_display.setSingleStep(10.0)
         self.radius_spin_display.setValue(self.calculator.radius)
         self.radius_spin_display.editingFinished.connect(self._radius_changed)
+        self.radius_spin_display.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.radius_spin_display.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.radius_spin_display, "Radius")
+        )
         circle_layout.addRow("Circumradius:", self.radius_spin_display)
+        self.value_labels["Radius"] = self.radius_spin_display
 
         # Circumcircle circumference - editable field
         self.circumcircle_circumference_spin = QDoubleSpinBox()
@@ -651,9 +703,14 @@ class RegularPolygonPanel(QWidget):
         self.circumcircle_circumference_spin.editingFinished.connect(
             self._circumcircle_circumference_changed
         )
+        self.circumcircle_circumference_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.circumcircle_circumference_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.circumcircle_circumference_spin, "Circumcircle Circumference")
+        )
         circle_layout.addRow(
             "Circumcircle Circumference:", self.circumcircle_circumference_spin
         )
+        self.value_labels["Circumcircle Circumference"] = self.circumcircle_circumference_spin
 
         # Circumcircle area - editable field
         self.circumcircle_area_spin = QDoubleSpinBox()
@@ -663,7 +720,12 @@ class RegularPolygonPanel(QWidget):
         self.circumcircle_area_spin.editingFinished.connect(
             self._circumcircle_area_changed
         )
+        self.circumcircle_area_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.circumcircle_area_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.circumcircle_area_spin, "Circumcircle Area")
+        )
         circle_layout.addRow("Circumcircle Area:", self.circumcircle_area_spin)
+        self.value_labels["Circumcircle Area"] = self.circumcircle_area_spin
 
         # Inradius - editable field
         self.inradius_spin = QDoubleSpinBox()
@@ -671,7 +733,12 @@ class RegularPolygonPanel(QWidget):
         self.inradius_spin.setDecimals(4)
         self.inradius_spin.setSingleStep(10.0)
         self.inradius_spin.editingFinished.connect(self._inradius_changed)
+        self.inradius_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.inradius_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.inradius_spin, "Inradius")
+        )
         circle_layout.addRow("Inradius:", self.inradius_spin)
+        self.value_labels["Inradius"] = self.inradius_spin
 
         # Incircle circumference - editable field
         self.incircle_circumference_spin = QDoubleSpinBox()
@@ -681,9 +748,14 @@ class RegularPolygonPanel(QWidget):
         self.incircle_circumference_spin.editingFinished.connect(
             self._incircle_circumference_changed
         )
+        self.incircle_circumference_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.incircle_circumference_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.incircle_circumference_spin, "Incircle Circumference")
+        )
         circle_layout.addRow(
             "Incircle Circumference:", self.incircle_circumference_spin
         )
+        self.value_labels["Incircle Circumference"] = self.incircle_circumference_spin
 
         # Incircle area - editable field
         self.incircle_area_spin = QDoubleSpinBox()
@@ -691,11 +763,21 @@ class RegularPolygonPanel(QWidget):
         self.incircle_area_spin.setDecimals(4)
         self.incircle_area_spin.setSingleStep(100.0)
         self.incircle_area_spin.editingFinished.connect(self._incircle_area_changed)
+        self.incircle_area_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.incircle_area_spin.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.incircle_area_spin, "Incircle Area")
+        )
         circle_layout.addRow("Incircle Area:", self.incircle_area_spin)
+        self.value_labels["Incircle Area"] = self.incircle_area_spin
 
         # Apothem - calculated value
         self.apothem_label = QLabel()
+        self.apothem_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.apothem_label.customContextMenuRequested.connect(
+            lambda pos: self._show_context_menu(pos, self.apothem_label, "Apothem")
+        )
         circle_layout.addRow("Apothem:", self.apothem_label)
+        self.value_labels["Apothem"] = self.apothem_label
 
         scroll_layout.addWidget(circle_group)
 
@@ -899,8 +981,8 @@ class RegularPolygonPanel(QWidget):
         # Diagonals inputs
         diagonals = self.calculator.calculate_diagonals()
 
-        # Get total diagonals count
-        total_diagonals = self.calculator.calculate_total_diagonals_count()
+        # Get total diagonals count (used for display in diagonals_count_label)
+        _ = self.calculator.calculate_total_diagonals_count()
 
         if diagonals:
             # Create a header
@@ -944,6 +1026,13 @@ class RegularPolygonPanel(QWidget):
                 length_spin.setValue(length)
                 length_spin.setProperty("skip", skip)  # Store skip value for reference
                 length_spin.editingFinished.connect(self._diagonal_length_changed)
+
+                # Add context menu support
+                length_spin.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+                diagonal_name = f"Diagonal (Skip {skip})"
+                length_spin.customContextMenuRequested.connect(
+                    lambda pos, widget=length_spin, name=diagonal_name: self._show_context_menu(pos, widget, name)
+                )
                 row_layout.addWidget(length_spin, 1)
 
                 self.diagonals_container_layout.addWidget(row)
@@ -1344,6 +1433,88 @@ class RegularPolygonPanel(QWidget):
         if value > 0:
             self.circumcircle_area_spin.setValue(value)
             self._circumcircle_area_changed()
+
+    def _show_context_menu(self, pos, widget, field_name):
+        """Show a context menu for a value widget.
+
+        Args:
+            pos: Position where the menu should be shown
+            widget: The widget that triggered the context menu
+            field_name: Name of the field (used for display and identification)
+        """
+        # Create the context menu
+        menu = QMenu(self)
+
+        # Get the value from the widget
+        value = self._get_widget_value(widget)
+        if value is None:
+            return
+
+        # Round the value to the nearest integer for Quadset Analysis
+        rounded_value = round(value)
+
+        # Add "Send to Quadset Analysis" option if TQ is available
+        if TQ_AVAILABLE:
+            tq_action = QAction(f"Send {field_name} value ({rounded_value}) to Quadset Analysis", self)
+            tq_action.triggered.connect(lambda: self._send_to_quadset_analysis(rounded_value))
+            menu.addAction(tq_action)
+
+        # Show the menu at the requested position
+        menu.exec(widget.mapToGlobal(pos))
+
+    def _get_widget_value(self, widget):
+        """Get the numeric value from a widget.
+
+        Args:
+            widget: The widget to get the value from
+
+        Returns:
+            The numeric value or None if not available
+        """
+        try:
+            if isinstance(widget, QDoubleSpinBox) or isinstance(widget, QSpinBox):
+                return widget.value()
+            elif isinstance(widget, QLabel):
+                # Extract numeric value from label text
+                text = widget.text()
+                # Remove any non-numeric characters except decimal point
+                # This handles cases like "123.45°" or "123.45 units"
+                numeric_text = ''.join(c for c in text if c.isdigit() or c == '.')
+                if numeric_text:
+                    return float(numeric_text)
+            return None
+        except (ValueError, TypeError):
+            return None
+
+    def _send_to_quadset_analysis(self, value):
+        """Send a value to the TQ Quadset Analysis tool.
+
+        Args:
+            value: Integer value to analyze in the TQ Grid
+        """
+        if not TQ_AVAILABLE:
+            QMessageBox.warning(
+                self,
+                "Feature Unavailable",
+                "The TQ module is not available in this installation.",
+            )
+            return
+
+        try:
+            # Open the TQ Grid with this number
+            analysis_service = tq_analysis_service.get_instance()
+            panel = analysis_service.open_quadset_analysis(value)
+
+            # Find the window containing this panel and ensure it's on top
+            parent = panel.window()
+            if parent and hasattr(parent, "ensure_on_top"):
+                parent.ensure_on_top()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred while opening Quadset Analysis: {str(e)}",
+            )
 
     def closeEvent(self, event):
         """Handle the panel being closed.

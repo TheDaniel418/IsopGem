@@ -18,7 +18,7 @@ Related files:
 """
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QIntValidator
+from PyQt6.QtGui import QFont, QIntValidator, QPainter
 from PyQt6.QtWidgets import (
     QDialog,
     QFrame,
@@ -36,6 +36,9 @@ from PyQt6.QtWidgets import (
 
 from tq.services.ternary_dimension_interpreter_new import HexagramInterpreter
 from tq.utils.ternary_converter import decimal_to_ternary
+import pandas as pd
+import math
+import os
 
 
 class TernaryDimensionalAnalysisPanel(QWidget):

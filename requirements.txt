@@ -3,6 +3,11 @@
 
 # Core dependencies
 PyQt6==6.6.1
+PyQt6-Qt6==6.6.1  # Qt6 binaries
+PyQt6-sip==13.6.0  # SIP bindings
+PyQt6-tools>=6.4.0  # Designer and other tools
+PyQt6-Charts>=6.6.0  # For chart visualization
+PyQt6-DataVisualization>=6.6.0  # For 3D visualization
 pyyaml==6.0.1
 pydantic==2.6.1
 python-dotenv==1.0.1
@@ -11,43 +16,74 @@ loguru==0.7.2
 # Data handling
 numpy==1.26.3
 pandas==2.2.0
+openpyxl>=3.1.2  # For Excel file support
+xlrd>=2.0.1  # For older Excel file formats
 
 # Database
 sqlite3worker>=1.1.0
-
+whoosh
 # Document processing
 PyMuPDF>=1.21.0  # For PDF processing
 python-docx>=0.8.11  # For DOCX processing
 odfpy>=1.4.1  # For LibreOffice documents
+chardet>=5.2.0  # For character encoding detection
 
 # Astronomy/Astrology
 pyswisseph>=2.10.0  # Swiss Ephemeris for astronomical calculations
 skyfield>=1.45.0  # Astronomical calculations
 ephem>=4.1.4  # PyEphem for accurate astronomical calculations
+kerykeion>=3.3.0  # Astrological calculations and chart generation
+tzlocal>=5.2.0  # Timezone detection
+pytz>=2023.4  # Timezone handling
 
-# Mathematics
+# Mathematics and Visualization
 sympy>=1.12.0  # Symbolic mathematics for number properties
+matplotlib>=3.8.0  # For plotting and visualization
 
 # Utilities
 tqdm==4.66.1
-pytz==2023.4
 pillow==10.2.0
 typing-extensions>=4.8.0  # Extended typing support
+dill>=0.3.7  # For object serialization
+requests>=2.31.0  # For HTTP requests
 
 # Type checking and linting - uncomment if needed for development
 # mypy==1.8.0
 # black==23.12.1
 # isort==5.13.2
 # flake8==7.0.0
+# pylint==3.0.3
 # pre-commit==3.6.0
+# pycodestyle==2.11.1
+# pyflakes==3.2.0
+# ruff==0.1.5
+
+# Debugging tools - uncomment if needed
+# ipython==8.20.0
+# jupyter==1.0.0
+# ipdb==0.13.13
+
+# Documentation - uncomment if needed
+# sphinx==7.2.6
+# sphinx-rtd-theme==1.3.0
 
 # Testing - uncomment if needed for testing
 # pytest==7.4.4
 # pytest-qt==4.2.0
 # pytest-cov==4.1.0
+# pytest-mock==3.12.0
+# pytest-xvfb==3.0.0
+# hypothesis==6.92.1
+# coverage==7.4.0
+# freezegun==1.4.0
+# responses==0.24.1
+
+# Type stubs - uncomment if needed
+# types-PyYAML==6.0.12.12
+# types-pytz==2023.3.1.1
 
 # Optional: Install development tools
 # -r requirements/dev.txt
 
 # Optional: Install testing tools
-# -r requirements/test.txt 
+# -r requirements/test.txt

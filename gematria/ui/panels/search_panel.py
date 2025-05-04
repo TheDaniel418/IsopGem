@@ -207,7 +207,7 @@ class SearchPanel(QWidget):
 
             # Log if we didn't find anything
             if result is None:
-                logger.warning("No window manager found in parent widget chain")
+                logger.debug("No window manager found in parent widget chain, but this is expected when opened from other panels")
 
         except Exception as e:
             logger.error(f"Error while finding window manager: {e}")
@@ -408,8 +408,11 @@ class SearchPanel(QWidget):
         # Text criteria
         if self.text_search.text():
             if self.exact_text_match.isChecked():
+                # Use exact match (case-insensitive)
                 criteria["input_text"] = self.text_search.text()
             else:
+                # Use partial match (case-insensitive)
+                # The %wildcards% are used by SQLite for LIKE queries
                 criteria["input_text_like"] = f"%{self.text_search.text()}%"
 
         # Value criteria - Updated to handle the QLineEdit instead of QSpinBox

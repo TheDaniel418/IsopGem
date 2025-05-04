@@ -115,6 +115,12 @@ class PairFinderPanel(QFrame):
         self.original_visualizer = TernaryDigitVisualizer()
         original_layout.addWidget(self.original_visualizer)
 
+        # Add 'Send to Quadset Analysis' button for Original Number
+        self.send_to_quadset_btn = QPushButton("Send to Quadset Analysis")
+        self.send_to_quadset_btn.setEnabled(False)
+        self.send_to_quadset_btn.clicked.connect(self._send_original_to_quadset_analysis)
+        original_layout.addWidget(self.send_to_quadset_btn)
+
         # Conrune number section
         conrune_layout = QVBoxLayout()
         conrune_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -217,6 +223,25 @@ class PairFinderPanel(QFrame):
         self.verification_label.setText(
             f"Verification: |{original_dec} - {conrune_dec}| = {difference}"
         )
+
+        # Enable the send to quadset button if the original number is valid
+        self._last_original_dec = original_dec
+        self.send_to_quadset_btn.setEnabled(True)
+
+    def _send_original_to_quadset_analysis(self):
+        """
+        Send the original number (A) to the Quadset Analysis panel for detailed analysis.
+        Uses the standard cross-pillar service pattern to open the analysis panel with the given number.
+        """
+        try:
+            from tq.services import tq_analysis_service
+            number = getattr(self, '_last_original_dec', None)
+            if number is not None:
+                analysis_service = tq_analysis_service.get_instance()
+                analysis_service.open_quadset_analysis(number)
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Error", f"Could not send to Quadset Analysis: {e}")
 
 
 if __name__ == "__main__":

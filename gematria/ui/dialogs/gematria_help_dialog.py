@@ -90,104 +90,69 @@ class GematriaHelpDialog(QDialog):
         title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
         content_layout.addWidget(title)
 
-        # Add method descriptions
+        # Hebrew methods
         hebrew_methods = [
             {
                 "name": "Mispar Hechrachi (מספר הכרחי)",
-                "transliteration": "Standard Value",
-                "meaning": "Essential or Standard Number",
-                "description": (
-                    "The most common method of gematria. Each letter is assigned its basic "
-                    "numerical value. Alef=1, Bet=2, and so on, with special values for tens "
-                    "and hundreds. Final forms (sofits) of letters have the same value as their regular forms."
-                ),
-                "example": "אמת (truth) = א(1) + מ(40) + ת(400) = 441",
-                "chart": "א=1, ב=2, ג=3, ד=4, ה=5, ו=6, ז=7, ח=8, ט=9, י=10, כ=20, ל=30, מ=40, נ=50, ס=60, ע=70, פ=80, צ=90, ק=100, ר=200, ש=300, ת=400",
-            },
-            {
-                "name": "Mispar Gadol (מספר גדול)",
-                "transliteration": "Large Value",
-                "meaning": "Large Number",
-                "description": (
-                    "This method assigns larger values to the final forms (sofits) of letters. "
-                    "While regular letters maintain their standard values, the five final forms "
-                    "(Kaf, Mem, Nun, Peh, Tzadi) are assigned values in the hundreds."
-                ),
-                "example": "שלום (peace) with final Mem = ש(300) + ל(30) + ו(6) + ם(600) = 936",
-                "chart": "Standard letters same as Mispar Hechrachi, plus: ך=500, ם=600, ן=700, ף=800, ץ=900",
-            },
-            {
-                "name": "Mispar Katan (מספר קטן)",
-                "transliteration": "Small Value",
-                "meaning": "Small Number",
-                "description": (
-                    "Reduces all letter values to single digits. Letters with values 1-9 remain the same, "
-                    "but letters with values 10-400 are reduced to their last digit. This method reveals "
-                    "connections between words that might be hidden in the standard value."
-                ),
-                "example": "אמת (truth) = א(1) + מ(4) + ת(4) = 9",
-                "chart": "א=1, ב=2, ג=3, ד=4, ה=5, ו=6, ז=7, ח=8, ט=9, י=1, כ=2, ל=3, מ=4, נ=5, ס=6, ע=7, פ=8, צ=9, ק=1, ר=2, ש=3, ת=4",
+                "description": "The standard gematria method. Each letter is assigned its standard value.",
+                "examples": "א=1, ב=2, ג=3, י=10, כ=20, ק=100",
+                "notes": "This is the most common method used in traditional gematria."
             },
             {
                 "name": "Mispar Siduri (מספר סידורי)",
-                "transliteration": "Ordinal Value",
-                "meaning": "Ordinal Number",
-                "description": (
-                    "Values letters based on their position in the Hebrew alphabet. "
-                    "Each letter is assigned a value based on its sequential position, from 1 to 22. "
-                    "Final forms of letters have the same value as their regular forms."
-                ),
-                "example": "אמת (truth) = א(1) + מ(13) + ת(22) = 36",
-                "chart": "א=1, ב=2, ג=3, ד=4, ה=5, ו=6, ז=7, ח=8, ט=9, י=10, כ=11, ל=12, מ=13, נ=14, ס=15, ע=16, פ=17, צ=18, ק=19, ר=20, ש=21, ת=22",
+                "description": "Ordinal value. Each letter is assigned a value based on its position in the alphabet.",
+                "examples": "א=1, ב=2, ג=3, י=10, כ=11, ל=12",
+                "notes": "This method emphasizes the sequential nature of the alphabet."
+            },
+            # Deprecated methods removed
+            {
+                "name": "Albam (אלבם)",
+                "description": "A substitution cipher where the first letter is exchanged with the 12th, the 2nd with the 13th, etc.",
+                "examples": "א→ל, ב→מ, ג→נ, ד→ס",
+                "notes": "After substitution, the standard gematria value is calculated."
             },
             {
-                "name": "Mispar Katan Mispari (מספר קטן מספרי)",
-                "transliteration": "Integral Reduced Value",
-                "meaning": "Small Integral Number",
-                "description": (
-                    "This method first calculates the standard value of a word, "
-                    "then reduces the sum to a single digit by adding the digits together. "
-                    "This process continues until a single digit is reached."
-                ),
-                "example": "אמת (truth) = א(1) + מ(40) + ת(400) = 441 → 4+4+1 = 9",
-                "chart": "Uses standard values, then reduces the final sum",
+                "name": "Atbash (אתבש)",
+                "description": "A substitution cipher where the alphabet is reversed, so the first letter is exchanged with the last, the second with the second-to-last, etc.",
+                "examples": "א→ת, ב→ש, ג→ר, ד→ק",
+                "notes": "After substitution, the standard gematria value is calculated."
+            },
+            {
+                "name": "Mispar Gadol (מספר גדול)",
+                "description": "Large value gematria. Like standard gematria but final forms of letters have increased values.",
+                "examples": "ך=500, ם=600, ן=700, ף=800, ץ=900",
+                "notes": "This extends the range of possible values."
             },
             {
                 "name": "Mispar Boneh (מספר בונה)",
-                "transliteration": "Building Value",
-                "meaning": "Builder Number",
-                "description": (
-                    "Each letter's value is the square of its standard value. "
-                    "The method reveals the 'building' or constructive potential of the letters, "
-                    "highlighting the internal dynamics and energy within words."
-                ),
-                "example": "אב (father) = א(1²=1) + ב(2²=4) = 5",
-                "chart": "Each letter's standard value is squared",
+                "description": "Building value. Each letter adds to a cumulative value as the word is spelled.",
+                "examples": "אב = א(1) + (א+ב)(1+2) = 1 + 3 = 4",
+                "notes": "This method emphasizes the progressive building of words."
             },
             {
                 "name": "Mispar Kidmi (מספר קדמי)",
-                "transliteration": "Triangular Value",
-                "meaning": "Triangular Number",
-                "description": (
-                    "Each letter's value is the sum of all numbers from 1 to its standard value. "
-                    "This method reveals the cumulative energy of each letter, showing how "
-                    "letters build upon previous values in a triangular pattern."
-                ),
-                "example": "א (alef) = 1+0 = 1, ב (bet) = 1+2 = 3, ג (gimel) = 1+2+3 = 6",
-                "chart": "א=1, ב=3, ג=6, ד=10, ה=15...",
+                "description": "Triangular value. Each letter's value is the sum of all letters up to it in the alphabet.",
+                "examples": "א=1, ב=1+2=3, ג=1+2+3=6, ד=1+2+3+4=10",
+                "notes": "This creates triangular numbers for each letter."
             },
             {
                 "name": "Mispar Perati (מספר פרטי)",
-                "transliteration": "Individual Square Value",
-                "meaning": "Individual Number",
-                "description": (
-                    "Each letter is calculated as the square of its standard value, "
-                    "and then these squares are summed. This method amplifies the "
-                    "individual contribution of each letter within a word."
-                ),
-                "example": "אב (father) = א(1²) + ב(2²) = 1 + 4 = 5",
-                "chart": "Each letter's standard value is squared then summed",
+                "description": "Individual Square value. Each letter's value is squared before summing.",
+                "examples": "א=1², ב=2², ג=3², י=10²",
+                "notes": "This amplifies the contribution of larger value letters."
             },
+            {
+                "name": "Mispar Shemi (מספר שמי)",
+                "description": "Full Name value. The value of the fully spelled-out name of each letter.",
+                "examples": "א=אלף(111), ב=בית(412), ג=גימל(83)",
+                "notes": "This incorporates the hidden meanings in letter names."
+            },
+            {
+                "name": "Mispar Musafi (מספר מוסיפי)",
+                "description": "Additive value. The standard value plus the number of letters.",
+                "examples": "'אב' = 3 (standard) + 2 (letters) = 5",
+                "notes": "This incorporates the length of the word into its value."
+            }
         ]
 
         for method in hebrew_methods:
@@ -219,105 +184,73 @@ class GematriaHelpDialog(QDialog):
         title.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
         content_layout.addWidget(title)
 
-        # Add method descriptions
+        # Greek methods
         greek_methods = [
             {
-                "name": "Greek Isopsophy (Ισοψηφία)",
-                "transliteration": "Standard Value",
-                "meaning": "Equal in numerical value",
-                "description": (
-                    "The standard method of Greek isopsophy. Each letter is assigned its traditional "
-                    "numerical value. Alpha=1, Beta=2, and so on, with special values for tens "
-                    "and hundreds. This is the Greek equivalent of Hebrew Mispar Hechrachi."
-                ),
-                "example": "λόγος (logos/word) = λ(30) + ό(70) + γ(3) + ο(70) + ς(200) = 373",
-                "chart": "α=1, β=2, γ=3, δ=4, ε=5, ζ=7, η=8, θ=9, ι=10, κ=20, λ=30, μ=40, ν=50, ξ=60, ο=70, π=80, ρ=100, σ=200, τ=300, υ=400, φ=500, χ=600, ψ=700, ω=800",
+                "name": "Greek Isopsophy (Αριθμός Ισόψηφος)",
+                "description": "The standard Greek numerological system. Each letter has a specific numerical value.",
+                "examples": "α=1, β=2, γ=3, δ=4, ι=10, κ=20, ρ=100",
+                "notes": "Most common method in Greek gematria."
             },
             {
-                "name": "Greek Ordinal (Τακτική Αξία)",
-                "transliteration": "Ordinal Value",
-                "meaning": "Sequential Value",
-                "description": (
-                    "Values letters based on their position in the Greek alphabet. "
-                    "Each letter is assigned a value based on its sequential position. "
-                    "This is the Greek equivalent of Hebrew Mispar Siduri."
-                ),
-                "example": "λόγος (logos/word) = λ(11) + ό(15) + γ(3) + ο(15) + ς(18) = 62",
-                "chart": "α=1, β=2, γ=3, δ=4, ε=5, ζ=6, η=7, θ=8, ι=9, κ=10, λ=11, μ=12, ν=13, ξ=14, ο=15, π=16, ρ=17, σ=18, τ=19, υ=20, φ=21, χ=22, ψ=23, ω=24",
+                "name": "Greek Ordinal (Αριθμός Τακτικός)",
+                "description": "Each letter is assigned a value based on its position in the alphabet.",
+                "examples": "α=1, β=2, γ=3, ..., ω=24",
+                "notes": "Similar to the Hebrew Mispar Siduri."
             },
             {
-                "name": "Greek Reduced (Μειωμένη Αξία)",
-                "transliteration": "Reduced Value",
-                "meaning": "Reduced Number",
-                "description": (
-                    "Reduces all letter values to single digits. Letters with values 1-9 remain the same, "
-                    "but letters with values 10-800 are reduced to their last digit. This is equivalent "
-                    "to Hebrew Mispar Katan."
-                ),
-                "example": "λόγος (logos/word) = λ(3) + ό(7) + γ(3) + ο(7) + ς(2) = 22",
-                "chart": "α=1, β=2, γ=3, δ=4, ε=5, ζ=7, η=8, θ=9, ι=1, κ=2, λ=3, μ=4, ν=5, ξ=6, ο=7, π=8, ρ=1, σ=2, τ=3, υ=4, φ=5, χ=6, ψ=7, ω=8",
+                "name": "Greek Squared (Αριθμός Τετράγωνος)",
+                "description": "The square of each letter's standard value.",
+                "examples": "α=1², β=2², γ=3²...",
+                "notes": "Multiplies each letter value by itself before summing."
             },
             {
-                "name": "Greek Integral Reduced (Ολοκληρωτικά Μειωμένη)",
-                "transliteration": "Integral Reduced Value",
-                "meaning": "Fully Reduced Number",
-                "description": (
-                    "This method first calculates the standard value of a word, "
-                    "then reduces the sum to a single digit by adding the digits together. "
-                    "This process continues until a single digit is reached. Equivalent to Hebrew "
-                    "Mispar Katan Mispari."
-                ),
-                "example": "λόγος (logos/word) = λ(30) + ό(70) + γ(3) + ο(70) + ς(200) = 373 → 3+7+3 = 13 → 1+3 = 4",
-                "chart": "Uses standard values, then reduces the final sum",
+                "name": "Greek Reversal (Αριθμός Αντίστροφος)",
+                "description": "Letter values are reversed compared to standard (α=800, ω=1).",
+                "examples": "α=800, β=700, γ=600...",
+                "notes": "Equivalent to the Hebrew Mispar Meshupach."
             },
             {
-                "name": "Greek Large (Αριθμός Μεγάλος)",
-                "transliteration": "Large Value",
-                "meaning": "Great Number",
-                "description": (
-                    "This is a theoretical method that would parallel Hebrew Mispar Gadol, "
-                    "but since Greek doesn't have final forms, it uses the same values as "
-                    "Standard Greek Isopsophy. Included for consistency with Hebrew methods."
-                ),
-                "example": "λόγος (logos/word) = λ(30) + ό(70) + γ(3) + ο(70) + ς(200) = 373",
-                "chart": "Same as Greek Isopsophy standard values",
+                "name": "Greek Alpha-Mu (Αριθμός Άλφα-Μυ)",
+                "description": "Letter substitution cipher (α↔μ, β↔ν, etc.).",
+                "examples": "α→μ=40, β→ν=50...",
+                "notes": "Greek equivalent of Hebrew Albam."
+            },
+            {
+                "name": "Greek Alpha-Omega (Αριθμός Άλφα-Ωμέγα)",
+                "description": "Letter substitution cipher (α↔ω, β↔ψ, etc.).",
+                "examples": "α→ω=800, β→ψ=700...",
+                "notes": "Greek equivalent of Hebrew Atbash."
             },
             {
                 "name": "Greek Building (Αριθμός Οικοδομικός)",
-                "transliteration": "Building Value",
-                "meaning": "Building Number",
-                "description": (
-                    "Each letter's value is the square of its standard value. "
-                    "This method, equivalent to Hebrew Mispar Boneh, reveals the 'building' "
-                    "or constructive potential of the letters."
-                ),
-                "example": "αβ (alpha-beta) = α(1²=1) + β(2²=4) = 5",
-                "chart": "Each letter's standard value is squared",
+                "description": "Cumulative sum of letter values as the word is spelled out.",
+                "examples": "θ 'theta' = θ + η + τ + α = 9 + 8 + 300 + 1 = 318",
+                "notes": "Equivalent to Hebrew Mispar Boneh."
             },
             {
                 "name": "Greek Triangular (Αριθμός Τριγωνικός)",
-                "transliteration": "Triangular Value",
-                "meaning": "Triangular Number",
-                "description": (
-                    "Each letter's value is the sum of all numbers from 1 to its standard value. "
-                    "This Greek equivalent of Hebrew Mispar Kidmi reveals the cumulative energy "
-                    "of each letter in a triangular pattern."
-                ),
-                "example": "α (alpha) = 1, β (beta) = 1+2 = 3, γ (gamma) = 1+2+3 = 6",
-                "chart": "α=1, β=3, γ=6, δ=10, ε=15...",
+                "description": "The sum of all letters up to that letter in the alphabet.",
+                "examples": "α=1, β=1+2=3, γ=1+2+3=6...",
+                "notes": "Similar to Hebrew Mispar Kidmi."
             },
             {
-                "name": "Greek Individual Square (Αριθμός Ατομικός)",
-                "transliteration": "Individual Square Value",
-                "meaning": "Individual Number",
-                "description": (
-                    "Each letter is calculated as the square of its standard value, "
-                    "then these squares are summed. This method amplifies the "
-                    "individual contribution of each letter within a word. Equivalent to "
-                    "Hebrew Mispar Perati."
-                ),
-                "example": "αβ (alpha-beta) = α(1²) + β(2²) = 1 + 4 = 5",
-                "chart": "Each letter's standard value is squared then summed",
+                "name": "Greek Hidden (Αριθμός Κρυπτός)",
+                "description": "The value of the letter name minus the letter itself.",
+                "examples": "α = 'alpha' - 'α' = 532 - 1 = 531",
+                "notes": "Reveals hidden values within letter names."
+            },
+            {
+                "name": "Greek Full Name (Αριθμός Ονόματος)",
+                "description": "The value of the full letter name.",
+                "examples": "α = 'alpha' = 532",
+                "notes": "Equivalent to Hebrew Mispar Shemi."
+            },
+            {
+                "name": "Greek Additive (Αριθμός Προσθετικός)",
+                "description": "Adds the number of letters to the value.",
+                "examples": "θεος = 9+5+70+200+4(letters) = 284+4 = 288",
+                "notes": "Equivalent to Hebrew Mispar Musafi."
             },
         ]
 

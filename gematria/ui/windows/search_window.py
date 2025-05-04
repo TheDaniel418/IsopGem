@@ -32,12 +32,14 @@ class SearchWindow(QMainWindow):
         self,
         window_manager: Optional[WindowManager] = None,
         parent: Optional[QWidget] = None,
+        exact_value: Optional[int] = None,
     ) -> None:
         """Initialize the search window.
 
         Args:
             window_manager: Application window manager
             parent: Parent widget
+            exact_value: Optional exact value to search for immediately
         """
         super().__init__(parent)
         self.setWindowTitle("Gematria Search")
@@ -59,4 +61,24 @@ class SearchWindow(QMainWindow):
         self.search_panel = SearchPanel(db_service, cipher_service, window_manager)
         layout.addWidget(self.search_panel)
 
+        # If an exact value was provided, set it and perform search
+        if exact_value is not None:
+            self.set_exact_value(exact_value)
+
         logger.debug("SearchWindow initialized")
+
+    def set_exact_value(self, value: int) -> None:
+        """Set the exact value field and perform a search.
+
+        Args:
+            value: The value to search for
+        """
+        # Set the exact value in the search panel
+        self.search_panel.exact_value.setText(str(value))
+
+        # Clear other value fields to avoid conflicts
+        self.search_panel.value_min.setValue(0)
+        self.search_panel.value_max.setValue(0)
+
+        # Perform the search
+        self.search_panel._perform_search()

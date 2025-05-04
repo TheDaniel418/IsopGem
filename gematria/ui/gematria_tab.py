@@ -828,3 +828,20 @@ class GematriaTab(QWidget):
         from gematria.ui.windows.help_window import HelpWindow
 
         self._open_gematria_window("help", HelpWindow, "Gematria Help")
+
+    def open_search_panel_with_value(self, value: int) -> None:
+        """Open the search panel, set the exact value, and perform the search."""
+        from gematria.ui.windows.search_window import SearchWindow
+        # Open the search window using the standard method
+        window = self._open_gematria_window(
+            "search",
+            SearchWindow,
+            "Gematria Search",
+            self.window_manager,
+            allow_multiple=True,
+        )
+        # Set the value and perform the search if possible
+        if hasattr(window, "set_exact_value"):
+            window.set_exact_value(value)
+        window.raise_()
+        window.activateWindow()

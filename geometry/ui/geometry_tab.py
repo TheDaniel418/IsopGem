@@ -17,8 +17,10 @@ from PyQt6.QtWidgets import (
     QStackedLayout,
     QVBoxLayout,
     QWidget,
+    QMessageBox,
 )
 
+from geometry.services.polygonal_visualization_service import PolygonalVisualizationService
 from shared.ui.window_management import TabManager, WindowManager
 
 
@@ -299,6 +301,11 @@ class GeometryTab(QWidget):
 
         # Now initialize the UI
         self._init_ui()
+        
+        # Register the panel opener with the visualization service
+        viz_service = PolygonalVisualizationService.get_instance()
+        viz_service.register_panel_opener(self._open_polygonal_numbers)
+        logger.debug("Registered polygonal numbers panel opener with visualization service")
 
         # Debug widget visibility after everything is set up
         QTimer.singleShot(500, self._debug_widget_visibility)
@@ -398,25 +405,7 @@ class GeometryTab(QWidget):
         button_layout.setContentsMargins(5, 5, 5, 5)
         button_layout.setSpacing(5)
 
-        # Sacred Geometry button
-        sacred_geometry_btn = QPushButton("Sacred Geometry")
-        sacred_geometry_btn.setToolTip("Open Sacred Geometry Explorer")
-        sacred_geometry_btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #009688;
-                color: white;
-                font-weight: bold;
-                padding: 5px 10px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #00796b;
-            }
-        """
-        )
-        sacred_geometry_btn.clicked.connect(self._open_sacred_geometry)
-        button_layout.addWidget(sacred_geometry_btn)
+        # Sacred Geometry button removed
 
         # Regular Polygon Calculator button
         regular_polygon_btn = QPushButton("Regular Polygon")
@@ -424,11 +413,31 @@ class GeometryTab(QWidget):
         regular_polygon_btn.clicked.connect(self._open_regular_polygon)
         button_layout.addWidget(regular_polygon_btn)
 
-        # Golden Ratio button
-        golden_ratio_btn = QPushButton("Golden Ratio")
-        golden_ratio_btn.setToolTip("Open Golden Ratio Calculator")
-        # golden_ratio_btn.clicked.connect(lambda: self._open_golden_ratio())
-        button_layout.addWidget(golden_ratio_btn)
+        # The Vault of Hestia button
+        vault_of_hestia_btn = QPushButton("The Vault of Hestia")
+        vault_of_hestia_btn.setToolTip("Explore the Vault of Hestia geometric design")
+        vault_of_hestia_btn.clicked.connect(self._open_vault_of_hestia)
+        button_layout.addWidget(vault_of_hestia_btn)
+
+        # Polygonal Numbers button
+        polygonal_numbers_btn = QPushButton("Polygonal Numbers")
+        polygonal_numbers_btn.setToolTip("Visualize polygonal and centered polygonal numbers")
+        polygonal_numbers_btn.clicked.connect(self._open_polygonal_numbers)
+        polygonal_numbers_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            """
+        )
+        button_layout.addWidget(polygonal_numbers_btn)
 
         # Platonic Solids button
         platonic_btn = QPushButton("Platonic Solids")
@@ -605,35 +614,7 @@ class GeometryTab(QWidget):
         # Raise the canvas to be on top of everything else after a delay
         QTimer.singleShot(1000, self._ensure_canvas_on_top)
 
-    def _open_sacred_geometry(self) -> None:
-        """Open the Sacred Geometry Explorer window."""
-        logger.debug("Opening Sacred Geometry Explorer")
-
-        # Import here to avoid circular imports
-        # Generate a unique instance ID for multi-window support
-        import uuid
-
-        from geometry.ui.sacred_geometry import SacredGeometryExplorer
-        from geometry.ui.sacred_geometry.tool_system.selection_tool import SelectionTool
-
-        instance_id = f"sacred_geometry_{uuid.uuid4().hex[:8]}"
-
-        # Create a new Sacred Geometry Explorer instance
-        explorer = SacredGeometryExplorer(self.window_manager, instance_id)
-
-        # Add tools
-        explorer.add_tool(SelectionTool())
-
-        # Register the window with the window manager
-        self.window_manager._auxiliary_windows[instance_id] = explorer
-
-        # Configure and show the window
-        self.window_manager.configure_window(explorer)
-
-        # Activate the selection tool by default
-        explorer.set_active_tool("Selection")
-
-        logger.debug(f"Opened Sacred Geometry Explorer with instance ID: {instance_id}")
+    # Sacred Geometry Explorer method removed
 
     def _open_regular_polygon(self) -> None:
         """Open the Regular Polygon Calculator window."""
@@ -691,4 +672,50 @@ class GeometryTab(QWidget):
 
         logger.debug(
             f"Opened Platonic Solids Calculator with instance ID: {instance_id}"
+        )
+
+    def _open_vault_of_hestia(self) -> None:
+        """Open the Vault of Hestia Explorer window."""
+        logger.debug("Opening Vault of Hestia Explorer")
+        import uuid
+        from geometry.ui.panels.vault_of_hestia_panel import VaultOfHestiaPanel
+        instance_id = f"vault_of_hestia_{uuid.uuid4().hex[:8]}"
+        window = self.window_manager.create_auxiliary_window(
+            instance_id, "Vault of Hestia Explorer"
+        )
+        panel = VaultOfHestiaPanel()
+        window.set_content(panel)
+        window.setMinimumSize(900, 600)
+        window.show()
+        logger.debug(f"Opened Vault of Hestia Explorer with instance ID: {instance_id}")
+
+    def _open_polygonal_numbers(self) -> None:
+        """Open the Polygonal Numbers Visualization window."""
+        logger.debug("Opening Polygonal Numbers Visualization")
+
+        # Import here to avoid circular imports
+        import uuid
+
+        from geometry.ui.panels.polygonal_numbers_panel import PolygonalNumbersPanel
+
+        # Generate a unique instance ID for multi-window support
+        instance_id = f"polygonal_numbers_{uuid.uuid4().hex[:8]}"
+
+        # Create a window for the visualization
+        window = self.window_manager.create_auxiliary_window(
+            instance_id, "Polygonal Numbers Visualization"
+        )
+
+        # Create the panel
+        panel = PolygonalNumbersPanel()
+
+        # Set the panel as the window content
+        window.set_content(panel)
+
+        # Configure and show the window
+        window.setMinimumSize(900, 600)
+        window.show()
+
+        logger.debug(
+            f"Opened Polygonal Numbers Visualization with instance ID: {instance_id}"
         )

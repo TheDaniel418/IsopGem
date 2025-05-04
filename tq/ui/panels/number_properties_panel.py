@@ -36,6 +36,7 @@ from PyQt6.QtWidgets import (
 
 from gematria.services.calculation_database_service import CalculationDatabaseService
 from gematria.services.search_service import SearchService
+from geometry.services.polygonal_visualization_service import PolygonalVisualizationService
 from shared.services.number_properties_service import NumberPropertiesService
 from shared.services.service_locator import ServiceLocator
 from tq.services.ternary_transition_service import TernaryTransitionService
@@ -119,6 +120,45 @@ class PropertySection(QWidget):
         # Store the property
         self.last_properties[name] = value
 
+    def add_button(self, button_text: str, callback) -> QPushButton:
+        """Add a button to the section.
+
+        Args:
+            button_text: Text to display on the button
+            callback: Function to call when button is clicked
+
+        Returns:
+            The created button
+        """
+        button = QPushButton(button_text)
+        button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #2472a4;
+            }
+            QPushButton:disabled {
+                background-color: #bdc3c7;
+            }
+            """
+        )
+        button.clicked.connect(callback)
+
+        # Add to button layout
+        self.button_layout.addWidget(button)
+        self.button_container.show()
+
+        return button
+
 
 class PropertiesTab(QWidget):
     """Tab showing properties for a single number."""
@@ -159,6 +199,9 @@ class PropertiesTab(QWidget):
         self.centered = PropertySection("Centered Polygonal Numbers")
         self.special = PropertySection("Special Properties")
         self.database = PropertySection("Database Lookup")
+
+        # Get the polygonal visualization service
+        self.polygonal_viz_service = PolygonalVisualizationService.get_instance()
 
         # Add lookup button
         lookup_container = QWidget()
@@ -385,39 +428,86 @@ class PropertiesTab(QWidget):
             series_service = SeriesTransitionService.get_instance()
             logger.debug("Initialized SeriesTransitionService singleton")
 
-            # Get the window and clear existing pairs through its widget
+            # Get the window
             window = series_service.get_window()
+
+            # Clear existing pairs
             window.transition_widget.clear_pairs()
             logger.debug("Cleared existing pairs")
 
-            # Add additional pair slots if needed (window starts with 2 by default)
-            if len(pairs) > 2:
-                for _ in range(len(pairs) - 2):
+            # Add pairs - the widget starts with 2 empty pairs by default
+            for i, (a, b) in enumerate(pairs):
+                # If we need more than the default 2 rows, add them
+                if i >= 2:
                     window.transition_widget._add_number_pair()
-                logger.debug(f"Added {len(pairs) - 2} additional pair slots")
+                    logger.debug(f"Added additional pair slot for pair {i+1}")
 
-            # Set the values for each pair
-            for i, (first, second) in enumerate(pairs):
-                window.transition_widget.pair_inputs[i].first_number.setText(str(first))
-                window.transition_widget.pair_inputs[i].second_number.setText(
-                    str(second)
-                )
-                logger.debug(f"Set pair {i+1}: {first}, {second}")
+                # Set the values in the pair widget
+                pair_widget = window.transition_widget.pair_inputs[i]
+                pair_widget.first_number.setText(str(a))
+                pair_widget.second_number.setText(str(b))
+                logger.debug(f"Set pair {i+1}: {a}, {b}")
 
-            # Calculate transitions
-            window.transition_widget._calculate_transitions()
-
-            # Show and raise the window
+            # Show the window
             window.show()
             window.raise_()
-            window.update()
+            if hasattr(window, "ensure_on_top"):
+                window.ensure_on_top()
+            logger.debug("Showed and raised window")
+
+            # Calculate transitions automatically
+            window.transition_widget._calculate_transitions()
+            logger.debug("Calculated transitions")
 
         except Exception as e:
             logger.error(f"Error in _send_to_series_transitions: {e}")
             from PyQt6.QtWidgets import QMessageBox
-
             QMessageBox.warning(
                 self, "Error", f"Could not send factors to Series Transitions: {str(e)}"
+            )
+
+    def _send_to_polygonal_visualization(self, sides: int, index: int, is_centered: bool = False):
+        """Send a polygonal number to the visualization panel.
+
+        Args:
+            sides: Number of sides for the polygonal number
+            index: Index of the polygonal number
+            is_centered: Whether this is a centered polygonal number
+        """
+        try:
+            logger.debug(f"Preparing to send polygonal number: sides={sides}, index={index}, centered={is_centered}")
+
+            # Validate parameters
+            if sides < 3:
+                logger.warning(f"Invalid sides value: {sides}, using 3 instead")
+                sides = 3
+
+            if index < 1:
+                logger.warning(f"Invalid index value: {index}, using 1 instead")
+                index = 1
+
+            # Use the service to set the polygonal number
+            self.polygonal_viz_service.set_polygonal_number(sides, index, is_centered)
+            logger.debug(f"Sent polygonal number to visualization: sides={sides}, index={index}, centered={is_centered}")
+
+            # Verify the service has the correct values
+            service_sides, service_index, service_centered = self.polygonal_viz_service.get_polygonal_number()
+            logger.debug(f"Service now has: sides={service_sides}, index={service_index}, centered={service_centered}")
+
+            # Show a temporary success message
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self,
+                "Visualization Requested",
+                f"Sent {'centered ' if is_centered else ''}{sides}-gonal number (index {index}) to visualization panel.\n\n"
+                f"The Polygonal Numbers panel should open automatically."
+            )
+
+        except Exception as e:
+            logger.error(f"Error sending to polygonal visualization: {e}")
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self, "Error", f"Could not send to Polygonal Visualization: {str(e)}"
             )
 
     def update_properties(self, properties: Dict[str, Any]) -> None:
@@ -477,6 +567,19 @@ class PropertiesTab(QWidget):
                     }[k]
                     self.polygonal.add_property(f"{shape_name}", f"Yes (Index: {idx})")
 
+                    # Add a visualization button for this polygonal number
+                    button_text = f"Visualize {shape_name}"
+
+                    # Create a helper function to avoid lambda capture issues
+                    def create_callback(s, i):
+                        return lambda: self._send_to_polygonal_visualization(s, i, False)
+
+                    self.polygonal.add_button(
+                        button_text,
+                        create_callback(k, idx)
+                    )
+                    self.polygonal.button_container.show()
+
             # Update centered polygonal numbers with indices
             for k in range(3, 11):
                 idx = properties.get(f"centered_{k}_index")
@@ -492,6 +595,19 @@ class PropertiesTab(QWidget):
                         10: "Centered Decagonal",
                     }[k]
                     self.centered.add_property(f"{shape_name}", f"Yes (Index: {idx})")
+
+                    # Add a visualization button for this centered polygonal number
+                    button_text = f"Visualize {shape_name}"
+
+                    # Create a helper function to avoid lambda capture issues
+                    def create_callback(s, i):
+                        return lambda: self._send_to_polygonal_visualization(s, i, True)
+
+                    self.centered.add_button(
+                        button_text,
+                        create_callback(k, idx)
+                    )
+                    self.centered.button_container.show()
 
             # Update special properties
             aliquot_sum = properties.get("aliquot_sum", 0)

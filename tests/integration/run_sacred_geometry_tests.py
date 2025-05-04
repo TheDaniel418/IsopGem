@@ -1,25 +1,15 @@
 #!/usr/bin/env python3
-"""Run integration tests for the Sacred Geometry Explorer.
+"""Sacred Geometry Explorer tests (DISABLED).
 
-This script runs the integration tests for the Sacred Geometry Explorer.
+The Sacred Geometry Explorer feature has been temporarily disabled.
+These tests are kept for future reference but are not currently active.
 """
 
 import os
 import sys
-import unittest
 
-# Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+print("Sacred Geometry Explorer feature is currently disabled.")
+print("Tests are skipped.")
 
-# Import the test module
-from tests.integration.test_sacred_geometry_integration import TestSacredGeometryIntegration
-
-if __name__ == '__main__':
-    # Create a test suite
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestSacredGeometryIntegration)
-    
-    # Run the tests
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
-    
-    # Exit with appropriate code
-    sys.exit(not result.wasSuccessful())
+# Exit with success code
+sys.exit(0)

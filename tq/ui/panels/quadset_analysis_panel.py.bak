@@ -28,7 +28,6 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
-    QApplication,
 )
 
 from tq.services.tq_grid_service import TQGridService
@@ -376,33 +375,253 @@ class QuadsetAnalysisPanel(QFrame):
     _search_windows = []
     
     def _find_words_with_value(self, index):
-        """
-        Send the selected value to the Gematria Search panel and perform the search.
-
-        This method enables cross-pillar communication by sending a quadset value
-        (Base, Conrune, Reversal, or Rev. Conrune) directly to the Gematria Search panel.
-        It always locates the main application window by iterating over QApplication.topLevelWidgets(),
-        ensuring robust operation regardless of whether this panel is hosted in the main window,
-        an auxiliary window, or a dialog. This guarantees that the real, fully-featured search panel
-        is used for all 'send to search' actions, matching the cross-pillar communication pattern
-        used elsewhere in the application.
+        """Open the Gematria Search window with the selected value.
 
         Args:
-            index (int): Index of the value to search for (0=base, 1=conrune, 2=reversal, 3=rev. conrune)
+            index: Index of the value to search for (0=base, 1=conrune, etc.)
         """
-        from PyQt6.QtWidgets import QApplication
-        grid = self.grid_service.get_current_grid()
-        values = [grid.base_number, grid.conrune, grid.reversal, grid.reversal_conrune]
-        value = values[index]
+        try:
+            # Get the current grid values
+            grid = self.grid_service.get_current_grid()
+            values = [grid.base_number, grid.conrune, grid.reversal, grid.reversal_conrune]
+            value = values[index]
 
-        # Always get the real main window with gematria_tab
-        for widget in QApplication.topLevelWidgets():
-            if hasattr(widget, "gematria_tab"):
-                widget.gematria_tab.open_search_panel_with_value(value)
+            from loguru import logger
+            logger.debug(f"Finding words with value: {value}")
+
+            if not value:
+                logger.warning("Cannot search for empty value")
                 return
 
-        from loguru import logger
-        logger.error("No main window with gematria_tab found. Cannot send value to search panel.")
+            # First approach: Try to find and use the GematriaTab
+            # This is the most reliable approach as it uses the established application flow
+            main_window = self.window()
+            if main_window and hasattr(main_window, "tab_manager"):
+                from gematria.ui.gematria_tab import GematriaTab
+                
+                # Find the GematriaTab in the tab manager
+                gematria_tab = None
+                for i in range(main_window.tab_manager.count()):
+                    tab = main_window.tab_manager.widget(i)
+                    if isinstance(tab, GematriaTab):
+                        gematria_tab = tab
+                        break
+                
+                if gematria_tab and hasattr(gematria_tab, "_open_search_panel"):
+                    logger.debug(f"Using GematriaTab to open search panel for value {value}")
+                    
+                    # Open the search panel using the GematriaTab's method
+                    gematria_tab._open_search_panel()
+                    
+                    # Now find the newly opened search window to set the value
+                    # We need to wait a bit for the window to be created
+                    from PyQt6.QtCore import QTimer
+                    
+                    def set_search_value():
+                        # Find all windows that might be search windows
+                        from PyQt6.QtWidgets import QApplication
+                        from gematria.ui.windows.search_window import SearchWindow
+                        
+                        for widget in QApplication.topLevelWidgets():
+                            if isinstance(widget, SearchWindow) and widget.isVisible():
+                                # Found a visible search window
+                                if hasattr(widget, "search_panel"):
+                                    # Set the exact value and perform search
+                                    if hasattr(widget.search_panel, "exact_value"):
+                                        widget.search_panel.exact_value.setText(str(value))
+                                    
+                                    if hasattr(widget.search_panel, "_perform_search"):
+                                        widget.search_panel._perform_search()
+                                        logger.debug(f"Set search value to {value} and performed search")
+                                        
+                                    # Keep a reference to prevent garbage collection
+                                    if widget not in QuadsetAnalysisPanel._search_windows:
+                                        QuadsetAnalysisPanel._search_windows.append(widget)
+                                        
+                                    # Make sure the window is visible and focused
+                                    widget.raise_()
+                                    widget.activateWindow()
+                                    return True
+                        
+                        logger.warning("Could not find search window to set value")
+                        return False
+                    
+                    # Try to set the search value after a short delay
+                    QTimer.singleShot(300, set_search_value)
+                    return
+            
+            # Second approach: Use the window manager directly if available
+            # This mimics how the GematriaTab opens the search panel
+            if main_window and hasattr(main_window, "window_manager"):
+                from gematria.ui.windows.search_window import SearchWindow
+                from PyQt6.QtCore import Qt
+                import uuid
+                
+                logger.debug("Using window manager to open search panel")
+                
+                # Create a unique window ID
+                window_id = f"gematria_search_{uuid.uuid4().hex[:8]}"
+                
+                # Create the search window
+                search_window = SearchWindow(main_window.window_manager, main_window)
+                
+                # Apply standard flags for proper window behavior
+                search_window.setWindowFlags(
+                    search_window.windowFlags()
+                    | Qt.WindowType.Window
+                    | Qt.WindowType.WindowStaysOnTopHint
+                )
+                
+                # Open the window through the window manager
+                main_window.window_manager.open_window(window_id, search_window)
+                
+                # Set the window title
+                search_window.setWindowTitle(f"Gematria Search: {value}")
+                
+                # Ensure proper focus and z-order
+                search_window.raise_()
+                
+                # Keep a reference to prevent garbage collection
+                QuadsetAnalysisPanel._search_windows.append(search_window)
+                
+                # Set the search value after a short delay
+                from PyQt6.QtCore import QTimer
+                
+                def set_search_value():
+                    if hasattr(search_window, "search_panel"):
+                        if hasattr(search_window.search_panel, "exact_value"):
+                            search_window.search_panel.exact_value.setText(str(value))
+                        
+                        if hasattr(search_window.search_panel, "_perform_search"):
+                            search_window.search_panel._perform_search()
+                            logger.debug(f"Set search value to {value} and performed search")
+                
+                QTimer.singleShot(300, set_search_value)
+                return
+            
+            # Third approach (fallback): Create a standalone search window with all required services
+            # This is the least preferred approach but should still work
+            from gematria.ui.windows.search_window import SearchWindow
+            from gematria.ui.panels.search_panel import SearchPanel
+            from PyQt6.QtCore import Qt, QTimer
+            from PyQt6.QtWidgets import QApplication, QVBoxLayout
+            from gematria.services.calculation_database_service import CalculationDatabaseService
+            from gematria.services.custom_cipher_service import CustomCipherService
+            from shared.services.service_locator import ServiceLocator
+            from shared.ui.window_management import WindowManager
+            
+            logger.debug("Using fallback approach to create search window with all required services")
+            
+            # Get all required services from the ServiceLocator or create new instances
+            try:
+                db_service = ServiceLocator.get(CalculationDatabaseService)
+                logger.debug("Retrieved CalculationDatabaseService from ServiceLocator")
+            except Exception:
+                logger.debug("Creating new CalculationDatabaseService instance")
+                db_service = CalculationDatabaseService()
+                
+            try:
+                cipher_service = ServiceLocator.get(CustomCipherService)
+                logger.debug("Retrieved CustomCipherService from ServiceLocator")
+            except Exception:
+                logger.debug("Creating new CustomCipherService instance")
+                cipher_service = CustomCipherService()
+            
+            # Get the window manager from the main window if available
+            main_window = self.window()
+            window_manager = getattr(main_window, "window_manager", None)
+            
+            # Create the search window with all required services explicitly
+            # This is critical - we need to pass all three parameters
+            search_window = SearchWindow(
+                window_manager=window_manager,
+                parent=main_window,
+                exact_value=value
+            )
+            
+            # IMPORTANT: Replace the search panel with a new one that has all required services
+            # This ensures the panel has everything it needs for full functionality
+            if hasattr(search_window, "search_panel"):
+                # Remove the existing search panel
+                search_window.search_panel.setParent(None)
+                
+                # Create a new layout if needed
+                if not hasattr(search_window.centralWidget(), "layout") or search_window.centralWidget().layout() is None:
+                    layout = QVBoxLayout(search_window.centralWidget())
+                    layout.setContentsMargins(10, 10, 10, 10)
+                else:
+                    layout = search_window.centralWidget().layout()
+                
+                # Create a new search panel with all required services
+                search_panel = SearchPanel(db_service, cipher_service, window_manager)
+                layout.addWidget(search_panel)
+                
+                # Set the search panel on the window
+                search_window.search_panel = search_panel
+                
+                # Set the exact value and perform search
+                search_panel.exact_value.setText(str(value))
+                search_panel._perform_search()
+                logger.debug("Created new search panel with all required services")
+            
+            # Keep a reference to prevent garbage collection
+            QuadsetAnalysisPanel._search_windows.append(search_window)
+            
+            # Set window properties
+            search_window.setWindowTitle(f"Gematria Search: {value}")
+            search_window.setWindowFlags(Qt.WindowType.Window)
+            
+            # Position the window
+            screen_geometry = QApplication.primaryScreen().geometry()
+            window_width = 900
+            window_height = 700
+            x = (screen_geometry.width() - window_width) // 2
+            y = (screen_geometry.height() - window_height) // 2
+            search_window.setGeometry(x, y, window_width, window_height)
+            
+            # Connect close event to remove reference
+            def on_window_closed():
+                if search_window in QuadsetAnalysisPanel._search_windows:
+                    QuadsetAnalysisPanel._search_windows.remove(search_window)
+                    logger.debug(f"Search window for value {value} was closed and reference removed")
+            
+            search_window.destroyed.connect(on_window_closed)
+            
+            # Show the window
+            search_window.show()
+            search_window.raise_()
+            
+            # Ensure the search is performed again after the window is fully visible
+            def ensure_search_performed():
+                if hasattr(search_window, "search_panel"):
+                    search_window.search_panel._perform_search()
+                    logger.debug(f"Performed search again with value: {value}")
+                    
+                    # Log the state of the search panel
+                    if hasattr(search_window.search_panel, "calculation_db_service"):
+                        logger.debug("Search panel has calculation_db_service")
+                    else:
+                        logger.warning("Search panel is missing calculation_db_service")
+                        
+                    if hasattr(search_window.search_panel, "custom_cipher_service"):
+                        logger.debug("Search panel has custom_cipher_service")
+                    else:
+                        logger.warning("Search panel is missing custom_cipher_service")
+                        
+                    if hasattr(search_window.search_panel, "window_manager"):
+                        logger.debug("Search panel has window_manager")
+                    else:
+                        logger.warning("Search panel is missing window_manager")
+            
+            QTimer.singleShot(300, ensure_search_performed)
+            
+            logger.debug(f"Created standalone search window for value {value}")
+
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"Error opening search window: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     def closeEvent(self, event):
         """Handle the panel being closed.

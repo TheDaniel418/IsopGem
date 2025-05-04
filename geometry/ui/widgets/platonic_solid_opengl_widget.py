@@ -3,7 +3,7 @@
 @description PyOpenGL-based widget for wireframe visualization of Platonic solids.
 @author Daniel (AI-assisted)
 @created 2024-06-09
-@lastModified 2024-06-10
+@lastModified 2024-06-15
 @dependencies PyQt6, PyOpenGL, geometry.calculator.platonic_solid_calculator, numpy
 """
 
@@ -33,6 +33,9 @@ class OpenGLAxesIndicator:
         self.margin = margin
 
     def draw_axes(self, widget_width, widget_height):
+        # Note: widget_width and widget_height parameters are not used in this implementation
+        # but are kept for potential future enhancements (e.g., responsive sizing)
+
         # Save current viewport and projection
         glPushAttrib(GL_ALL_ATTRIB_BITS)
         glMatrixMode(GL_PROJECTION)
@@ -225,6 +228,7 @@ class PlatonicSolidOpenGLWidget(QOpenGLWidget):
 
     def _draw_solid(self):
         solid_type = self.calculator.solid_type
+        # Use a fixed visualization edge length for consistent display
         vis_edge_length = 1.0
         vertices, edges, faces = [], [], []
         if solid_type.name == "TETRAHEDRON":
@@ -289,42 +293,42 @@ class PlatonicSolidOpenGLWidget(QOpenGLWidget):
             glEnable(GL_LIGHTING)
 
         # --- Draw Spheres (Insphere, Midsphere, Circumsphere) ---
-        def get_radii_for_unit_edge(solid_type):
-            a = 1.0
-            import math
+        # For the spheres, we need to use the correct proportions relative to the solid
+        # Since we're using a fixed visualization edge length (vis_edge_length),
+        # we need to calculate the sphere radii directly using the same proportions
 
-            if solid_type.name == "TETRAHEDRON":
-                insphere = a / (2 * math.sqrt(6))
-                midsphere = a / math.sqrt(2)
-                circumsphere = a * math.sqrt(6) / 4
-            elif solid_type.name == "CUBE":
-                insphere = a / 2
-                midsphere = a * math.sqrt(2) / 2
-                circumsphere = a * math.sqrt(3) / 2
-            elif solid_type.name == "OCTAHEDRON":
-                insphere = a * math.sqrt(6) / 6
-                midsphere = a / math.sqrt(2)
-                circumsphere = a * math.sqrt(2) / 2
-            elif solid_type.name == "DODECAHEDRON":
-                insphere = a * math.sqrt(250 + 110 * math.sqrt(5)) / 20
-                midsphere = a * math.sqrt(10 + 2 * math.sqrt(5)) / 4
-                circumsphere = a * math.sqrt(3) * (1 + math.sqrt(5)) / 4
-            elif solid_type.name == "ICOSAHEDRON":
-                insphere = a * math.sqrt(10 + 2 * math.sqrt(5)) / 10
-                midsphere = a * (1 + math.sqrt(5)) / 4
-                circumsphere = a * math.sqrt(10 + 2 * math.sqrt(5)) / 4
-            elif solid_type.name == "CUBOCTAHEDRON":
-                insphere = a * (1 + math.sqrt(2)) / 2
-                midsphere = a * math.sqrt(2) / 2
-                circumsphere = a
-            else:
-                insphere = midsphere = circumsphere = 0.0
-            return insphere, midsphere, circumsphere
+        # Calculate the sphere radii based on the visualization edge length
+        if solid_type.name == "TETRAHEDRON":
+            insphere_r = vis_edge_length / (2 * math.sqrt(6))
+            midsphere_r = vis_edge_length / math.sqrt(2)
+            circumsphere_r = vis_edge_length * math.sqrt(6) / 4
+        elif solid_type.name == "CUBE":
+            insphere_r = vis_edge_length / 2
+            midsphere_r = vis_edge_length * math.sqrt(2) / 2
+            circumsphere_r = vis_edge_length * math.sqrt(3) / 2
+        elif solid_type.name == "OCTAHEDRON":
+            insphere_r = vis_edge_length * math.sqrt(6) / 6
+            midsphere_r = vis_edge_length / math.sqrt(2)
+            circumsphere_r = vis_edge_length * math.sqrt(2) / 2
+        elif solid_type.name == "DODECAHEDRON":
+            insphere_r = vis_edge_length * math.sqrt(250 + 110 * math.sqrt(5)) / 20
+            midsphere_r = vis_edge_length * math.sqrt(10 + 2 * math.sqrt(5)) / 4
+            circumsphere_r = vis_edge_length * math.sqrt(3) * (1 + math.sqrt(5)) / 4
+        elif solid_type.name == "ICOSAHEDRON":
+            insphere_r = vis_edge_length * math.sqrt(10 + 2 * math.sqrt(5)) / 10
+            midsphere_r = vis_edge_length * (1 + math.sqrt(5)) / 4
+            circumsphere_r = vis_edge_length * math.sqrt(10 + 2 * math.sqrt(5)) / 4
+        elif solid_type.name == "CUBOCTAHEDRON":
+            insphere_r = vis_edge_length * (1 + math.sqrt(2)) / 2
+            midsphere_r = vis_edge_length * math.sqrt(2) / 2
+            circumsphere_r = vis_edge_length
+        else:
+            insphere_r = midsphere_r = circumsphere_r = 0.0
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glDisable(GL_LIGHTING)
-        insphere_r, midsphere_r, circumsphere_r = get_radii_for_unit_edge(solid_type)
+
         if self._show_insphere:
             glColor4f(1.0, 0.3, 0.3, 0.25)  # Soft red, transparent
             quad = gluNewQuadric()

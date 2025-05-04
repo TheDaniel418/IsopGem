@@ -340,6 +340,42 @@ class CalculationDatabaseService:
         """
         return self.calculation_repo.find_calculations_by_method(method)
 
+    def find_calculations_by_method_name(self, method_name: str) -> List[CalculationResult]:
+        """Find all calculations using a specific calculation method name.
+
+        This method is particularly useful for finding calculations that used
+        deprecated/removed calculation types that no longer exist as enum values.
+
+        Args:
+            method_name: String name of the calculation method
+
+        Returns:
+            List of calculation results using the specified method name
+        """
+        # Build search criteria to find calculations with this method name
+        criteria = {
+            "calculation_type": method_name  # This will search the string representation
+        }
+
+        # Also check custom cipher methods
+        custom_results = []
+        if method_name.startswith("CUSTOM_"):
+            # For custom methods, also search the custom_method_name field
+            custom_criteria = {
+                "custom_method_name": method_name
+            }
+            custom_results = self.search_calculations(custom_criteria)
+
+        # Get standard method results
+        standard_results = self.search_calculations(criteria)
+
+        # Combine results (avoiding duplicates by using IDs as keys)
+        all_results = {}
+        for calc in standard_results + custom_results:
+            all_results[calc.id] = calc
+
+        return list(all_results.values())
+
     def find_recent_calculations(self, limit: int = 10) -> List[CalculationResult]:
         """Find the most recent calculations.
 
@@ -380,7 +416,8 @@ class CalculationDatabaseService:
 
         Args:
             criteria: Dictionary of search criteria, such as:
-                - input_text: Text to search for in the input
+                - input_text: Text to search for in the input (exact match)
+                - input_text_like: Text pattern to search for in the input (partial match)
                 - result_value: Value to search for
                 - tags: List of tag IDs to require
                 - calculation_type: Standard calculation method to filter by
@@ -398,10 +435,26 @@ class CalculationDatabaseService:
 
         # Apply filters one by one
         if "input_text" in criteria and criteria["input_text"]:
+            # Exact match (case-insensitive)
+            search_text = criteria["input_text"].lower()
             results = [
                 calc
                 for calc in results
-                if criteria["input_text"].lower() in calc.input_text.lower()
+                if search_text == calc.input_text.lower()
+            ]
+        elif "input_text_like" in criteria and criteria["input_text_like"]:
+            # Partial match (case-insensitive)
+            search_text = criteria["input_text_like"].lower()
+            # Remove the % wildcards if present (they're added by the UI)
+            if search_text.startswith("%"):
+                search_text = search_text[1:]
+            if search_text.endswith("%"):
+                search_text = search_text[:-1]
+
+            results = [
+                calc
+                for calc in results
+                if search_text in calc.input_text.lower()
             ]
 
         if "result_value" in criteria and criteria["result_value"] is not None:

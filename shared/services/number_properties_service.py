@@ -99,30 +99,31 @@ class NumberPropertiesService:
         Returns:
             Dictionary of number properties
         """
+        # Ensure we have an integer
         if not isinstance(number, int):
-            try:
-                number = int(number)
-            except (ValueError, TypeError):
-                raise ValueError("Input must be convertible to an integer")
+            # This is a type guard for mypy
+            number = int(number)
 
-        properties = {
+        properties: Dict[str, Any] = {
             "number": number,
             "is_prime": self.is_prime(number) if number > 0 else False,
         }
 
         # Add prime ordinal if prime
         if properties["is_prime"]:
-            properties["prime_ordinal"] = self.get_prime_ordinal(number)
+            prime_ordinal = self.get_prime_ordinal(number)
+            if prime_ordinal is not None:
+                properties["prime_ordinal"] = prime_ordinal
 
         # Add properties that only apply to non-zero numbers
         if number != 0:
             # Get factors and calculate sums
-            factors = self.get_factors(number)
-            properties["factors"] = factors
-            properties["factor_sum"] = sum(factors)
+            factors_list = self.get_factors(number)
+            properties["factors"] = factors_list
+            properties["factor_sum"] = sum(factors_list)
 
             # Calculate aliquot sum (sum of proper divisors)
-            proper_divisors = [d for d in factors if d != number]
+            proper_divisors = [d for d in factors_list if d != number]
             aliquot_sum = sum(proper_divisors)
             properties["aliquot_sum"] = aliquot_sum
 
@@ -136,16 +137,16 @@ class NumberPropertiesService:
             # Regular polygonal numbers with indices
             for k in range(3, 11):  # triangular through decagonal
                 if self.is_polygonal(number, k):
-                    properties[f"polygonal_{k}_index"] = self.get_polygonal_index(
-                        number, k
-                    )
+                    poly_index = self.get_polygonal_index(number, k)
+                    if poly_index is not None:
+                        properties[f"polygonal_{k}_index"] = poly_index
 
             # Centered polygonal numbers with indices
             for k in range(3, 11):
                 if self.is_centered_polygonal(number, k):
-                    properties[
-                        f"centered_{k}_index"
-                    ] = self.get_centered_polygonal_index(number, k)
+                    centered_index = self.get_centered_polygonal_index(number, k)
+                    if centered_index is not None:
+                        properties[f"centered_{k}_index"] = centered_index
 
         return properties
 
@@ -166,7 +167,7 @@ class NumberPropertiesService:
             return self._prime_cache[n]
 
         # Use sympy for primality testing
-        result = sympy.isprime(n)
+        result = bool(sympy.isprime(n))
         self._prime_cache[n] = result
         return result
 
@@ -215,7 +216,7 @@ class NumberPropertiesService:
         return [(p, e) for p, e in factors.items()]
 
     @lru_cache(maxsize=1000)
-    def is_perfect(self, n: int) -> bool:
+    def is_perfect_number_number(self, n: int) -> bool:
         """
         Check if a number is perfect (sum of proper divisors equals the number).
 
@@ -336,7 +337,7 @@ class NumberPropertiesService:
 
         # We need a positive integer solution
         r = (-b + math.sqrt(discriminant)) / (2 * a)
-        return r > 0 and r.is_integer()
+        return r > 0 and float(r).is_integer()
 
     def get_polygonal_index(self, n: int, k: int) -> Optional[int]:
         """
@@ -375,9 +376,9 @@ class NumberPropertiesService:
         if discriminant < 0:
             return None
 
-        r = (-b + math.sqrt(discriminant)) / (2 * a)
-        if r > 0 and r.is_integer():
-            return int(r)
+        r_float: float = (-b + math.sqrt(discriminant)) / (2 * a)
+        if r_float > 0 and r_float.is_integer():
+            return int(r_float)
 
         return None
 
@@ -402,9 +403,8 @@ class NumberPropertiesService:
         if n == 1:
             return True  # 1 is a centered polygonal number for all k
 
-        # Formula for centered k-gonal number: C_k(n) = (k*n^2 - k*n)/2 + 1
-        # Solve for n: k*n^2 - k*n - 2*(n-1) = 0
-        # This is a quadratic: a*n^2 + b*n + c = 0
+        # Formula for centered k-gonal number: C_k(m) = (k*m^2 - k*m)/2 + 1
+        # Solve for m: k*m^2 - k*m - 2*(n-1) = 0
         a = k
         b = -k
         c = -2 * (n - 1)
@@ -413,9 +413,8 @@ class NumberPropertiesService:
         if discriminant < 0:
             return False
 
-        # We need a positive integer solution
-        n = (-b + math.sqrt(discriminant)) / (2 * a)
-        return n > 0 and n.is_integer()
+        m_float = (-b + math.sqrt(discriminant)) / (2 * a)
+        return m_float > 0 and float(m_float).is_integer()
 
     def get_centered_polygonal_index(self, n: int, k: int) -> Optional[int]:
         """
@@ -434,8 +433,6 @@ class NumberPropertiesService:
         if n == 1:
             return 1  # 1 is always the first centered polygonal number
 
-        # Formula for centered k-gonal number: C_k(n) = (k*n^2 - k*n)/2 + 1
-        # Solve for n: k*n^2 - k*n - 2*(n-1) = 0
         a = k
         b = -k
         c = -2 * (n - 1)
@@ -444,9 +441,9 @@ class NumberPropertiesService:
         if discriminant < 0:
             return None
 
-        n = (-b + math.sqrt(discriminant)) / (2 * a)
-        if n > 0 and n.is_integer():
-            return int(n)
+        m_float = (-b + math.sqrt(discriminant)) / (2 * a)
+        if m_float > 0 and float(m_float).is_integer():
+            return int(m_float)
 
         return None
 
@@ -509,9 +506,10 @@ class NumberPropertiesService:
         result = int(conrune_str, 3)
         return -result if is_negative else result
 
-    def get_quadset_properties(self, number: int) -> Dict[str, Any]:
+    def get_basic_quadset_properties(self, number: int) -> Dict[str, Any]:
         """
-        Get the quadset properties for a given number using the canonical conrune transformation.
+        Get the basic quadset properties for a given number using the canonical conrune transformation.
+        This returns a simpler version without detailed number properties.
         """
         # Convert to ternary
         ternary = self.get_ternary(number)
@@ -545,7 +543,7 @@ class NumberPropertiesService:
                   or None if the number is not in any quadset
         """
         # Check if the number is a base number by examining its own quadset
-        quadset = self.get_quadset_properties(number)
+        quadset = self.get_basic_quadset_properties(number)
         if number in [
             quadset["number"],
             quadset["conrune"],
@@ -556,14 +554,14 @@ class NumberPropertiesService:
 
         # Try to find by brute force if the number appears in another quadset
         # This approach has limitations for large numbers
-        # For better performance, a database of pre-computed quadsets could be used
+        # For better performance, a database of pre-computed detailed_quadsets could be used
 
         # Check reasonable bounds around the number
         lower_bound = max(1, number // 10)
         upper_bound = number * 10
 
         for base in range(lower_bound, upper_bound):
-            quadset = self.get_quadset_properties(base)
+            quadset = self.get_basic_quadset_properties(base)
             if number in [
                 quadset["conrune"],
                 quadset["reverse_ternary_decimal"],
@@ -573,14 +571,14 @@ class NumberPropertiesService:
 
         return False, None
 
-    def get_ternary_reversal(self, number: int) -> int:
-        """Get the decimal value of a number's reversed ternary representation.
+    def get_detailed_ternary_reversal(self, number: int) -> int:
+        """Get detailed detailed the decimal value of a number's reversed ternary representation.
 
         Args:
             number: Number to get ternary reversal for
 
         Returns:
-            Decimal value of the reversed ternary
+            Decimal value of the reversed ternary with detailed number properties
         """
         ternary = self.get_ternary(number)
 
@@ -599,8 +597,8 @@ class NumberPropertiesService:
 
         return -result if is_negative else result
 
-    def get_quadset_properties(self, number: int) -> Dict:
-        """Get properties of a number's TQ quadset.
+    def get_detailed_quadset_properties(self, number: int) -> Dict[str, Any]:
+        """Get detailed properties of a number's TQ quadset.
 
         The quadset consists of:
         1. The base number
@@ -612,13 +610,12 @@ class NumberPropertiesService:
             number: Base integer to analyze
 
         Returns:
-            Dictionary of quadset properties
+            Dictionary of quadset properties with detailed number properties
         """
+        # Ensure we have an integer
         if not isinstance(number, int):
-            try:
-                number = int(number)
-            except (ValueError, TypeError):
-                raise ValueError("Input must be convertible to an integer")
+            # This is a type guard for mypy
+            number = int(number)
 
         # Get the ternary representation
         ternary = self.get_ternary(number)
@@ -663,8 +660,12 @@ class NumberPropertiesService:
 
         return quadset
 
+    def get_quadset_properties(self, number: int) -> Dict[str, Any]:
+        """Alias for get_detailed_quadset_properties for compatibility."""
+        return self.get_detailed_quadset_properties(number)
+
     @lru_cache(maxsize=1000)
-    def is_perfect(self, number: int) -> bool:
+    def check_perfect_number(self, number: int) -> bool:
         """Check if a number is perfect (sum of proper divisors equals the number).
 
         Args:
@@ -724,7 +725,7 @@ class NumberPropertiesService:
         # A number is triangular if 8*n+1 is a perfect square
         test = 8 * number + 1
         root = int(math.sqrt(test))
-        return root * root == test
+        return float(root) * root == test
 
     def is_square(self, number: int) -> bool:
         """Check if a number is a perfect square.
@@ -739,7 +740,7 @@ class NumberPropertiesService:
             return False
 
         root = math.sqrt(number)
-        return root.is_integer()
+        return float(root).is_integer()
 
     def get_binary(self, number: int) -> str:
         """Get binary representation of a number (without '0b' prefix).
@@ -802,9 +803,6 @@ class NumberPropertiesService:
         Returns:
             Sorted list of divisors
         """
-        if number in self._divisors_cache:
-            return self._divisors_cache[number]
-
         if number <= 0:
             return []
 
@@ -819,9 +817,6 @@ class NumberPropertiesService:
                 divisors.add(number // i)
 
         result = sorted(list(divisors))
-
-        # Cache the result
-        self._divisors_cache[number] = result
         return result
 
     def clear_cache(self) -> None:
@@ -829,11 +824,13 @@ class NumberPropertiesService:
         self._prime_cache.clear()
         self._factors_cache.clear()
         self._divisors_cache.clear()
-        # Also clear the lru_cache for the methods
-        self.is_prime.cache_clear()
-        self.get_prime_factors.cache_clear()
-        self.get_divisors.cache_clear()
         self._prime_ordinal_cache.clear()
+
+        # Clear lru_cache for decorated methods
+        for name in dir(self):
+            method = getattr(self, name)
+            if hasattr(method, 'cache_clear'):
+                method.cache_clear()
 
     @lru_cache(maxsize=500)
     def is_pentagonal(self, number: int) -> bool:
@@ -936,3 +933,7 @@ class NumberPropertiesService:
         phi = (1 + math.sqrt(5)) / 2
         index = round(math.log(number * math.sqrt(5) + 0.5, phi))
         return index
+
+    def get_ternary_reversal(self, number: int) -> int:
+        """Alias for get_reverse_ternary_decimal for compatibility."""
+        return self.get_reverse_ternary_decimal(number)

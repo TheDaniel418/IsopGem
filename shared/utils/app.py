@@ -200,6 +200,7 @@ class MainWindow(QMainWindow):
         # Create and add the tab
         gematria_tab = GematriaTab(self.tab_manager, self.window_manager)
         self.tab_manager.addTab(gematria_tab, "Gematria")
+        self.gematria_tab = gematria_tab
 
         logger.debug("Gematria pillar initialized")
 
@@ -308,7 +309,7 @@ class MainWindow(QMainWindow):
         # Create the content and open the window
         content = DatabaseMaintenanceWindow()
         self.window_manager.open_window(
-            "database_maintenance", content, "Database Maintenance"
+            "database_maintenance", content
         )
 
         logger.debug("Opened Database Maintenance window")

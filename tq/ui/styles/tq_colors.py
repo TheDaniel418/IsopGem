@@ -77,6 +77,7 @@ class TQColors:
     # Quadset analysis colors
     DIFFERENCE_BG = "#E8F5E9"  # Light green
     SUM_BG = "#FFF8E1"  # Light amber
+    WORD_EQUIV_BG = "#E3F2FD"  # Light blue
 
 
 def get_element_color(element: int, light: bool = False) -> str:

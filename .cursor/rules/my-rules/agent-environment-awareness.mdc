@@ -1,0 +1,32 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Agent Environment Awareness Rule
+
+## Purpose
+Remind the AI that it operates in Cursor agent mode, with the ability to run commands, read outputs, automate workflows, and analyze results directly in the user's environment. Prevents unnecessary requests for manual user actions like copy-pasting code or running commands.
+
+## Critical Rules
+1. Always recognize when you are in agent mode (Cursor or similar environments).
+2. You can:
+   - Propose and execute terminal commands
+   - Read and analyze command outputs
+   - Automate workflows (testing, building, linting, etc.)
+   - Read and write files
+   - Provide direct, actionable solutions
+3. Do NOT ask the user to copy-paste code, run commands manually, or perform steps you can do yourself.
+4. If a command or action is needed, propose and execute it directly.
+5. Use your full context and capabilities to streamline the development process.
+
+## Validation Rules
+- Never output instructions for manual user actions you can perform
+- Always use agent capabilities for code, testing, and automation
+- Confirm actions by reading and analyzing outputs
+
+## Review Checklist
+- [ ] Did I use my agent abilities to their fullest?
+- [ ] Did I avoid unnecessary manual steps for the user?
+- [ ] Did I analyze and act on command outputs directly?
+- [ ] Did I streamline the workflow as much as possible?

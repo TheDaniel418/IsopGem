@@ -12,19 +12,13 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-from astrology.ui.dialogs.astrological_database_manager import (
-    AstrologicalDatabaseManager,
-)
 from astrology.ui.dialogs.birth_chart_window import BirthChartWindow
-from astrology.ui.dialogs.cycle_calculator_window import CycleCalculatorWindow
-from astrology.ui.dialogs.planner_window import PlannerWindow
-from shared.repositories.database import Database
+from astrology.ui.windows.kamea_calendar_window import KameaCalendarWindow
 from shared.ui.window_management import TabManager, WindowManager
 
 
@@ -129,95 +123,14 @@ class AstrologyTab(QWidget):
         # Open it in a window
         self.window_manager.open_window("birth_chart", birth_chart_window)
 
-    def _open_planner(self):
-        """Open the astrological planner window."""
-        # Create the planner window
-        planner_window = PlannerWindow()
-
-        # Set the window title
-        planner_window.setWindowTitle("Astrological Planner")
-
-        # Connect chart requested signal
-        planner_window.chart_requested.connect(self._on_chart_requested_from_planner)
-
-        # Open it in a window
-        self.window_manager.open_window("astro_planner", planner_window)
-
-    def _on_chart_requested_from_planner(self, chart):
-        """Handle chart request from the planner.
-
-        Args:
-            chart: Chart to display
-        """
-        # Create a birth chart window with the chart
-        birth_chart_window = BirthChartWindow()
-        birth_chart_window.set_chart(chart)
-
-        # Set the window title
-        birth_chart_window.setWindowTitle(f"Chart: {chart.name}")
-
-        # Open it in a window
-        self.window_manager.open_window("planner_chart", birth_chart_window)
-
-    def _open_cycle_calculator(self):
-        """Open the cosmic cycle calculator window."""
-        # Create the cycle calculator window
-        cycle_calculator_window = CycleCalculatorWindow()
-
-        # Set the window title
-        cycle_calculator_window.setWindowTitle("Cosmic Cycle Calculator")
-
-        # Connect chart requested signal
-        cycle_calculator_window.chart_requested.connect(
-            self._on_chart_requested_from_cycle_calculator
-        )
-
-        # Open it in a window
-        self.window_manager.open_window("cycle_calculator", cycle_calculator_window)
-
-    def _on_chart_requested_from_cycle_calculator(self, chart):
-        """Handle chart request from the cycle calculator.
-
-        Args:
-            chart: Chart to display
-        """
-        # Create a birth chart window with the chart
-        birth_chart_window = BirthChartWindow()
-        birth_chart_window.set_chart(chart)
-
-        # Set the window title
-        birth_chart_window.setWindowTitle(f"Chart: {chart.name}")
-
-        # Open it in a window
-        self.window_manager.open_window("cycle_chart", birth_chart_window)
-
-    def _open_database_manager(self):
-        """Open the astrological database manager dialog."""
-        try:
-            # Get the database instance
-            database = Database.get_instance()
-
-            # Create the database manager dialog
-            db_manager = AstrologicalDatabaseManager(database, self)
-
-            # Show the dialog
-            db_manager.exec()
-        except Exception as e:
-            logger.error(f"Error opening database manager: {e}", exc_info=True)
-            # Show error message to user
-            QMessageBox.critical(
-                self,
-                "Database Manager Error",
-                f"Could not open database manager: {str(e)}",
-            )
-
     def _open_cosmic_calendar(self):
-        """Open the Cosmic Calendar placeholder window."""
-        QMessageBox.information(
-            self,
-            "Cosmic Calendar",
-            "Cosmic Calendar UI coming soon!\nThis will be your portal to the Kamea Cosmic Calendar visualization.",
-        )
+        """Open the Kamea Cosmic Calendar window."""
+        # Create the Kamea Cosmic Calendar window
+        calendar_window = KameaCalendarWindow()
+
+        # Open it in a window
+        self.window_manager.open_window("kamea_cosmic_calendar", calendar_window)
+        logger.info("Opened Kamea Cosmic Calendar window")
 
     def _init_ui(self) -> None:
         """Initialize the UI components."""
@@ -256,35 +169,11 @@ class AstrologyTab(QWidget):
         birth_chart_btn.clicked.connect(self._open_birth_chart)
         button_layout.addWidget(birth_chart_btn)
 
-        # Cycle Calculator button (renamed from Transit Calculator)
-        cycle_btn = QPushButton("Cycle Calculator")
-        cycle_btn.setToolTip("Search for cosmic cycles and planetary patterns")
-        cycle_btn.clicked.connect(self._open_cycle_calculator)
-        button_layout.addWidget(cycle_btn)
-
-        # Zodiac Explorer button
-        zodiac_btn = QPushButton("Zodiac Explorer")
-        zodiac_btn.setToolTip("Explore zodiac signs and their meanings")
-        # zodiac_btn.clicked.connect(lambda: self._open_zodiac_explorer())
-        button_layout.addWidget(zodiac_btn)
-
-        # Planner button
-        planner_btn = QPushButton("Planner")
-        planner_btn.setToolTip("Open the astrological daily planner")
-        planner_btn.clicked.connect(self._open_planner)
-        button_layout.addWidget(planner_btn)
-
         # Cosmic Calendar button
         cosmic_calendar_btn = QPushButton("Cosmic Calendar")
         cosmic_calendar_btn.setToolTip("Visualize the Kamea Cosmic Calendar")
         cosmic_calendar_btn.clicked.connect(self._open_cosmic_calendar)
         button_layout.addWidget(cosmic_calendar_btn)
-
-        # Database Manager button
-        db_manager_btn = QPushButton("Database Manager")
-        db_manager_btn.setToolTip("Manage the astrological events database")
-        db_manager_btn.clicked.connect(self._open_database_manager)
-        button_layout.addWidget(db_manager_btn)
 
         # Add stretch to push buttons to the left
         button_layout.addStretch()

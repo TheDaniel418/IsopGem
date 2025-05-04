@@ -44,6 +44,7 @@ from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.services.gematria_service import GematriaService
 from gematria.services.history_service import HistoryService
 from gematria.ui.dialogs.custom_cipher_dialog import CustomCipherDialog
+from gematria.ui.widgets.virtual_keyboard_widget import VirtualKeyboardWidget
 
 # Import the polygon service for sending values to the Regular Polygon Calculator
 
@@ -120,13 +121,22 @@ class WordAbacusWidget(QWidget):
         input_layout.addWidget(QLabel("Language:"), 0, 0)
         input_layout.addWidget(self._language_combo, 0, 1)
 
-        # Input text field
+        # Input text field and virtual keyboard button
         self._input_label = QLabel("Enter Hebrew text:")
         self._input_field = QLineEdit()
         self._input_field.setPlaceholderText("Type text here...")
         self._input_field.textChanged.connect(self._on_input_changed)
         input_layout.addWidget(self._input_label, 1, 0)
-        input_layout.addWidget(self._input_field, 1, 1)
+
+        # Add input field and keyboard button in a horizontal layout
+        input_hbox = QHBoxLayout()
+        input_hbox.addWidget(self._input_field)
+        self._vk_button = QPushButton("⌨️")
+        self._vk_button.setToolTip("Open Virtual Keyboard")
+        self._vk_button.setFixedWidth(36)
+        self._vk_button.clicked.connect(self._show_virtual_keyboard)
+        input_hbox.addWidget(self._vk_button)
+        input_layout.addLayout(input_hbox, 1, 1)
 
         input_group.setLayout(input_layout)
         layout.addWidget(input_group)
@@ -229,6 +239,10 @@ class WordAbacusWidget(QWidget):
         self._populate_method_categories()
         self._language_combo.setCurrentIndex(0)  # Default to Hebrew
 
+        # Track the virtual keyboard dialog
+        self._virtual_keyboard = None
+        self._update_virtual_keyboard_button()
+
     def _populate_method_categories(self) -> None:
         """Populate the calculation type categories based on the selected language."""
         language = self._language_combo.currentText()
@@ -239,22 +253,16 @@ class WordAbacusWidget(QWidget):
                 "Standard Methods": [
                     CalculationType.MISPAR_HECHRACHI,
                     CalculationType.MISPAR_SIDURI,
-                    CalculationType.MISPAR_KATAN,
-                    CalculationType.MISPAR_KATAN_MISPARI,
                 ],
                 "Advanced Methods": [
                     CalculationType.MISPAR_GADOL,
                     CalculationType.MISPAR_BONEH,
                     CalculationType.MISPAR_KIDMI,
-                    CalculationType.MISPAR_NEELAM,
                     CalculationType.MISPAR_PERATI,
                     CalculationType.MISPAR_SHEMI,
                     CalculationType.MISPAR_MUSAFI,
-                    CalculationType.MISPAR_HAAKHOR,
-                    CalculationType.MISPAR_HAMERUBAH_HAKLALI,
-                    CalculationType.MISPAR_HAPANIM,
                 ],
-                "Substitution Ciphers": [
+                "Letter Substitution": [
                     CalculationType.MISPAR_MESHUPACH,
                     CalculationType.ALBAM,
                     CalculationType.ATBASH,
@@ -285,20 +293,16 @@ class WordAbacusWidget(QWidget):
                 "Standard Methods": [
                     CalculationType.GREEK_ISOPSOPHY,
                     CalculationType.GREEK_ORDINAL,
-                    CalculationType.GREEK_REDUCED,
-                    CalculationType.GREEK_INTEGRAL_REDUCED,
                 ],
                 "Advanced Methods": [
-                    CalculationType.GREEK_LARGE,
+                    CalculationType.GREEK_SQUARED,
                     CalculationType.GREEK_BUILDING,
                     CalculationType.GREEK_TRIANGULAR,
                     CalculationType.GREEK_HIDDEN,
-                    CalculationType.GREEK_INDIVIDUAL_SQUARE,
                     CalculationType.GREEK_FULL_NAME,
                     CalculationType.GREEK_ADDITIVE,
-                    CalculationType.GREEK_SQUARED,
                 ],
-                "Substitution Ciphers": [
+                "Letter Substitution": [
                     CalculationType.GREEK_REVERSAL,
                     CalculationType.GREEK_ALPHA_MU,
                     CalculationType.GREEK_ALPHA_OMEGA,
@@ -326,7 +330,7 @@ class WordAbacusWidget(QWidget):
 
         elif language == "English":
             english_categories: Dict[str, List[MethodType]] = {
-                "TQ Methods": [CalculationType.TQ_ENGLISH]
+                "Standard Methods": [CalculationType.TQ_ENGLISH],
             }
 
             # Add custom ciphers category if available
@@ -393,6 +397,9 @@ class WordAbacusWidget(QWidget):
 
         # Populate the method categories for the selected language
         self._populate_method_categories()
+
+        # Update virtual keyboard button
+        self._update_virtual_keyboard_button()
 
     def _on_type_changed(self, index: int) -> None:
         """Handle method type selection changes.
@@ -591,3 +598,42 @@ class WordAbacusWidget(QWidget):
 
         # Enable/disable calculation button based on input
         self._on_input_changed(self._input_field.text())
+
+    def _update_virtual_keyboard_button(self):
+        """Show or hide the virtual keyboard button based on language."""
+        lang = self._language_combo.currentText()
+        self._vk_button.setVisible(lang in ("Hebrew", "Greek"))
+        if self._virtual_keyboard:
+            self._virtual_keyboard.close()
+            self._virtual_keyboard = None
+
+    def _show_virtual_keyboard(self):
+        """Show the floating virtual keyboard for the current language."""
+        lang = self._language_combo.currentText()
+        if lang not in ("Hebrew", "Greek"):
+            return
+        if self._virtual_keyboard:
+            self._virtual_keyboard.close()
+        self._virtual_keyboard = VirtualKeyboardWidget(language=lang, parent=self)
+        self._virtual_keyboard.key_pressed.connect(self._handle_virtual_key)
+        self._virtual_keyboard.show()
+        self._virtual_keyboard.raise_()
+        self._virtual_keyboard.activateWindow()
+
+    def _handle_virtual_key(self, key: str):
+        """Handle key press from the virtual keyboard."""
+        if key == "<BACKSPACE>":
+            cursor_pos = self._input_field.cursorPosition()
+            text = self._input_field.text()
+            if cursor_pos > 0:
+                text = text[:cursor_pos-1] + text[cursor_pos:]
+                self._input_field.setText(text)
+                self._input_field.setCursorPosition(cursor_pos-1)
+        elif key == "<CLEAR>":
+            self._input_field.clear()
+        else:
+            cursor_pos = self._input_field.cursorPosition()
+            text = self._input_field.text()
+            text = text[:cursor_pos] + key + text[cursor_pos:]
+            self._input_field.setText(text)
+            self._input_field.setCursorPosition(cursor_pos + len(key))
