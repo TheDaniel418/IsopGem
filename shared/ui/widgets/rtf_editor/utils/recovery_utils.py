@@ -57,6 +57,7 @@ class AutoSaveManager(QObject):
         self.recovery_dir = self._get_recovery_directory()
         self.current_document_path = None
         self.last_save_content = ""
+        self.disable_recovery = False  # Flag to disable recovery prompts
 
         # Create recovery directory if it doesn't exist
         self.recovery_dir.mkdir(parents=True, exist_ok=True)
@@ -78,6 +79,15 @@ class AutoSaveManager(QObject):
         """Stop the auto-save timer."""
         self.timer.stop()
         logger.info("Auto-save stopped")
+
+    def cleanup(self):
+        """Clean up resources and stop auto-save.
+
+        Call this method when the editor is being destroyed.
+        """
+        self.stop()
+        self.editor = None
+        logger.debug("Auto-save manager cleaned up")
 
     def set_interval(self, interval: int):
         """Set the auto-save interval.
@@ -106,11 +116,33 @@ class AutoSaveManager(QObject):
         since the last save.
         """
         try:
+            # Check if editor still exists
+            if not self.editor:
+                logger.debug("Editor no longer exists, skipping auto-save")
+                return
+
+            # Check if editor is valid (not destroyed)
+            try:
+                # Try to access a property to see if the object is still valid
+                _ = self.editor.objectName()
+            except RuntimeError:
+                logger.debug("Editor has been deleted, skipping auto-save")
+                return
+
             # Get current content
             current_content = self.editor.toHtml()
 
             # Only save if content has changed
             if current_content != self.last_save_content:
+                # Update last save content even if recovery is disabled
+                self.last_save_content = current_content
+
+                # Skip creating recovery files if recovery is disabled
+                if self.disable_recovery:
+                    logger.debug("Recovery is disabled, skipping auto-save file creation")
+                    self.auto_save_triggered.emit()
+                    return
+
                 # Generate recovery file name
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 doc_id = "unsaved"
@@ -131,7 +163,6 @@ class AutoSaveManager(QObject):
                     f.write(json.dumps(metadata) + "\n")
                     f.write(current_content)
 
-                self.last_save_content = current_content
                 self.auto_save_triggered.emit()
                 logger.info(f"Auto-saved document to {recovery_file}")
 
@@ -175,6 +206,11 @@ class AutoSaveManager(QObject):
         Returns:
             List[Path]: List of available recovery files
         """
+        # If recovery is disabled, return empty list
+        if self.disable_recovery:
+            logger.debug("Recovery is disabled, not checking for recovery files")
+            return []
+
         try:
             recovery_files = list(self.recovery_dir.glob("*.recovery"))
             if recovery_files:
@@ -187,6 +223,27 @@ class AutoSaveManager(QObject):
         except Exception as e:
             logger.error(f"Error checking for recovery files: {str(e)}", exc_info=True)
             return []
+
+    def clear_recovery_files(self) -> bool:
+        """Clear all recovery files.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            recovery_files = list(self.recovery_dir.glob("*.recovery"))
+            for file in recovery_files:
+                try:
+                    file.unlink()
+                    logger.debug(f"Deleted recovery file: {file}")
+                except Exception as e:
+                    logger.error(f"Error deleting recovery file {file}: {str(e)}")
+
+            logger.info(f"Cleared {len(recovery_files)} recovery files")
+            return True
+        except Exception as e:
+            logger.error(f"Error clearing recovery files: {str(e)}", exc_info=True)
+            return False
 
     def load_recovery_file(self, recovery_file: Path) -> Tuple[str, Optional[str]]:
         """Load content from a recovery file.

@@ -244,6 +244,11 @@ class RTFEditorWindow(QMainWindow):
         save_as_action.setShortcut("Ctrl+Shift+S")
         save_as_action.triggered.connect(self.document_manager.save_document_as)
 
+        # Set Title (for notes)
+        set_title_action = file_menu.addAction("Set &Title...")
+        set_title_action.setShortcut("Ctrl+T")
+        set_title_action.triggered.connect(self.set_document_title)
+
         # Add separator
         file_menu.addSeparator()
 
@@ -698,9 +703,59 @@ class RTFEditorWindow(QMainWindow):
         #     from loguru import logger
         #     logger.error(f"Error handling selection change: {e}", exc_info=True)
 
+    def set_document_title(self):
+        """Set the title of the current document.
+
+        Opens a dialog to allow the user to set or change the document title.
+        This is particularly useful for notes.
+
+        Returns:
+            None
+        """
+        try:
+            # Get current title from window title
+            current_title = self.windowTitle()
+            # Remove the "- RTF Editor" suffix and any modification indicator
+            if " - RTF Editor" in current_title:
+                current_title = current_title.split(" - RTF Editor")[0]
+            if current_title.endswith(" *"):
+                current_title = current_title[:-2]
+
+            # Show input dialog
+            new_title, ok = QInputDialog.getText(
+                self,
+                "Set Document Title",
+                "Enter document title:",
+                text=current_title
+            )
+
+            if ok and new_title:
+                # Update window title
+                modified_indicator = " *" if self.document_manager.is_modified else ""
+                self.setWindowTitle(f"{new_title} - RTF Editor{modified_indicator}")
+
+                # Store the title in document manager
+                if hasattr(self.document_manager, "document_name"):
+                    self.document_manager.document_name = new_title
+
+                # Show confirmation in status bar
+                self.status_bar.showMessage(f"Title set to: {new_title}", 3000)
+
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"Error setting document title: {e}", exc_info=True)
+
     def closeEvent(self, event):
         """Handle window close event."""
         if self.document_manager.check_unsaved_changes():
+            # Clean up auto-save manager before closing
+            if hasattr(self.document_manager, 'auto_save_manager') and self.document_manager.auto_save_manager:
+                try:
+                    self.document_manager.auto_save_manager.cleanup()
+                except Exception as e:
+                    from loguru import logger
+                    logger.error(f"Error cleaning up auto-save manager: {e}", exc_info=True)
+
             event.accept()
         else:
             event.ignore()
@@ -1288,12 +1343,32 @@ class RTFEditorWindow(QMainWindow):
             )
             return
 
+        # Ask if the user wants to see recovery files
+        response = QMessageBox.question(
+            self,
+            "Recovery Files Found",
+            f"Found {len(recovery_files)} recovery files. Would you like to recover a document?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if response == QMessageBox.StandardButton.No:
+            return
+
         # If there are recovery files, show a dialog to select one
         file_items = []
+        filtered_recovery_files = []
+
         for file in recovery_files:
             # Get file info
             timestamp = file.stem.split("_")[-1]
             doc_id = "_".join(file.stem.split("_")[:-1])
+
+            # Skip recovery files for notes if this is not the notes editor
+            if "note" in doc_id.lower() and not getattr(self, "is_notes_editor", False):
+                continue
+
+            filtered_recovery_files.append(file)
 
             # Format timestamp for display
             try:
@@ -1305,6 +1380,12 @@ class RTFEditorWindow(QMainWindow):
 
             # Add to list
             file_items.append(f"{doc_id} ({formatted_time})")
+
+        if not file_items:
+            QMessageBox.information(
+                self, "No Relevant Recovery Files", "No relevant recovery files were found for this editor."
+            )
+            return
 
         # Show selection dialog
         selected_item, ok = QInputDialog.getItem(
@@ -1319,7 +1400,7 @@ class RTFEditorWindow(QMainWindow):
         if ok and selected_item:
             # Find the corresponding file
             index = file_items.index(selected_item)
-            recovery_file = recovery_files[index]
+            recovery_file = filtered_recovery_files[index]
 
             # Recover the document
             self.document_manager.recover_document(recovery_file)

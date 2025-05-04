@@ -858,15 +858,12 @@ class DocumentManager(QObject):
             if hasattr(self.editor_window, "document_loaded"):
                 self.editor_window.document_loaded(content)
 
-            # Update state
+            # Update state and store document metadata for auto-save
             self.document_id = doc_format.id
+            self.document_name = doc_format.name
             self.set_modified(False)
             self.document_loaded.emit(content)
             self.status_updated.emit(f"Loaded document: {doc_format.name}")
-
-            # Update auto-save with metadata
-            self.auto_save_manager.set_metadata("document_id", doc_format.id)
-            self.auto_save_manager.set_metadata("document_name", doc_format.name)
 
             return True
         except Exception as e:
@@ -917,7 +914,8 @@ class DocumentManager(QObject):
             self.status_updated.emit(f"Loaded document: {os.path.basename(file_path)}")
 
             # Update auto-save path
-            self.auto_save_manager.set_document_path(file_path)
+            if hasattr(self.auto_save_manager, 'set_document_path'):
+                self.auto_save_manager.set_document_path(file_path)
 
             return True
 
