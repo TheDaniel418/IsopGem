@@ -610,7 +610,15 @@ class AuxiliaryWindow(QMainWindow):
         """
         # Set window flags to ensure this window stays on top of the main window
         # but doesn't stay on top of all windows from other applications
-        flags = flags | Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint
+        # Make sure to enable resizing with WindowMaximizeButtonHint and WindowMinimizeButtonHint
+        flags = (
+            flags
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )  # Explicitly include the close button
 
         super().__init__(parent, flags)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -626,6 +634,14 @@ class AuxiliaryWindow(QMainWindow):
         self.setWindowTitle(title)
         self.resize(800, 600)  # Default size
 
+        # Explicitly enable resizing by setting the minimum and maximum sizes
+        # A reasonably small minimum size allows users to make the window smaller but not tiny
+        self.setMinimumSize(400, 300)
+        # Maximum size is set to 16777215x16777215 by default, which is effectively unlimited
+
+        # Add status bar with size grip for easy resizing from the corner
+        self.statusBar().setSizeGripEnabled(True)
+
         # Create central widget with layout
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -637,6 +653,9 @@ class AuxiliaryWindow(QMainWindow):
 
         # Apply theming
         self._apply_theme()
+
+        # Log that resizing is enabled
+        logger.debug(f"Window resizing enabled for '{title}'")
 
     def _apply_theme(self) -> None:
         """Apply theming to the window."""
@@ -693,26 +712,42 @@ class AuxiliaryWindow(QMainWindow):
     def ensure_on_top(self):
         """Ensure this window is visible and on top of other application windows.
 
-        This method applies the necessary window flags and focus operations
+        This method applies cross-platform compatible window flags and focus operations
         to ensure the window is visible and properly shown on top of other windows.
         """
-        # Make sure the window has the proper flags
+        # Platform-specific handling
+        import platform
+
+        system = platform.system()
+
+        # Make sure the window has the proper flags - approach varies slightly by platform
         current_flags = self.windowFlags()
         if not (current_flags & Qt.WindowType.WindowStaysOnTopHint):
-            self.setWindowFlags(current_flags | Qt.WindowType.WindowStaysOnTopHint)
+            if system == "Linux":
+                # On Linux, sometimes we need to reapply the window flags
+                self.setWindowFlags(current_flags | Qt.WindowType.WindowStaysOnTopHint)
+            elif system == "Windows":
+                # Windows has better handling of window z-order natively
+                self.setWindowFlags(current_flags | Qt.WindowType.WindowStaysOnTopHint)
+            elif system == "Darwin":  # macOS
+                # macOS may require different flag handling
+                self.setWindowFlags(current_flags | Qt.WindowType.WindowStaysOnTopHint)
 
-        # Apply focus operations - ensure we're using all available methods
-        # to properly raise the window
+        # Common approaches that work well across platforms
         self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
         self.show()
         self.raise_()
         self.activateWindow()
 
         # Log the operation
-        logger.debug(f"Ensuring window '{self.windowTitle()}' stays on top")
+        logger.debug(
+            f"Ensuring window '{self.windowTitle()}' stays on top (platform: {system})"
+        )
 
         # Use delayed focus to ensure window ordering is applied after other events
-        QTimer.singleShot(100, self._delayed_focus)
+        # This seems to be especially important on Linux
+        delay_ms = 100 if system == "Linux" else 50
+        QTimer.singleShot(delay_ms, self._delayed_focus)
 
     def _delayed_focus(self):
         """Apply delayed focus operations to ensure window stays on top."""

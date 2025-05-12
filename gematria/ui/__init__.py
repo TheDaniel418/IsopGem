@@ -6,10 +6,10 @@ This module provides graphical user interface components for the Gematria functi
 from gematria.ui.dialogs.edit_tags_window import EditTagsWindow
 from gematria.ui.dialogs.save_calculation_dialog import SaveCalculationDialog
 from gematria.ui.dialogs.tag_selection_dialog import TagSelectionDialog
-from gematria.ui.dialogs.word_abacus_window import WordAbacusWindow
 from gematria.ui.panels.calculation_history_panel import CalculationHistoryPanel
 from gematria.ui.panels.tag_management_panel import TagManagementPanel
 from gematria.ui.widgets.word_abacus_widget import WordAbacusWidget
+from gematria.ui.windows.word_abacus_window import WordAbacusWindow
 
 __all__ = [
     "WordAbacusWindow",

@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
@@ -21,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 from gematria.models.tag import Tag
 from gematria.services.calculation_database_service import CalculationDatabaseService
+from gematria.ui.dialogs.tag_selection_dialog import TagInputDialog
 from shared.ui.widgets.common_widgets import ColorSquare
 
 
@@ -383,42 +385,58 @@ class SaveCalculationDialog(QDialog):
             tag_list: Tag list widget
             selected_tags: Set of selected tag IDs
         """
-        # Use TagEditDialog from tag_selection_dialog
-        from gematria.ui.dialogs.tag_selection_dialog import TagEditDialog
+        dialog = TagInputDialog(parent=parent_dialog)
+        if dialog.exec():
+            tag_name = dialog.name_edit.text().strip()
+            tag_color = dialog.color  # Get color from dialog
+            tag_description = (
+                dialog.description_edit.toPlainText().strip()
+            )  # Get description
 
-        # Create dialog
-        dialog = TagEditDialog(parent=parent_dialog)
+            if not tag_name:
+                QMessageBox.warning(
+                    parent_dialog, "Invalid Input", "Tag name cannot be empty."
+                )
+                return
 
-        # Show dialog and check result
-        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.tag is not None:
-            # Create widget for the new tag
-            widget = TagWidget(dialog.tag)
+            # Create tag using the service
+            created_tag = self.db_service.create_tag(
+                tag_name, tag_color, tag_description
+            )
 
-            # Create list item
-            item = QListWidgetItem()
-            item.setSizeHint(widget.sizeHint())
+            if created_tag:
+                # Create widget for the new tag
+                # Create checkbox widget for the list
+                checkbox = QCheckBox(created_tag.name)
+                checkbox.setChecked(True)  # New tag is selected by default
+                checkbox.setProperty("tag_id", created_tag.id)
 
-            # Get checkbox and make it checked
-            checkbox = widget.findChild(QCheckBox)
-            # Type check before using
-            if isinstance(checkbox, QCheckBox):
-                checkbox.setChecked(True)
+                widget_for_list_item = QWidget()
+                widget_layout = QHBoxLayout(widget_for_list_item)
+                widget_layout.setContentsMargins(5, 2, 5, 2)
+                color_square = ColorSquare(created_tag.color)
+                widget_layout.addWidget(color_square)
+                widget_layout.addWidget(checkbox)
+                widget_layout.addStretch()
 
-            # Add to list
-            tag_list.addItem(item)
-            tag_list.setItemWidget(item, widget)
+                # Create list item
+                item = QListWidgetItem()
+                item.setSizeHint(widget_for_list_item.sizeHint())
+                tag_list.addItem(item)
+                tag_list.setItemWidget(item, widget_for_list_item)
 
-            # Store tag ID in the checkbox only if it's a QCheckBox
-            if dialog.tag is not None and isinstance(checkbox, QCheckBox):
-                # We've already checked that dialog.tag is not None, but mypy needs this check
-                tag_id = dialog.tag.id
-                checkbox.setProperty("tag_id", tag_id)
+                # Add to selected_tags set (which is passed by reference from _select_tags)
+                selected_tags.add(created_tag.id)
 
-                # Connect the checkbox change signal
+                # Connect the checkbox change signal for this new tag
                 checkbox.stateChanged.connect(
-                    lambda state, tid=tag_id: selected_tags.add(tid)
+                    lambda state, tid=created_tag.id: selected_tags.add(tid)
                     if state == Qt.CheckState.Checked.value
                     else selected_tags.discard(tid)
+                )
+            else:
+                QMessageBox.warning(
+                    parent_dialog, "Error", "Failed to create tag in the database."
                 )
 
     def _save_calculation(self):

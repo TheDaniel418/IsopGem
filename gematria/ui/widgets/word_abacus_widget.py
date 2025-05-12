@@ -19,10 +19,12 @@ Related files:
 - gematria/ui/dialogs/custom_cipher_dialog.py: For managing custom ciphers
 """
 
-from typing import Dict, List, Optional, Union, cast
+from typing import List, Optional, Union, cast
 
+from loguru import logger
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QFrame,
     QGridLayout,
@@ -38,7 +40,7 @@ from PyQt6.QtWidgets import (
 )
 
 from gematria.models.calculation_result import CalculationResult
-from gematria.models.calculation_type import CalculationType
+from gematria.models.calculation_type import CalculationType, Language
 from gematria.models.custom_cipher_config import CustomCipherConfig, LanguageType
 from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.services.gematria_service import GematriaService
@@ -116,10 +118,26 @@ class WordAbacusWidget(QWidget):
 
         # Language selection
         self._language_combo = QComboBox()
-        self._language_combo.addItems(["Hebrew", "Greek", "English"])
+        self._language_combo.addItems(
+            ["Hebrew", "Greek", "English", "Coptic", "Arabic"]
+        )
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
+
+        # New QHBoxLayout for Language and Transliteration toggle
+        lang_translit_hbox = QHBoxLayout()
+        lang_translit_hbox.addWidget(self._language_combo)
+        self._transliterate_chk = QCheckBox("Transliterate Latin")
+        self._transliterate_chk.setToolTip(
+            "If checked, attempts to transliterate Latin input to the selected script before calculation."
+        )
+        self._transliterate_chk.setChecked(False)  # Default to unchecked
+        lang_translit_hbox.addWidget(self._transliterate_chk)
+        lang_translit_hbox.addStretch(
+            1
+        )  # Add stretch to push checkbox to the right of combo, or let them be compact
+
         input_layout.addWidget(QLabel("Language:"), 0, 0)
-        input_layout.addWidget(self._language_combo, 0, 1)
+        input_layout.addLayout(lang_translit_hbox, 0, 1)
 
         # Input text field and virtual keyboard button
         self._input_label = QLabel("Enter Hebrew text:")
@@ -146,23 +164,16 @@ class WordAbacusWidget(QWidget):
         method_group.setStyleSheet("QGroupBox { font-weight: bold; }")
         method_layout = QGridLayout()
 
-        # Type selection (categories)
-        method_layout.addWidget(QLabel("Type:"), 0, 0)
-        self._type_combo = QComboBox()
-        method_layout.addWidget(self._type_combo, 0, 1)
-
         # Method selection (specific calculations)
-        method_layout.addWidget(QLabel("Method:"), 1, 0)
+        method_layout.addWidget(QLabel("Method:"), 0, 0)
         self._method_combo = QComboBox()
-        method_layout.addWidget(self._method_combo, 1, 1)
+        method_layout.addWidget(self._method_combo, 0, 1)
 
         # Custom cipher button
         self._custom_cipher_button = QPushButton("Manage Custom Ciphers")
         self._custom_cipher_button.clicked.connect(self._open_custom_cipher_manager)
-        method_layout.addWidget(self._custom_cipher_button, 2, 0, 1, 2)
+        method_layout.addWidget(self._custom_cipher_button, 1, 0, 1, 2)
 
-        # Connect signals
-        self._type_combo.currentIndexChanged.connect(self._on_type_changed)
         self._method_combo.currentIndexChanged.connect(self._on_method_changed)
 
         method_group.setLayout(method_layout)
@@ -236,146 +247,66 @@ class WordAbacusWidget(QWidget):
         self.setLayout(layout)
 
         # Initialize the language-specific UI
-        self._populate_method_categories()
+        self._populate_methods_for_selected_language()
         self._language_combo.setCurrentIndex(0)  # Default to Hebrew
 
         # Track the virtual keyboard dialog
         self._virtual_keyboard = None
         self._update_virtual_keyboard_button()
 
-    def _populate_method_categories(self) -> None:
-        """Populate the calculation type categories based on the selected language."""
-        language = self._language_combo.currentText()
-        self._type_combo.clear()
-
-        if language == "Hebrew":
-            hebrew_categories: Dict[str, List[MethodType]] = {
-                "Standard Methods": [
-                    CalculationType.MISPAR_HECHRACHI,
-                    CalculationType.MISPAR_SIDURI,
-                ],
-                "Advanced Methods": [
-                    CalculationType.MISPAR_GADOL,
-                    CalculationType.MISPAR_BONEH,
-                    CalculationType.MISPAR_KIDMI,
-                    CalculationType.MISPAR_PERATI,
-                    CalculationType.MISPAR_SHEMI,
-                    CalculationType.MISPAR_MUSAFI,
-                ],
-                "Letter Substitution": [
-                    CalculationType.MISPAR_MESHUPACH,
-                    CalculationType.ALBAM,
-                    CalculationType.ATBASH,
-                ],
-            }
-
-            # Add custom ciphers category if available
-            hebrew_custom_ciphers = self._custom_cipher_service.get_ciphers(
-                LanguageType.HEBREW
-            )
-            if hebrew_custom_ciphers:
-                hebrew_categories["Custom Methods"] = cast(
-                    List[MethodType], hebrew_custom_ciphers
-                )
-
-            # Store the categories and their methods
-            self._method_categories = hebrew_categories
-
-            # Add the categories to the combobox
-            for category in hebrew_categories.keys():
-                self._type_combo.addItem(category)
-
-            # Set default category to Standard Methods
-            self._type_combo.setCurrentIndex(0)
-
-        elif language == "Greek":
-            greek_categories: Dict[str, List[MethodType]] = {
-                "Standard Methods": [
-                    CalculationType.GREEK_ISOPSOPHY,
-                    CalculationType.GREEK_ORDINAL,
-                ],
-                "Advanced Methods": [
-                    CalculationType.GREEK_SQUARED,
-                    CalculationType.GREEK_BUILDING,
-                    CalculationType.GREEK_TRIANGULAR,
-                    CalculationType.GREEK_HIDDEN,
-                    CalculationType.GREEK_FULL_NAME,
-                    CalculationType.GREEK_ADDITIVE,
-                ],
-                "Letter Substitution": [
-                    CalculationType.GREEK_REVERSAL,
-                    CalculationType.GREEK_ALPHA_MU,
-                    CalculationType.GREEK_ALPHA_OMEGA,
-                ],
-            }
-
-            # Add custom ciphers category if available
-            greek_custom_ciphers = self._custom_cipher_service.get_ciphers(
-                LanguageType.GREEK
-            )
-            if greek_custom_ciphers:
-                greek_categories["Custom Methods"] = cast(
-                    List[MethodType], greek_custom_ciphers
-                )
-
-            # Store the categories and their methods
-            self._method_categories = greek_categories
-
-            # Add the categories to the combobox
-            for category in greek_categories.keys():
-                self._type_combo.addItem(category)
-
-            # Set default category to Standard Methods
-            self._type_combo.setCurrentIndex(0)
-
-        elif language == "English":
-            english_categories: Dict[str, List[MethodType]] = {
-                "Standard Methods": [CalculationType.TQ_ENGLISH],
-            }
-
-            # Add custom ciphers category if available
-            english_custom_ciphers = self._custom_cipher_service.get_ciphers(
-                LanguageType.ENGLISH
-            )
-            if english_custom_ciphers:
-                english_categories["Custom Methods"] = cast(
-                    List[MethodType], english_custom_ciphers
-                )
-
-            # Store the categories and their methods
-            self._method_categories = english_categories
-
-            # Add the categories to the combobox
-            for category in english_categories.keys():
-                self._type_combo.addItem(category)
-
-            # Set default category (only one for English)
-            self._type_combo.setCurrentIndex(0)
-
-    def _populate_methods(self) -> None:
-        """Populate the methods combobox based on selected category."""
+    def _populate_methods_for_selected_language(self) -> None:
+        """Populate the methods combobox based on the selected language."""
         self._method_combo.clear()
 
-        category = self._type_combo.currentText()
-        if not category or category not in self._method_categories:
-            return
+        current_language_str = self._language_combo.currentText()
+        language_enum: Optional[Language] = None
 
-        methods = self._method_categories[category]
+        if current_language_str == "Hebrew":
+            language_enum = Language.HEBREW
+        elif current_language_str == "Greek":
+            language_enum = Language.GREEK
+        elif current_language_str == "English":
+            language_enum = Language.ENGLISH
+        elif current_language_str == "Coptic":
+            language_enum = Language.COPTIC
+        elif current_language_str == "Arabic":
+            language_enum = Language.ARABIC
 
-        # Add methods to combo box
-        for method in methods:
-            if isinstance(method, CalculationType):
-                # Handle enum-based calculation types
-                display_name = method.name.replace("_", " ").title()
-                self._method_combo.addItem(display_name, method)
-            elif isinstance(method, CustomCipherConfig):
-                # Handle custom cipher configs
-                display_name = method.name
-                self._method_combo.addItem(display_name, method)
+        all_methods_for_combo: List[MethodType] = []
 
-        # Set the first method as default
-        if methods:
+        if language_enum:
+            # Add standard calculation types for the language
+            standard_types = CalculationType.get_types_for_language(language_enum)
+            all_methods_for_combo.extend(standard_types)
+
+            # Add custom ciphers for the language
+            # Ensure LanguageType enum exists and maps correctly from our Language enum
+            try:
+                lang_type_for_custom = LanguageType(
+                    language_enum.value.lower()
+                )  # Map our Language to CustomCipher's LanguageType
+                custom_ciphers = self._custom_cipher_service.get_ciphers(
+                    lang_type_for_custom
+                )
+                all_methods_for_combo.extend(cast(List[MethodType], custom_ciphers))
+            except ValueError as e:
+                logger.error(f"Could not get LanguageType for {language_enum}: {e}")
+
+        # Populate the combo box
+        for method_item in all_methods_for_combo:
+            if isinstance(method_item, CalculationType):
+                self._method_combo.addItem(
+                    method_item.display_name, method_item
+                )  # Use .display_name
+            elif isinstance(method_item, CustomCipherConfig):
+                self._method_combo.addItem(method_item.name, method_item)
+            # else: unknown type, could log or ignore
+
+        if all_methods_for_combo:
             self._method_combo.setCurrentIndex(0)
+        else:
+            # Optionally, add a placeholder if no methods are available
+            self._method_combo.addItem("No methods available", None)
 
     def _on_language_changed(self, language_index_or_text: Union[int, str]) -> None:
         """Handle language selection change.
@@ -383,40 +314,15 @@ class WordAbacusWidget(QWidget):
         Args:
             language_index_or_text: Index of the selected language or the language text
         """
-        # Get the language text if an index was provided
         if isinstance(language_index_or_text, int):
             language = self._language_combo.itemText(language_index_or_text)
         else:
             language = language_index_or_text
 
-        # Update the input label based on the language
         self._input_label.setText(f"Enter {language} text:")
-
-        # Clear the input field
         self._input_field.clear()
-
-        # Populate the method categories for the selected language
-        self._populate_method_categories()
-
-        # Update virtual keyboard button
+        self._populate_methods_for_selected_language()
         self._update_virtual_keyboard_button()
-
-    def _on_type_changed(self, index: int) -> None:
-        """Handle method type selection changes.
-
-        Args:
-            index: The selected index in the combo box
-        """
-        self._populate_methods()
-
-    def _on_input_changed(self, text: str) -> None:
-        """Handle text input changes.
-
-        Args:
-            text: The new text value
-        """
-        # Enable calculate button if text is not empty
-        self._calc_button.setEnabled(bool(text.strip()))
 
     def _on_method_changed(self, index: int) -> None:
         """Handle calculation method changes.
@@ -428,8 +334,6 @@ class WordAbacusWidget(QWidget):
 
     def _calculate(self) -> None:
         """Handle calculate button click."""
-        from loguru import logger
-
         logger.debug("WordAbacusWidget._calculate called")
 
         input_text = self._input_field.text().strip()
@@ -439,9 +343,12 @@ class WordAbacusWidget(QWidget):
         # Get selected calculation type
         selected_index = self._method_combo.currentIndex()
         calc_type = self._method_combo.itemData(selected_index)
+        transliterate = self._transliterate_chk.isChecked()
 
         # Perform calculation
-        result_value = self._calculation_service.calculate(input_text, calc_type)
+        result_value = self._calculation_service.calculate(
+            input_text, calc_type, transliterate_input=transliterate
+        )
         print(f"Calculation result: {input_text} = {result_value}")
 
         # Update result display
@@ -451,8 +358,6 @@ class WordAbacusWidget(QWidget):
         self._send_to_polycalc_button.setEnabled(True)
 
         # Create calculation result and add to history
-        from loguru import logger
-
         method_name = self._method_combo.currentText()
         if isinstance(calc_type, CustomCipherConfig):
             # For custom ciphers, we need to handle the history differently
@@ -486,8 +391,6 @@ class WordAbacusWidget(QWidget):
 
     def _update_history_table(self) -> None:
         """Update the history table with the latest calculations."""
-        from loguru import logger
-
         logger.debug("WordAbacusWidget._update_history_table called")
 
         history = self._history_service.get_history()
@@ -523,11 +426,12 @@ class WordAbacusWidget(QWidget):
         """Reset the calculator to its initial state."""
         self._input_field.clear()
         self._result_value.setText("0")
+        self._transliterate_chk.setChecked(False)  # Reset transliterate checkbox
 
         # Reset to defaults based on current language
         language = self._language_combo.currentText()
-        self._populate_method_categories()
-        self._type_combo.setCurrentIndex(0)
+        self._populate_methods_for_selected_language()
+        self._method_combo.setCurrentIndex(0)
 
         self._calc_button.setEnabled(False)
         self._send_to_polycalc_button.setEnabled(False)
@@ -574,13 +478,12 @@ class WordAbacusWidget(QWidget):
             cipher: The updated custom cipher
         """
         # Refresh the method categories to include any new or updated ciphers
-        self._populate_method_categories()
+        self._populate_methods_for_selected_language()
 
     def _connect_signals(self) -> None:
         """Connect UI signals to handlers."""
         # Connect combo box and input field signals
         self._language_combo.currentTextChanged.connect(self._on_language_changed)
-        self._type_combo.currentTextChanged.connect(self._on_type_changed)
         self._method_combo.currentTextChanged.connect(self._on_method_changed)
         self._input_field.textChanged.connect(self._on_input_changed)
 
@@ -590,8 +493,8 @@ class WordAbacusWidget(QWidget):
 
     def _update_ui(self) -> None:
         """Update UI state based on current values."""
-        # Populate method categories based on selected language
-        self._populate_method_categories()
+        # Populate methods based on selected (default) language
+        self._populate_methods_for_selected_language()
 
         # Update input field validation based on selected language
         self._on_language_changed(self._language_combo.currentText())
@@ -599,36 +502,58 @@ class WordAbacusWidget(QWidget):
         # Enable/disable calculation button based on input
         self._on_input_changed(self._input_field.text())
 
-    def _update_virtual_keyboard_button(self):
-        """Show or hide the virtual keyboard button based on language."""
-        lang = self._language_combo.currentText()
-        self._vk_button.setVisible(lang in ("Hebrew", "Greek"))
-        if self._virtual_keyboard:
-            self._virtual_keyboard.close()
-            self._virtual_keyboard = None
+    def _update_virtual_keyboard_button(self) -> None:
+        """Show or hide the virtual keyboard button based on selected language."""
+        selected_language_text = self._language_combo.currentText()
+        if selected_language_text in [
+            Language.HEBREW.value,
+            Language.GREEK.value,
+            Language.COPTIC.value,
+            Language.ARABIC.value,
+        ]:
+            self._vk_button.show()
+        else:  # Hides for English, "All Methods", etc.
+            self._vk_button.hide()
+            if self._virtual_keyboard and self._virtual_keyboard.isVisible():
+                self._virtual_keyboard.hide()
 
-    def _show_virtual_keyboard(self):
-        """Show the floating virtual keyboard for the current language."""
-        lang = self._language_combo.currentText()
-        if lang not in ("Hebrew", "Greek"):
-            return
-        if self._virtual_keyboard:
-            self._virtual_keyboard.close()
-        self._virtual_keyboard = VirtualKeyboardWidget(language=lang, parent=self)
-        self._virtual_keyboard.key_pressed.connect(self._handle_virtual_key)
-        self._virtual_keyboard.show()
-        self._virtual_keyboard.raise_()
-        self._virtual_keyboard.activateWindow()
+    def _show_virtual_keyboard(self) -> None:
+        """Show the virtual keyboard for the selected language."""
+        current_language = self._language_combo.currentText()
+        if current_language in [
+            Language.HEBREW.value,
+            Language.GREEK.value,
+            Language.COPTIC.value,
+            Language.ARABIC.value,
+        ]:
+            if (
+                self._virtual_keyboard is None
+                or self._virtual_keyboard.language != current_language
+            ):
+                self._virtual_keyboard = VirtualKeyboardWidget(
+                    language=current_language, parent=self
+                )
+                self._virtual_keyboard.key_pressed.connect(self._handle_virtual_key)
 
-    def _handle_virtual_key(self, key: str):
+            # Position the keyboard near the input field or button
+            button_pos = self._vk_button.mapToGlobal(
+                self._vk_button.rect().bottomLeft()
+            )
+            self._virtual_keyboard.move(button_pos.x(), button_pos.y())
+            self._virtual_keyboard.show()
+        else:
+            if self._virtual_keyboard is not None:
+                self._virtual_keyboard.hide()
+
+    def _handle_virtual_key(self, key: str) -> None:
         """Handle key press from the virtual keyboard."""
         if key == "<BACKSPACE>":
             cursor_pos = self._input_field.cursorPosition()
             text = self._input_field.text()
             if cursor_pos > 0:
-                text = text[:cursor_pos-1] + text[cursor_pos:]
+                text = text[: cursor_pos - 1] + text[cursor_pos:]
                 self._input_field.setText(text)
-                self._input_field.setCursorPosition(cursor_pos-1)
+                self._input_field.setCursorPosition(cursor_pos - 1)
         elif key == "<CLEAR>":
             self._input_field.clear()
         else:
@@ -637,3 +562,9 @@ class WordAbacusWidget(QWidget):
             text = text[:cursor_pos] + key + text[cursor_pos:]
             self._input_field.setText(text)
             self._input_field.setCursorPosition(cursor_pos + len(key))
+
+    def _on_input_changed(self, text: str) -> None:
+        """Handle input text changes."""
+        # Enable/disable calculation button based on input
+        self._calc_button.setEnabled(bool(text))
+        self._send_to_polycalc_button.setEnabled(bool(text))

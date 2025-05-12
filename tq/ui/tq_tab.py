@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import (
 
 from shared.ui.window_management import TabManager, WindowManager
 from tq.services import tq_analysis_service
-from tq.ui.panels.geometric_transition_panel import GeometricTransitionPanel
 from tq.ui.panels.kamea_of_maut_panel import KameaOfMautPanel
 from tq.ui.panels.pair_finder_panel import PairFinderPanel
 from tq.ui.panels.ternary_dimension_panel import TernaryDimensionalAnalysisPanel
@@ -297,6 +296,9 @@ class TQTab(QWidget):
         super().__init__()
         self.tab_manager = tab_manager
         self.window_manager = window_manager
+
+        # The TQ services are initialized during application startup
+        # We don't need to do anything with them here
 
         # Set layout first
         self.setLayout(QVBoxLayout(self))
@@ -632,7 +634,10 @@ class TQTab(QWidget):
 
     def _open_geometric_transitions(self) -> None:
         """Open the 2D Geometric Transitions panel in a new window."""
-        panel = GeometricTransitionPanel()
-        self.window_manager.open_multi_window(
-            "tq_geometric_transitions", panel, "2D Geometric Transitions", (1200, 700)
-        )
+        # Use the service instance through get_instance()
+        from tq.services.geometric_transition_service import get_instance
+
+        # Get the service instance and open the window
+        service = get_instance()
+        service.open_window()
+        logger.debug("Opened 2D Geometric Transitions window through service")

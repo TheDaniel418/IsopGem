@@ -4,17 +4,93 @@ Polygonal Numbers Visualization Widget.
 This module provides a widget for visualizing polygonal and centered polygonal numbers.
 """
 
-import math
-from typing import List, Tuple, Set, Dict, Optional, Any, Callable, Union
-import random
 import colorsys
 import logging
+import math
+import random
+from typing import Dict, List, Optional, Tuple
 
-from PyQt6.QtCore import Qt, QPointF, pyqtSignal
-from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QMouseEvent, QWheelEvent, QPaintEvent, QPainterPath
-from PyQt6.QtWidgets import QWidget, QSizePolicy, QToolTip
+from PyQt6.QtCore import QPointF, Qt, pyqtSignal
+from PyQt6.QtGui import (
+    QAction,
+    QBrush,
+    QColor,
+    QFont,
+    QMouseEvent,
+    QPainter,
+    QPainterPath,
+    QPaintEvent,
+    QPen,
+    QWheelEvent,
+)
+from PyQt6.QtWidgets import QColorDialog, QMenu, QSizePolicy, QToolTip, QWidget
 
 from geometry.calculator.polygonal_numbers_calculator import PolygonalNumbersCalculator
+
+
+class Connection:
+    """Represents a connection between two dots with styling properties."""
+
+    def __init__(
+        self,
+        dot1: int,
+        dot2: int,
+        color: QColor = None,
+        width: int = 2,
+        style: Qt.PenStyle = Qt.PenStyle.SolidLine,
+    ):
+        """Initialize a connection between two dots.
+
+        Args:
+            dot1: Index of the first dot (1-based)
+            dot2: Index of the second dot (1-based)
+            color: Color of the connection line (default: semi-transparent blue)
+            width: Width of the connection line in pixels (default: 2)
+            style: Line style (default: solid line)
+        """
+        self.dot1 = dot1
+        self.dot2 = dot2
+        self.color = color or QColor(
+            100, 100, 255, 150
+        )  # Default: semi-transparent blue
+        self.width = width
+        self.style = style
+
+    def __eq__(self, other):
+        """Check if two connections are between the same dots (regardless of order).
+
+        Args:
+            other: Another Connection object to compare with
+
+        Returns:
+            True if the connections are between the same dots, False otherwise
+        """
+        if not isinstance(other, Connection):
+            return False
+        return (self.dot1 == other.dot1 and self.dot2 == other.dot2) or (
+            self.dot1 == other.dot2 and self.dot2 == other.dot1
+        )
+
+    def __hash__(self):
+        """Generate a hash for the connection (order-independent).
+
+        Returns:
+            Hash value for the connection
+        """
+        # Sort the dots to ensure the same hash regardless of order
+        dots = sorted([self.dot1, self.dot2])
+        return hash((dots[0], dots[1]))
+
+    def get_pen(self) -> QPen:
+        """Get a QPen configured with this connection's properties.
+
+        Returns:
+            QPen object for drawing this connection
+        """
+        pen = QPen(self.color)
+        pen.setWidth(self.width)
+        pen.setStyle(self.style)
+        return pen
 
 
 class PolygonalNumbersVisualization(QWidget):
@@ -47,8 +123,14 @@ class PolygonalNumbersVisualization(QWidget):
         # Selection mode and state
         self.selection_mode = self.MODE_SELECT  # Current interaction mode
         self.selected_dots = []  # List of selected dot indices
-        self.connections = []  # List of tuples (dot1, dot2) representing connected dots
-        self.show_connections = False  # Whether to show connections between dots (off by default)
+        self.connections = []  # List of Connection objects representing connected dots
+        self.show_connections = (
+            False  # Whether to show connections between dots (off by default)
+        )
+
+        # Context menu state
+        self.right_clicked_dot = None  # Dot that was right-clicked
+        self.right_clicked_connection = None  # Connection that was right-clicked
 
         # Selection rectangle for multi-select
         self.selection_rect_active = False
@@ -63,10 +145,10 @@ class PolygonalNumbersVisualization(QWidget):
 
         # Group colors - add a default color palette
         self.group_colors = {
-            "": QColor(255, 255, 0),         # Yellow for default selection
+            "": QColor(255, 255, 0),  # Yellow for default selection
             "Default": QColor(255, 215, 0),  # Gold
             "Group 1": QColor(0, 120, 215),  # Blue
-            "Group 2": QColor(0, 180, 0),    # Green
+            "Group 2": QColor(0, 180, 0),  # Green
             "Group 3": QColor(215, 0, 120),  # Purple/Magenta
             "Group 4": QColor(255, 120, 0),  # Orange
             "Group 5": QColor(120, 0, 215),  # Violet
@@ -74,7 +156,9 @@ class PolygonalNumbersVisualization(QWidget):
 
         # Layer colors - colors for different layers/gnomons
         self.layer_colors = {}  # Will be populated dynamically
-        self.color_scheme = "rainbow"  # Default color scheme: rainbow, pastel, monochrome, custom
+        self.color_scheme = (
+            "rainbow"  # Default color scheme: rainbow, pastel, monochrome, custom
+        )
         self._generate_layer_colors()
 
         # Last selection for undo
@@ -253,16 +337,29 @@ class PolygonalNumbersVisualization(QWidget):
 
             self._debug_print(f"Restored selection: {self.selected_dots}")
 
-    def add_connection(self, dot1: int, dot2: int) -> None:
+    def add_connection(
+        self,
+        dot1: int,
+        dot2: int,
+        color: QColor = None,
+        width: int = 2,
+        style: Qt.PenStyle = Qt.PenStyle.SolidLine,
+    ) -> None:
         """Add a connection between two dots.
 
         Args:
             dot1: Index of first dot (1-based)
             dot2: Index of second dot (1-based)
+            color: Color of the connection line (default: semi-transparent blue)
+            width: Width of the connection line in pixels (default: 2)
+            style: Line style (default: solid line)
         """
+        # Create a new connection object
+        new_connection = Connection(dot1, dot2, color, width, style)
+
         # Don't add duplicate connections
-        if (dot1, dot2) not in self.connections and (dot2, dot1) not in self.connections:
-            self.connections.append((dot1, dot2))
+        if new_connection not in self.connections:
+            self.connections.append(new_connection)
             self.update()
 
     def connect_selected_dots(self) -> None:
@@ -303,7 +400,9 @@ class PolygonalNumbersVisualization(QWidget):
         # Change the current selection to match the group
         self.selected_dots = self.selection_groups[group_name].copy()
         self._selection_changed = True
-        self._debug_print(f"Changed to group '{group_name}' with {len(self.selected_dots)} dots")
+        self._debug_print(
+            f"Changed to group '{group_name}' with {len(self.selected_dots)} dots"
+        )
 
         # Update the display
         self.selection_changed.emit(self.selected_dots)
@@ -406,13 +505,17 @@ class PolygonalNumbersVisualization(QWidget):
         self.selection_changed.emit(self.selected_dots)
 
         # Update the selection status in the control panel
-        if hasattr(self.parent(), 'controls'):
+        if hasattr(self.parent(), "controls"):
             ctrl = self.parent().controls
-            if hasattr(ctrl, 'selection_status_label'):
-                ctrl.selection_status_label.setText(f"Selected: {len(self.selected_dots)} dots")
+            if hasattr(ctrl, "selection_status_label"):
+                ctrl.selection_status_label.setText(
+                    f"Selected: {len(self.selected_dots)} dots"
+                )
 
         # Debug output
-        self._debug_print(f"Selected {len(valid_indices)} dots, total: {len(self.selected_dots)}")
+        self._debug_print(
+            f"Selected {len(valid_indices)} dots, total: {len(self.selected_dots)}"
+        )
 
     def select_dots_by_layer(self, layer: int) -> None:
         """Select all dots in a specific layer.
@@ -436,7 +539,9 @@ class PolygonalNumbersVisualization(QWidget):
                 break
 
         # Debug output
-        self._debug_print(f"Selecting layer {layer} (UI), has center dot: {has_center_dot}")
+        self._debug_print(
+            f"Selecting layer {layer} (UI), has center dot: {has_center_dot}"
+        )
 
         # If this is a centered polygonal number, adjust the layer
         if has_center_dot:
@@ -454,9 +559,13 @@ class PolygonalNumbersVisualization(QWidget):
 
         if indices:
             self.select_dots_by_indices(indices)
-            self._debug_print(f"Selected {len(indices)} dots in layer {layer} (UI) / {calculator_layer} (calculator)")
+            self._debug_print(
+                f"Selected {len(indices)} dots in layer {layer} (UI) / {calculator_layer} (calculator)"
+            )
         else:
-            self._debug_print(f"No dots found in layer {layer} (UI) / {calculator_layer} (calculator)")
+            self._debug_print(
+                f"No dots found in layer {layer} (UI) / {calculator_layer} (calculator)"
+            )
 
     def paintEvent(self, event: QPaintEvent) -> None:
         """Handle paint events for the visualization.
@@ -498,7 +607,7 @@ class PolygonalNumbersVisualization(QWidget):
                     int(rgb[0] * 255),
                     int(rgb[1] * 255),
                     int(rgb[2] * 255),
-                    200  # Alpha
+                    200,  # Alpha
                 )
 
             color = self.group_colors[group_name]
@@ -524,8 +633,10 @@ class PolygonalNumbersVisualization(QWidget):
         # Draw current selection (on top of everything)
         # Only draw the current selection if it's not already shown as part of the active group
         # or if we're not in show_only_active_group mode
-        if self.selected_dots and (not self.show_only_active_group or
-                                  self.selected_dots != self.selection_groups.get(self.current_group, [])):
+        if self.selected_dots and (
+            not self.show_only_active_group
+            or self.selected_dots != self.selection_groups.get(self.current_group, [])
+        ):
             self._draw_selections(painter, self.selected_dots, self.group_colors[""])
 
         # Draw hover effect
@@ -597,8 +708,12 @@ class PolygonalNumbersVisualization(QWidget):
         # Draw each dot
         for dot_idx, (x, y) in self.dot_positions.items():
             # Skip if out of view
-            if (x < -self.dot_size / 2 or x > self.width() + self.dot_size / 2 or
-                y < -self.dot_size / 2 or y > self.height() + self.dot_size / 2):
+            if (
+                x < -self.dot_size / 2
+                or x > self.width() + self.dot_size / 2
+                or y < -self.dot_size / 2
+                or y > self.height() + self.dot_size / 2
+            ):
                 continue
 
             # Determine dot color based on layer
@@ -628,7 +743,9 @@ class PolygonalNumbersVisualization(QWidget):
 
                 # Set up font for dot numbers
                 number_font = QFont()
-                number_font.setPointSize(max(8, int(self.dot_size / 2)))  # Scale font with dot size
+                number_font.setPointSize(
+                    max(8, int(self.dot_size / 2))
+                )  # Scale font with dot size
                 painter.setFont(number_font)
 
                 # Get text metrics to center the text
@@ -639,7 +756,9 @@ class PolygonalNumbersVisualization(QWidget):
 
                 # Calculate centered position
                 text_x = x - text_width / 2
-                text_y = y + text_height / 4  # Slight vertical adjustment for better centering
+                text_y = (
+                    y + text_height / 4
+                )  # Slight vertical adjustment for better centering
 
                 # Draw text with a small outline for better visibility
                 text_pen = QPen(text_color)
@@ -647,7 +766,9 @@ class PolygonalNumbersVisualization(QWidget):
                 painter.drawText(QPointF(text_x, text_y), text)
                 painter.setPen(dot_pen)  # Reset to dot pen
 
-    def _draw_selections(self, painter: QPainter, dots: List[int], color: QColor) -> None:
+    def _draw_selections(
+        self, painter: QPainter, dots: List[int], color: QColor
+    ) -> None:
         """Draw selection indicators for the given dots.
 
         Args:
@@ -660,7 +781,9 @@ class PolygonalNumbersVisualization(QWidget):
 
         # Set up pen for selection circles
         selection_pen = QPen(color)
-        selection_pen.setWidth(3 if is_active_group else 2)  # Thicker line for active group
+        selection_pen.setWidth(
+            3 if is_active_group else 2
+        )  # Thicker line for active group
         painter.setPen(selection_pen)
 
         # For active group, use a semi-transparent fill to make it more distinct
@@ -673,7 +796,9 @@ class PolygonalNumbersVisualization(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
 
         # Draw selection circle around each selected dot
-        selection_radius = self.dot_size * (1.3 if is_active_group else 1.25)  # Slightly larger for active group
+        selection_radius = self.dot_size * (
+            1.3 if is_active_group else 1.25
+        )  # Slightly larger for active group
         for dot_idx in dots:
             if dot_idx in self.dot_positions:
                 x, y = self.dot_positions[dot_idx]
@@ -699,39 +824,55 @@ class PolygonalNumbersVisualization(QWidget):
             painter.drawEllipse(QPointF(x, y), hover_radius, hover_radius)
 
     def _draw_connections(self, painter: QPainter) -> None:
-        """Draw connections between selected dots.
+        """Draw connections between dots.
 
         Args:
             painter: The QPainter to use
         """
-        # Only show connections if:
-        # 1. The show_connections flag is enabled
-        # 2. Multiple dots are selected
-        if not self.show_connections or len(self.selected_dots) < 2:
+        # Only show connections if the show_connections flag is enabled
+        if not self.show_connections:
             return
 
-        # Set up pen for connections
-        connection_pen = QPen(QColor(100, 100, 255, 150))
-        connection_pen.setWidth(2)
-        painter.setPen(connection_pen)
+        # Draw connections between selected dots if there are at least 2 selected
+        if len(self.selected_dots) >= 2:
+            # Set up pen for connections between selected dots
+            connection_pen = QPen(QColor(100, 100, 255, 150))
+            connection_pen.setWidth(2)
+            painter.setPen(connection_pen)
 
-        # Draw lines between consecutive dots
-        path = QPainterPath()
+            # Draw lines between consecutive dots
+            path = QPainterPath()
 
-        # Start at the first selected dot
-        first_dot = self.selected_dots[0]
-        if first_dot in self.dot_positions:
-            x, y = self.dot_positions[first_dot]
-            path.moveTo(x, y)
+            # Start at the first selected dot
+            first_dot = self.selected_dots[0]
+            if first_dot in self.dot_positions:
+                x, y = self.dot_positions[first_dot]
+                path.moveTo(x, y)
 
-            # Connect to each subsequent dot
-            for dot_idx in self.selected_dots[1:]:
-                if dot_idx in self.dot_positions:
-                    x, y = self.dot_positions[dot_idx]
-                    path.lineTo(x, y)
+                # Connect to each subsequent dot
+                for dot_idx in self.selected_dots[1:]:
+                    if dot_idx in self.dot_positions:
+                        x, y = self.dot_positions[dot_idx]
+                        path.lineTo(x, y)
 
-            # Draw the connection path
-            painter.drawPath(path)
+                # Draw the connection path
+                painter.drawPath(path)
+
+        # Draw all saved connections
+        for connection in self.connections:
+            # Get the positions of the dots
+            if (
+                connection.dot1 in self.dot_positions
+                and connection.dot2 in self.dot_positions
+            ):
+                x1, y1 = self.dot_positions[connection.dot1]
+                x2, y2 = self.dot_positions[connection.dot2]
+
+                # Set the pen for this connection
+                painter.setPen(connection.get_pen())
+
+                # Draw the line
+                painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         """Handle mouse press events for selection and panning.
@@ -747,6 +888,17 @@ class PolygonalNumbersVisualization(QWidget):
             clicked_dot = self._find_dot_at_position(event.position())
 
             if clicked_dot is not None:
+                # Check if we're in the process of connecting dots after right-click
+                if len(self.selected_dots) == 1 and self.right_clicked_dot is not None:
+                    # We're connecting from right_clicked_dot to clicked_dot
+                    if clicked_dot != self.right_clicked_dot:  # Don't connect to self
+                        self.add_connection(self.right_clicked_dot, clicked_dot)
+                        # Clear the selection and right-clicked dot
+                        self.selected_dots = []
+                        self.right_clicked_dot = None
+                        self.update()
+                        return
+
                 # Store current selection for undo
                 self.last_selection = self.selected_dots.copy()
 
@@ -775,12 +927,21 @@ class PolygonalNumbersVisualization(QWidget):
                 self.selection_changed.emit(self.selected_dots)
             else:
                 # Clicked on empty space, clear selection unless modifier key is pressed
-                if not (event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)):
+                if not (
+                    event.modifiers()
+                    & (
+                        Qt.KeyboardModifier.ControlModifier
+                        | Qt.KeyboardModifier.ShiftModifier
+                    )
+                ):
                     # Store current selection for undo
                     self.last_selection = self.selected_dots.copy()
 
                     # Clear selection
                     self.selected_dots = []
+
+                    # Also clear right-clicked dot if we were in the process of connecting
+                    self.right_clicked_dot = None
 
                     # Update display
                     self.update()
@@ -819,9 +980,7 @@ class PolygonalNumbersVisualization(QWidget):
                 # Show tooltip with dot information
                 if hover_dot is not None:
                     QToolTip.showText(
-                        event.globalPosition().toPoint(),
-                        f"Dot: {hover_dot}",
-                        self
+                        event.globalPosition().toPoint(), f"Dot: {hover_dot}", self
                     )
 
         # Accept the event
@@ -880,7 +1039,9 @@ class PolygonalNumbersVisualization(QWidget):
         # Accept the event
         event.accept()
 
-    def _calculate_scale_factor(self, coordinates: List[Tuple[float, float, int, int]]) -> float:
+    def _calculate_scale_factor(
+        self, coordinates: List[Tuple[float, float, int, int]]
+    ) -> float:
         """Calculate an appropriate scale factor based on the coordinates.
 
         Args:
@@ -925,7 +1086,10 @@ class PolygonalNumbersVisualization(QWidget):
         # Draw title
         painter.setFont(title_font)
         painter.setPen(QColor(0, 0, 0))
-        title_text = self.calculator.get_polygonal_name() + f" Number: {self.calculator.calculate_value()}"
+        title_text = (
+            self.calculator.get_polygonal_name()
+            + f" Number: {self.calculator.calculate_value()}"
+        )
         painter.drawText(10, 25, title_text)
 
         # Draw formula
@@ -963,11 +1127,79 @@ class PolygonalNumbersVisualization(QWidget):
 
             # Check if within dot radius (with some extra margin for easier selection)
             selection_radius = self.dot_size
-            if dist_sq <= selection_radius ** 2:
+            if dist_sq <= selection_radius**2:
                 return dot_idx
 
         # No dot found
         return None
+
+    def _find_connection_at_position(self, pos: QPointF) -> Optional[Connection]:
+        """Find a connection near the given position.
+
+        Args:
+            pos: The position to check
+
+        Returns:
+            The Connection object near the position, or None if no connection is found
+        """
+        # Maximum distance from line to consider a hit
+        max_distance = max(
+            4.0, self.dot_size / 3
+        )  # Scales with dot size but has a minimum
+
+        # Check each connection
+        for connection in self.connections:
+            # Get the positions of the dots
+            if (
+                connection.dot1 in self.dot_positions
+                and connection.dot2 in self.dot_positions
+            ):
+                x1, y1 = self.dot_positions[connection.dot1]
+                x2, y2 = self.dot_positions[connection.dot2]
+
+                # Calculate distance from point to line segment
+                distance = self._point_to_line_distance(
+                    pos.x(), pos.y(), x1, y1, x2, y2
+                )
+
+                # Check if close enough to the line
+                if distance <= max_distance:
+                    return connection
+
+        # No connection found
+        return None
+
+    def _point_to_line_distance(
+        self, px: float, py: float, x1: float, y1: float, x2: float, y2: float
+    ) -> float:
+        """Calculate the distance from a point to a line segment.
+
+        Args:
+            px, py: Point coordinates
+            x1, y1: First endpoint of line segment
+            x2, y2: Second endpoint of line segment
+
+        Returns:
+            Distance from point to line segment
+        """
+        # Line segment length squared
+        line_length_sq = (x2 - x1) ** 2 + (y2 - y1) ** 2
+
+        # If the line is actually a point, return distance to that point
+        if line_length_sq == 0:
+            return math.sqrt((px - x1) ** 2 + (py - y1) ** 2)
+
+        # Calculate projection of point onto line
+        t = max(
+            0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / line_length_sq)
+        )
+
+        # Calculate closest point on line segment
+        closest_x = x1 + t * (x2 - x1)
+        closest_y = y1 + t * (y2 - y1)
+
+        # Return distance to closest point
+        return math.sqrt((px - closest_x) ** 2 + (py - closest_y) ** 2)
 
     def _debug_print(self, message: str) -> None:
         """Print debug message with rate limiting to avoid console spam.
@@ -976,14 +1208,15 @@ class PolygonalNumbersVisualization(QWidget):
             message: Message to print
         """
         # Check if debug output is enabled (default to False if not set)
-        if not hasattr(self, '_debug_output') or not self._debug_output:
+        if not hasattr(self, "_debug_output") or not self._debug_output:
             return
 
         import time
+
         current_time = time.time()
 
         # Initialize _last_output_time if not set
-        if not hasattr(self, '_last_output_time'):
+        if not hasattr(self, "_last_output_time"):
             self._last_output_time = 0
 
         # Only print at most once per second
@@ -993,6 +1226,228 @@ class PolygonalNumbersVisualization(QWidget):
             # Also print to console for immediate feedback
             print(f"[PolygonalNumbersVisualization] {message}")
             self._last_output_time = current_time
+
+    def contextMenuEvent(self, event) -> None:
+        """Handle context menu events (right-click).
+
+        Args:
+            event: The context menu event
+        """
+        # First check if we clicked on a connection
+        connection = self._find_connection_at_position(event.pos())
+        if connection:
+            self.right_clicked_connection = connection
+            self._show_connection_context_menu(event.globalPos())
+            return
+
+        # If not on a connection, check if we clicked on a dot
+        dot = self._find_dot_at_position(event.pos())
+        if dot:
+            self.right_clicked_dot = dot
+            self._show_dot_context_menu(event.globalPos())
+            return
+
+        # If not on a dot or connection, show a general context menu
+        self._show_general_context_menu(event.globalPos())
+
+    def _show_connection_context_menu(self, global_pos) -> None:
+        """Show context menu for a connection.
+
+        Args:
+            global_pos: Global position for the menu
+        """
+        if not self.right_clicked_connection:
+            return
+
+        # Create the menu
+        menu = QMenu(self)
+
+        # Add actions
+        # Change color
+        color_action = QAction("Change Color...", self)
+        color_action.triggered.connect(self._change_connection_color)
+        menu.addAction(color_action)
+
+        # Change width
+        width_menu = QMenu("Change Width", menu)
+        for width in [1, 2, 3, 4, 5]:
+            width_action = QAction(f"{width}px", self)
+            width_action.triggered.connect(
+                lambda _, w=width: self._change_connection_width(w)
+            )
+            width_menu.addAction(width_action)
+        menu.addMenu(width_menu)
+
+        # Change style
+        style_menu = QMenu("Change Style", menu)
+        styles = [
+            ("Solid", Qt.PenStyle.SolidLine),
+            ("Dash", Qt.PenStyle.DashLine),
+            ("Dot", Qt.PenStyle.DotLine),
+            ("Dash-Dot", Qt.PenStyle.DashDotLine),
+            ("Dash-Dot-Dot", Qt.PenStyle.DashDotDotLine),
+        ]
+        for name, style in styles:
+            style_action = QAction(name, self)
+            style_action.triggered.connect(
+                lambda _, s=style: self._change_connection_style(s)
+            )
+            style_menu.addAction(style_action)
+        menu.addMenu(style_menu)
+
+        menu.addSeparator()
+
+        # Delete connection
+        delete_action = QAction("Delete Connection", self)
+        delete_action.triggered.connect(self._delete_connection)
+        menu.addAction(delete_action)
+
+        # Show the menu
+        menu.exec(global_pos)
+
+    def _show_dot_context_menu(self, global_pos) -> None:
+        """Show context menu for a dot.
+
+        Args:
+            global_pos: Global position for the menu
+        """
+        if not self.right_clicked_dot:
+            return
+
+        # Create the menu
+        menu = QMenu(self)
+
+        # Add actions
+        # Connect to another dot
+        connect_action = QAction("Connect to Another Dot...", self)
+        connect_action.triggered.connect(self._connect_to_another_dot)
+        menu.addAction(connect_action)
+
+        # Delete all connections from this dot
+        delete_connections_action = QAction("Delete All Connections", self)
+        delete_connections_action.triggered.connect(self._delete_dot_connections)
+        menu.addAction(delete_connections_action)
+
+        # Show the menu
+        menu.exec(global_pos)
+
+    def _show_general_context_menu(self, global_pos) -> None:
+        """Show general context menu.
+
+        Args:
+            global_pos: Global position for the menu
+        """
+        # Create the menu
+        menu = QMenu(self)
+
+        # Add actions
+        # Toggle connections visibility
+        show_connections_action = QAction("Show Connections", self)
+        show_connections_action.setCheckable(True)
+        show_connections_action.setChecked(self.show_connections)
+        show_connections_action.triggered.connect(self.toggle_connections)
+        menu.addAction(show_connections_action)
+
+        # Clear all connections
+        clear_connections_action = QAction("Clear All Connections", self)
+        clear_connections_action.triggered.connect(self._clear_all_connections)
+        menu.addAction(clear_connections_action)
+
+        # Show the menu
+        menu.exec(global_pos)
+
+    def _change_connection_color(self) -> None:
+        """Change the color of the right-clicked connection."""
+        if not self.right_clicked_connection:
+            return
+
+        # Show color dialog
+        color = QColorDialog.getColor(
+            self.right_clicked_connection.color, self, "Select Connection Color"
+        )
+
+        # If a valid color was selected
+        if color.isValid():
+            # Update the connection color
+            self.right_clicked_connection.color = color
+            self.update()
+
+    def _change_connection_width(self, width: int) -> None:
+        """Change the width of the right-clicked connection.
+
+        Args:
+            width: New width in pixels
+        """
+        if not self.right_clicked_connection:
+            return
+
+        # Update the connection width
+        self.right_clicked_connection.width = width
+        self.update()
+
+    def _change_connection_style(self, style: Qt.PenStyle) -> None:
+        """Change the style of the right-clicked connection.
+
+        Args:
+            style: New line style
+        """
+        if not self.right_clicked_connection:
+            return
+
+        # Update the connection style
+        self.right_clicked_connection.style = style
+        self.update()
+
+    def _delete_connection(self) -> None:
+        """Delete the right-clicked connection."""
+        if not self.right_clicked_connection:
+            return
+
+        # Remove the connection from the list
+        self.connections.remove(self.right_clicked_connection)
+        self.right_clicked_connection = None
+        self.update()
+
+    def _connect_to_another_dot(self) -> None:
+        """Connect the right-clicked dot to another dot."""
+        if not self.right_clicked_dot:
+            return
+
+        # Show a message to the user
+        QToolTip.showText(
+            self.mapToGlobal(self.rect().center()),
+            "Click on another dot to connect",
+            self,
+        )
+
+        # Store the first dot and wait for the next click
+        self.selected_dots = [self.right_clicked_dot]
+        self.update()
+
+    def _delete_dot_connections(self) -> None:
+        """Delete all connections from the right-clicked dot."""
+        if not self.right_clicked_dot:
+            return
+
+        # Find all connections involving this dot
+        connections_to_remove = []
+        for connection in self.connections:
+            if (
+                connection.dot1 == self.right_clicked_dot
+                or connection.dot2 == self.right_clicked_dot
+            ):
+                connections_to_remove.append(connection)
+
+        # Remove the connections
+        for connection in connections_to_remove:
+            self.connections.remove(connection)
+
+        self.update()
+
+    def _clear_all_connections(self) -> None:
+        """Clear all connections."""
+        self.connections = []
+        self.update()
 
     def keyPressEvent(self, event) -> None:
         """Handle key press events for navigation and selection operations.
@@ -1029,20 +1484,32 @@ class PolygonalNumbersVisualization(QWidget):
             self.zoom_level = 1.0
             self.update()
         # Selection operations
-        elif event.key() == Qt.Key.Key_A and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        elif (
+            event.key() == Qt.Key.Key_A
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
             # Ctrl+A to select all dots
             all_dots = list(self.dot_positions.keys())
             self.select_dots_by_indices(all_dots)
-        elif event.key() == Qt.Key.Key_Z and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        elif (
+            event.key() == Qt.Key.Key_Z
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
             # Ctrl+Z to undo selection
             self.undo_selection()
-        elif event.key() == Qt.Key.Key_C and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        elif (
+            event.key() == Qt.Key.Key_C
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
             # Ctrl+C to close the polygon
             self.close_polygon()
         elif event.key() == Qt.Key.Key_Escape:
             # Esc to clear selection
             self.clear_selections()
-        elif event.key() == Qt.Key.Key_S and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        elif (
+            event.key() == Qt.Key.Key_S
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
             # Ctrl+S to toggle selection mode
             self.set_selection_mode(not self.selection_mode)
         else:
@@ -1136,7 +1603,9 @@ class PolygonalNumbersVisualization(QWidget):
             self._generate_layer_colors()
             self.update()
 
-    def perform_group_operation(self, operation: str, groups: list, result_group: str = None) -> None:
+    def perform_group_operation(
+        self, operation: str, groups: list, result_group: str = None
+    ) -> None:
         """Perform set operations between multiple groups.
 
         Args:
@@ -1152,17 +1621,19 @@ class PolygonalNumbersVisualization(QWidget):
         # Check if all groups exist
         missing_groups = [g for g in groups if g not in self.selection_groups]
         if missing_groups:
-            self._debug_print(f"Cannot perform operation - groups do not exist: {missing_groups}")
+            self._debug_print(
+                f"Cannot perform operation - groups do not exist: {missing_groups}"
+            )
             return
 
         # Generate a default result group name if not provided
         if not result_group:
             # Create a name based on the operation and groups
             op_symbol = {
-                'union': '∪',
-                'intersection': '∩',
-                'difference': '−',
-                'symmetric_difference': '⊕'
+                "union": "∪",
+                "intersection": "∩",
+                "difference": "−",
+                "symmetric_difference": "⊕",
             }.get(operation, operation)
 
             # Limit the number of groups in the name to keep it reasonable
@@ -1187,34 +1658,38 @@ class PolygonalNumbersVisualization(QWidget):
             return
 
         # Perform the requested operation
-        if operation == 'union':
+        if operation == "union":
             # Union of all groups
             result = set().union(*group_dots)
             self._debug_print(f"Union of {len(groups)} groups = {len(result)} dots")
 
-        elif operation == 'intersection':
+        elif operation == "intersection":
             # Intersection of all groups
             if group_dots:
                 result = group_dots[0].copy()
                 for dots in group_dots[1:]:
                     result &= dots
-                self._debug_print(f"Intersection of {len(groups)} groups = {len(result)} dots")
+                self._debug_print(
+                    f"Intersection of {len(groups)} groups = {len(result)} dots"
+                )
             else:
                 result = set()
                 self._debug_print("No groups to intersect")
 
-        elif operation == 'difference':
+        elif operation == "difference":
             # Difference: First group minus all others
             if group_dots:
                 result = group_dots[0].copy()
                 for dots in group_dots[1:]:
                     result -= dots
-                self._debug_print(f"Difference: {groups[0]} minus {len(groups)-1} other groups = {len(result)} dots")
+                self._debug_print(
+                    f"Difference: {groups[0]} minus {len(groups)-1} other groups = {len(result)} dots"
+                )
             else:
                 result = set()
                 self._debug_print("No groups for difference operation")
 
-        elif operation == 'symmetric_difference':
+        elif operation == "symmetric_difference":
             # Symmetric difference of all groups
             result = set()
             # Count occurrences of each dot across all groups
@@ -1225,7 +1700,9 @@ class PolygonalNumbersVisualization(QWidget):
 
             # Keep dots that appear an odd number of times
             result = {dot for dot, count in dot_counts.items() if count % 2 == 1}
-            self._debug_print(f"Symmetric difference of {len(groups)} groups = {len(result)} dots")
+            self._debug_print(
+                f"Symmetric difference of {len(groups)} groups = {len(result)} dots"
+            )
 
         else:
             self._debug_print(f"Unknown operation: {operation}")
@@ -1243,7 +1720,9 @@ class PolygonalNumbersVisualization(QWidget):
         # Update the display
         self.update()
 
-    def create_preset_selection(self, preset_type: str, params: Dict = None) -> List[int]:
+    def create_preset_selection(
+        self, preset_type: str, params: Dict = None
+    ) -> List[int]:
         """Create a selection based on a preset pattern.
 
         Args:
@@ -1265,7 +1744,9 @@ class PolygonalNumbersVisualization(QWidget):
             return []
 
         max_dot = max(all_dots)
-        self._debug_print(f"Creating preset selection of type '{preset_type}' with {len(all_dots)} dots (max: {max_dot})")
+        self._debug_print(
+            f"Creating preset selection of type '{preset_type}' with {len(all_dots)} dots (max: {max_dot})"
+        )
 
         if preset_type == "primes":
             # Select prime numbers
@@ -1284,13 +1765,13 @@ class PolygonalNumbersVisualization(QWidget):
 
         elif preset_type == "divisible":
             # Select numbers divisible by n
-            n = params.get('n', 2)
+            n = params.get("n", 2)
             result = [i for i in all_dots if i % n == 0]
             self._debug_print(f"Found {len(result)} numbers divisible by {n}")
 
         elif preset_type == "not_divisible":
             # Select numbers NOT divisible by n
-            n = params.get('n', 2)
+            n = params.get("n", 2)
             result = [i for i in all_dots if i % n != 0]
             self._debug_print(f"Found {len(result)} numbers NOT divisible by {n}")
 
@@ -1316,7 +1797,7 @@ class PolygonalNumbersVisualization(QWidget):
 
         elif preset_type == "square":
             # Select square numbers (n²)
-            result = [i for i in all_dots if int(i**0.5)**2 == i]
+            result = [i for i in all_dots if int(i**0.5) ** 2 == i]
             self._debug_print(f"Found {len(result)} square numbers")
 
         elif preset_type == "pentagonal":
@@ -1324,7 +1805,7 @@ class PolygonalNumbersVisualization(QWidget):
             pentagonal_numbers = []
             n = 1
             while True:
-                pentagonal = n * (3*n - 1) // 2
+                pentagonal = n * (3 * n - 1) // 2
                 if pentagonal > max_dot:
                     break
                 pentagonal_numbers.append(pentagonal)
@@ -1378,11 +1859,24 @@ class PolygonalNumbersVisualization(QWidget):
         # Get all dots from the calculator
         coordinates = self.calculator.get_coordinates()
 
-        for x, y, _, dot_number in coordinates:  # Ignore layer here, we only need position
+        for (
+            x,
+            y,
+            _,
+            dot_number,
+        ) in coordinates:  # Ignore layer here, we only need position
             if dot_number > 0:  # Skip non-numeric positions
                 # Convert grid coordinates to screen coordinates
-                screen_x = self.width() / 2 + (x * self.dot_size * self.zoom_level) + self.pan_x
-                screen_y = self.height() / 2 - (y * self.dot_size * self.zoom_level) + self.pan_y  # Flip y-axis
+                screen_x = (
+                    self.width() / 2
+                    + (x * self.dot_size * self.zoom_level)
+                    + self.pan_x
+                )
+                screen_y = (
+                    self.height() / 2
+                    - (y * self.dot_size * self.zoom_level)
+                    + self.pan_y
+                )  # Flip y-axis
 
                 # Store the position
                 self.dot_positions[dot_number] = (screen_x, screen_y)

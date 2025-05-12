@@ -1,13 +1,21 @@
-"""Import Word List Dialog.
+"""
+Purpose: Provides a dialog for importing word/phrase lists into the Word List Abacus.
 
-This module provides a dialog for importing word lists from CSV, ODS, or Excel spreadsheets.
-Users can map columns to database fields and preview data before import.
+This file is part of the gematria pillar and serves as a UI component.
+It provides a dialog interface for users to import lists of words and phrases
+from various sources like text files or clipboard.
+
+Key components:
+- ImportWordListDialog: Dialog for importing word lists
+
+Dependencies:
+- PyQt6: For UI components
 """
 
+import csv
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 
-import pandas as pd
 from loguru import logger
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
@@ -15,31 +23,38 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
     QFileDialog,
-    QGridLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
-    QProgressBar,
     QPushButton,
-    QSpinBox,
-    QTableWidget,
-    QTableWidgetItem,
+    QRadioButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
-from gematria.models.calculation_result import CalculationResult
-from gematria.models.calculation_type import CalculationType, language_from_text
-from gematria.services.calculation_database_service import CalculationDatabaseService
-from gematria.services.gematria_service import GematriaService
+# Import Language enum
+from gematria.models.calculation_type import Language
+
+# Imports for ODS handling
+try:
+    from odf import table as odf_table
+    from odf import teletype as odf_teletype
+    from odf import text as odf_text
+    from odf.opendocument import load as odf_load
+
+    ODFPY_AVAILABLE = True
+except ImportError:
+    ODFPY_AVAILABLE = False
+    logger.warning("odfpy library not found. ODS file import will be disabled.")
 
 
 class ImportWordListDialog(QDialog):
-    """Dialog for importing word lists from spreadsheets."""
+    """Dialog for importing word lists into the Word List Abacus."""
 
-    # Signal emitted when the import is complete
-    import_complete = pyqtSignal(int)  # Number of words imported
+    # Signal emitted when import is complete with list of words, language, and count
+    # Updated to emit a list of dictionaries: [{'word': str, 'notes': Optional[str], 'tags': Optional[List[str]]}, ...]
+    import_complete = pyqtSignal(list, Language, int)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         """Initialize the dialog.
@@ -48,487 +63,709 @@ class ImportWordListDialog(QDialog):
             parent: Parent widget
         """
         super().__init__(parent)
-
-        # Initialize services
-        self._gematria_service = GematriaService()
-        self._db_service = CalculationDatabaseService()
-
-        # Initialize data containers
-        self._dataframe: Optional[pd.DataFrame] = None
-        self._column_mapping: Dict[str, str] = {}
-        self._header_row: int = 0
-        self._file_path: str = ""
-        self._file_type: str = ""
-        self._selected_sheet: str = ""
-        self._preview_rows: int = 10
-
-        # Initialize UI
-        self._setup_ui()
-
-        # Set dialog properties
         self.setWindowTitle("Import Word/Phrase List")
-        self.setMinimumSize(800, 600)
-        self.setModal(True)
+        self.setMinimumSize(600, 500)
+        self._word_list = []
+        self._selected_language: Language = Language.HEBREW  # Default language
 
-    def _setup_ui(self) -> None:
-        """Set up the user interface."""
-        layout = QVBoxLayout()
+        self._init_ui()
 
-        # File Selection Section
-        file_group = QGroupBox("File Selection")
-        file_layout = QGridLayout()
+    def _init_ui(self) -> None:
+        """Initialize UI components."""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        # Source selection group
+        source_label = QLabel("Select Import Source:")
+        source_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        layout.addWidget(source_label)
+
+        # Source radio buttons
+        source_group = QWidget()
+        source_layout = QHBoxLayout(source_group)
+        source_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._file_radio = QRadioButton("From File")
+        self._clipboard_radio = QRadioButton("From Clipboard")
+        self._manual_radio = QRadioButton("Manual Entry")
+
+        # Default selection
+        self._file_radio.setChecked(True)
+
+        # Connect signals
+        self._file_radio.toggled.connect(self._update_source_ui)
+        self._clipboard_radio.toggled.connect(self._update_source_ui)
+        self._manual_radio.toggled.connect(self._update_source_ui)
+
+        source_layout.addWidget(self._file_radio)
+        source_layout.addWidget(self._clipboard_radio)
+        source_layout.addWidget(self._manual_radio)
+        source_layout.addStretch()
+
+        layout.addWidget(source_group)
+
+        # File import controls
+        self._file_group = QWidget()
+        file_layout = QHBoxLayout(self._file_group)
+        file_layout.setContentsMargins(0, 0, 0, 0)
 
         self._file_path_label = QLabel("No file selected")
-        select_file_button = QPushButton("Select File")
-        select_file_button.clicked.connect(self._select_file)
+        file_layout.addWidget(self._file_path_label)
 
-        file_layout.addWidget(QLabel("File:"), 0, 0)
-        file_layout.addWidget(self._file_path_label, 0, 1)
-        file_layout.addWidget(select_file_button, 0, 2)
+        self._browse_button = QPushButton("Browse...")
+        self._browse_button.clicked.connect(self._browse_for_file)
+        file_layout.addWidget(self._browse_button)
 
-        # Header row selection
-        self._header_spin = QSpinBox()
-        self._header_spin.setMinimum(1)
-        self._header_spin.setMaximum(10)
-        self._header_spin.setValue(1)
-        self._header_spin.valueChanged.connect(self._update_preview)
+        layout.addWidget(self._file_group)
 
-        file_layout.addWidget(QLabel("Header Row (1 = first row):"), 1, 0)
-        file_layout.addWidget(self._header_spin, 1, 1)
+        # Language selection
+        language_selection_label = QLabel("Language of Words:")
+        language_selection_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        layout.addWidget(language_selection_label)
 
-        # Sheet selection for Excel files
-        self._sheet_combo = QComboBox()
-        self._sheet_combo.setEnabled(False)
-        self._sheet_combo.currentTextChanged.connect(self._change_sheet)
+        self._language_combo = QComboBox()
+        for lang in Language:
+            if (
+                lang != Language.UNKNOWN
+            ):  # Don't include UNKNOWN as a selectable import language
+                self._language_combo.addItem(lang.value, lang)
+        self._language_combo.setCurrentText(
+            self._selected_language.value
+        )  # Set default
+        self._language_combo.currentIndexChanged.connect(self._on_language_changed)
+        layout.addWidget(self._language_combo)
 
-        file_layout.addWidget(QLabel("Sheet:"), 2, 0)
-        file_layout.addWidget(self._sheet_combo, 2, 1)
+        # Format options
+        format_label = QLabel("Format Options:")
+        format_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        layout.addWidget(format_label)
 
-        file_group.setLayout(file_layout)
-        layout.addWidget(file_group)
+        format_group = QWidget()
+        format_layout = QHBoxLayout(format_group)
+        format_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Column Mapping Section
-        mapping_group = QGroupBox("Column Mapping")
-        mapping_layout = QGridLayout()
+        self._delimiter_label = QLabel("Delimiter:")
+        format_layout.addWidget(self._delimiter_label)
 
-        # Word/Phrase column selection
-        self._word_column_combo = QComboBox()
-        self._word_column_combo.currentTextChanged.connect(
-            lambda text: self._update_column_mapping("word", text)
+        self._delimiter_combo = QComboBox()
+        self._delimiter_combo.addItems(
+            ["Line Break", "Comma", "Tab", "Space", "Semicolon"]
         )
+        format_layout.addWidget(self._delimiter_combo)
 
-        # Notes column selection
-        self._notes_column_combo = QComboBox()
-        self._notes_column_combo.currentTextChanged.connect(
-            lambda text: self._update_column_mapping("notes", text)
+        format_layout.addStretch()
+
+        self._has_header_check = QCheckBox("First row is header")
+        format_layout.addWidget(self._has_header_check)
+
+        layout.addWidget(format_group)
+
+        # Preview/edit area
+        preview_label = QLabel("Preview/Edit:")
+        preview_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        layout.addWidget(preview_label)
+
+        self._preview_text = QTextEdit()
+        self._preview_text.setPlaceholderText(
+            "Words/phrases will appear here for preview or editing.\n"
+            "Each line will be treated as a separate word or phrase if 'Line Break' is delimiter.\n"
+            "Otherwise, the selected delimiter will be used from loaded content."
         )
+        layout.addWidget(self._preview_text)
 
-        # Tags column selection
-        self._tags_column_combo = QComboBox()
-        self._tags_column_combo.currentTextChanged.connect(
-            lambda text: self._update_column_mapping("tags", text)
-        )
+        # Action buttons
+        button_group = QWidget()
+        button_layout = QHBoxLayout(button_group)
+        button_layout.setContentsMargins(0, 0, 0, 0)
 
-        mapping_layout.addWidget(QLabel("Word/Phrase Column:"), 0, 0)
-        mapping_layout.addWidget(self._word_column_combo, 0, 1)
-
-        mapping_layout.addWidget(QLabel("Notes Column:"), 1, 0)
-        mapping_layout.addWidget(self._notes_column_combo, 1, 1)
-
-        mapping_layout.addWidget(QLabel("Tags Column:"), 2, 0)
-        mapping_layout.addWidget(self._tags_column_combo, 2, 1)
-
-        # Checkbox to enable auto-detection of language
-        self._detect_language_checkbox = QCheckBox("Auto-detect language for each word")
-        self._detect_language_checkbox.setChecked(True)
-        mapping_layout.addWidget(self._detect_language_checkbox, 3, 0, 1, 2)
-
-        # Calculate with all methods checkbox
-        self._calc_all_methods_checkbox = QCheckBox(
-            "Calculate using all available methods"
-        )
-        self._calc_all_methods_checkbox.setChecked(True)
-        mapping_layout.addWidget(self._calc_all_methods_checkbox, 4, 0, 1, 2)
-
-        mapping_group.setLayout(mapping_layout)
-        layout.addWidget(mapping_group)
-
-        # Preview Section
-        preview_group = QGroupBox("Data Preview")
-        preview_layout = QVBoxLayout()
-
-        self._preview_table = QTableWidget()
-        self._preview_table.setAlternatingRowColors(True)
-        preview_layout.addWidget(self._preview_table)
-
-        preview_group.setLayout(preview_layout)
-        layout.addWidget(preview_group)
-
-        # Import Progress
-        self._progress_bar = QProgressBar()
-        self._progress_bar.setVisible(False)
-        layout.addWidget(self._progress_bar)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-
-        self._import_button = QPushButton("Import")
-        self._import_button.setEnabled(False)
-        self._import_button.clicked.connect(self._import_data)
-
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.reject)
+        self._load_button = QPushButton("Load")
+        self._load_button.clicked.connect(self._load_from_source)
+        button_layout.addWidget(self._load_button)
 
         button_layout.addStretch()
-        button_layout.addWidget(self._import_button)
+
+        # Cancel button
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        layout.addLayout(button_layout)
+        # Import button
+        self._import_button = QPushButton("Import")
+        self._import_button.setEnabled(False)
+        self._import_button.clicked.connect(self._import_word_list)
+        self._import_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                font-weight: bold;
+                padding: 8px 16px;
+            }
+            QPushButton:disabled {
+                background-color: #95a5a6;
+            }
+            """
+        )
+        button_layout.addWidget(self._import_button)
 
-        self.setLayout(layout)
+        layout.addWidget(button_group)
 
-    def _select_file(self) -> None:
-        """Open a file dialog to select a spreadsheet file."""
+        # Initial UI update
+        self._update_source_ui()
+
+    def _update_source_ui(self) -> None:
+        """Update UI based on selected source."""
+        # File controls visibility
+        self._file_group.setVisible(self._file_radio.isChecked())
+
+        # Delimiter options relevance
+        format_controls_enabled = (
+            self._file_radio.isChecked() or self._clipboard_radio.isChecked()
+        )
+        self._delimiter_label.setEnabled(format_controls_enabled)
+        self._delimiter_combo.setEnabled(format_controls_enabled)
+        self._has_header_check.setEnabled(format_controls_enabled)
+
+        # Edit capability based on source
+        self._preview_text.setReadOnly(not self._manual_radio.isChecked())
+        self._load_button.setEnabled(not self._manual_radio.isChecked())
+
+        # If manual entry, enable import button based on content
+        if self._manual_radio.isChecked():
+            self._import_button.setEnabled(
+                bool(self._preview_text.toPlainText().strip())
+            )
+        else:
+            self._import_button.setEnabled(False)
+
+    def _browse_for_file(self) -> None:
+        """Open file dialog to select a text file."""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Spreadsheet File",
+            "Select Word List File",
             "",
-            "Spreadsheet Files (*.csv *.xlsx *.xls *.ods);;All Files (*)",
+            "Text Files (*.txt);;CSV Files (*.csv);;LibreOffice Calc (*.ods);;All Files (*)",
         )
 
-        if not file_path:
-            return
-
-        self._file_path = file_path
-        self._file_path_label.setText(os.path.basename(file_path))
-
-        # Determine file type
-        _, ext = os.path.splitext(file_path.lower())
-        self._file_type = ext
-
-        # If Excel file, populate sheet names
-        if ext in [".xlsx", ".xls"]:
-            self._load_excel_sheets()
+        if file_path:
+            self._file_path_label.setText(os.path.basename(file_path))
+            self._file_path_label.setToolTip(file_path)  # Keep tooltip for user hover
+            self._file_path_label.setProperty(
+                "file_path", file_path
+            )  # Store full path as property
         else:
-            # For CSV and ODS, just load the data
-            self._sheet_combo.setEnabled(False)
-            self._sheet_combo.clear()
-            self._load_data()
+            # Clear the property if no file is selected or dialog is cancelled
+            self._file_path_label.setText("No file selected")
+            self._file_path_label.setToolTip("")
+            self._file_path_label.setProperty("file_path", None)
 
-    def _load_excel_sheets(self) -> None:
-        """Load sheet names from an Excel file."""
+    def _load_from_source(self) -> None:
+        """Load content from the selected source."""
         try:
-            # Load Excel file
-            xl = pd.ExcelFile(self._file_path)
+            if self._file_radio.isChecked():
+                self._load_from_file()
+            elif self._clipboard_radio.isChecked():
+                self._load_from_clipboard()
+            # No need for manual case as it's handled directly in the text edit
 
-            # Update sheet combo box
-            self._sheet_combo.clear()
-            # Ensure all sheet names are strings
-            sheet_names = [str(name) for name in xl.sheet_names]
-            self._sheet_combo.addItems(sheet_names)
-            self._sheet_combo.setEnabled(True)
-
-            # Select first sheet
-            if sheet_names:
-                self._selected_sheet = str(sheet_names[0])
-                self._load_data()
-
-        except Exception as e:
-            logger.error(f"Error loading Excel sheets: {e}")
-            QMessageBox.critical(
-                self, "Error Loading File", f"Could not load Excel sheets: {str(e)}"
+            # Enable import if content is loaded
+            self._import_button.setEnabled(
+                bool(self._preview_text.toPlainText().strip())
             )
 
-    def _change_sheet(self, sheet_name: str) -> None:
-        """Change the selected Excel sheet.
-
-        Args:
-            sheet_name: Name of the sheet to load
-        """
-        if sheet_name:
-            self._selected_sheet = sheet_name
-            self._load_data()
-
-    def _load_data(self) -> None:
-        """Load data from the selected file."""
-        try:
-            # Read data based on file type
-            if self._file_type == ".csv":
-                # For pandas, header=0 means use the first row as header
-                header_param = (
-                    self._header_spin.value() - 1
-                )  # Convert from 1-indexed UI to 0-indexed pandas
-                self._dataframe = pd.read_csv(self._file_path, header=header_param)
-            elif self._file_type in [".xlsx", ".xls"]:
-                header_param = self._header_spin.value() - 1
-                self._dataframe = pd.read_excel(
-                    self._file_path,
-                    sheet_name=self._selected_sheet,
-                    header=header_param,
-                )
-            elif self._file_type == ".ods":
-                header_param = self._header_spin.value() - 1
-                self._dataframe = pd.read_excel(
-                    self._file_path, engine="odf", header=header_param
-                )
-            else:
-                raise ValueError(f"Unsupported file type: {self._file_type}")
-
-            # Update column mappings
-            self._update_column_combos()
-
-            # Update preview
-            self._update_preview()
-
-            # Enable import button
-            self._import_button.setEnabled(True)
-
         except Exception as e:
-            logger.error(f"Error loading data: {e}")
+            logger.error(f"Error loading words: {e}")
             QMessageBox.critical(
-                self, "Error Loading File", f"Could not load data: {str(e)}"
-            )
-
-    def _update_column_combos(self) -> None:
-        """Update column mapping combo boxes with available columns."""
-        if self._dataframe is None:
-            return
-
-        # Get column names
-        columns = list(self._dataframe.columns)
-
-        # Clear and update combo boxes
-        self._word_column_combo.clear()
-        self._notes_column_combo.clear()
-        self._tags_column_combo.clear()
-
-        self._word_column_combo.addItems([str(col) for col in columns])
-        self._notes_column_combo.addItems([""] + [str(col) for col in columns])
-        self._tags_column_combo.addItems([""] + [str(col) for col in columns])
-
-        # Try to auto-select columns based on names
-        for col in columns:
-            col_lower = col.lower()
-            if any(term in col_lower for term in ["word", "phrase", "text"]):
-                self._word_column_combo.setCurrentText(col)
-            elif any(term in col_lower for term in ["note", "description", "comment"]):
-                self._notes_column_combo.setCurrentText(col)
-            elif any(term in col_lower for term in ["tag", "category", "label"]):
-                self._tags_column_combo.setCurrentText(col)
-
-        # Set initial column mappings
-        word_column = self._word_column_combo.currentText()
-        notes_column = self._notes_column_combo.currentText()
-        tags_column = self._tags_column_combo.currentText()
-
-        self._update_column_mapping("word", word_column)
-        self._update_column_mapping("notes", notes_column)
-        self._update_column_mapping("tags", tags_column)
-
-    def _update_column_mapping(self, field: str, column: str) -> None:
-        """Update the mapping between database fields and spreadsheet columns.
-
-        Args:
-            field: Database field name
-            column: Spreadsheet column name
-        """
-        if column:
-            self._column_mapping[field] = column
-        elif field in self._column_mapping:
-            del self._column_mapping[field]
-
-    def _update_preview(self) -> None:
-        """Update the preview table with data from the file."""
-        if self._dataframe is None or not self._file_path:
-            return
-
-        # Get updated header row parameter (0-indexed for pandas)
-        header_param = self._header_spin.value() - 1
-
-        try:
-            # Reload data with the new header row
-            if self._file_type == ".csv":
-                self._dataframe = pd.read_csv(self._file_path, header=header_param)
-            elif self._file_type in [".xlsx", ".xls"]:
-                self._dataframe = pd.read_excel(
-                    self._file_path,
-                    sheet_name=self._selected_sheet,
-                    header=header_param,
-                )
-            elif self._file_type == ".ods":
-                self._dataframe = pd.read_excel(
-                    self._file_path, engine="odf", header=header_param
-                )
-
-            # Update column mappings after reloading
-            self._update_column_combos()
-        except Exception as e:
-            logger.error(f"Error updating header row: {e}")
-            return
-
-        # Get data for preview
-        preview_df = self._dataframe.head(self._preview_rows)
-
-        # Update table
-        self._preview_table.setRowCount(len(preview_df))
-        self._preview_table.setColumnCount(len(preview_df.columns))
-
-        # Set headers
-        self._preview_table.setHorizontalHeaderLabels(list(preview_df.columns))
-
-        # Populate data
-        for row_idx, (_, row) in enumerate(preview_df.iterrows()):
-            for col_idx, value in enumerate(row):
-                item = QTableWidgetItem(str(value))
-                self._preview_table.setItem(row_idx, col_idx, item)
-
-        # Resize columns to content
-        self._preview_table.resizeColumnsToContents()
-
-    def _import_data(self) -> None:
-        """Import the data from the spreadsheet into the database."""
-        if self._dataframe is None or "word" not in self._column_mapping:
-            QMessageBox.warning(
                 self,
-                "Invalid Configuration",
-                "Please select a column for Word/Phrase field.",
+                "Import Error",
+                f"An error occurred while loading the word list: {str(e)}",
+                QMessageBox.StandardButton.Ok,
             )
+
+    def _load_from_file(self) -> None:
+        """Load words from the selected file."""
+        file_path = self._file_path_label.property("file_path")
+
+        if (
+            not file_path
+        ):  # Check if file_path is None or empty after retrieving from property
+            QMessageBox.warning(self, "Warning", "Please select a file first.")
             return
 
-        word_column = self._column_mapping["word"]
-        notes_column = self._column_mapping.get("notes", "")
-        tags_column = self._column_mapping.get("tags", "")
+        _, file_extension = os.path.splitext(file_path)
+        file_extension = file_extension.lower()
 
-        auto_detect = self._detect_language_checkbox.isChecked()
-        calc_all_methods = self._calc_all_methods_checkbox.isChecked()
+        content_items: List[
+            Dict[str, Union[str, Optional[List[str]]]]
+        ] = []  # List of dicts
 
-        # Create progress tracking
-        self._progress_bar.setVisible(True)
-        self._progress_bar.setMinimum(0)
-        total_rows = len(self._dataframe)
-        self._progress_bar.setMaximum(total_rows)
-        self._progress_bar.setValue(0)
+        try:
+            if file_extension == ".txt":
+                with open(file_path, "r", encoding="utf-8") as f:
+                    # For TXT, assume each line is a word, no separate notes/tags columns
+                    lines = f.readlines()
+                    for line in lines:
+                        content_items.append(
+                            {"word": line.strip(), "notes": None, "tags": []}
+                        )
+            elif file_extension == ".csv":
+                content_items = self._parse_csv_content(file_path)
+            elif file_extension == ".ods":
+                if ODFPY_AVAILABLE:
+                    content_items = self._parse_ods_content(file_path)
+                else:
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        "ODS file support is not available. Please install the 'odfpy' library.",
+                    )
+                    return
+            # Add elif for .xlsx if openpyxl is to be supported
+            # elif file_extension in [".xlsx", ".xlsm"]:
+            #     if OPENPYXL_AVAILABLE:
+            #         content_items = self._parse_excel_content(file_path)
+            #     else:
+            #         QMessageBox.critical(self, "Error", "Excel file support (openpyxl) is not available.")
+            #         return
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Unsupported File",
+                    f"File type {file_extension} is not supported.",
+                )
+                return
 
-        # Disable import button
-        self._import_button.setEnabled(False)
-        
-        # Pre-fetch all existing tags to validate against
-        existing_tags = {}
-        all_tags = self._db_service.get_all_tags()
-        for tag in all_tags:
-            existing_tags[tag.name.lower()] = tag.id
-        
-        logger.debug(f"Found {len(existing_tags)} existing tags for validation")
+            # Enhanced preview content
+            preview_lines = []
+            for item in content_items[
+                :50
+            ]:  # Preview up to 50 items to keep it manageable
+                line_parts = []
+                if item.get("word"):
+                    line_parts.append(f"Word: {item['word']}")
+                if item.get("notes"):
+                    notes_snippet = item["notes"][:50] + (
+                        "..." if len(item["notes"]) > 50 else ""
+                    )
+                    line_parts.append(f"Notes: {notes_snippet}")
+                if item.get("tags") and isinstance(item["tags"], list) and item["tags"]:
+                    tags_str = ", ".join(item["tags"][:5])  # Show up to 5 tags
+                    if len(item["tags"]) > 5:
+                        tags_str += ", ..."
+                    line_parts.append(f"Tags: [{tags_str}]")
+                preview_lines.append(" | ".join(line_parts))
 
-        # Import each word
-        import_count = 0
-        for i, (_, row) in enumerate(self._dataframe.iterrows()):
-            # Update progress - use counter index which is guaranteed to be int
-            self._progress_bar.setValue(i + 1)
+            self._preview_text.setPlainText("\n".join(preview_lines))
+            self._word_list = content_items  # Store the list of dicts
+            self._import_button.setEnabled(bool(self._word_list))
+            logger.info(f"Loaded {len(self._word_list)} items from {file_path}")
 
-            # Get word/phrase
-            word = str(row[word_column])
-            if not word or word.lower() == "nan":
+        except Exception as e:
+            logger.error(f"Error loading file {file_path}: {e}")
+            QMessageBox.critical(self, "Error", f"Could not load file: {e}")
+            self._preview_text.clear()
+            self._word_list = []
+            self._import_button.setEnabled(False)
+
+    def _parse_ods_content(
+        self, file_path: str
+    ) -> List[Dict[str, Union[str, Optional[List[str]]]]]:
+        """Parse content from an ODS file."""
+        if not ODFPY_AVAILABLE:
+            logger.error("Attempted to parse ODS content but odfpy is not available.")
+            return []
+
+        logger.debug("--- ODS PARSE GRANULAR DEBUGGER V2 ---")
+        logger.debug(f"Value of odf_table module itself: {odf_table}")
+        logger.debug(f"Type of odf_table module itself: {type(odf_table)}")
+        try:
+            logger.debug(
+                f"Value of odf_table.Table (direct access prior to getattr): {odf_table.Table}"
+            )
+            logger.debug(
+                f"Type of odf_table.Table (direct access prior to getattr): {type(odf_table.Table)}"
+            )
+        except AttributeError:
+            logger.debug(
+                "AttributeError: odf_table.Table does not exist for direct access."
+            )
+        except Exception as e:
+            logger.debug(f"Error accessing odf_table.Table directly: {e}")
+
+        # Explicitly get types from the odf.table module to ensure they are valid for isinstance
+        ODFTableType = getattr(odf_table, "Table", None)  # This is <function Table ...>
+        ODFTableRowType = getattr(
+            odf_table, "TableRow", None
+        )  # This is <function TableRow ...>
+        ODFTableCellType = getattr(
+            odf_table, "TableCell", None
+        )  # This is <function TableCell ...>
+
+        logger.debug("--- AFTER GETATTR ---")
+        logger.debug(f"Value of ODFTableType (from getattr): {ODFTableType}")
+        logger.debug(f"Type of ODFTableType (from getattr): {type(ODFTableType)}")
+        logger.debug(f"Value of ODFTableRowType (from getattr): {ODFTableRowType}")
+        logger.debug(f"Type of ODFTableRowType (from getattr): {type(ODFTableRowType)}")
+        logger.debug(f"Value of ODFTableCellType (from getattr): {ODFTableCellType}")
+        logger.debug(
+            f"Type of ODFTableCellType (from getattr): {type(ODFTableCellType)}"
+        )
+
+        if not all([ODFTableType, ODFTableRowType, ODFTableCellType]):
+            logger.error(
+                "Critical error (Caught by 'if not all'): Could not dynamically resolve odfpy Table, TableRow, or TableCell functions. "
+                "One or more of them resolved to None via getattr."
+            )
+            return []
+
+        # Define expected qnames directly as tuples.
+        TABLE_NAMESPACE = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+        EXPECTED_TABLE_QNAME = (TABLE_NAMESPACE, "table")
+        EXPECTED_ROW_QNAME = (TABLE_NAMESPACE, "table-row")
+        EXPECTED_CELL_QNAME = (TABLE_NAMESPACE, "table-cell")
+
+        logger.debug(f"Expected QName for Table: {EXPECTED_TABLE_QNAME}")
+        logger.debug(f"Expected QName for TableRow: {EXPECTED_ROW_QNAME}")
+        logger.debug(f"Expected QName for TableCell: {EXPECTED_CELL_QNAME}")
+
+        content_items: List[Dict[str, Union[str, Optional[List[str]]]]] = []
+        doc = odf_load(file_path)
+        has_header = self._has_header_check.isChecked()
+
+        tables = doc.spreadsheet.getElementsByType(ODFTableType)  # Use resolved type
+
+        if not tables:
+            logger.warning(f"No tables found in ODS file: {file_path}")
+            return []
+
+        sheet = tables[0]
+        if not (hasattr(sheet, "qname") and sheet.qname == EXPECTED_TABLE_QNAME):
+            logger.warning(
+                f"First sheet retrieved (qname: {getattr(sheet, 'qname', 'N/A')}) is not a table element as expected (expected {EXPECTED_TABLE_QNAME}). Aborting ODS parse."
+            )
+            return []
+
+        word_col_idx, notes_col_idx, tags_col_idx = -1, -1, -1
+
+        actual_rows = sheet.getElementsByType(ODFTableRowType)  # Use resolved type
+        num_rows = len(actual_rows)
+
+        if num_rows == 0:
+            logger.info(f"Sheet in {file_path} has no rows.")
+            return []
+
+        note_header_aliases = ["notes", "note", "description", "desc", "details"]
+        tag_header_aliases = ["tags", "tag", "keywords", "category", "categories"]
+
+        if has_header:
+            header_row_element = actual_rows[0]
+            if (
+                hasattr(header_row_element, "qname")
+                and header_row_element.qname == EXPECTED_ROW_QNAME
+            ):
+                header_cells = header_row_element.getElementsByType(ODFTableCellType)
+                num_cols_in_header = len(header_cells)
+                for i, cell_element in enumerate(header_cells):
+                    if (
+                        hasattr(cell_element, "qname")
+                        and cell_element.qname == EXPECTED_CELL_QNAME
+                    ):
+                        cell_text = (
+                            odf_teletype.extractText(cell_element).strip().lower()
+                        )
+                        if cell_text == "word":
+                            word_col_idx = i
+                        elif cell_text in note_header_aliases:
+                            notes_col_idx = i
+                        elif cell_text in tag_header_aliases:
+                            tags_col_idx = i
+
+                if (
+                    word_col_idx == -1 and num_cols_in_header > 0
+                ):  # If "word" header not found, default to first col
+                    word_col_idx = 0
+                # No positional fallback for notes and tags if their headers are not found
+            else:  # Header row not a proper table-row
+                has_header = False
+                logger.warning(
+                    "Header row was not a TableRow element, treating as no header."
+                )
+                if num_rows > 0:  # If there are data rows, first col is word
+                    word_col_idx = 0
+                # notes_col_idx and tags_col_idx remain -1
+
+        if not has_header:
+            if num_rows > 0:  # If there are data rows, first col is word
+                word_col_idx = 0
+            # notes_col_idx and tags_col_idx remain -1 (no notes/tags if no header)
+
+        start_row_index_in_actual_rows = 1 if has_header else 0
+        for r_idx in range(start_row_index_in_actual_rows, num_rows):
+            row_element = actual_rows[r_idx]
+            if not (
+                hasattr(row_element, "qname")
+                and row_element.qname == EXPECTED_ROW_QNAME
+            ):
+                logger.warning(
+                    f"Skipping row {r_idx} as its qname ({getattr(row_element, 'qname', 'N/A')}) is not a table-row (expected {EXPECTED_ROW_QNAME})."
+                )
                 continue
 
-            # Get notes and tags if available
-            notes = ""
-            if notes_column and notes_column in row:
-                notes = str(row[notes_column])
-                if notes.lower() == "nan":
-                    notes = ""
+            cells_in_row = row_element.getElementsByType(ODFTableCellType)
+            num_cells_in_current_row = len(cells_in_row)
+            word, notes, tags_str = None, None, None
 
-            valid_tag_ids = []
-            if tags_column and tags_column in row:
-                tags_str = str(row[tags_column])
-                if tags_str and tags_str.lower() != "nan":
-                    # Split tags by comma or semicolon
-                    tag_names = [t.strip() for t in tags_str.replace(";", ",").split(",")]
-                    tag_names = [t for t in tag_names if t]  # Filter out empty tags
-                    
-                    # Validate tags exist in database
-                    for tag_name in tag_names:
-                        # Look up tag ID by name (case-insensitive)
-                        tag_id = existing_tags.get(tag_name.lower())
-                        if tag_id:
-                            valid_tag_ids.append(tag_id)
-                        else:
-                            # Optional: Could create missing tags here
-                            logger.warning(f"Tag '{tag_name}' not found, skipping")
+            if word_col_idx != -1 and num_cells_in_current_row > word_col_idx:
+                cell = cells_in_row[word_col_idx]
+                if hasattr(cell, "qname") and cell.qname == EXPECTED_CELL_QNAME:
+                    word = odf_teletype.extractText(cell).strip()
 
-            # Auto-detect language if enabled
-            language = None
-            if auto_detect:
-                language = language_from_text(word)
+            if notes_col_idx != -1 and num_cells_in_current_row > notes_col_idx:
+                cell = cells_in_row[notes_col_idx]
+                if hasattr(cell, "qname") and cell.qname == EXPECTED_CELL_QNAME:
+                    notes = odf_teletype.extractText(cell).strip() or None
 
-            if language:
-                try:
-                    # Get all calculation methods for the detected language
-                    if calc_all_methods:
-                        # Get all calculation types for the language
-                        calc_types = CalculationType.get_types_for_language(language)
+            if tags_col_idx != -1 and num_cells_in_current_row > tags_col_idx:
+                cell = cells_in_row[tags_col_idx]
+                if hasattr(cell, "qname") and cell.qname == EXPECTED_CELL_QNAME:
+                    tags_str = odf_teletype.extractText(cell).strip() or None
 
-                        # Calculate and save for each type
-                        for calc_type in calc_types:
-                            value = self._gematria_service.calculate(
-                                text=word,
-                                calculation_type=calc_type,
-                            )
-                            
-                            # Convert enum to string representation to avoid FK constraint issues
-                            calc_type_str = str(calc_type.value)
-                            
-                            # Create result manually to use string value
-                            result = CalculationResult(
-                                input_text=word,
-                                calculation_type=calc_type_str,  # Store as string
-                                result_value=value,
-                                notes=notes,
-                                tags=valid_tag_ids,  # Use validated tag IDs
-                                favorite=False,
-                            )
-                            
-                            # Save to database
-                            self._db_service.save_calculation(result)
-                            import_count += 1
-                    else:
-                        # Use default method for the language
-                        default_type = CalculationType.get_default_for_language(language)
-                        if default_type:
-                            value = self._gematria_service.calculate(
-                                text=word,
-                                calculation_type=default_type,
-                            )
-                            
-                            # Convert enum to string representation
-                            calc_type_str = str(default_type.value)
-                            
-                            # Create result manually
-                            result = CalculationResult(
-                                input_text=word,
-                                calculation_type=calc_type_str,  # Store as string
-                                result_value=value,
-                                notes=notes,
-                                tags=valid_tag_ids,  # Use validated tag IDs
-                                favorite=False,
-                            )
-                            
-                            # Save to database
-                            self._db_service.save_calculation(result)
-                            import_count += 1
-                except Exception as e:
-                    logger.error(f"Error importing word '{word}': {e}")
-                    continue
+            tags_list = [t.strip() for t in tags_str.split(",")] if tags_str else []
 
-        # Show completion message
-        QMessageBox.information(
-            self,
-            "Import Complete",
-            f"Successfully imported {import_count} word calculations.",
+            if word:  # Only add if a word was found
+                content_items.append({"word": word, "notes": notes, "tags": tags_list})
+
+        return content_items
+
+    def _parse_csv_content(
+        self, file_path: str
+    ) -> List[Dict[str, Union[str, Optional[List[str]]]]]:
+        """Parse content from a CSV file."""
+        content_items: List[Dict[str, Union[str, Optional[List[str]]]]] = []
+        has_header = self._has_header_check.isChecked()
+
+        word_col_idx, notes_col_idx, tags_col_idx = -1, -1, -1
+
+        note_header_aliases = ["notes", "note", "description", "desc", "details"]
+        tag_header_aliases = ["tags", "tag", "keywords", "category", "categories"]
+
+        with open(file_path, mode="r", encoding="utf-8", newline="") as csvfile:
+            reader = csv.reader(csvfile)
+
+            first_row_data = None
+            try:
+                first_row_data = next(reader)
+            except StopIteration:
+                return []  # Empty file
+
+            if has_header:
+                num_cols_in_header = len(first_row_data)
+                for i, header_text in enumerate(first_row_data):
+                    header_text_lower = header_text.strip().lower()
+                    if header_text_lower == "word":
+                        word_col_idx = i
+                    elif header_text_lower in note_header_aliases:
+                        notes_col_idx = i
+                    elif header_text_lower in tag_header_aliases:
+                        tags_col_idx = i
+
+                if (
+                    word_col_idx == -1 and num_cols_in_header > 0
+                ):  # Default word to first col if not found by header
+                    word_col_idx = 0
+                # No positional fallback for notes and tags
+            else:  # No header
+                if len(first_row_data) > 0:  # First col is word
+                    word_col_idx = 0
+                # notes_col_idx and tags_col_idx remain -1
+
+                # Process the first row as data if it wasn't a header
+                word, notes, tags_str = None, None, None
+                if word_col_idx != -1 and len(first_row_data) > word_col_idx:
+                    word = first_row_data[word_col_idx].strip()
+                # Notes and tags will be None as their col_idx are -1 if no header
+                if notes_col_idx != -1 and len(first_row_data) > notes_col_idx:
+                    notes = first_row_data[notes_col_idx].strip() or None
+                if tags_col_idx != -1 and len(first_row_data) > tags_col_idx:
+                    tags_str = first_row_data[tags_col_idx].strip() or None
+
+                tags_list = [t.strip() for t in tags_str.split(",")] if tags_str else []
+                if word:  # Only add if a word was found
+                    content_items.append(
+                        {"word": word, "notes": notes, "tags": tags_list}
+                    )
+
+            # Process remaining rows
+            for row_data in reader:
+                word, notes, tags_str = None, None, None
+                if word_col_idx != -1 and len(row_data) > word_col_idx:
+                    word = row_data[word_col_idx].strip()
+                # Notes and tags will be None if their col_idx are -1
+                if notes_col_idx != -1 and len(row_data) > notes_col_idx:
+                    notes = row_data[notes_col_idx].strip() or None
+                if tags_col_idx != -1 and len(row_data) > tags_col_idx:
+                    tags_str = row_data[tags_col_idx].strip() or None
+
+                tags_list = [t.strip() for t in tags_str.split(",")] if tags_str else []
+                if word:  # Only add if a word was found
+                    content_items.append(
+                        {"word": word, "notes": notes, "tags": tags_list}
+                    )
+        return content_items
+
+    def _load_from_clipboard(self) -> None:
+        """Load content from the clipboard."""
+        from PyQt6.QtGui import QGuiApplication
+
+        clipboard = QGuiApplication.clipboard()
+        content = clipboard.text()
+
+        if not content:
+            QMessageBox.warning(
+                self,
+                "Empty Clipboard",
+                "The clipboard is empty or does not contain text.",
+                QMessageBox.StandardButton.Ok,
+            )
+            return
+
+        # Process based on selected delimiter
+        delimiter = self._get_delimiter()
+        words = []
+
+        if delimiter == "\n":
+            words = [line.strip() for line in content.split("\n") if line.strip()]
+        else:
+            words = [word.strip() for word in content.split(delimiter) if word.strip()]
+
+        # Apply header handling
+        if self._has_header_check.isChecked() and words:
+            words = words[1:]
+
+        # Set the preview text
+        self._preview_text.setPlainText("\n".join(words))
+
+    def _get_delimiter(self) -> str:
+        """Get the actual delimiter character based on the selection.
+
+        Returns:
+            The delimiter character
+        """
+        delimiter_text = self._delimiter_combo.currentText()
+        if delimiter_text == "Line Break":
+            return "\n"
+        elif delimiter_text == "Comma":
+            return ","
+        elif delimiter_text == "Tab":
+            return "\t"
+        elif delimiter_text == "Space":
+            return " "
+        elif delimiter_text == "Semicolon":
+            return ";"
+        return "\n"  # Default
+
+    def _import_word_list(self) -> None:
+        """Finalize the import and emit the signal."""
+        # For manual entry/edits, parse the preview text.
+        # For file/clipboard, self._word_list is already populated with dicts.
+
+        final_items_to_import: List[Dict[str, Union[str, Optional[List[str]]]]] = []
+
+        if self._manual_radio.isChecked() or (
+            self._clipboard_radio.isChecked() and not self._word_list
+        ):  # if clipboard was empty or manual mode
+            text_content = self._preview_text.toPlainText()
+            if not text_content.strip():
+                QMessageBox.warning(self, "Empty List", "The list is empty.")
+                return
+
+            delimiter_str = self._get_delimiter()
+            lines = []
+            if delimiter_str == "\n":  # Line break
+                lines = text_content.splitlines()
+            else:
+                # This simple split might not be robust enough if words/phrases contain the delimiter.
+                # For manual entry, it's usually one item per line, or simple delimiters.
+                # A more robust CSV-like parsing for manual entry with arbitrary delimiters is complex.
+                # Assuming simple splitting is okay for preview/manual entry.
+                lines = text_content.split(delimiter_str)
+
+            for line in lines:
+                # For manual entry, assume only words are provided, no distinct notes/tags columns.
+                # Users would type "word, note, tag1;tag2" and need to parse that single line, which is beyond simple delimiter.
+                # So, for now, treat each delimited item as just a 'word'.
+                stripped_line = line.strip()
+                if stripped_line:
+                    final_items_to_import.append(
+                        {"word": stripped_line, "notes": None, "tags": []}
+                    )
+
+        elif self._word_list and isinstance(
+            self._word_list[0], dict
+        ):  # Loaded from file (ODS/CSV)
+            final_items_to_import = self._word_list
+
+        elif self._word_list:  # Loaded from TXT file or old clipboard (list of strings)
+            for item_str in self._word_list:
+                if isinstance(item_str, str) and item_str.strip():
+                    final_items_to_import.append(
+                        {"word": item_str.strip(), "notes": None, "tags": []}
+                    )
+
+        if not final_items_to_import:
+            QMessageBox.warning(self, "Empty List", "No words to import.")
+            return
+
+        word_count = len(final_items_to_import)
+        self.import_complete.emit(
+            final_items_to_import, self._selected_language, word_count
         )
-
-        # Emit completion signal
-        self.import_complete.emit(import_count)
-
-        # Close dialog
+        logger.info(
+            f"Emitting import_complete with {word_count} items for language {self._selected_language.value}"
+        )
         self.accept()
+
+    def get_word_list(
+        self,
+    ) -> List[Dict[str, Union[str, Optional[List[str]]]]]:  # Changed return type
+        """Return the list of imported words with their associated data."""
+        return self._word_list  # self._word_list now stores list of dicts
+
+    def get_selected_language(self) -> Language:
+        """Get the selected language for the import.
+
+        Returns:
+            The selected language
+        """
+        return self._selected_language
+
+    def _on_language_changed(self) -> None:
+        """Handle language selection change."""
+        selected_data = self._language_combo.currentData()
+        if isinstance(selected_data, Language):
+            self._selected_language = selected_data
+            logger.debug(f"Import language changed to: {self._selected_language.value}")
+        else:
+            # Fallback or error if data is not Language enum as expected
+            # This shouldn't happen if addItem was done correctly
+            logger.error(
+                f"Unexpected data type for language combo: {type(selected_data)}"
+            )
+            # Default to a known language or handle error
+            self._selected_language = Language.HEBREW  # Or some other safe default
+
+
+# Example usage (for testing the dialog independently)
+if __name__ == "__main__":
+    import sys
+
+    from PyQt6.QtWidgets import QApplication
+
+    app = QApplication(sys.argv)
+    dialog = ImportWordListDialog()
+    if dialog.exec() == QDialog.DialogCode.Accepted:
+        words = dialog.get_word_list()
+        language = dialog.get_selected_language()
+        logger.info(f"Imported words ({language.value}): {words}")
+    sys.exit(app.exec())

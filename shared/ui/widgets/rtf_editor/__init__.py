@@ -15,6 +15,8 @@ tables, images, and custom annotations.
 
 Key components:
 - RTFEditorWindow: Main rich text editor window
+- RichTextEditorWidget: Lightweight embeddable rich text editor
+- BaseRTFEditor: Abstract base class defining editor interface
 - DocumentFormat: Model for document serialization and storage
 - CommandHistory: Command pattern implementation for undo/redo
 
@@ -22,6 +24,7 @@ Dependencies:
 - PyQt6: For UI components
 """
 
+from .base_rtf_editor import BaseRTFEditor
 from .commands import (
     AlignmentCommand,
     Command,
@@ -36,13 +39,19 @@ from .document_manager import DocumentManager
 from .format_toolbar import FormatToolBar
 from .image_manager import ImageManager
 from .models import AnnotationMetadata, DocumentFormat, ImageMetadata, TableMetadata
+from .rich_text_editor_widget import RichTextEditorWidget
 from .rtf_editor_window import RTFEditorWindow
 from .table_manager import TableManager
+
+# Include utility classes
+from .utils import ImageUtils, StyleMappingsUtils, TextFormattingUtils
 from .zoom_manager import ZoomManager
 
 # Export main classes
 __all__ = [
     "RTFEditorWindow",
+    "RichTextEditorWidget",
+    "BaseRTFEditor",
     "FormatToolBar",
     "TableManager",
     "ImageManager",
@@ -60,4 +69,7 @@ __all__ = [
     "FormatCommand",
     "AlignmentCommand",
     "InsertImageCommand",
+    "TextFormattingUtils",
+    "StyleMappingsUtils",
+    "ImageUtils",
 ]

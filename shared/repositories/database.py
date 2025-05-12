@@ -234,7 +234,7 @@ class Database:
             input_text TEXT NOT NULL,
             calculation_type TEXT NOT NULL,
             custom_method_name TEXT,
-            result_value INTEGER NOT NULL,
+            result_value TEXT NOT NULL,
             favorite BOOLEAN NOT NULL DEFAULT 0,
             notes TEXT,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

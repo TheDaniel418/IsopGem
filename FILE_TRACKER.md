@@ -3,9 +3,37 @@ This directory contains reusable widget components for the Gematria functionalit
 
 #### Key Files
 - `word_abacus_widget.py`: Main calculator widget for gematria calculations, now supports a floating virtual keyboard for Hebrew/Greek input.
+- `word_list_abacus_widget.py`: Widget for calculating gematria values for lists of words simultaneously, supporting multiple calculation methods and filtering by value.
+- `word_group_chain_panel.py`: Panel for organizing words into groups and creating calculation chains between words from different groups.
 - `calculation_detail_widget.py`: Widget for displaying detailed calculation results.
 - `virtual_keyboard_widget.py`: Floating virtual keyboard for Hebrew/Greek input, used by `word_abacus_widget.py` to allow users to input non-Latin characters easily.
-- `.cursor/mcp.json`: Stores configuration for MCP servers, including GitHub, MCP Installer, @21st-dev/magic, and now context7 (for Upstash Context7 MCP integration). 
+- `.cursor/mcp.json`: Stores configuration for MCP servers, including GitHub, MCP Installer, @21st-dev/magic, and now context7 (for Upstash Context7 MCP integration).
+
+### /gematria/ui/panels
+This directory contains panel components for the Gematria functionality, serving as containers for widgets.
+
+#### Key Files
+- `word_list_abacus_panel.py`: Panel containing the Word List Abacus widget, providing a complete interface for batch gematria calculations.
+
+### /gematria/ui/windows
+This directory contains window components for the Gematria functionality.
+
+#### Key Files
+- `word_abacus_window.py`: Main window component for the Gematria Word Abacus, providing a standalone window for individual word calculations.
+- `word_list_abacus_window.py`: Window for the Word List Abacus functionality.
+- `word_group_chain_window.py`: Window for the Word Group Chain feature, allowing users to organize words into groups and create calculation chains.
+- `calculation_history_window.py`: Window for displaying the calculation history.
+
+### /gematria/ui/dialogs
+This directory contains dialog components for the Gematria functionality.
+
+#### Key Files
+- `custom_cipher_dialog.py`: Dialog for managing custom gematria ciphers.
+- `gematria_help_dialog.py`: Help dialog providing documentation and usage instructions.
+- `import_word_list_dialog.py`: Dialog for importing lists of words/phrases.
+- `save_calculation_dialog.py`: Dialog for saving calculation results.
+- `tag_selection_dialog.py`: Dialog for selecting and managing tags.
+- `edit_tags_window.py`: Window for editing tags associated with calculations.
 
 ### /astrology
 This directory contains the core astrology pillar, focused on birth chart calculations and essential astrological models, services, and UI components. All planner, event, and database manager features have been removed for a streamlined, chart-centric architecture.
@@ -47,7 +75,7 @@ Utility functions for the astrology pillar, supporting mathematical and structur
 This directory contains additional UI components for the astrology pillar.
 
 #### Key Files
-- `zodiac_conrune_division_panel.py`: PyQt6 panel for visualizing Zodiac and Kamea/Conrune divisions. Displays the factors of 360 and 364, and is designed for future graphical enhancements such as wheel visualizations, using the ZodiacConruneDivisionService for data. 
+- `zodiac_conrune_division_panel.py`: PyQt6 panel for visualizing Zodiac and Kamea/Conrune divisions. Displays the factors of 360 and 364, and is designed for future graphical enhancements such as wheel visualizations, using the ZodiacConruneDivisionService for data.
 
 ### /document_manager/ui/panels
 This directory contains additional UI components for the document manager.
@@ -80,4 +108,12 @@ This directory contains dialogs for the document manager.
 #### Key Files
 - `quick_note_dialog.py`: Dialog for quick note creation/editing
 
-**Update:** The Notes Manager feature and all related files have been purged from the codebase as of [date]. 
+**Update:** The Notes Manager feature and all related files have been purged from the codebase as of [date].
+
+### astrology/ui/widgets/kamea_calendar
+This directory contains widgets for visualizing and interacting with the Kamea Cosmic Calendar.
+
+#### Key Files
+- `calendar_visualization_widget.py`: Provides a circular calendar visualization that displays relationships between calendar days and Kamea mathematics
+- `conrune_pair_widget.py`: Widget for displaying and exploring the conrune pairs that form the mathematical foundation of the Kamea Calendar
+- `__init__.py`: Exports the kamea calendar widgets

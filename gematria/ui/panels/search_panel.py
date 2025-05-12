@@ -207,7 +207,9 @@ class SearchPanel(QWidget):
 
             # Log if we didn't find anything
             if result is None:
-                logger.debug("No window manager found in parent widget chain, but this is expected when opened from other panels")
+                logger.debug(
+                    "No window manager found in parent widget chain, but this is expected when opened from other panels"
+                )
 
         except Exception as e:
             logger.error(f"Error while finding window manager: {e}")
@@ -566,45 +568,89 @@ class SearchPanel(QWidget):
         Returns:
             Display name for the calculation method
         """
-        # Custom method name takes precedence
-        if (
-            hasattr(calculation, "custom_method_name")
-            and calculation.custom_method_name
-        ):
+        logger.debug(
+            f"_get_method_name for input: '{calculation.input_text}'. "
+            f"calc_type is: {calculation.calculation_type}, "
+            f"type is: {type(calculation.calculation_type)}"
+        )
+
+        # Priority 1: Custom method name explicitly set on the result
+        if calculation.custom_method_name:
             return f"Custom: {calculation.custom_method_name}"
 
-        # Handle the case when calculation_type is None
-        if calculation.calculation_type is None:
-            return "Unknown"
+        # Priority 2: calculation_type is already a CalculationType enum instance
+        if isinstance(calculation.calculation_type, CalculationType):
+            return calculation.calculation_type.display_name
 
-        # Handle the case when it's a CalculationType enum
-        if hasattr(calculation.calculation_type, "name"):
-            return calculation.calculation_type.name.replace("_", " ").title()
-
-        # Handle the case when it's a custom method (string)
+        # Priority 3: calculation_type is a string - attempt to resolve it
         if isinstance(calculation.calculation_type, str):
-            # Try to convert number strings to readable method names
+            calc_type_str = calculation.calculation_type
+
+            # 3a: Check if it's an enum member NAME (e.g., "HEBREW_STANDARD_VALUE")
             try:
-                # If it's a string that represents an integer, try to convert to enum
-                if calculation.calculation_type.isdigit():
-                    enum_value = int(calculation.calculation_type)
-                    for ct in CalculationType:
-                        if ct.value == enum_value:
-                            return ct.name.replace("_", " ").title()
-            except (ValueError, AttributeError):
-                pass
+                enum_member = CalculationType[calc_type_str]
+                logger.debug(
+                    f"Resolved string '{calc_type_str}' to enum member {enum_member.name} by name."
+                )
+                return enum_member.display_name
+            except KeyError:
+                pass  # Not a direct enum member name, try other string formats
 
-            # If we couldn't convert to enum, just format the string
-            return calculation.calculation_type.replace("_", " ").title()
+            # 3b: Check for old stringified tuple format, e.g., "('Hebrew Standard Value', ...)"
+            if calc_type_str.startswith("(") and calc_type_str.endswith(")"):
+                try:
+                    first_quote_start = calc_type_str.find("'")
+                    if first_quote_start != -1:
+                        first_quote_end = calc_type_str.find("'", first_quote_start + 1)
+                        if first_quote_end != -1:
+                            potential_display_name = calc_type_str[
+                                first_quote_start + 1 : first_quote_end
+                            ]
+                            logger.debug(
+                                f"Parsed display name '{potential_display_name}' from string tuple '{calc_type_str}'."
+                            )
+                            # Optionally, we could try to match this display name back to a current enum member's display_name
+                            # for consistency, but for now, returning the parsed name is a good step.
+                            return potential_display_name
+                except Exception as e:
+                    logger.warning(
+                        f"Error parsing string tuple '{calc_type_str}': {e}. Will fallback."
+                    )
 
-        # Handle case when it's an integer
-        if isinstance(calculation.calculation_type, int):
-            for ct in CalculationType:
-                if ct.value == calculation.calculation_type:
-                    return ct.name.replace("_", " ").title()
+            # 3c: Handle "CUSTOM_CIPHER" literal string if custom_method_name wasn't set
+            if calc_type_str == "CUSTOM_CIPHER":
+                logger.debug(
+                    "Encountered 'CUSTOM_CIPHER' string as calc_type without a custom_method_name."
+                )
+                return "Custom Cipher (Name Missing)"
 
-        # Fallback case - just convert to string
-        return str(calculation.calculation_type)
+            # 3d: Handle purely numeric strings (e.g., "3") - This is where a specific mapping would be useful
+            # For now, we'll just indicate it's a legacy ID.
+            if calc_type_str.isdigit():
+                logger.warning(
+                    f"Encountered numeric string calc_type: '{calc_type_str}'. This is likely an unmappable legacy ID."
+                )
+                # TODO: Implement a mapping here if old numeric IDs correspond to known method names.
+                # Example: legacy_id_map = {"3": "Hebrew Standard Value (Legacy ID)"}
+                # if calc_type_str in legacy_id_map: return legacy_id_map[calc_type_str]
+                return f"Unmapped Legacy ID: {calc_type_str}"
+
+            # 3e: Fallback for other strings - display as is (could be an old custom name)
+            logger.warning(
+                f"Treating string calc_type '{calc_type_str}' as a literal display name (possibly legacy)."
+            )
+            return calc_type_str
+
+        # Priority 4: Fallback for None or any other unexpected type
+        if calculation.calculation_type is None:
+            logger.warning("_get_method_name: calculation.calculation_type is None.")
+            return "Unknown Method (None)"
+
+        logger.error(
+            f"_get_method_name: Unexpected type for calculation.calculation_type: "
+            f"{type(calculation.calculation_type)} with value '{calculation.calculation_type}'."
+        )
+        return f"Unknown Method Type ({str(calculation.calculation_type)})"
 
     def _on_result_selected(self) -> None:
         """Handle selection change in the results table."""

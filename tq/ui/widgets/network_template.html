@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Integrated Kamea Network</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background-color: #f9f9f9; }
+        svg { background-color: #ffffff; border: 1px solid #ddd; border-radius: 5px; }
+
+        /* Links */
+        .links line {
+            stroke-opacity: 0.6;
+            transition: stroke-opacity 0.3s, stroke-width 0.3s;
+        }
+        .links line:hover {
+            stroke-opacity: 1.0;
+            stroke-width: 3px;
+        }
+
+        /* Nodes */
+        .nodes circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+            transition: r 0.3s, stroke-width 0.3s;
+            cursor: pointer;
+        }
+        .nodes circle:hover {
+            stroke-width: 3px;
+            r: 1.5em !important;
+        }
+
+        /* Labels */
+        .node-label {
+            font-size: 10px;
+            pointer-events: none;
+            font-weight: bold;
+            text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            padding: 5px 0;
+            min-width: 150px;
+            z-index: 1000;
+            display: none;
+        }
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .context-menu-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* Loading Indicator */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 2000;
+            display: none;
+        }
+        .loading-indicator::after {
+            content: "...";
+            animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60%, 100% { content: "..."; }
+        }
+
+        /* Status Message */
+        .status-message {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1500;
+            display: none;
+            transition: opacity 0.5s;
+        }
+
+        /* Family groups */
+        .immutable { fill: #1f77b4; }
+        .pure_conrune { fill: #ff7f0e; }
+        .complementary { fill: #2ca02c; }
+        .bigrammic { fill: #d62728; }
+
+        /* Node types */
+        .family { stroke-width: 3px; }
+        .hierophant { stroke-width: 2px; }
+        .acolyte { stroke-width: 1.5px; opacity: 0.9; }
+        .temple { stroke-width: 1px; opacity: 0.7; }
+
+        /* Link types */
+        .central { stroke: #aaa; }
+        .conrune { stroke: #ff7f0e; stroke-width: 3px; }
+        .complementary { stroke: #2ca02c; stroke-width: 3px; }
+        .quadset { stroke: #d62728; }
+        .hierophant_family { stroke: #9467bd; stroke-width: 2px; }
+        .acolyte_hierophant { stroke: #8c564b; }
+        .temple_acolyte { stroke: #e377c2; stroke-width: 1px; }
+        .temple_hierophant { stroke: #7f7f7f; stroke-width: 0.5px; stroke-dasharray: 3,3; }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 300px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tooltip h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .tooltip p {
+            margin: 3px 0;
+        }
+        .tooltip .ternary {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .legend h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 5px;
+            border: 1px solid #fff;
+        }
+        .legend-label {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <svg width="1000" height="800"></svg>
+    <div class="tooltip"></div>
+    <div class="context-menu">
+        <div class="context-menu-item" id="show-temples">Show Associated Temples</div>
+        <div class="context-menu-item" id="hide-temples">Hide Associated Temples</div>
+    </div>
+    <div class="loading-indicator">Loading Temples</div>
+    <div class="status-message"></div>
+    <div class="legend">
+        <h3>Kamea Network Legend</h3>
+        <div class="legend-section">
+            <h4>Family Groups</h4>
+            <div class="legend-item">
+                <div class="legend-color immutable"></div>
+                <div class="legend-label">Immutable Region</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color pure_conrune"></div>
+                <div class="legend-label">Pure Conrune Pair</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color complementary"></div>
+                <div class="legend-label">Complementary Region</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color bigrammic"></div>
+                <div class="legend-label">Bigrammic Quadset</div>
+            </div>
+        </div>
+        <div class="legend-section">
+            <h4>Node Types</h4>
+            <div class="legend-item">
+                <svg width="20" height="20">
+                    <circle cx="10" cy="10" r="10" class="family immutable"></circle>
+                </svg>
+                <div class="legend-label">Family</div>
+            </div>
+            <div class="legend-item">
+                <svg width="20" height="20">
+                    <circle cx="10" cy="10" r="6" class="hierophant immutable"></circle>
+                </svg>
+                <div class="legend-label">Hierophant</div>
+            </div>
+            <div class="legend-item">
+                <svg width="20" height="20">
+                    <circle cx="10" cy="10" r="4" class="acolyte immutable"></circle>
+                </svg>
+                <div class="legend-label">Acolyte</div>
+            </div>
+            <div class="legend-item">
+                <svg width="20" height="20">
+                    <circle cx="10" cy="10" r="2" class="temple immutable"></circle>
+                </svg>
+                <div class="legend-label">Temple</div>
+            </div>
+        </div>
+    </div>
+    <script>
+    // Network data will be inserted here
+    const data = NETWORK_DATA_PLACEHOLDER;
+
+    // Initialize node positions in a hierarchical structure
+    data.nodes.forEach(function(d) {
+        // Set initial positions based on level and family
+        const angle = (d.family / 9) * 2 * Math.PI;
+        const radius = d.level * 100;
+
+        // For family nodes, position in a circle
+        if (d.type === "family") {
+            d.x = 500 + 200 * Math.cos(angle);
+            d.y = 400 + 200 * Math.sin(angle);
+        }
+        // For other nodes, position in concentric circles around their family
+        else {
+            // Add some randomness to prevent exact overlaps
+            const randomAngle = angle + (Math.random() - 0.5) * 0.5;
+            const randomRadius = radius + (Math.random() - 0.5) * 50;
+            d.x = 500 + randomRadius * Math.cos(randomAngle);
+            d.y = 400 + randomRadius * Math.sin(randomAngle);
+        }
+    });
+
+    // Check if we're in complete mode (all 729 Ditrunes)
+    const isCompleteMode = data.nodes.length > 200;
+
+    // Adjust parameters based on mode
+    const forceParams = {
+        // Link distances
+        linkDistances: {
+            hierophant_family: isCompleteMode ? 80 : 120,
+            acolyte_hierophant: isCompleteMode ? 100 : 150,
+            temple_acolyte: isCompleteMode ? 50 : 80,
+            temple_hierophant: isCompleteMode ? 70 : 100,
+            central: isCompleteMode ? 150 : 200,
+            conrune: isCompleteMode ? 120 : 180,
+            complementary: isCompleteMode ? 120 : 180,
+            quadset: isCompleteMode ? 100 : 160,
+            default: isCompleteMode ? 80 : 120
+        },
+        // Repulsion strengths
+        repulsionStrengths: {
+            family: isCompleteMode ? -1000 : -1500,
+            hierophant: isCompleteMode ? -500 : -800,
+            acolyte: isCompleteMode ? -200 : -400,
+            temple: isCompleteMode ? -50 : -150
+        },
+        // Radial distances
+        radialDistances: {
+            multiplier: isCompleteMode ? 80 : 120
+        },
+        // Collision radii
+        collisionRadii: {
+            family: isCompleteMode ? 30 : 40,
+            hierophant: isCompleteMode ? 15 : 25,
+            acolyte: isCompleteMode ? 8 : 15,
+            temple: isCompleteMode ? 3 : 8
+        }
+    };
+
+    // Create the force simulation with parameters optimized for the number of nodes
+    const simulation = d3.forceSimulation(data.nodes)
+        // Link force with distances based on mode
+        .force("link", d3.forceLink(data.links).id(function(d) { return d.id; }).distance(function(d) {
+            return forceParams.linkDistances[d.type] || forceParams.linkDistances.default;
+        }))
+        // Charge force with strengths based on mode
+        .force("charge", d3.forceManyBody().strength(function(d) {
+            return forceParams.repulsionStrengths[d.type];
+        }).theta(isCompleteMode ? 0.9 : 0.8))  // Higher theta for better performance with many nodes
+        // Center force
+        .force("center", d3.forceCenter(500, 400))
+        // Radial force to organize by level
+        .force("radial", d3.forceRadial(function(d) {
+            // Position nodes in concentric circles based on their level
+            return d.level * forceParams.radialDistances.multiplier;
+        }, 500, 400).strength(isCompleteMode ? 0.4 : 0.3))
+        // X and Y forces to keep nodes within bounds
+        .force("x", d3.forceX(500).strength(isCompleteMode ? 0.08 : 0.05))
+        .force("y", d3.forceY(400).strength(isCompleteMode ? 0.08 : 0.05))
+        // Collision detection to prevent overlap
+        .force("collision", d3.forceCollide().radius(function(d) {
+            return forceParams.collisionRadii[d.type];
+        }).strength(isCompleteMode ? 0.9 : 0.8).iterations(isCompleteMode ? 2 : 1));
+
+    // For complete mode, reduce the number of simulation ticks for better performance
+    if (isCompleteMode) {
+        simulation.alphaDecay(0.02);  // Faster decay for quicker stabilization
+    }
+
+    // Get the SVG element
+    const svg = d3.select("svg");
+
+    // Create a tooltip
+    const tooltip = d3.select(".tooltip");
+
+    // Create container groups for different node types for better performance
+    const linkGroup = svg.append("g").attr("class", "link-group");
+    const templeGroup = svg.append("g").attr("class", "temple-group");
+    const acolyteGroup = svg.append("g").attr("class", "acolyte-group");
+    const hierophantGroup = svg.append("g").attr("class", "hierophant-group");
+    const familyGroup = svg.append("g").attr("class", "family-group");
+
+    // Create the links with optimized rendering for complete mode
+    const link = linkGroup.selectAll("line")
+        .data(data.links)
+        .enter().append("line")
+        .attr("class", function(d) { return "links " + d.type; })
+        .attr("stroke-width", function(d) {
+            // Thinner lines in complete mode for better performance
+            const baseWidth = isCompleteMode ? 1 : 1.5;
+            return Math.sqrt(d.value) * baseWidth;
+        });
+
+    // Create the nodes with optimized rendering for complete mode
+    // Split nodes by type for better performance and control
+
+    // Temple nodes (smallest, most numerous)
+    const templeNodes = templeGroup.selectAll("circle")
+        .data(data.nodes.filter(d => d.type === "temple"))
+        .enter().append("circle")
+        .attr("class", function(d) { return "nodes " + d.group + " " + d.type; })
+        .attr("r", isCompleteMode ? 2 : 4)  // Smaller in complete mode
+        .style("opacity", isCompleteMode ? 0.6 : 0.7);  // More transparent in complete mode
+
+    // Acolyte nodes
+    const acolyteNodes = acolyteGroup.selectAll("circle")
+        .data(data.nodes.filter(d => d.type === "acolyte"))
+        .enter().append("circle")
+        .attr("class", function(d) { return "nodes " + d.group + " " + d.type; })
+        .attr("r", isCompleteMode ? 6 : 8);
+
+    // Hierophant nodes
+    const hierophantNodes = hierophantGroup.selectAll("circle")
+        .data(data.nodes.filter(d => d.type === "hierophant"))
+        .enter().append("circle")
+        .attr("class", function(d) { return "nodes " + d.group + " " + d.type; })
+        .attr("r", isCompleteMode ? 10 : 12);
+
+    // Family nodes (largest, most important)
+    const familyNodes = familyGroup.selectAll("circle")
+        .data(data.nodes.filter(d => d.type === "family"))
+        .enter().append("circle")
+        .attr("class", function(d) { return "nodes " + d.group + " " + d.type; })
+        .attr("r", isCompleteMode ? 16 : 20);
+
+    // Combine all nodes for event handling
+    const node = svg.selectAll("circle");
+
+    // Variables to track context menu state
+    let contextMenuVisible = false;
+    let selectedNode = null;
+    let addedTemples = new Set(); // Track added temple nodes
+
+    // Get the context menu element
+    const contextMenu = d3.select(".context-menu");
+
+    // Add event listeners to all nodes
+    node.on("mouseover", function(event, d) {
+        // Highlight connected links and nodes
+        highlightConnections(d);
+
+        // Show tooltip
+        tooltip.style("opacity", 1)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 10) + "px");
+
+        // Set tooltip content based on node type
+        let content = "";
+            if (d.type === "family") {
+                content = `
+                    <h4>${d.full_name}</h4>
+                    <p>${d.description}</p>
+                `;
+            } else if (d.type === "hierophant") {
+                content = `
+                    <h4>Hierophant: ${d.name}</h4>
+                    <p>Greek: ${d.greek}</p>
+                    <p>Ternary: <span class="ternary">${d.ternary}</span></p>
+                    <p>Family: ${d.family}</p>
+                    <p>${d.description}</p>
+                `;
+            } else if (d.type === "acolyte") {
+                content = `
+                    <h4>Acolyte: ${d.name}</h4>
+                    <p>Greek: ${d.greek}</p>
+                    <p>Ternary: <span class="ternary">${d.ternary}</span></p>
+                    <p>Family: ${d.family}</p>
+                    <p>Function: ${d.function}</p>
+                `;
+            } else { // Temple
+                // Get the temple type and descriptor from the name
+                const nameParts = d.name.split(" ");
+                const templeType = nameParts[0] + " " + nameParts[1];
+                const elementDescriptor = d.name.substring(templeType.length);
+
+                // Map temple types to their Greek names and descriptions
+                const templeTypeInfo = {
+                    "The Nexus": { greek: "Σύνδεσμος (Syndesmos)", desc: "Point of connection and convergence where multiple forces meet" },
+                    "The Crucible": { greek: "Χωνευτήριον (Choneuterion)", desc: "Vessel of transformation where elements combine and transmute" },
+                    "The Beacon": { greek: "Φρυκτωρία (Phryktoria)", desc: "Source of illumination that guides and reveals hidden patterns" },
+                    "The Reservoir": { greek: "Δεξαμενή (Dexamene)", desc: "Container that collects, preserves, and distributes essential energies" },
+                    "The Threshold": { greek: "Κατώφλιον (Katophlion)", desc: "Boundary between states that facilitates transition and initiation" },
+                    "The Conduit": { greek: "Ὀχετός (Ochetos)", desc: "Channel that directs and focuses flow between different domains" },
+                    "The Resonator": { greek: "Ἠχεῖον (Echeion)", desc: "Structure that amplifies, harmonizes, and propagates vibrations" },
+                    "The Catalyst": { greek: "Ἐπιταχυντής (Epitachyntes)", desc: "Agent that accelerates processes and triggers transformations" },
+                    "The Fulcrum": { greek: "Ὑπομόχλιον (Hypomochlion)", desc: "Point of balance and leverage that enables movement and change" }
+                };
+
+                // Get the info for this temple type
+                const typeInfo = templeTypeInfo[templeType] || { greek: "", desc: "" };
+
+                content = `
+                    <h4>Temple: ${d.name}</h4>
+                    <p><strong>${templeType}</strong>: ${typeInfo.greek}</p>
+                    <p><em>${typeInfo.desc}</em></p>
+                    <p>Ternary: <span class="ternary">${d.ternary}</span></p>
+                    <p>Position: ${d.position}</p>
+                    <p>Kamea Locator: ${d.kamea_locator}</p>
+                    <p>Family: ${d.family}</p>
+                `;
+            }
+            tooltip.html(content);
+        })
+        .on("mouseout", function(event, d) {
+            // Remove highlighting
+            resetHighlighting();
+
+            // Hide tooltip
+            tooltip.style("opacity", 0);
+        })
+        .on("contextmenu", function(event, d) {
+            // Prevent the default context menu
+            event.preventDefault();
+
+            // Only show context menu for acolyte nodes
+            if (d.type === "acolyte") {
+                // Store the selected node
+                selectedNode = d;
+
+                // Highlight the selected acolyte
+                d3.select(this)
+                    .transition()
+                    .duration(300)
+                    .attr("r", 15)  // Temporarily increase size
+                    .style("stroke", "#ff0000")  // Red outline
+                    .style("stroke-width", "3px");
+
+                // Position and show the context menu
+                contextMenu
+                    .style("left", (event.pageX) + "px")
+                    .style("top", (event.pageY) + "px")
+                    .style("display", "block");
+
+                contextMenuVisible = true;
+            }
+        })
+        .call(d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended));
+
+    // Hide context menu when clicking elsewhere
+    d3.select("body").on("click", function(event) {
+        if (contextMenuVisible) {
+            // Hide the context menu
+            contextMenu.style("display", "none");
+            contextMenuVisible = false;
+
+            // Reset the appearance of the selected acolyte
+            if (selectedNode && selectedNode.type === "acolyte") {
+                acolyteNodes.filter(function(d) { return d.id === selectedNode.id; })
+                    .transition()
+                    .duration(300)
+                    .attr("r", isCompleteMode ? 6 : 8)  // Reset to original size
+                    .style("stroke", "#fff")  // Reset stroke color
+                    .style("stroke-width", "1.5px");  // Reset stroke width
+            }
+        }
+    });
+
+    // Get the loading indicator and status message
+    const loadingIndicator = d3.select(".loading-indicator");
+    const statusMessage = d3.select(".status-message");
+
+    // Handle "Show Associated Temples" menu item click
+    d3.select("#show-temples").on("click", function() {
+        if (selectedNode && selectedNode.type === "acolyte") {
+            // Hide the context menu
+            contextMenu.style("display", "none");
+            contextMenuVisible = false;
+
+            // Show the loading indicator
+            loadingIndicator.style("display", "block");
+
+            // Use setTimeout to allow the UI to update before processing
+            setTimeout(function() {
+                showAssociatedTemples(selectedNode);
+                // Hide the loading indicator
+                loadingIndicator.style("display", "none");
+            }, 100);
+        }
+    });
+
+    // Handle "Hide Associated Temples" menu item click
+    d3.select("#hide-temples").on("click", function() {
+        hideAssociatedTemples();
+        contextMenu.style("display", "none");
+        contextMenuVisible = false;
+    });
+
+    // Function to show temples associated with an acolyte
+    function showAssociatedTemples(acolyte) {
+        // Get the acolyte's family and position
+        const acolyteId = acolyte.id;
+        const family = acolyte.family;
+        const position = acolyte.position;
+
+        // Find temples that should be connected to this acolyte
+        const associatedTemples = [];
+
+        // Get all temples from the data
+        const allTemples = data.nodes.filter(n => n.type === "temple");
+
+        console.log(`Looking for temples associated with acolyte ${acolyteId} (family: ${family}, position: ${position})`);
+        console.log(`Found ${allTemples.length} total temples to check`);
+
+        if (family === undefined || position === undefined) {
+            console.log("Acolyte missing family or position information");
+            statusMessage.text(`Acolyte missing family or position information`)
+                .style("display", "block")
+                .style("background-color", "rgba(255, 0, 0, 0.7)"); // Red background for error
+
+            setTimeout(function() {
+                statusMessage.style("opacity", 0);
+                setTimeout(function() {
+                    statusMessage.style("display", "none").style("opacity", 1);
+                }, 500);
+            }, 5000);
+
+            return;
+        }
+
+        // Different logic based on family type
+        if (family === 0) {
+            // Family 0 (Immutable Region): Each Acolyte at (column 0, row n) governs all Temples in column n
+            console.log(`Family 0: Acolyte at position ${position} governs all Temples in column ${position}`);
+
+            // Find temples in column position
+            allTemples.forEach(temple => {
+                // For Family 0, temples in column position belong to this acolyte
+                if (temple.family === family && temple.column === position) {
+                    console.log(`Found matching temple: ${temple.id} (family: ${temple.family}, column: ${temple.column})`);
+                    associatedTemples.push(temple);
+                }
+            });
+        } else if (family === 4 || family === 8) {
+            // Families 4 & 8 (Pure Conrune Pairs): Each Acolyte at (column 4/8, row n) governs all Temples in column n
+            console.log(`Family ${family}: Acolyte at position ${position} governs all Temples in column ${position}`);
+
+            // Find temples in column position
+            allTemples.forEach(temple => {
+                // For Families 4 & 8, temples in column position belong to this acolyte
+                if (temple.family === family && temple.column === position) {
+                    console.log(`Found matching temple: ${temple.id} (family: ${temple.family}, column: ${temple.column})`);
+                    associatedTemples.push(temple);
+                }
+            });
+        } else if (family === 5 || family === 7) {
+            // Families 5 & 7 (Complementary Regions): Acolytes from both families "co-parent" Temples
+            console.log(`Family ${family}: Acolyte at position ${position} co-parents Temples with its complement`);
+
+            // Find temples in column position from both families 5 and 7
+            allTemples.forEach(temple => {
+                // For Families 5 & 7, temples in column position from either family belong to this acolyte
+                if ((temple.family === 5 || temple.family === 7) && temple.column === position) {
+                    console.log(`Found matching temple: ${temple.id} (family: ${temple.family}, column: ${temple.column})`);
+                    associatedTemples.push(temple);
+                }
+            });
+        } else if (family === 1 || family === 2 || family === 3 || family === 6) {
+            // Families 1, 2, 3, 6 (Bigrammic Quadset): Temples are "co-parented" by Acolytes from all four regions
+            console.log(`Family ${family}: Acolyte at position ${position} part of Bigrammic Quadset`);
+
+            // Find temples in column position from all quadset families
+            allTemples.forEach(temple => {
+                // For Bigrammic Quadset, temples in column position from any quadset family belong to this acolyte
+                if ((temple.family === 1 || temple.family === 2 || temple.family === 3 || temple.family === 6) &&
+                    temple.column === position) {
+                    console.log(`Found matching temple: ${temple.id} (family: ${temple.family}, column: ${temple.column})`);
+                    associatedTemples.push(temple);
+                }
+            });
+        } else {
+            console.log(`Unknown family type: ${family}`);
+        }
+
+        // If we don't have enough temples, use a fallback method
+        if (associatedTemples.length === 0) {
+            console.log(`No temples found using family-based logic, using fallback method`);
+
+            // Fallback: Find temples in the same family
+            const familyTemples = allTemples.filter(temple => temple.family === family);
+            console.log(`Found ${familyTemples.length} temples in family ${family}`);
+
+            // Take the first 9 temples from the same family
+            for (let i = 0; i < Math.min(9, familyTemples.length); i++) {
+                const temple = familyTemples[i];
+                console.log(`Adding fallback temple: ${temple.id} (family: ${temple.family})`);
+                associatedTemples.push(temple);
+
+                // Stop if we have 9 temples
+                if (associatedTemples.length >= 9) break;
+            }
+        }
+
+        // Limit to 9 temples total
+        if (associatedTemples.length > 9) {
+            console.log(`Found ${associatedTemples.length} temples, limiting to 9`);
+            associatedTemples.splice(9);
+        }
+
+        console.log(`Found ${associatedTemples.length} associated temples`);
+
+        // If no temples found, show a status message
+        if (associatedTemples.length === 0) {
+            statusMessage.text(`No temples found that share at least 3 digits with this acolyte`)
+                .style("display", "block")
+                .style("background-color", "rgba(255, 0, 0, 0.7)"); // Red background for error
+
+            // Hide the status message after 5 seconds
+            setTimeout(function() {
+                statusMessage.style("opacity", 0);
+                setTimeout(function() {
+                    statusMessage.style("display", "none").style("opacity", 1);
+                }, 500);
+            }, 5000);
+
+            return;
+        }
+
+        // Create arrays to hold new nodes and links
+        const newNodes = [];
+        const newLinks = [];
+
+        // Add the temples to the visualization if they're not already visible
+        associatedTemples.forEach(temple => {
+            if (!addedTemples.has(temple.id)) {
+                // Create a copy of the temple node with initial position near the acolyte
+                const templeNode = Object.assign({}, temple);
+
+                // Position temples in a circle around the acolyte
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = 50 + Math.random() * 30; // Distance from acolyte
+                templeNode.x = acolyte.x + Math.cos(angle) * distance;
+                templeNode.y = acolyte.y + Math.sin(angle) * distance;
+
+                // Ensure the temple is within the viewport
+                const width = 1000;
+                const height = 800;
+                const padding = 50;
+                templeNode.x = Math.max(padding, Math.min(width - padding, templeNode.x));
+                templeNode.y = Math.max(padding, Math.min(height - padding, templeNode.y));
+
+                // Add the temple to the list of new nodes
+                newNodes.push(templeNode);
+
+                // Create a link from the acolyte to the temple
+                newLinks.push({
+                    source: acolyteId,
+                    target: temple.id,
+                    type: "temple_acolyte",
+                    value: 1
+                });
+
+                // Add the temple to the set of added temples
+                addedTemples.add(temple.id);
+            }
+        });
+
+        // If we have new nodes to add
+        if (newNodes.length > 0) {
+            // First, stop the simulation
+            simulation.stop();
+
+            // Add the new nodes to the data
+            data.nodes = data.nodes.concat(newNodes);
+
+            // Add the new links to the data
+            data.links = data.links.concat(newLinks);
+
+            // Add the temple nodes to the visualization
+            const newTempleNodes = templeGroup.selectAll("circle.new-temple")
+                .data(newNodes)
+                .enter().append("circle")
+                .attr("class", function(d) { return "nodes " + d.group + " temple"; })
+                .attr("r", 8)  // Larger radius for better visibility
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; })
+                .style("fill", "#ff7f0e")  // Bright orange color for better visibility
+                .style("stroke", "#fff")
+                .style("stroke-width", "2px")
+                .style("opacity", 1.0)  // Full opacity for better visibility
+                .on("mouseover", function(event, d) {
+                    highlightConnections(d);
+                    tooltip.style("opacity", 1)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+
+                    // Set tooltip content for temple
+                    const nameParts = d.name.split(" ");
+                    const templeType = nameParts[0] + " " + nameParts[1];
+                    const elementDescriptor = d.name.substring(templeType.length);
+
+                    const templeTypeInfo = {
+                        "The Nexus": { greek: "Σύνδεσμος (Syndesmos)", desc: "Point of connection and convergence where multiple forces meet" },
+                        "The Crucible": { greek: "Χωνευτήριον (Choneuterion)", desc: "Vessel of transformation where elements combine and transmute" },
+                        "The Beacon": { greek: "Φρυκτωρία (Phryktoria)", desc: "Source of illumination that guides and reveals hidden patterns" },
+                        "The Reservoir": { greek: "Δεξαμενή (Dexamene)", desc: "Container that collects, preserves, and distributes essential energies" },
+                        "The Threshold": { greek: "Κατώφλιον (Katophlion)", desc: "Boundary between states that facilitates transition and initiation" },
+                        "The Conduit": { greek: "Ὀχετός (Ochetos)", desc: "Channel that directs and focuses flow between different domains" },
+                        "The Resonator": { greek: "Ἠχεῖον (Echeion)", desc: "Structure that amplifies, harmonizes, and propagates vibrations" },
+                        "The Catalyst": { greek: "Ἐπιταχυντής (Epitachyntes)", desc: "Agent that accelerates processes and triggers transformations" },
+                        "The Fulcrum": { greek: "Ὑπομόχλιον (Hypomochlion)", desc: "Point of balance and leverage that enables movement and change" }
+                    };
+
+                    const typeInfo = templeTypeInfo[templeType] || { greek: "", desc: "" };
+
+                    const content = `
+                        <h4>Temple: ${d.name}</h4>
+                        <p><strong>${templeType}</strong>: ${typeInfo.greek}</p>
+                        <p><em>${typeInfo.desc}</em></p>
+                        <p>Ternary: <span class="ternary">${d.ternary}</span></p>
+                        <p>Position: ${d.position}</p>
+                        <p>Kamea Locator: ${d.kamea_locator}</p>
+                        <p>Family: ${d.family}</p>
+                    `;
+                    tooltip.html(content);
+                })
+                .on("mouseout", function() {
+                    resetHighlighting();
+                    tooltip.style("opacity", 0);
+                })
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            // Add the links to the visualization
+            const newLinkElements = linkGroup.selectAll("line.new-link")
+                .data(newLinks)
+                .enter().append("line")
+                .attr("class", "links temple_acolyte")
+                .attr("stroke-width", 2)
+                .attr("stroke", "#e377c2")  // Bright pink color for better visibility
+                .attr("stroke-opacity", 0.8)
+                .attr("x1", function(d) {
+                    const source = typeof d.source === 'object' ? d.source : data.nodes.find(n => n.id === d.source);
+                    return source ? source.x : 0;
+                })
+                .attr("y1", function(d) {
+                    const source = typeof d.source === 'object' ? d.source : data.nodes.find(n => n.id === d.source);
+                    return source ? source.y : 0;
+                })
+                .attr("x2", function(d) {
+                    const target = typeof d.target === 'object' ? d.target : data.nodes.find(n => n.id === d.target);
+                    return target ? target.x : 0;
+                })
+                .attr("y2", function(d) {
+                    const target = typeof d.target === 'object' ? d.target : data.nodes.find(n => n.id === d.target);
+                    return target ? target.y : 0;
+                });
+
+            // Add labels to the temple nodes
+            const newLabels = svg.append("g")
+                .selectAll("text.new-label")
+                .data(newNodes)
+                .enter().append("text")
+                .attr("class", "node-label temple-label")
+                .attr("text-anchor", "middle")
+                .attr("dy", -15)  // Position above the node
+                .attr("x", function(d) { return d.x; })
+                .attr("y", function(d) { return d.y; })
+                .style("font-size", "10px")
+                .style("fill", "#000")
+                .style("font-weight", "bold")
+                .style("text-shadow", "0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff")
+                .text(function(d) {
+                    // Show a shortened version of the temple name
+                    const nameParts = d.name.split(" ");
+                    return nameParts.length > 2 ? nameParts[1] : d.name;
+                });
+
+            // Restart the simulation with the new nodes and links
+            simulation.nodes(data.nodes);
+
+            // Update the link force with the new links
+            simulation.force("link")
+                .links(data.links);
+
+            // Store the original tick function
+            const originalTickFunction = simulation.on("tick");
+
+            // Update the tick function to also update the new labels
+            simulation.on("tick", function() {
+                // Call the original tick function if it exists
+                if (typeof originalTickFunction === "function") {
+                    originalTickFunction();
+                }
+
+                // Update the new labels
+                svg.selectAll("text.temple-label")
+                    .attr("x", function(d) { return d.x; })
+                    .attr("y", function(d) { return d.y; });
+            });
+
+            // Restart the simulation
+            simulation.alpha(0.3).restart();
+
+            // Show a success message
+            statusMessage.text(`Added ${newNodes.length} temples connected to this acolyte`)
+                .style("display", "block")
+                .style("background-color", "rgba(0, 128, 0, 0.7)"); // Green background for success
+
+            // Hide the status message after 5 seconds
+            setTimeout(function() {
+                statusMessage.style("opacity", 0);
+                setTimeout(function() {
+                    statusMessage.style("display", "none").style("opacity", 1);
+                }, 500);
+            }, 5000);
+        }
+    }
+
+    // Function to hide associated temples
+    function hideAssociatedTemples() {
+        if (addedTemples.size === 0) return;
+
+        // Count how many temples we're removing
+        const removedCount = addedTemples.size;
+
+        // Stop the simulation
+        simulation.stop();
+
+        // Filter out the added temples from the data
+        data.nodes = data.nodes.filter(function(d) {
+            return !addedTemples.has(d.id);
+        });
+
+        // Filter out links to added temples
+        data.links = data.links.filter(function(d) {
+            return !(d.source && d.target &&
+                    (typeof d.source === 'object' ? addedTemples.has(d.source.id) : addedTemples.has(d.source)) ||
+                    (typeof d.target === 'object' ? addedTemples.has(d.target.id) : addedTemples.has(d.target)));
+        });
+
+        // Remove all added temple nodes from the visualization
+        templeGroup.selectAll("circle").filter(function(d) {
+            return addedTemples.has(d.id);
+        }).remove();
+
+        // Remove all links to added temples from the visualization
+        linkGroup.selectAll("line").filter(function(d) {
+            return d.source && d.target &&
+                  (typeof d.source === 'object' ? addedTemples.has(d.source.id) : addedTemples.has(d.source)) ||
+                  (typeof d.target === 'object' ? addedTemples.has(d.target.id) : addedTemples.has(d.target));
+        }).remove();
+
+        // Remove all temple labels
+        svg.selectAll("text.temple-label").remove();
+
+        // Clear the set of added temples
+        addedTemples.clear();
+
+        // Update the simulation with the filtered data
+        simulation.nodes(data.nodes);
+        simulation.force("link").links(data.links);
+
+        // Restart the simulation
+        simulation.alpha(0.3).restart();
+
+        // Show a message
+        if (removedCount > 0) {
+            statusMessage.text(`Removed ${removedCount} temples`)
+                .style("display", "block")
+                .style("background-color", "rgba(0, 0, 128, 0.7)"); // Blue background for info
+
+            // Hide the status message after 3 seconds
+            setTimeout(function() {
+                statusMessage.style("opacity", 0);
+                setTimeout(function() {
+                    statusMessage.style("display", "none").style("opacity", 1);
+                }, 500);
+            }, 3000);
+        }
+    }
+
+    // Add labels to the nodes with optimizations for complete mode
+    const labelData = isCompleteMode
+        ? data.nodes.filter(d => d.type === "family" || d.type === "hierophant") // Only family and hierophant labels in complete mode
+        : data.nodes;
+
+    const label = svg.append("g")
+        .selectAll("text")
+        .data(labelData)
+        .enter().append("text")
+        .attr("class", "node-label")
+        .attr("text-anchor", "middle")
+        .attr("dy", function(d) {
+            // Adjust label position based on node type
+            if (d.type === "family") return isCompleteMode ? -20 : -25;
+            if (d.type === "hierophant") return isCompleteMode ? -12 : -15;
+            return -10;  // Acolytes and Temples
+        })
+        .style("font-size", isCompleteMode ? "8px" : "10px") // Smaller font in complete mode
+        .text(function(d) {
+            // Only show labels for families and hierophants by default
+            if (d.type === "family" || d.type === "hierophant") {
+                return d.name;
+            }
+            return "";  // No labels for acolytes and temples by default
+        });
+
+    // Function to highlight connected nodes and links with optimizations for complete mode
+    function highlightConnections(d) {
+        // For complete mode, use a more efficient approach
+        if (isCompleteMode) {
+            // Only reduce opacity for nodes of the same type or higher in hierarchy
+            // This avoids having to process all 648+ temple nodes when a family is selected
+            if (d.type === "family") {
+                familyNodes.style("opacity", 0.3);
+                hierophantNodes.style("opacity", 0.3);
+                acolyteNodes.style("opacity", 0.2);
+                templeNodes.style("opacity", 0.1);
+            } else if (d.type === "hierophant") {
+                hierophantNodes.style("opacity", 0.3);
+                acolyteNodes.style("opacity", 0.2);
+                templeNodes.style("opacity", 0.1);
+            } else if (d.type === "acolyte") {
+                acolyteNodes.style("opacity", 0.2);
+                templeNodes.style("opacity", 0.1);
+            } else {
+                templeNodes.style("opacity", 0.1);
+            }
+
+            // Reduce opacity of all links
+            link.style("opacity", 0.1);
+        } else {
+            // For non-complete mode, reduce opacity of all nodes and links
+            node.style("opacity", 0.2);
+            link.style("opacity", 0.1);
+        }
+
+        // Highlight the selected node
+        if (d.type === "family") {
+            familyNodes.filter(function(n) { return n.id === d.id; }).style("opacity", 1);
+        } else if (d.type === "hierophant") {
+            hierophantNodes.filter(function(n) { return n.id === d.id; }).style("opacity", 1);
+        } else if (d.type === "acolyte") {
+            acolyteNodes.filter(function(n) { return n.id === d.id; }).style("opacity", 1);
+        } else {
+            templeNodes.filter(function(n) { return n.id === d.id; }).style("opacity", 1);
+        }
+
+        // Find connected nodes and links
+        const connectedNodeIds = new Set();
+        connectedNodeIds.add(d.id);
+
+        // Find directly connected nodes
+        data.links.forEach(function(l) {
+            if (l.source.id === d.id || l.target.id === d.id) {
+                connectedNodeIds.add(l.source.id);
+                connectedNodeIds.add(l.target.id);
+            }
+        });
+
+        // Highlight connected nodes by type for better performance
+        familyNodes.filter(function(n) { return connectedNodeIds.has(n.id); }).style("opacity", 1);
+        hierophantNodes.filter(function(n) { return connectedNodeIds.has(n.id); }).style("opacity", 1);
+        acolyteNodes.filter(function(n) { return connectedNodeIds.has(n.id); }).style("opacity", 1);
+        templeNodes.filter(function(n) { return connectedNodeIds.has(n.id); }).style("opacity", 1);
+
+        // Highlight connected links
+        link.filter(function(l) { return connectedNodeIds.has(l.source.id) && connectedNodeIds.has(l.target.id); })
+            .style("opacity", 1);
+    }
+
+    // Function to reset highlighting with optimizations for complete mode
+    function resetHighlighting() {
+        if (isCompleteMode) {
+            // Reset by node type for better performance
+            familyNodes.style("opacity", 1);
+            hierophantNodes.style("opacity", 1);
+            acolyteNodes.style("opacity", 0.9);
+            templeNodes.style("opacity", 0.6);
+            link.style("opacity", 0.4);  // Lower opacity for links in complete mode
+        } else {
+            // For non-complete mode
+            familyNodes.style("opacity", 1);
+            hierophantNodes.style("opacity", 1);
+            acolyteNodes.style("opacity", 0.9);
+            templeNodes.style("opacity", 0.7);
+            link.style("opacity", 0.6);
+        }
+    }
+
+    // Add zoom functionality
+    const zoom = d3.zoom()
+        .scaleExtent([0.1, 4])  // Allow zooming from 0.1x to 4x
+        .on("zoom", function(event) {
+            // Apply zoom transformation to all elements
+            svg.selectAll("g").attr("transform", event.transform);
+        });
+
+    // Apply zoom behavior to SVG
+    svg.call(zoom);
+
+    // Add zoom controls
+    const zoomControls = d3.select("body").append("div")
+        .attr("class", "zoom-controls")
+        .style("position", "absolute")
+        .style("bottom", "10px")
+        .style("left", "10px")
+        .style("background-color", "rgba(255, 255, 255, 0.7)")
+        .style("padding", "5px")
+        .style("border-radius", "5px")
+        .style("border", "1px solid #ddd");
+
+    zoomControls.append("button")
+        .text("+")
+        .style("margin", "2px")
+        .style("width", "30px")
+        .style("height", "30px")
+        .on("click", function() {
+            svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+        });
+
+    zoomControls.append("button")
+        .text("-")
+        .style("margin", "2px")
+        .style("width", "30px")
+        .style("height", "30px")
+        .on("click", function() {
+            svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+        });
+
+    zoomControls.append("button")
+        .text("Reset")
+        .style("margin", "2px")
+        .on("click", function() {
+            svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+        });
+
+    // Update positions on each tick with improved boundary handling and performance optimizations
+    simulation.on("tick", function() {
+        // Constrain nodes to stay within the SVG boundaries with some padding
+        const padding = 50;
+        const width = 1000;
+        const height = 800;
+
+        // For complete mode, only update positions every few ticks for better performance
+        const shouldUpdatePositions = !isCompleteMode || Math.random() < 0.8;
+
+        if (shouldUpdatePositions) {
+            data.nodes.forEach(function(d) {
+                // Apply different constraints based on node type
+                const nodeRadius = d.type === "family" ? (isCompleteMode ? 30 : 40) :
+                                  d.type === "hierophant" ? (isCompleteMode ? 15 : 25) :
+                                  d.type === "acolyte" ? (isCompleteMode ? 8 : 15) :
+                                  (isCompleteMode ? 3 : 8);
+
+                // Keep nodes within bounds
+                d.x = Math.max(nodeRadius + padding, Math.min(width - nodeRadius - padding, d.x));
+                d.y = Math.max(nodeRadius + padding, Math.min(height - nodeRadius - padding, d.y));
+            });
+
+            // Update link positions
+            link
+                .attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+            // Update node positions by type for better performance
+            familyNodes
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+
+            hierophantNodes
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+
+            acolyteNodes
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+
+            // For complete mode, update temple nodes less frequently
+            if (!isCompleteMode || Math.random() < 0.5) {
+                templeNodes
+                    .attr("cx", function(d) { return d.x; })
+                    .attr("cy", function(d) { return d.y; });
+            }
+
+            // Update label positions (only for non-temple nodes in complete mode)
+            if (!isCompleteMode) {
+                label.attr("x", function(d) { return d.x; })
+                    .attr("y", function(d) { return d.y; });
+            } else {
+                label.filter(function(d) { return d.type !== "temple"; })
+                    .attr("x", function(d) { return d.x; })
+                    .attr("y", function(d) { return d.y; });
+            }
+        }
+    });
+
+    // Drag functions
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        if (d && d.x !== undefined && d.y !== undefined) {
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+    }
+
+    function dragged(event, d) {
+        if (d && event.x !== undefined && event.y !== undefined) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+    }
+
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        if (d) {
+            d.fx = null;
+            d.fy = null;
+        }
+    }
+
+    // Function to toggle node labels
+    window.toggleLabels = function(nodeType, show) {
+        label.filter(function(d) { return d.type === nodeType; })
+            .text(function(d) { return show ? d.name : ""; });
+    }
+
+    // Function to filter nodes by family
+    window.filterByFamily = function(familyId, show) {
+        // If familyId is -1, show/hide all families
+        if (familyId === -1) {
+            node.style("display", show ? "block" : "none");
+            link.style("display", show ? "block" : "none");
+            label.style("display", show ? "block" : "none");
+            return;
+        }
+
+        // Otherwise, filter by the specific family
+        node.filter(function(d) { return d.family === familyId; })
+            .style("display", show ? "block" : "none");
+
+        // Also filter labels
+        label.filter(function(d) { return d.family === familyId; })
+            .style("display", show ? "block" : "none");
+
+        // Also filter links connected to this family
+        link.filter(function(d) {
+            const sourceFamily = typeof d.source === 'object' ? d.source.family : null;
+            const targetFamily = typeof d.target === 'object' ? d.target.family : null;
+            return sourceFamily === familyId || targetFamily === familyId;
+        })
+        .style("display", show ? "block" : "none");
+    }
+    </script>
+</body>
+</html>

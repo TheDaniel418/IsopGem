@@ -572,6 +572,24 @@ class GematriaTab(QWidget):
         word_abacus_btn.clicked.connect(lambda: self._open_word_abacus_window())
         button_layout.addWidget(word_abacus_btn)
 
+        # Word List Abacus button
+        word_list_abacus_btn = QPushButton("Word List Abacus")
+        word_list_abacus_btn.setToolTip("Calculate gematria for multiple words at once")
+        word_list_abacus_btn.clicked.connect(
+            lambda: self._open_word_list_abacus_window()
+        )
+        button_layout.addWidget(word_list_abacus_btn)
+
+        # Word Group Chain button
+        word_group_chain_btn = QPushButton("Word Groups & Chains")
+        word_group_chain_btn.setToolTip(
+            "Organize words into groups and create calculation chains"
+        )
+        word_group_chain_btn.clicked.connect(
+            lambda: self._open_word_group_chain_window()
+        )
+        button_layout.addWidget(word_group_chain_btn)
+
         # Calculation History button
         history_btn = QPushButton("Calculation History")
         history_btn.setToolTip("Open Calculation History")
@@ -737,8 +755,44 @@ class GematriaTab(QWidget):
         from gematria.ui.windows.word_abacus_window import WordAbacusWindow
 
         self._open_gematria_window(
-            "word_abacus", WordAbacusWindow, "Gematria Word Abacus", allow_multiple=True
+            "word_abacus",
+            WordAbacusWindow,
+            "Gematria Word Abacus",
+            window_manager=self.window_manager,  # Pass window_manager
+            allow_multiple=True,
         )
+
+    def _open_word_list_abacus_window(self) -> None:
+        """Open the word list abacus window."""
+        from gematria.ui.windows.word_list_abacus_window import WordListAbacusWindow
+
+        # Create a new window instance with the window manager
+        window = WordListAbacusWindow(window_manager=self.window_manager)
+
+        # Open the window through the window manager with a unique ID
+        window_id = "word_list_abacus_window"
+        self.window_manager.open_window(window_id, window)
+
+        # Show the window and bring it to front
+        window.show()
+        window.raise_()
+        logger.debug("Opened Word List Abacus window")
+
+    def _open_word_group_chain_window(self) -> None:
+        """Open the word group chain window."""
+        from gematria.ui.windows.word_group_chain_window import WordGroupChainWindow
+
+        # Create a new window instance
+        window = WordGroupChainWindow()
+
+        # Open the window through the window manager with a unique ID
+        window_id = "word_group_chain_window"
+        self.window_manager.open_window(window_id, window)
+
+        # Show the window and bring it to front
+        window.show()
+        window.raise_()
+        logger.debug("Opened Word Group Chain window")
 
     def _open_gematria_window(
         self, window_id: str, window_class, title: str, *args, **kwargs
@@ -753,15 +807,25 @@ class GematriaTab(QWidget):
             **kwargs: Keyword arguments to pass to the window class
         """
         # Generate a unique window ID if multiple instances are allowed
-        if kwargs.pop("allow_multiple", False):
+        allow_multiple = kwargs.pop("allow_multiple", False)
+        if allow_multiple:
             import uuid
 
             final_window_id = f"{window_id}_{uuid.uuid4().hex[:8]}"
         else:
             final_window_id = window_id
 
-        # Create window instance
-        window = window_class(*args, **kwargs)
+        # Create window instance, passing through relevant kwargs
+        # Ensure window_manager is passed if it's in kwargs
+        window_args = {}
+        if "window_manager" in kwargs:
+            window_args["window_manager"] = kwargs.pop("window_manager")
+
+        # Pass any other specific args needed by the window constructor
+        # For now, we assume other args are passed via *args
+        # and remaining kwargs are for other purposes or not for the constructor.
+
+        window = window_class(*args, **window_args, **kwargs)
 
         # Apply standard flags for proper window behavior
         window.setWindowFlags(
@@ -832,6 +896,7 @@ class GematriaTab(QWidget):
     def open_search_panel_with_value(self, value: int) -> None:
         """Open the search panel, set the exact value, and perform the search."""
         from gematria.ui.windows.search_window import SearchWindow
+
         # Open the search window using the standard method
         window = self._open_gematria_window(
             "search",

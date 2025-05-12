@@ -3,36 +3,52 @@
 @description Embeddable rich text editor widget for use in both standalone and embedded contexts.
 @author Daniel
 @created 2024-06-11
-@lastModified 2024-06-11
+@lastModified 2024-05-05
 @dependencies PyQt6
 
 A QWidget-based rich text editor with formatting toolbar and HTML content support.
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QToolBar
-from PyQt6.QtGui import QAction, QIcon, QTextCharFormat, QTextCursor
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import QTextEdit, QToolBar, QVBoxLayout, QWidget
 
-class RichTextEditorWidget(QWidget):
+# Import for type checking only
+from shared.ui.widgets.rtf_editor.utils import TextFormattingUtils
+
+
+class RichTextEditorWidget(QWidget):  # No longer inherits from BaseRTFEditor
     """
     @class RichTextEditorWidget
     @description Embeddable rich text editor with formatting toolbar and HTML support.
+
+    This is a lightweight widget that can be embedded in other widgets or windows.
+    It provides basic text editing capabilities with a simple formatting toolbar.
+    It implements the BaseRTFEditor protocol for consistent API across different
+    editor implementations.
     """
+
     content_changed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._init_ui()
+        self._is_modified = False
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
         self.toolbar = QToolBar("Formatting")
         self.text_edit = QTextEdit(self)
-        self.text_edit.textChanged.connect(self.content_changed.emit)
+        self.text_edit.textChanged.connect(self._on_text_changed)
         layout.addWidget(self.toolbar)
         layout.addWidget(self.text_edit)
         self._add_formatting_actions()
         self.setLayout(layout)
+
+    def _on_text_changed(self):
+        """Handle text change events."""
+        self._is_modified = True
+        self.content_changed.emit()
 
     def _add_formatting_actions(self):
         bold_action = QAction(QIcon(), "Bold", self)
@@ -51,35 +67,70 @@ class RichTextEditorWidget(QWidget):
         self.toolbar.addAction(underline_action)
 
     def _toggle_bold(self):
-        fmt = QTextCharFormat()
-        fmt.setFontWeight(75 if not self.text_edit.fontWeight() == 75 else 50)
-        self._merge_format_on_selection(fmt)
+        TextFormattingUtils.toggle_bold(self.text_edit)
 
     def _toggle_italic(self):
-        fmt = QTextCharFormat()
-        fmt.setFontItalic(not self.text_edit.fontItalic())
-        self._merge_format_on_selection(fmt)
+        TextFormattingUtils.toggle_italic(self.text_edit)
 
     def _toggle_underline(self):
-        fmt = QTextCharFormat()
-        fmt.setFontUnderline(not self.text_edit.fontUnderline())
-        self._merge_format_on_selection(fmt)
+        TextFormattingUtils.toggle_underline(self.text_edit)
 
-    def _merge_format_on_selection(self, fmt):
-        cursor = self.text_edit.textCursor()
-        if not cursor.hasSelection():
-            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
-        cursor.mergeCharFormat(fmt)
-        self.text_edit.mergeCurrentCharFormat(fmt)
+    # Implementation of BaseRTFEditor protocol
 
-    def set_html(self, html: str):
+    def set_html(self, html: str) -> None:
+        """Set the content of the editor as HTML.
+
+        Args:
+            html: HTML content to set
+        """
         self.text_edit.setHtml(html)
+        self._is_modified = False
 
-    def to_html(self) -> str:
+    def get_html(self) -> str:
+        """Get the content of the editor as HTML.
+
+        Returns:
+            HTML content as string
+        """
         return self.text_edit.toHtml()
 
-    def set_plain_text(self, text: str):
-        self.text_edit.setPlainText(text)
+    def set_plain_text(self, text: str) -> None:
+        """Set the content of the editor as plain text.
 
-    def to_plain_text(self) -> str:
-        return self.text_edit.toPlainText() 
+        Args:
+            text: Plain text content to set
+        """
+        self.text_edit.setPlainText(text)
+        self._is_modified = False
+
+    def get_plain_text(self) -> str:
+        """Get the content of the editor as plain text.
+
+        Returns:
+            Plain text content as string
+        """
+        return self.text_edit.toPlainText()
+
+    def is_modified(self) -> bool:
+        """Check if the content has been modified since last save.
+
+        Returns:
+            True if modified, False otherwise
+        """
+        return self._is_modified
+
+    def set_modified(self, modified: bool = True) -> None:
+        """Set the modified state.
+
+        Args:
+            modified: True to mark as modified, False otherwise
+        """
+        self._is_modified = modified
+
+    def get_text_edit(self):
+        """Get the QTextEdit widget.
+
+        Returns:
+            QTextEdit widget
+        """
+        return self.text_edit

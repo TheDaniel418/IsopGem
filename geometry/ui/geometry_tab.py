@@ -8,7 +8,7 @@ import random
 
 from loguru import logger
 from PyQt6.QtCore import QRectF, Qt, QTimer
-from PyQt6.QtGui import QColor, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -17,10 +17,11 @@ from PyQt6.QtWidgets import (
     QStackedLayout,
     QVBoxLayout,
     QWidget,
-    QMessageBox,
 )
 
-from geometry.services.polygonal_visualization_service import PolygonalVisualizationService
+from geometry.services.polygonal_visualization_service import (
+    PolygonalVisualizationService,
+)
 from shared.ui.window_management import TabManager, WindowManager
 
 
@@ -291,6 +292,11 @@ class GeometryTab(QWidget):
         self.tab_manager = tab_manager
         self.window_manager = window_manager
 
+        # Path to resources
+        from pathlib import Path
+
+        self.resources_path = Path("assets")
+
         # We need to set a layout first
         self.setLayout(QVBoxLayout(self))
         self.layout().setContentsMargins(0, 0, 0, 0)
@@ -301,11 +307,13 @@ class GeometryTab(QWidget):
 
         # Now initialize the UI
         self._init_ui()
-        
+
         # Register the panel opener with the visualization service
         viz_service = PolygonalVisualizationService.get_instance()
         viz_service.register_panel_opener(self._open_polygonal_numbers)
-        logger.debug("Registered polygonal numbers panel opener with visualization service")
+        logger.debug(
+            "Registered polygonal numbers panel opener with visualization service"
+        )
 
         # Debug widget visibility after everything is set up
         QTimer.singleShot(500, self._debug_widget_visibility)
@@ -413,15 +421,81 @@ class GeometryTab(QWidget):
         regular_polygon_btn.clicked.connect(self._open_regular_polygon)
         button_layout.addWidget(regular_polygon_btn)
 
+        # Golden Mean button
+        golden_mean_btn = QPushButton("Golden Mean")
+        golden_mean_btn.setToolTip("Explore the Golden Mean and its manifestations")
+        golden_mean_btn.clicked.connect(self._open_golden_mean)
+        golden_mean_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+            """
+        )
+        button_layout.addWidget(golden_mean_btn)
+
         # The Vault of Hestia button
         vault_of_hestia_btn = QPushButton("The Vault of Hestia")
         vault_of_hestia_btn.setToolTip("Explore the Vault of Hestia geometric design")
         vault_of_hestia_btn.clicked.connect(self._open_vault_of_hestia)
         button_layout.addWidget(vault_of_hestia_btn)
 
+        # Golden Trisection button
+        golden_trisection_btn = QPushButton("Golden Trisection")
+        golden_trisection_btn.setToolTip(
+            "Explore the Golden Trisection and its properties"
+        )
+        golden_trisection_btn.clicked.connect(self._open_golden_trisection)
+        golden_trisection_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #FFC107;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #FFB300;
+            }
+            """
+        )
+        button_layout.addWidget(golden_trisection_btn)
+
+        # Nested Heptagons button
+        nested_heptagons_btn = QPushButton("Nested Heptagons")
+        nested_heptagons_btn.setToolTip(
+            "Explore nested heptagons with golden trisection proportions"
+        )
+        nested_heptagons_btn.clicked.connect(self._open_nested_heptagons)
+        nested_heptagons_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #388E3C;
+            }
+            """
+        )
+        button_layout.addWidget(nested_heptagons_btn)
+
         # Polygonal Numbers button
         polygonal_numbers_btn = QPushButton("Polygonal Numbers")
-        polygonal_numbers_btn.setToolTip("Visualize polygonal and centered polygonal numbers")
+        polygonal_numbers_btn.setToolTip(
+            "Visualize polygonal and centered polygonal numbers"
+        )
         polygonal_numbers_btn.clicked.connect(self._open_polygonal_numbers)
         polygonal_numbers_btn.setStyleSheet(
             """
@@ -678,7 +752,9 @@ class GeometryTab(QWidget):
         """Open the Vault of Hestia Explorer window."""
         logger.debug("Opening Vault of Hestia Explorer")
         import uuid
+
         from geometry.ui.panels.vault_of_hestia_panel import VaultOfHestiaPanel
+
         instance_id = f"vault_of_hestia_{uuid.uuid4().hex[:8]}"
         window = self.window_manager.create_auxiliary_window(
             instance_id, "Vault of Hestia Explorer"
@@ -718,4 +794,101 @@ class GeometryTab(QWidget):
 
         logger.debug(
             f"Opened Polygonal Numbers Visualization with instance ID: {instance_id}"
+        )
+
+    def _open_golden_mean(self) -> None:
+        """Open the Golden Mean Explorer window."""
+        logger.debug("Opening Golden Mean Explorer")
+
+        # Import here to avoid circular imports
+        import uuid
+
+        from geometry.ui.panels.golden_mean_panel import GoldenMeanPanel
+
+        # Generate a unique instance ID for multi-window support
+        instance_id = f"golden_mean_{uuid.uuid4().hex[:8]}"
+
+        # Create a window for the calculator
+        window = self.window_manager.create_auxiliary_window(
+            instance_id, "Golden Mean Explorer"
+        )
+
+        # Create the Golden Mean panel
+        golden_mean_panel = GoldenMeanPanel()
+
+        # Set the panel as the window content
+        window.set_content(golden_mean_panel)
+
+        # Configure and show the window
+        window.setMinimumSize(900, 700)
+        window.setWindowIcon(
+            QIcon(str(self.resources_path / "geometry" / "golden_ratio.png"))
+        )
+        window.show()
+
+        logger.debug(f"Opened Golden Mean Explorer with instance ID: {instance_id}")
+
+    def _open_golden_trisection(self) -> None:
+        """Open the Golden Trisection Explorer window."""
+        logger.debug("Opening Golden Trisection Explorer")
+
+        # Import here to avoid circular imports
+        import uuid
+
+        from geometry.ui.panels.golden_trisection_panel import GoldenTrisectionPanel
+
+        # Generate a unique instance ID for multi-window support
+        instance_id = f"golden_trisection_{uuid.uuid4().hex[:8]}"
+
+        # Create a window for the calculator
+        window = self.window_manager.create_auxiliary_window(
+            instance_id, "Golden Trisection Explorer"
+        )
+
+        # Create the Golden Trisection panel
+        golden_trisection_panel = GoldenTrisectionPanel()
+
+        # Set the panel as the window content
+        window.set_content(golden_trisection_panel)
+
+        # Configure and show the window
+        window.setMinimumSize(900, 700)
+        window.setWindowIcon(
+            QIcon(str(self.resources_path / "geometry" / "golden_ratio.png"))
+        )
+        window.show()
+
+        logger.debug(
+            f"Opened Golden Trisection Explorer with instance ID: {instance_id}"
+        )
+
+    def _open_nested_heptagons(self) -> None:
+        """Open the Nested Heptagons Calculator window."""
+        logger.debug("Opening Nested Heptagons Calculator")
+
+        # Import here to avoid circular imports
+        import uuid
+
+        from geometry.ui.panels.nested_heptagons_panel import NestedHeptagonsPanel
+
+        # Generate a unique instance ID for multi-window support
+        instance_id = f"nested_heptagons_{uuid.uuid4().hex[:8]}"
+
+        # Create a window for the calculator
+        window = self.window_manager.create_auxiliary_window(
+            instance_id, "Nested Heptagons Calculator"
+        )
+
+        # Create the Nested Heptagons panel
+        nested_heptagons_panel = NestedHeptagonsPanel()
+
+        # Set the panel as the window content
+        window.set_content(nested_heptagons_panel)
+
+        # Configure and show the window
+        window.setMinimumSize(900, 700)
+        window.show()
+
+        logger.debug(
+            f"Opened Nested Heptagons Calculator with instance ID: {instance_id}"
         )

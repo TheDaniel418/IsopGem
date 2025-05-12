@@ -7,11 +7,19 @@
 @dependencies PyQt6
 """
 
-from PyQt6.QtCore import pyqtSignal, Qt
-from PyQt6.QtWidgets import (
-    QDialog, QGridLayout, QPushButton, QVBoxLayout, QWidget, QHBoxLayout, QLabel
-)
 from typing import List
+
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
 
 class VirtualKeyboardWidget(QDialog):
     """
@@ -24,9 +32,10 @@ class VirtualKeyboardWidget(QDialog):
     vk.key_pressed.connect(lambda c: print(f"Pressed: {c}"))
     vk.exec()
     """
+
     key_pressed = pyqtSignal(str)
 
-    def __init__(self, language: str = 'Hebrew', parent: QWidget = None):
+    def __init__(self, language: str = "Hebrew", parent: QWidget = None):
         super().__init__(parent)
         self.setWindowTitle(f"{language} Virtual Keyboard")
         self.setModal(False)
@@ -47,23 +56,47 @@ class VirtualKeyboardWidget(QDialog):
 
         grid = QGridLayout()
         self._letter_buttons = []
-        chars = self.get_keyboard_layout(self.language, self._shift)
+        chars_with_breaks = self.get_keyboard_layout(self.language, self._shift)
+
         row, col = 0, 0
-        for i, char in enumerate(chars):
+        default_max_cols = 10  # Default for layouts without <br>
+        if self.language == "Hebrew":
+            max_cols = 10
+        elif self.language == "Greek":
+            max_cols = 8
+        elif self.language == "Coptic":
+            max_cols = 8  # Coptic uses <br>, this is a fallback/reference
+        elif self.language == "Arabic":
+            max_cols = (
+                11  # Arabic layout will use <br> tags, this is a fallback/reference
+            )
+        else:
+            max_cols = default_max_cols
+
+        uses_br_tags = any(item == "<br>" for item in chars_with_breaks)
+
+        for item in chars_with_breaks:
+            if item == "<br>":
+                row += 1
+                col = 0
+                continue
+
+            char = item
             btn = QPushButton(char)
             btn.setFixedSize(40, 40)
-            btn.clicked.connect(lambda _, c=char: self.key_pressed.emit(c))
+            btn.clicked.connect(lambda checked, c=char: self.key_pressed.emit(c))
             grid.addWidget(btn, row, col)
             self._letter_buttons.append(btn)
             col += 1
-            if (col >= 10 and self.language == 'Hebrew') or (col >= 8 and self.language == 'Greek'):
+
+            if not uses_br_tags and col >= max_cols:
                 row += 1
                 col = 0
         layout.addLayout(grid)
 
         # Special keys row
         specials = QHBoxLayout()
-        if self.language == 'Greek':
+        if self.language == "Greek":
             self._shift_button = QPushButton("Shift")
             self._shift_button.setCheckable(True)
             self._shift_button.setChecked(self._shift)
@@ -88,21 +121,41 @@ class VirtualKeyboardWidget(QDialog):
         self._shift = not self._shift
         self._shift_button.setChecked(self._shift)
         self._update_shift_button_style()
-        # Update all letter buttons
-        chars = self.get_keyboard_layout(self.language, self._shift)
-        for btn, char in zip(self._letter_buttons, chars):
-            btn.setText(char)
-            # Disconnect all signals first
+
+        current_chars_with_breaks = self.get_keyboard_layout(self.language, self._shift)
+        button_chars = [ch for ch in current_chars_with_breaks if ch != "<br>"]
+
+        if len(self._letter_buttons) != len(button_chars):
+            # This should ideally not happen if layouts are consistent
+            print(
+                f"Warning: Button/char mismatch in _toggle_shift. Buttons: {len(self._letter_buttons)}, Chars: {len(button_chars)}"
+            )
+            # Attempt to rebuild UI if mismatch is severe, or just log and proceed if minor
+            # For now, just proceed, but this indicates a potential issue.
+            # Fallback: Re-initialize the grid part of the UI. This is a bit heavy.
+            # A lighter approach might be needed, or ensure layouts are always correct.
+            # For simplicity here, we'll assume the button count doesn't change with shift.
+            # If it does, the UI needs a more dynamic rebuild.
+
+        for btn, char_for_button in zip(self._letter_buttons, button_chars):
+            btn.setText(char_for_button)
             try:
                 btn.clicked.disconnect()
-            except Exception:
+            except TypeError:  # No connections
                 pass
-            btn.clicked.connect(lambda _, c=char: self.key_pressed.emit(c))
+            except Exception as e:  # Catch-all for other potential errors
+                print(f"Error disconnecting signal: {e}")
+            # Capture char_for_button by value for the new connection
+            btn.clicked.connect(
+                lambda checked, c=char_for_button: self.key_pressed.emit(c)
+            )
 
     def _update_shift_button_style(self):
         if self._shift_button:
             if self._shift:
-                self._shift_button.setStyleSheet("background-color: #b0c4ff; font-weight: bold;")
+                self._shift_button.setStyleSheet(
+                    "background-color: #b0c4ff; font-weight: bold;"
+                )
             else:
                 self._shift_button.setStyleSheet("")
 
@@ -117,26 +170,195 @@ class VirtualKeyboardWidget(QDialog):
         @example
         VirtualKeyboardWidget.get_keyboard_layout('Greek', True)
         """
-        if language == 'Hebrew':
+        if language == "Hebrew":
             # Standard Hebrew letters, including finals
             return [
-                'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט',
-                'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ',
-                'ק', 'ר', 'ש', 'ת', 'ך', 'ם', 'ן', 'ף', 'ץ'
+                "א",
+                "ב",
+                "ג",
+                "ד",
+                "ה",
+                "ו",
+                "ז",
+                "ח",
+                "ט",
+                "י",
+                "כ",
+                "ל",
+                "מ",
+                "נ",
+                "ס",
+                "ע",
+                "פ",
+                "צ",
+                "ק",
+                "ר",
+                "ש",
+                "ת",
+                "ך",
+                "ם",
+                "ן",
+                "ף",
+                "ץ",
             ]
-        elif language == 'Greek':
+        elif language == "Greek":
             # Standard Greek letters, including final sigma
             lower = [
-                'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ',
-                'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π',
-                'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω', 'ς'
+                "α",
+                "β",
+                "γ",
+                "δ",
+                "ε",
+                "ζ",
+                "η",
+                "θ",
+                "ι",
+                "κ",
+                "λ",
+                "μ",
+                "ν",
+                "ξ",
+                "ο",
+                "π",
+                "ρ",
+                "σ",
+                "τ",
+                "υ",
+                "φ",
+                "χ",
+                "ψ",
+                "ω",
+                "ς",
             ]
             upper = [
-                'Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η', 'Θ',
-                'Ι', 'Κ', 'Λ', 'Μ', 'Ν', 'Ξ', 'Ο', 'Π',
-                'Ρ', 'Σ', 'Τ', 'Υ', 'Φ', 'Χ', 'Ψ', 'Ω', 'Σ'
+                "Α",
+                "Β",
+                "Γ",
+                "Δ",
+                "Ε",
+                "Ζ",
+                "Η",
+                "Θ",
+                "Ι",
+                "Κ",
+                "Λ",
+                "Μ",
+                "Ν",
+                "Ξ",
+                "Ο",
+                "Π",
+                "Ρ",
+                "Σ",
+                "Τ",
+                "Υ",
+                "Φ",
+                "Χ",
+                "Ψ",
+                "Ω",
+                "Σ",
             ]
             return upper if shift else lower
+        elif language == "Coptic":
+            # ⲁ ⲃ ⲅ ⲇ ⲉ ⲋ ⲍ ⲏ ⲑ ⲓ ⲕ ⲗ ⲙ ⲛ ⲝ ⲟ ⲡ ⲣ ⲥ ⲧ ⲩ ⲫ ⲭ ⲯ ⲱ ϣ ϥ ϧ ϩ ϫ ϭ ϯ
+            return [
+                "ⲁ",
+                "ⲃ",
+                "ⲅ",
+                "ⲇ",
+                "ⲉ",
+                "ⲋ",
+                "ⲍ",
+                "ⲏ",
+                "<br>",
+                "ⲑ",
+                "ⲓ",
+                "ⲕ",
+                "ⲗ",
+                "ⲙ",
+                "ⲛ",
+                "ⲝ",
+                "ⲟ",
+                "<br>",
+                "ⲡ",
+                "ⲣ",
+                "ⲥ",
+                "ⲧ",
+                "ⲩ",
+                "ⲫ",
+                "ⲭ",
+                "ⲯ",
+                "<br>",
+                "ⲱ",
+                "ϣ",
+                "ϥ",
+                "ϧ",
+                "ϩ",
+                "ϫ",
+                "ϭ",
+                "ϯ",
+            ]
+        elif language == "Arabic":
+            # Based on a standard Arabic (101) PC keyboard layout
+            return [
+                "ذ",
+                "١",
+                "٢",
+                "٣",
+                "٤",
+                "٥",
+                "٦",
+                "٧",
+                "٨",
+                "٩",
+                "٠",
+                "-",
+                "=",
+                "<br>",
+                "ض",
+                "ص",
+                "ث",
+                "ق",
+                "ف",
+                "غ",
+                "ع",
+                "ه",
+                "خ",
+                "ح",
+                "ج",
+                "د",
+                "<br>",
+                "ش",
+                "س",
+                "ي",
+                "ب",
+                "ل",
+                "ا",
+                "ت",
+                "ن",
+                "م",
+                "ك",
+                "ط",
+                "<br>",
+                "ئ",
+                "ء",
+                "ؤ",
+                "ر",
+                "لا",
+                "ى",
+                "ة",
+                "و",
+                "ز",
+                "ظ",
+                "<br>",
+                "َ",
+                "ً",
+                "ُ",
+                "ٌ",
+                "ِ",
+                "ٍ",
+                "ْ",
+                "~",  # Common diacritics and tilde
+            ]
         else:
             return []
 
@@ -165,4 +387,4 @@ class VirtualKeyboardWidget(QDialog):
         QLabel {
             color: #2c3e50;
         }
-        """ 
+        """

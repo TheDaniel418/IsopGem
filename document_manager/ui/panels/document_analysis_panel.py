@@ -17,11 +17,12 @@ Dependencies:
 """
 
 import re
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 from loguru import logger
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QColor, QTextCharFormat, QTextCursor
+from PyQt6.QtGui import QAction, QColor, QIcon, QTextCharFormat, QTextCursor
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -62,6 +63,7 @@ class DocumentAnalysisPanel(Panel):
 
     # Signals for document operations
     gematria_value_calculated = pyqtSignal(str, int)  # (text, value)
+    document_content_updated = pyqtSignal(str)  # Document ID
 
     def __init__(self, parent=None):
         """Initialize the document analysis panel.
@@ -84,6 +86,9 @@ class DocumentAnalysisPanel(Panel):
         self.text_search_results: List[Tuple[str, int]] = []  # (text, position)
         self.value_search_results: List[Tuple[str, int]] = []  # (text, position)
 
+        # Track content modification state
+        self._content_is_modified = False
+
         # Initialize UI
         self._init_ui()
 
@@ -93,7 +98,7 @@ class DocumentAnalysisPanel(Panel):
         # Auto-load first document if available
         if self.document_combo.count() > 0:
             self.document_combo.setCurrentIndex(0)
-            self._load_selected_document()
+            # self._load_selected_document() # Loading is now handled by _on_category_changed or explicit load
 
     def _init_ui(self):
         """Initialize the UI components."""
@@ -191,33 +196,42 @@ class DocumentAnalysisPanel(Panel):
         self.method_combo = QComboBox()
         self.method_combo.setStyleSheet("font-size: 10px;")
         # Add gematria methods
-        self.method_combo.addItem("Standard (Mispar Hechrachi)", CalculationType.MISPAR_HECHRACHI)
-        self.method_combo.addItem("Ordinal (Mispar Siduri)", CalculationType.MISPAR_SIDURI)
-        # Removed deprecated methods
-        self.method_combo.addItem("Atbash", CalculationType.ATBASH)
-        self.method_combo.addItem("Albam", CalculationType.ALBAM)
+        self.method_combo.addItem(
+            "Standard (Mispar Hechrachi)", CalculationType.HEBREW_STANDARD_VALUE
+        )
+        self.method_combo.addItem(
+            "Ordinal (Mispar Siduri)", CalculationType.HEBREW_ORDINAL_VALUE
+        )
+        self.method_combo.addItem("Atbash", CalculationType.HEBREW_ATBASH_SUBSTITUTION)
+        self.method_combo.addItem("Albam", CalculationType.HEBREW_ALBAM_SUBSTITUTION)
         # More methods can be added here
-        
+
         # Removed deprecated method Mispar Neelam
 
         # Add Greek methods
         self.method_combo.insertSeparator(self.method_combo.count())
-        self.method_combo.addItem("Greek Isopsophy", CalculationType.GREEK_ISOPSOPHY)
-        self.method_combo.addItem("Greek Ordinal", CalculationType.GREEK_ORDINAL)
-        self.method_combo.addItem("Greek Alpha-Mu", CalculationType.GREEK_ALPHA_MU)
         self.method_combo.addItem(
-            "Greek Alpha-Omega", CalculationType.GREEK_ALPHA_OMEGA
+            "Greek Isopsophy", CalculationType.GREEK_STANDARD_VALUE
+        )  # Standard Greek is Isopsophy
+        self.method_combo.addItem("Greek Ordinal", CalculationType.GREEK_ORDINAL_VALUE)
+        self.method_combo.addItem(
+            "Greek Alpha-Mu", CalculationType.GREEK_ALPHAMU_SUBSTITUTION
+        )
+        self.method_combo.addItem(
+            "Greek Alpha-Omega", CalculationType.GREEK_ALPHAOMEGA_SUBSTITUTION
         )
 
         # Add English methods
         self.method_combo.insertSeparator(self.method_combo.count())
-        self.method_combo.addItem("TQ Method", CalculationType.TQ_ENGLISH)
+        self.method_combo.addItem(
+            "TQ Method", CalculationType.ENGLISH_TQ_STANDARD_VALUE
+        )
 
         method_layout.addWidget(self.method_combo)
 
         # Default to TQ Method since documents are typically in English
         # Find the index of the TQ Method and set it as default
-        tq_index = self.method_combo.findData(CalculationType.TQ_ENGLISH)
+        tq_index = self.method_combo.findData(CalculationType.ENGLISH_TQ_STANDARD_VALUE)
         if tq_index >= 0:
             self.method_combo.setCurrentIndex(tq_index)
 
@@ -333,16 +347,35 @@ class DocumentAnalysisPanel(Panel):
 
         # Right side - Document content
         content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout = QVBoxLayout(content_widget)  # Store as instance member
+        self.content_layout.setContentsMargins(5, 5, 5, 5)
+        self.content_layout.setSpacing(5)
 
-        # Document content area
-        self.text_edit = QTextEdit()
-        self.text_edit.setReadOnly(True)
-        self.text_edit.selectionChanged.connect(self._handle_selection_changed)
-        self.text_edit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.text_edit.customContextMenuRequested.connect(self._show_context_menu)
-        content_layout.addWidget(self.text_edit)
+        self.doc_content_display = QTextEdit()
+        self.doc_content_display.setReadOnly(False)  # Ensure it's editable
+        self.doc_content_display.setAcceptRichText(False)  # Prefer plain text
+        self.doc_content_display.textChanged.connect(self._handle_content_modification)
+        # Connect existing context menu and selection changed if they were on the original text_edit
+        self.doc_content_display.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.doc_content_display.customContextMenuRequested.connect(
+            self._show_context_menu
+        )
+        self.doc_content_display.selectionChanged.connect(
+            self._handle_doc_content_selection_changed
+        )
+
+        self.content_layout.addWidget(self.doc_content_display, 1)  # Give it stretch
+
+        # Add a "Save Changes" button below the text display
+        self._save_edited_content_button = QPushButton("Save Text Changes")
+        self._save_edited_content_button.setIcon(QIcon.fromTheme("document-save"))
+        self._save_edited_content_button.setEnabled(False)  # Initially disabled
+        self._save_edited_content_button.clicked.connect(
+            self._save_document_content_changes
+        )
+        self.content_layout.addWidget(self._save_edited_content_button)
 
         # Set up the splitter
         main_splitter.addWidget(tools_widget)
@@ -459,23 +492,24 @@ class DocumentAnalysisPanel(Panel):
         position = item.data(Qt.ItemDataRole.UserRole)
         if position is not None:
             # Set cursor to that position
-            cursor = self.text_edit.textCursor()
+            cursor = self.doc_content_display.textCursor()
             cursor.setPosition(position)
             cursor.movePosition(
                 QTextCursor.MoveOperation.Right,
                 QTextCursor.MoveMode.KeepAnchor,
                 len(item.text().split(":")[0]),
             )  # Select the matched text
-            self.text_edit.setTextCursor(cursor)
+            self.doc_content_display.setTextCursor(cursor)
 
             # Ensure visible
-            self.text_edit.ensureCursorVisible()
+            self.doc_content_display.ensureCursorVisible()
 
     def _load_selected_document(self):
         """Load the currently selected document."""
         document_id = self.document_combo.currentData()
         if document_id:
             self.load_document(document_id)
+            # State reset is handled in load_document
 
     def load_document(self, document_id: str) -> bool:
         """Load a document for analysis.
@@ -489,6 +523,19 @@ class DocumentAnalysisPanel(Panel):
         document = self.document_service.get_document(document_id)
         if not document:
             logger.error(f"Document not found: {document_id}")
+            # Clear UI if document not found
+            self.current_document = None
+            self.doc_title_label.setText("No document loaded")
+            self.doc_info_label.setText("")
+            self.doc_content_display.setPlainText("")
+            self._content_is_modified = False
+            self._save_edited_content_button.setEnabled(False)
+            self.calc_btn.setEnabled(False)
+            self.result_label.setText("--")
+            self.search_value_btn.setEnabled(False)
+            self.search_text_btn.setEnabled(False)
+            self.results_list.clear()
+            self.results_label.setText("No search results")
             return False
 
         self.current_document = document
@@ -509,40 +556,111 @@ class DocumentAnalysisPanel(Panel):
             doc_info += f" | {document.page_count} pages"
         self.doc_info_label.setText(doc_info)
 
-        # Load document content
-        if document.content:
-            self.text_edit.setText(document.content)
-        else:
-            # Try to extract text
-            if self.document_service.extract_text(document):
-                # Reload document to get updated content
-                updated_doc = self.document_service.get_document(document_id)
-                if updated_doc and updated_doc.content:
+        doc_content_to_display = ""
+        if document.extracted_text:  # Prioritize extracted_text
+            doc_content_to_display = document.extracted_text
+        elif document.content:  # Fallback to content
+            doc_content_to_display = document.content
+
+        if (
+            not doc_content_to_display and document.file_path
+        ):  # If still no content, try to extract
+            logger.info(
+                f"No pre-extracted text for {document.id}, attempting extraction."
+            )
+            if self.document_service.extract_text(document):  # This saves the document
+                updated_doc = self.document_service.get_document(
+                    document_id
+                )  # Re-fetch
+                if updated_doc and updated_doc.extracted_text:
+                    self.current_document = (
+                        updated_doc  # Update current_document with fresh data
+                    )
+                    doc_content_to_display = updated_doc.extracted_text
+                elif updated_doc and updated_doc.content:
                     self.current_document = updated_doc
-                    self.text_edit.setText(updated_doc.content)
+                    doc_content_to_display = updated_doc.content
                 else:
-                    self.text_edit.setText(
-                        "No text content available for this document."
+                    doc_content_to_display = (
+                        "No text content could be extracted for this document."
                     )
             else:
-                self.text_edit.setText(
+                doc_content_to_display = (
                     "Failed to extract text from this document type."
                 )
 
+        self.doc_content_display.setPlainText(doc_content_to_display)
+        self._content_is_modified = False  # Reset modified flag
+        self._save_edited_content_button.setEnabled(False)  # Disable save button
+
         # Enable buttons
         self.search_value_btn.setEnabled(True)
-        self.search_text_btn.setEnabled(True)
+        self.search_text_btn.setEnabled(
+            True
+        )  # Assuming text search input is always available
+        self.calc_btn.setEnabled(False)  # Disable calc until selection
+        self.result_label.setText("--")
+        self._clear_highlights()
+        self.results_list.clear()
+        self.results_label.setText("No search results")
 
         return True
 
-    def _handle_selection_changed(self):
-        """Handle text selection change in the document."""
-        # Enable/disable calculate button based on selection
-        has_selection = self.text_edit.textCursor().hasSelection()
+    def _handle_doc_content_selection_changed(self):
+        """Handle text selection change in the document content display."""
+        has_selection = self.doc_content_display.textCursor().hasSelection()
         self.calc_btn.setEnabled(has_selection)
+        # Optionally, calculate gematria on selection change without showing full result message:
+        # if has_selection:
+        #     self._calculate_selection(show_result=False)
 
-        if has_selection:
-            self._calculate_selection(show_result=False)
+    def _handle_content_modification(self):
+        """Mark content as modified and enable save button."""
+        if not self.current_document:  # Don't mark as modified if no document is loaded
+            return
+        if not self._content_is_modified:  # Only set if not already true
+            self._content_is_modified = True
+        self._save_edited_content_button.setEnabled(True)
+
+    def _save_document_content_changes(self):
+        """Save the changes made to the document's parsed text content."""
+        if not self.current_document:
+            MessageBox.warning(self, "No Document", "No document is currently loaded.")
+            return
+
+        if not self._content_is_modified:
+            # MessageBox.information(self, "No Changes", "No changes to save.")
+            return
+
+        edited_text = self.doc_content_display.toPlainText()
+
+        try:
+            success = self.document_service.update_parsed_text(
+                self.current_document.id, edited_text
+            )
+            if success:
+                MessageBox.information(
+                    self, "Success", "Document content updated successfully."
+                )
+                # Update local document object to reflect changes
+                self.current_document.extracted_text = edited_text
+                self.current_document.last_modified_date = datetime.now()
+                # Potentially update word count if it's stored and affected
+                # self.current_document.word_count = len(edited_text.split())
+                # self.load_document(self.current_document.id) # Option 1: Full reload
+                # Option 2: Just update modified state and button
+                self._content_is_modified = False
+                self._save_edited_content_button.setEnabled(False)
+                self.document_content_updated.emit(
+                    self.current_document.id
+                )  # Emit signal
+            else:
+                MessageBox.critical(
+                    self, "Error", "Failed to update document content in the database."
+                )
+        except Exception as e:
+            logger.error(f"Error saving document content changes: {e}")
+            MessageBox.critical(self, "Error", f"An unexpected error occurred: {e}")
 
     def _calculate_selection(self, show_result: bool = True) -> None:
         """Calculate gematria value of selected text.
@@ -550,7 +668,7 @@ class DocumentAnalysisPanel(Panel):
         Args:
             show_result: Whether to show a message box with the result
         """
-        cursor = self.text_edit.textCursor()
+        cursor = self.doc_content_display.textCursor()
         if not cursor.hasSelection():
             return
 
@@ -712,9 +830,9 @@ class DocumentAnalysisPanel(Panel):
 
         # Highlight matches
         if matches:
-            cursor = self.text_edit.textCursor()
+            cursor = self.doc_content_display.textCursor()
             cursor.setPosition(0)
-            self.text_edit.setTextCursor(cursor)
+            self.doc_content_display.setTextCursor(cursor)
 
             # Create format for highlighting
             highlight_format = QTextCharFormat()
@@ -723,7 +841,7 @@ class DocumentAnalysisPanel(Panel):
             # Find and highlight all occurrences
             for word, position in matches:
                 # Create a cursor at the specific position
-                cursor = self.text_edit.textCursor()
+                cursor = self.doc_content_display.textCursor()
                 cursor.setPosition(position)
                 cursor.movePosition(
                     QTextCursor.MoveOperation.Right,
@@ -768,35 +886,35 @@ class DocumentAnalysisPanel(Panel):
 
         # Extract content
         content = self.current_document.content
-        
+
         # Compile the regex pattern once (more efficient)
         word_pattern = re.compile(r"\b\w+\b")
-        
+
         # Find all words with their positions
         words_with_positions = [
             (match.group(0), match.start(), match.end())
             for match in word_pattern.finditer(content)
         ]
-        
+
         # Create highlight format for matches
         highlight_format = QTextCharFormat()
         highlight_format.setBackground(QColor(255, 255, 0, 100))  # Light yellow
-        
+
         # Track matches to avoid duplicates
         matches = []
-        
+
         # Maximum allowed gap between consecutive words (in characters)
         max_gap = 20
-        
+
         # Cache for word gematria values to avoid recalculating
         word_values_cache = {}
-        
+
         # Process all possible consecutive word sequences
         for i in range(len(words_with_positions)):
             # Start with the first word and its value
             word = words_with_positions[i][0]
             phrase_start = words_with_positions[i][1]
-            
+
             # Use cache for word value calculation
             if word not in word_values_cache:
                 try:
@@ -821,7 +939,7 @@ class DocumentAnalysisPanel(Panel):
                                 # Add non-digit characters to the clean text
                                 text_without_numbers += word[j]
                                 j += 1
-                                
+
                         # Calculate gematria value for the text without numbers
                         if text_without_numbers.strip():
                             text_value = self.gematria_service.calculate(
@@ -829,43 +947,45 @@ class DocumentAnalysisPanel(Panel):
                             )
                         else:
                             text_value = 0
-                            
+
                         # Add the number sum to get total value
                         word_values_cache[word] = text_value + number_sum
                 except Exception as e:
                     logger.error(f"Error calculating value for word '{word}': {e}")
                     word_values_cache[word] = 0
-            
+
             # Check if single word matches target value
             phrase_value = word_values_cache[word]
             if phrase_value == target_value:
                 phrase_text = word
                 phrase_end = words_with_positions[i][2]
-                
+
                 # Only add if not a duplicate
                 if (phrase_text, phrase_start, phrase_end, phrase_value) not in matches:
-                    matches.append((phrase_text, phrase_start, phrase_end, phrase_value))
-            
+                    matches.append(
+                        (phrase_text, phrase_start, phrase_end, phrase_value)
+                    )
+
             # If single word exceeds target by too much, skip multi-word phrases
             if phrase_value > target_value * 2:
                 continue
-                
+
             # Try adding more words to the phrase
             current_phrase = [word]
             current_value = phrase_value
-            
+
             for j in range(i + 1, len(words_with_positions)):
                 # Check if words are too far apart
-                prev_end = words_with_positions[j-1][2]
+                prev_end = words_with_positions[j - 1][2]
                 curr_start = words_with_positions[j][1]
-                
+
                 if curr_start - prev_end > max_gap:
                     break  # Words too far apart
-                    
+
                 # Add the next word to phrase
                 next_word = words_with_positions[j][0]
                 current_phrase.append(next_word)
-                
+
                 # Get and cache word value if needed
                 if next_word not in word_values_cache:
                     try:
@@ -886,43 +1006,52 @@ class DocumentAnalysisPanel(Panel):
                                 else:
                                     text_without_numbers += next_word[k]
                                     k += 1
-                                    
+
                             if text_without_numbers.strip():
                                 text_value = self.gematria_service.calculate(
                                     text_without_numbers, method
                                 )
                             else:
                                 text_value = 0
-                                
+
                             word_values_cache[next_word] = text_value + number_sum
                     except Exception as e:
-                        logger.error(f"Error calculating value for word '{next_word}': {e}")
+                        logger.error(
+                            f"Error calculating value for word '{next_word}': {e}"
+                        )
                         word_values_cache[next_word] = 0
-                
+
                 # Add to phrase value
                 current_value += word_values_cache[next_word]
-                
+
                 # If we've exceeded the target, no point continuing this phrase
                 if current_value > target_value * 1.5 and target_value > 0:
                     break
-                    
+
                 # Check if we hit the target value exactly
                 if current_value == target_value:
                     phrase_text = " ".join(current_phrase)
                     phrase_end = words_with_positions[j][2]
-                    
+
                     # Only add if not a duplicate
-                    if (phrase_text, phrase_start, phrase_end, current_value) not in matches:
-                        matches.append((phrase_text, phrase_start, phrase_end, current_value))
-        
+                    if (
+                        phrase_text,
+                        phrase_start,
+                        phrase_end,
+                        current_value,
+                    ) not in matches:
+                        matches.append(
+                            (phrase_text, phrase_start, phrase_end, current_value)
+                        )
+
         # Store search results for later reference - maintain format expected by other methods
         self.value_search_results = [(text, pos) for text, pos, _, _ in matches]
-        
+
         # Highlight matches and populate results list
         if matches:
             for phrase_text, start_pos, end_pos, phrase_value in matches:
                 # Create a cursor at the specific position
-                cursor = self.text_edit.textCursor()
+                cursor = self.doc_content_display.textCursor()
                 cursor.setPosition(start_pos)
                 cursor.movePosition(
                     QTextCursor.MoveOperation.Right,
@@ -939,7 +1068,9 @@ class DocumentAnalysisPanel(Panel):
                 context = content[start_context:end_context].replace("\n", " ")
 
                 # Add to results list
-                item = QListWidgetItem(f"{phrase_text} ({phrase_value}): ...{context}...")
+                item = QListWidgetItem(
+                    f"{phrase_text} ({phrase_value}): ...{context}..."
+                )
                 item.setData(Qt.ItemDataRole.UserRole, start_pos)
                 self.results_list.addItem(item)
 
@@ -948,7 +1079,9 @@ class DocumentAnalysisPanel(Panel):
                 f"Found {len(matches)} phrase matches for value {target_value}"
             )
         else:
-            self.results_label.setText(f"No phrase matches found for value {target_value}")
+            self.results_label.setText(
+                f"No phrase matches found for value {target_value}"
+            )
 
     def _search_by_text(self):
         """Search for text in the document."""
@@ -977,7 +1110,7 @@ class DocumentAnalysisPanel(Panel):
             matches.append((match.group(0), match.start()))
 
             # Create a cursor at the specific position
-            cursor = self.text_edit.textCursor()
+            cursor = self.doc_content_display.textCursor()
             cursor.setPosition(match.start())
             cursor.movePosition(
                 QTextCursor.MoveOperation.Right,
@@ -1010,9 +1143,9 @@ class DocumentAnalysisPanel(Panel):
             self.results_label.setText(f"No occurrences found for '{search_text}'")
 
         # Reset cursor to start
-        cursor = self.text_edit.textCursor()
+        cursor = self.doc_content_display.textCursor()
         cursor.setPosition(0)
-        self.text_edit.setTextCursor(cursor)
+        self.doc_content_display.setTextCursor(cursor)
 
     def _highlight_text(self, text: str, format: QTextCharFormat) -> int:
         """Highlight all occurrences of text in the document.
@@ -1025,23 +1158,23 @@ class DocumentAnalysisPanel(Panel):
             Number of occurrences highlighted
         """
         # Reset cursor to start
-        cursor = self.text_edit.textCursor()
+        cursor = self.doc_content_display.textCursor()
         cursor.setPosition(0)
-        self.text_edit.setTextCursor(cursor)
+        self.doc_content_display.setTextCursor(cursor)
 
         # Count occurrences
         count = 0
 
         # Find and highlight all occurrences
-        while self.text_edit.find(text):
-            cursor = self.text_edit.textCursor()
+        while self.doc_content_display.find(text):
+            cursor = self.doc_content_display.textCursor()
             cursor.mergeCharFormat(format)
             count += 1
 
         # Reset cursor to start
-        cursor = self.text_edit.textCursor()
+        cursor = self.doc_content_display.textCursor()
         cursor.setPosition(0)
-        self.text_edit.setTextCursor(cursor)
+        self.doc_content_display.setTextCursor(cursor)
 
         return count
 
@@ -1051,13 +1184,13 @@ class DocumentAnalysisPanel(Panel):
         default_format = QTextCharFormat()
 
         # Apply to entire document
-        cursor = self.text_edit.textCursor()
+        cursor = self.doc_content_display.textCursor()
         cursor.select(QTextCursor.SelectionType.Document)
         cursor.setCharFormat(default_format)
 
         # Reset cursor
         cursor.clearSelection()
-        self.text_edit.setTextCursor(cursor)
+        self.doc_content_display.setTextCursor(cursor)
 
     def _show_context_menu(self, position):
         """Show context menu for text operations.
@@ -1068,7 +1201,7 @@ class DocumentAnalysisPanel(Panel):
         # Create context menu
         menu = QMenu()
 
-        cursor = self.text_edit.textCursor()
+        cursor = self.doc_content_display.textCursor()
         has_selection = cursor.hasSelection()
 
         # If there's a selection, add calculation options
@@ -1146,7 +1279,7 @@ class DocumentAnalysisPanel(Panel):
 
         # Show menu only if it has actions
         if not menu.isEmpty():
-            menu.exec(self.text_edit.viewport().mapToGlobal(position))
+            menu.exec(self.doc_content_display.viewport().mapToGlobal(position))
 
     def _search_for_value(self, value: int):
         """Search for words with the specified gematria value.

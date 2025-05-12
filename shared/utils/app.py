@@ -279,10 +279,18 @@ class MainWindow(QMainWindow):
             NumberPropertiesService()  # Creates the singleton instance
 
             # Then initialize other services that depend on it
+            from tq.services.geometric_transition_service import (
+                initialize as init_geo_transition_service,
+            )
             from tq.services.tq_analysis_service import initialize as init_tq_service
 
             # Initialize TQAnalysisService using the proper initialize function
             self.tq_analysis_service = init_tq_service(self.window_manager)
+
+            # Initialize GeometricTransitionService using the proper initialize function
+            self.geo_transition_service = init_geo_transition_service(
+                self.window_manager
+            )
 
             # Import and create the TQ tab
             from tq.ui.tq_tab import TQTab
@@ -308,9 +316,7 @@ class MainWindow(QMainWindow):
 
         # Create the content and open the window
         content = DatabaseMaintenanceWindow()
-        self.window_manager.open_window(
-            "database_maintenance", content
-        )
+        self.window_manager.open_window("database_maintenance", content)
 
         logger.debug("Opened Database Maintenance window")
 

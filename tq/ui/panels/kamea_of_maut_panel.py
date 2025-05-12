@@ -42,8 +42,12 @@ from PyQt6.QtWidgets import (
 
 from tq.services.kamea_service import KameaService
 from tq.ui.widgets.kamea_grid_widget import KameaGridWidget
+from tq.ui.widgets.temple_position_analyzer import TemplePositionDialog
 from tq.utils.difftrans_calculator import DiffTransCalculator
 from tq.viewmodels.kamea_viewmodel import KameaViewModel
+
+# Import visualization components conditionally
+# These will be imported in the handler methods when needed
 
 
 class KameaOfMautPanel(QFrame):
@@ -106,6 +110,15 @@ class KameaOfMautPanel(QFrame):
         self._bigram_windows = []  # Track all open bigram analysis windows
         self._kamea_locator_windows = []  # Track all open Kamea Locator windows
         self._pattern_finder_windows = []  # Track all open Pattern Finder windows
+        self._temple_position_windows = (
+            []
+        )  # Track all open Temple Position Analyzer windows
+        self._family_network_windows = (
+            []
+        )  # Track all open Family Network Visualization windows
+        self._integrated_network_windows = (
+            []
+        )  # Track all open Integrated Network Explorer windows
 
     def _create_control_panel(self) -> QWidget:
         """Create the control panel for interacting with the Kamea.
@@ -318,6 +331,27 @@ class KameaOfMautPanel(QFrame):
         pattern_button = QPushButton("Pattern Finder")
         pattern_button.clicked.connect(self._on_pattern_finder)
         adv_analysis_layout.addWidget(pattern_button)
+
+        # Add a separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        adv_analysis_layout.addWidget(separator)
+
+        # Add Temple Position Analyzer button
+        temple_position_button = QPushButton("Temple Position Analyzer")
+        temple_position_button.clicked.connect(self._on_temple_position_analyzer)
+        adv_analysis_layout.addWidget(temple_position_button)
+
+        # Add Family Network Visualization button
+        family_network_button = QPushButton("Family Network Visualization")
+        family_network_button.clicked.connect(self._on_family_network_visualization)
+        adv_analysis_layout.addWidget(family_network_button)
+
+        # Add Integrated Network Explorer button
+        integrated_network_button = QPushButton("Integrated Network Explorer")
+        integrated_network_button.clicked.connect(self._on_integrated_network_explorer)
+        adv_analysis_layout.addWidget(integrated_network_button)
 
         # Add the advanced analysis group to the control panel
         control_layout.addWidget(adv_analysis_group)
@@ -567,9 +601,9 @@ class KameaOfMautPanel(QFrame):
                 button_layout.addWidget(close_button)
                 layout.addLayout(button_layout)
 
+        # Use the generic window removal method
         def _remove_bigram_window(window):
-            if window in self._bigram_windows:
-                self._bigram_windows.remove(window)
+            self._remove_window(window, self._bigram_windows)
 
         try:
             win = BigramAnalysisWindow(
@@ -694,9 +728,9 @@ class KameaOfMautPanel(QFrame):
                 button_layout.addWidget(close_button)
                 layout.addLayout(button_layout)
 
+        # Use the generic window removal method
         def _remove_locator_window(window):
-            if window in self._kamea_locator_windows:
-                self._kamea_locator_windows.remove(window)
+            self._remove_window(window, self._kamea_locator_windows)
 
         try:
             win = KameaLocatorWindow(
@@ -783,9 +817,9 @@ class KameaOfMautPanel(QFrame):
                 button_layout.addWidget(close_button)
                 layout.addLayout(button_layout)
 
+        # Use the generic window removal method
         def _remove_pattern_window(window):
-            if window in self._pattern_finder_windows:
-                self._pattern_finder_windows.remove(window)
+            self._remove_window(window, self._pattern_finder_windows)
 
         try:
             win = PatternFinderWindow(
@@ -1091,6 +1125,94 @@ class KameaOfMautPanel(QFrame):
             ]
             self.view_model.difftrans_vectors = []
         self.kamea_grid.update()
+
+    def _on_temple_position_analyzer(self):
+        """Handle the Temple Position Analyzer button click."""
+        # Check if a cell is selected
+        if self.kamea_grid.selected_cell is None:
+            logger.warning("No cell selected. Please select a cell first.")
+            return
+
+        # Get the selected cell
+        row, col = self.kamea_grid.selected_cell
+
+        # Create the Temple Position Analyzer dialog
+        dialog = TemplePositionDialog(self, self.kamea_service, row, col)
+
+        # Track the dialog
+        self._temple_position_windows.append(dialog)
+
+        # Connect the dialog's finished signal to remove it from the list
+        dialog.finished.connect(
+            lambda: self._remove_window(dialog, self._temple_position_windows)
+        )
+
+        # Show the dialog
+        dialog.show()
+
+    def _on_family_network_visualization(self):
+        """Handle the Family Network Visualization button click."""
+        # Check if WebEngine is available
+        try:
+            from tq.ui.widgets.family_network_visualizer import (
+                WEBENGINE_AVAILABLE,
+                FamilyNetworkDialog,
+            )
+
+            # Create the Family Network Visualization dialog
+            dialog = FamilyNetworkDialog(self, self.kamea_service)
+
+            # Track the dialog
+            self._family_network_windows.append(dialog)
+
+            # Connect the dialog's finished signal to remove it from the list
+            dialog.finished.connect(
+                lambda: self._remove_window(dialog, self._family_network_windows)
+            )
+
+            # Show the dialog
+            dialog.show()
+
+            # Show a warning if WebEngine is not available
+            if not WEBENGINE_AVAILABLE:
+                logger.warning(
+                    "PyQt6.QtWebEngineWidgets is not installed. The visualization will be limited."
+                )
+
+        except ImportError as e:
+            logger.error(f"Error importing Family Network Visualizer: {e}")
+
+    def _on_integrated_network_explorer(self):
+        """Handle the Integrated Network Explorer button click (now managed by WindowManager)."""
+        try:
+            from tq.ui.widgets.integrated_network_explorer import (
+                WEBENGINE_AVAILABLE,
+                IntegratedNetworkDialog,
+            )
+
+            # Create the Integrated Network Explorer window as a true top-level window (parent=None)
+            dialog = IntegratedNetworkDialog(None, self.kamea_service)
+            # Use WindowManager if available
+            if hasattr(self, "window_manager") and self.window_manager is not None:
+                self.window_manager.open_window("ikna_explorer", dialog)
+            else:
+                dialog.show()
+            if not WEBENGINE_AVAILABLE:
+                logger.warning(
+                    "PyQt6.QtWebEngineWidgets is not installed. The visualization will be limited."
+                )
+        except ImportError as e:
+            logger.error(f"Error importing Integrated Network Explorer: {e}")
+
+    def _remove_window(self, window, window_list):
+        """Remove a window from a window list.
+
+        Args:
+            window: The window to remove
+            window_list: The list to remove it from
+        """
+        if window in window_list:
+            window_list.remove(window)
 
 
 if __name__ == "__main__":

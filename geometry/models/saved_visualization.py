@@ -3,16 +3,19 @@
 SavedVisualization class for storing and retrieving visualization data.
 """
 
-import os
 import json
+import os
 from datetime import datetime
+
 from PyQt6.QtGui import QColor
 
 
 class SavedVisualization:
     """Class representing a saved visualization with all its parameters and groups."""
 
-    def __init__(self, viz_id=None, name="", description="", viz_type="regular", sides=3, index=1):
+    def __init__(
+        self, viz_id=None, name="", description="", viz_type="regular", sides=3, index=1
+    ):
         """Initialize a SavedVisualization.
 
         Args:
@@ -31,6 +34,9 @@ class SavedVisualization:
         self.index = index
         self.groups = {}  # Dict of {group_name: [dot_ids]}
         self.colors = {}  # Dict of {group_name: QColor}
+        self.connections = (
+            []
+        )  # List of connection data (dot1, dot2, color, width, style)
         self.created = datetime.now().isoformat()
         self.modified = self.created
 
@@ -54,6 +60,38 @@ class SavedVisualization:
         Returns:
             Dictionary representation of the visualization
         """
+        # Serialize connections
+        serialized_connections = []
+        for conn in self.connections:
+            # Check if this is a Connection object or a tuple
+            if hasattr(conn, "dot1") and hasattr(conn, "dot2"):
+                # It's a Connection object
+                conn_data = {
+                    "dot1": conn.dot1,
+                    "dot2": conn.dot2,
+                    "color": {
+                        "r": conn.color.red(),
+                        "g": conn.color.green(),
+                        "b": conn.color.blue(),
+                        "a": conn.color.alpha(),
+                    },
+                    "width": conn.width,
+                    "style": int(
+                        conn.style.value
+                    ),  # Convert Qt.PenStyle enum to int for serialization
+                }
+            else:
+                # It's a tuple (legacy format or simplified)
+                dot1, dot2 = conn[:2]
+                conn_data = {
+                    "dot1": dot1,
+                    "dot2": dot2,
+                    "color": {"r": 100, "g": 100, "b": 255, "a": 150},  # Default color
+                    "width": 2,  # Default width
+                    "style": 1,  # Default style (solid line)
+                }
+            serialized_connections.append(conn_data)
+
         return {
             "id": self.id,
             "name": self.name,
@@ -63,11 +101,17 @@ class SavedVisualization:
             "index": self.index,
             "groups": self.groups,
             "colors": {
-                group: {"r": color.red(), "g": color.green(), "b": color.blue(), "a": color.alpha()}
+                group: {
+                    "r": color.red(),
+                    "g": color.green(),
+                    "b": color.blue(),
+                    "a": color.alpha(),
+                }
                 for group, color in self.colors.items()
             },
+            "connections": serialized_connections,
             "created": self.created,
-            "modified": self.modified
+            "modified": self.modified,
         }
 
     @classmethod
@@ -86,13 +130,23 @@ class SavedVisualization:
             description=data["description"],
             viz_type=data["type"],
             sides=data["sides"],
-            index=data["index"]
+            index=data["index"],
         )
         viz.groups = data["groups"]
         viz.colors = {
             group: QColor(color["r"], color["g"], color["b"], color["a"])
             for group, color in data["colors"].items()
         }
+
+        # Deserialize connections if present
+        if "connections" in data:
+            # We'll store the connection data in a format that can be easily converted
+            # to Connection objects when loaded into the visualization
+            viz.connections = []
+            for conn_data in data["connections"]:
+                # Store the connection data as a dictionary
+                viz.connections.append(conn_data)
+
         viz.created = data["created"]
         viz.modified = data["modified"]
         return viz
@@ -164,7 +218,7 @@ class VisualizationManager:
                 "type": visualization.type,
                 "sides": visualization.sides,
                 "index": visualization.index,
-                "modified": visualization.modified
+                "modified": visualization.modified,
             }
             self._save_index(index)
 

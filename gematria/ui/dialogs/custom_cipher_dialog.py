@@ -3,14 +3,7 @@
 This module provides a dialog for creating and editing custom gematria ciphers.
 """
 
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Union,
-    cast,
-)
+from typing import Dict, List, Optional, Union, cast
 
 from loguru import logger
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -38,13 +31,20 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from gematria.models.calculation_type import CalculationType
+from gematria.models.calculation_type import CalculationType, Language
 from gematria.models.custom_cipher_config import CustomCipherConfig, LanguageType
 from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.services.gematria_service import GematriaService
 
 # Define method type as a union of CalculationType and CustomCipherConfig
 MethodType = Union[CalculationType, CustomCipherConfig]
+
+NON_LATIN_LANGUAGES = [
+    Language.HEBREW.value,
+    Language.GREEK.value,
+    Language.COPTIC.value,
+    Language.ARABIC.value,  # Added Arabic
+]
 
 
 # ClosableButton class - a custom button that handles closing properly
@@ -176,6 +176,8 @@ class CustomCipherDialog(QDialog):
         self.language_combo.addItem("Hebrew", LanguageType.HEBREW)
         self.language_combo.addItem("Greek", LanguageType.GREEK)
         self.language_combo.addItem("English", LanguageType.ENGLISH)
+        self.language_combo.addItem("Coptic", LanguageType.COPTIC)
+        self.language_combo.addItem("Arabic", LanguageType.ARABIC)
         self.language_combo.currentIndexChanged.connect(self._language_changed)
         properties_layout.addRow("Language:", self.language_combo)
 
@@ -874,6 +876,8 @@ class CipherSelectionDialog(QDialog):
         self._language_combo.addItem("Hebrew", LanguageType.HEBREW)
         self._language_combo.addItem("Greek", LanguageType.GREEK)
         self._language_combo.addItem("English", LanguageType.ENGLISH)
+        self._language_combo.addItem("Coptic", LanguageType.COPTIC)
+        self._language_combo.addItem("Arabic", LanguageType.ARABIC)
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
         self._language_combo.setStyleSheet("padding: 5px;")
 
@@ -1452,86 +1456,86 @@ class CipherSelectionDialog(QDialog):
 
         # Greek building value
         greek_building = {
-            "α": 1,      # 1
-            "β": 3,      # 1+2
-            "γ": 6,      # 1+2+3
-            "δ": 10,     # 1+2+3+4
-            "ε": 15,     # 1+2+3+4+5
-            "ζ": 21,     # 1+2+3+4+5+6
-            "η": 28,     # 1+2+3+4+5+6+7
-            "θ": 36,     # 1+2+3+4+5+6+7+8
-            "ι": 45,     # 1+2+3+4+5+6+7+8+9
-            "κ": 55,     # 1+2+..+10
-            "λ": 66,     # 1+2+..+11
-            "μ": 78,     # 1+2+..+12
-            "ν": 91,     # 1+2+..+13
-            "ξ": 105,    # 1+2+..+14
-            "ο": 120,    # 1+2+..+15
-            "π": 136,    # 1+2+..+16
-            "ρ": 153,    # 1+2+..+17
-            "σ": 171,    # 1+2+..+18
-            "τ": 190,    # 1+2+..+19
-            "υ": 210,    # 1+2+..+20
-            "φ": 231,    # 1+2+..+21
-            "χ": 253,    # 1+2+..+22
-            "ψ": 276,    # 1+2+..+23
-            "ω": 300,    # 1+2+..+24
-            "ς": 171,    # same as sigma
-            "ϲ": 171,    # same as sigma
+            "α": 1,  # 1
+            "β": 3,  # 1+2
+            "γ": 6,  # 1+2+3
+            "δ": 10,  # 1+2+3+4
+            "ε": 15,  # 1+2+3+4+5
+            "ζ": 21,  # 1+2+3+4+5+6
+            "η": 28,  # 1+2+3+4+5+6+7
+            "θ": 36,  # 1+2+3+4+5+6+7+8
+            "ι": 45,  # 1+2+3+4+5+6+7+8+9
+            "κ": 55,  # 1+2+..+10
+            "λ": 66,  # 1+2+..+11
+            "μ": 78,  # 1+2+..+12
+            "ν": 91,  # 1+2+..+13
+            "ξ": 105,  # 1+2+..+14
+            "ο": 120,  # 1+2+..+15
+            "π": 136,  # 1+2+..+16
+            "ρ": 153,  # 1+2+..+17
+            "σ": 171,  # 1+2+..+18
+            "τ": 190,  # 1+2+..+19
+            "υ": 210,  # 1+2+..+20
+            "φ": 231,  # 1+2+..+21
+            "χ": 253,  # 1+2+..+22
+            "ψ": 276,  # 1+2+..+23
+            "ω": 300,  # 1+2+..+24
+            "ς": 171,  # same as sigma
+            "ϲ": 171,  # same as sigma
         }
 
         # Greek hidden value
         greek_hidden = {
             "α": 531,  # alpha without alpha
             "β": 309,  # beta without beta
-            "γ": 82,   # gamma without gamma
+            "γ": 82,  # gamma without gamma
             "δ": 336,  # delta without delta
             "ε": 860,  # epsilon without epsilon
             "ζ": 309,  # zeta without zeta
             "η": 301,  # eta without eta
             "θ": 309,  # theta without theta
-            "ι": 1101, # iota without iota
+            "ι": 1101,  # iota without iota
             "κ": 162,  # kappa without kappa
-            "λ": 48,   # lambda without lambda
+            "λ": 48,  # lambda without lambda
             "μ": 400,  # mu without mu
             "ν": 400,  # nu without nu
-            "ξ": 10,   # xi without xi
+            "ξ": 10,  # xi without xi
             "ο": 290,  # omicron without omicron
-            "π": 10,   # pi without pi
+            "π": 10,  # pi without pi
             "ρ": 800,  # rho without rho
-            "σ": 54,   # sigma without sigma
+            "σ": 54,  # sigma without sigma
             "τ": 401,  # tau without tau
             "υ": 850,  # upsilon without upsilon
-            "φ": 10,   # phi without phi
-            "χ": 10,   # chi without chi
-            "ψ": 10,   # psi without psi
-            "ω": 0,    # omega without omega
-            "ς": 54,   # final sigma without sigma
-            "ϲ": 54,   # lunate sigma without sigma
+            "φ": 10,  # phi without phi
+            "χ": 10,  # chi without chi
+            "ψ": 10,  # psi without psi
+            "ω": 0,  # omega without omega
+            "ς": 54,  # final sigma without sigma
+            "ϲ": 54,  # lunate sigma without sigma
         }
 
         # Greek full name value
         greek_full_name = {
             "α": 532,  # alpha
             "β": 311,  # beta
-            "γ": 85,   # gamma
+            "γ": 85,  # gamma
             "δ": 340,  # delta
             "ε": 865,  # epsilon
             "ζ": 316,  # zeta
             "η": 309,  # eta
             "θ": 318,  # theta
-            "ι": 1111, # iota
+            "ι": 1111,  # iota
             "κ": 182,  # kappa
-            "λ": 78,   # lambda
+            "λ": 78,  # lambda
             "μ": 440,  # mu
             "ν": 450,  # nu
-            "ξ": 70,   # xi
+            "ξ": 70,  # xi
             "ο": 360,  # omicron
-            "π": 90,   # pi
+            "π": 90,  # pi
             "ρ": 900,  # rho
             "σ": 254,  # sigma
             "τ": 701,  # tau
-            "υ": 1250, # upsilon
+            "υ": 1250,  # upsilon
             "φ": 510,  # phi
             "χ": 610,  # chi
             "ψ": 710,  # psi
@@ -1572,107 +1576,55 @@ class CipherSelectionDialog(QDialog):
 
         # Use appropriate letter values based on the calculation type
         if language == LanguageType.HEBREW:
-            if calc_type == CalculationType.MISPAR_HECHRACHI:
+            if calc_type == CalculationType.HEBREW_STANDARD_VALUE:
                 cipher.letter_values = hebrew_standard.copy()
-            elif calc_type == CalculationType.MISPAR_SIDURI:
+            elif calc_type == CalculationType.HEBREW_ORDINAL_VALUE:
                 cipher.letter_values = hebrew_ordinal.copy()
-            elif calc_type == CalculationType.MISPAR_KATAN:
+            elif calc_type == CalculationType.HEBREW_SMALL_REDUCED_VALUE:
                 cipher.letter_values = hebrew_reduced.copy()
-            elif calc_type == CalculationType.MISPAR_KATAN_MISPARI:
-                # Same as reduced for initialization
+            elif calc_type == CalculationType.HEBREW_INTEGRAL_REDUCED_VALUE:
                 cipher.letter_values = hebrew_reduced.copy()
-            elif calc_type == CalculationType.MISPAR_GADOL:
+            elif calc_type == CalculationType.HEBREW_FINAL_LETTER_VALUES:
                 cipher.letter_values = hebrew_gadol.copy()
                 cipher.use_final_forms = True
-            elif calc_type == CalculationType.MISPAR_MESHUPACH:
+            elif calc_type == CalculationType.HEBREW_REVERSE_STANDARD_VALUES:
                 cipher.letter_values = hebrew_reversal.copy()
-            elif calc_type == CalculationType.ALBAM:
+            elif calc_type == CalculationType.HEBREW_ALBAM_SUBSTITUTION:
                 cipher.letter_values = hebrew_albam.copy()
-            elif calc_type == CalculationType.ATBASH:
+            elif calc_type == CalculationType.HEBREW_ATBASH_SUBSTITUTION:
                 cipher.letter_values = hebrew_atbash.copy()
             else:
-                # For other types, use standard values
                 cipher.letter_values = hebrew_standard.copy()
 
         elif language == LanguageType.GREEK:
-            if calc_type == CalculationType.GREEK_ISOPSOPHY:
+            if calc_type == CalculationType.GREEK_STANDARD_VALUE:
                 cipher.letter_values = greek_standard.copy()
-            elif calc_type == CalculationType.GREEK_ORDINAL:
+            elif calc_type == CalculationType.GREEK_ORDINAL_VALUE:
                 cipher.letter_values = greek_ordinal.copy()
-            elif calc_type == CalculationType.GREEK_SQUARED:
-                cipher.letter_values = {k: v**2 for k, v in greek_standard.items()}
-            elif calc_type == CalculationType.GREEK_REVERSAL:
-                # Reverse the standard values - alpha=800, omega=1
-                greek_rev = {}
-                for i, (k, v) in enumerate(greek_standard.items()):
-                    if k in ["ς", "ϲ"]:  # Skip final sigma forms
-                        continue
-                    greek_rev[k] = greek_standard[list(greek_standard.keys())[-(i + 1)]]
-                greek_rev["ς"] = greek_rev["σ"]  # Final sigma
-                greek_rev["ϲ"] = greek_rev["σ"]  # Lunate sigma
-                cipher.letter_values = greek_rev
-            elif calc_type == CalculationType.GREEK_ALPHA_MU:
-                # Alpha-Mu cipher - like Hebrew AlBam
-                greek_am = {}
-                greek_keys = list(greek_ordinal.keys())[:-2]  # Exclude final sigma forms
-                mid_point = len(greek_keys) // 2
-                
-                # Map first half to second half
-                for i in range(mid_point):
-                    greek_am[greek_keys[i]] = greek_standard[greek_keys[i + mid_point]]
-                    greek_am[greek_keys[i + mid_point]] = greek_standard[greek_keys[i]]
-                
-                # Handle final sigma forms
-                greek_am["ς"] = greek_am["σ"]
-                greek_am["ϲ"] = greek_am["σ"]
-                
-                cipher.letter_values = greek_am
-            elif calc_type == CalculationType.GREEK_ALPHA_OMEGA:
-                # Alpha-Omega cipher - like Hebrew AtBash
-                greek_ao = {}
-                greek_keys = list(greek_ordinal.keys())[:-2]  # Exclude final sigma forms
-                
-                # Reverse the mapping
-                for i, k in enumerate(greek_keys):
-                    greek_ao[k] = greek_standard[greek_keys[-(i + 1)]]
-                
-                # Handle final sigma forms
-                greek_ao["ς"] = greek_ao["σ"]
-                greek_ao["ϲ"] = greek_ao["σ"]
-                
-                cipher.letter_values = greek_ao
-            elif calc_type == CalculationType.GREEK_BUILDING:
-                # Building value - calculate each letter when spelled out
-                greek_building = {}
-                
-                # Greek letter names and their standard values
-                greek_letter_names = {
-                    "α": "ἄλφα",  # alpha
-                    "β": "βῆτα",  # beta
-                    "γ": "γάμμα",  # gamma
-                    # ... other letter names ...
-                }
-                
-                # Calculate the building value for each letter
-                for letter, name in greek_letter_names.items():
-                    value = sum(greek_standard.get(c, 0) for c in name)
-                    greek_building[letter] = value
-                
-                cipher.letter_values = greek_building
-            elif calc_type == CalculationType.GREEK_HIDDEN:
-                # Hidden value - name of letter minus letter itself
-                # These values would need exact calculations based on letter name values
+            elif calc_type == CalculationType.GREEK_SQUARE_VALUE:
+                cipher.letter_values = greek_standard.copy()
+            elif calc_type == CalculationType.GREEK_REVERSE_STANDARD_VALUES:
+                cipher.letter_values = greek_reversal.copy()
+            elif calc_type == CalculationType.GREEK_ALPHAMU_SUBSTITUTION:
+                cipher.letter_values = greek_alpha_mu.copy()
+            elif calc_type == CalculationType.GREEK_ALPHAOMEGA_SUBSTITUTION:
+                cipher.letter_values = greek_alpha_omega.copy()
+            elif calc_type == CalculationType.GREEK_BUILDING_VALUE_CUMULATIVE:
+                cipher.letter_values = greek_building.copy()
+            elif calc_type == CalculationType.GREEK_HIDDEN_LETTER_NAME_VALUE:
                 cipher.letter_values = greek_hidden.copy()
-            elif calc_type == CalculationType.GREEK_FULL_NAME:
-                # Full name value - value of letter name
+            elif calc_type == CalculationType.GREEK_SUM_OF_LETTER_NAMES:
                 cipher.letter_values = greek_full_name.copy()
-            elif calc_type == CalculationType.GREEK_ADDITIVE:
-                # Just standard + number of letters (implemented in calculate method)
+            elif (
+                calc_type
+                == CalculationType.GREEK_COLLECTIVE_VALUE_STANDARD_PLUS_LETTERS
+            ):
                 cipher.letter_values = greek_additive.copy()
-                # Additive is handled in calculate method
+            else:
+                cipher.letter_values = greek_standard.copy()
 
         elif language == LanguageType.ENGLISH:
-            if calc_type == CalculationType.TQ_ENGLISH:
+            if calc_type == CalculationType.ENGLISH_TQ_STANDARD_VALUE:
                 cipher.letter_values = {
                     "a": 1,
                     "b": 2,
@@ -1702,47 +1654,78 @@ class CipherSelectionDialog(QDialog):
                     "z": 26,
                 }
             else:
-                # For other types, use English A=1 through Z=26
-                cipher.letter_values = {letter: i + 1 for i, letter in enumerate("abcdefghijklmnopqrstuvwxyz")}
+                cipher.letter_values = {
+                    letter: i + 1
+                    for i, letter in enumerate("abcdefghijklmnopqrstuvwxyz")
+                }
 
         # Set appropriate properties
         cipher.methods = []
-        
+
         # Hebrew methods
         if calc_type in [
-            CalculationType.MISPAR_HECHRACHI,
-            CalculationType.MISPAR_SIDURI,
-            CalculationType.MISPAR_GADOL,
-            CalculationType.MISPAR_BONEH,
-            CalculationType.MISPAR_KIDMI,
-            CalculationType.MISPAR_PERATI,
-            CalculationType.MISPAR_SHEMI,
-            CalculationType.MISPAR_MUSAFI,
-            CalculationType.MISPAR_MESHUPACH,
-            CalculationType.ALBAM,
-            CalculationType.ATBASH,
+            CalculationType.HEBREW_STANDARD_VALUE,
+            CalculationType.HEBREW_ORDINAL_VALUE,
+            CalculationType.HEBREW_FINAL_LETTER_VALUES,
+            CalculationType.HEBREW_BUILDING_VALUE_CUMULATIVE,
+            CalculationType.HEBREW_TRIANGULAR_VALUE,
+            CalculationType.HEBREW_INDIVIDUAL_SQUARE_VALUE,
+            CalculationType.HEBREW_SUM_OF_LETTER_NAMES_STANDARD,
+            CalculationType.HEBREW_COLLECTIVE_VALUE_STANDARD_PLUS_LETTERS,
+            CalculationType.HEBREW_REVERSE_STANDARD_VALUES,
+            CalculationType.HEBREW_ALBAM_SUBSTITUTION,
+            CalculationType.HEBREW_ATBASH_SUBSTITUTION,
+            CalculationType.HEBREW_SMALL_REDUCED_VALUE,
+            CalculationType.HEBREW_INTEGRAL_REDUCED_VALUE,
+            CalculationType.HEBREW_SUM_OF_LETTER_NAMES_FINALS,
+            CalculationType.HEBREW_PRODUCT_OF_LETTER_NAMES_STANDARD,
+            CalculationType.HEBREW_PRODUCT_OF_LETTER_NAMES_FINALS,
+            CalculationType.HEBREW_HIDDEN_VALUE_STANDARD,
+            CalculationType.HEBREW_HIDDEN_VALUE_FINALS,
+            CalculationType.HEBREW_FACE_VALUE_STANDARD,
+            CalculationType.HEBREW_FACE_VALUE_FINALS,
+            CalculationType.HEBREW_BACK_VALUE_STANDARD,
+            CalculationType.HEBREW_BACK_VALUE_FINALS,
+            CalculationType.HEBREW_SUM_OF_LETTER_NAMES_STANDARD_PLUS_LETTERS,
+            CalculationType.HEBREW_SUM_OF_LETTER_NAMES_FINALS_PLUS_LETTERS,
+            CalculationType.HEBREW_STANDARD_VALUE_PLUS_ONE,
+            CalculationType.HEBREW_CUBED_VALUE,
         ]:
             cipher.language = LanguageType.HEBREW
-        
+
         # Greek methods
         elif calc_type in [
-            CalculationType.GREEK_ISOPSOPHY,
-            CalculationType.GREEK_ORDINAL,
-            CalculationType.GREEK_SQUARED, 
-            CalculationType.GREEK_REVERSAL,
-            CalculationType.GREEK_ALPHA_MU,
-            CalculationType.GREEK_ALPHA_OMEGA,
-            CalculationType.GREEK_BUILDING,
-            CalculationType.GREEK_HIDDEN,
-            CalculationType.GREEK_FULL_NAME,
-            CalculationType.GREEK_ADDITIVE,
+            CalculationType.GREEK_STANDARD_VALUE,
+            CalculationType.GREEK_ORDINAL_VALUE,
+            CalculationType.GREEK_SQUARE_VALUE,
+            CalculationType.GREEK_REVERSE_STANDARD_VALUES,
+            CalculationType.GREEK_ALPHAMU_SUBSTITUTION,
+            CalculationType.GREEK_ALPHAOMEGA_SUBSTITUTION,
+            CalculationType.GREEK_BUILDING_VALUE_CUMULATIVE,
+            CalculationType.GREEK_HIDDEN_LETTER_NAME_VALUE,
+            CalculationType.GREEK_SUM_OF_LETTER_NAMES,
+            CalculationType.GREEK_COLLECTIVE_VALUE_STANDARD_PLUS_LETTERS,
+            CalculationType.GREEK_CUBED_VALUE,
+            CalculationType.GREEK_NEXT_LETTER_VALUE,
+            CalculationType.GREEK_CYCLICAL_PERMUTATION_VALUE,
+            CalculationType.GREEK_SMALL_REDUCED_VALUE,
+            CalculationType.GREEK_DIGITAL_VALUE,
+            CalculationType.GREEK_DIGITAL_ORDINAL_VALUE,
+            CalculationType.GREEK_ORDINAL_SQUARE_VALUE,
+            CalculationType.GREEK_PRODUCT_OF_LETTER_NAMES,
+            CalculationType.GREEK_FACE_VALUE,
+            CalculationType.GREEK_BACK_VALUE,
+            CalculationType.GREEK_SUM_OF_LETTER_NAMES_PLUS_LETTERS,
+            CalculationType.GREEK_STANDARD_VALUE_PLUS_ONE,
+            CalculationType.GREEK_ALPHABET_REVERSAL_SUBSTITUTION,
+            CalculationType.GREEK_PAIR_MATCHING_SUBSTITUTION,
         ]:
             cipher.language = LanguageType.GREEK
-        
+
         # English methods
-        elif calc_type in [CalculationType.TQ_ENGLISH]:
+        elif calc_type in [CalculationType.ENGLISH_TQ_STANDARD_VALUE]:
             cipher.language = LanguageType.ENGLISH
-            
+
         else:
             cipher.language = LanguageType.ENGLISH
 
@@ -1759,24 +1742,18 @@ class CipherSelectionDialog(QDialog):
         if language == LanguageType.HEBREW:
             hebrew_categories: Dict[str, List[MethodType]] = {
                 "Standard Methods": [
-                    CalculationType.MISPAR_HECHRACHI,
-                    CalculationType.MISPAR_SIDURI,
-                    CalculationType.MISPAR_KATAN,
-                    CalculationType.MISPAR_KATAN_MISPARI,
+                    CalculationType.HEBREW_STANDARD_VALUE,
+                    CalculationType.HEBREW_ORDINAL_VALUE,
+                    CalculationType.HEBREW_SMALL_REDUCED_VALUE,
+                    CalculationType.HEBREW_INTEGRAL_REDUCED_VALUE,
                 ],
                 "Advanced Methods": [
-                    CalculationType.MISPAR_GADOL,
-                    CalculationType.MISPAR_BONEH,
-                    CalculationType.MISPAR_KIDMI,
-                    CalculationType.MISPAR_NEELAM,
-                    CalculationType.MISPAR_PERATI,
-                    CalculationType.MISPAR_SHEMI,
-                    CalculationType.MISPAR_MUSAFI,
+                    CalculationType.HEBREW_FINAL_LETTER_VALUES,
+                    CalculationType.HEBREW_REVERSE_STANDARD_VALUES,
                 ],
                 "Substitution Ciphers": [
-                    CalculationType.MISPAR_MESHUPACH,
-                    CalculationType.ALBAM,
-                    CalculationType.ATBASH,
+                    CalculationType.HEBREW_ALBAM_SUBSTITUTION,
+                    CalculationType.HEBREW_ATBASH_SUBSTITUTION,
                 ],
             }
 
@@ -1800,20 +1777,20 @@ class CipherSelectionDialog(QDialog):
         elif language == LanguageType.GREEK:
             greek_categories: Dict[str, List[MethodType]] = {
                 "Standard Methods": [
-                    CalculationType.GREEK_ISOPSOPHY,
-                    CalculationType.GREEK_ORDINAL,
-                    CalculationType.GREEK_SQUARED,
-                    CalculationType.GREEK_REVERSAL,
+                    CalculationType.GREEK_STANDARD_VALUE,
+                    CalculationType.GREEK_ORDINAL_VALUE,
+                    CalculationType.GREEK_SQUARE_VALUE,
+                    CalculationType.GREEK_REVERSE_STANDARD_VALUES,
                 ],
                 "Advanced Methods": [
-                    CalculationType.GREEK_ALPHA_MU,
-                    CalculationType.GREEK_ALPHA_OMEGA,
+                    CalculationType.GREEK_ALPHAMU_SUBSTITUTION,
+                    CalculationType.GREEK_ALPHAOMEGA_SUBSTITUTION,
                 ],
                 "Substitution Ciphers": [
-                    CalculationType.GREEK_BUILDING,
-                    CalculationType.GREEK_HIDDEN,
-                    CalculationType.GREEK_FULL_NAME,
-                    CalculationType.GREEK_ADDITIVE,
+                    CalculationType.GREEK_BUILDING_VALUE_CUMULATIVE,
+                    CalculationType.GREEK_HIDDEN_LETTER_NAME_VALUE,
+                    CalculationType.GREEK_SUM_OF_LETTER_NAMES,
+                    CalculationType.GREEK_COLLECTIVE_VALUE_STANDARD_PLUS_LETTERS,
                 ],
             }
 
@@ -1836,7 +1813,7 @@ class CipherSelectionDialog(QDialog):
 
         elif language == LanguageType.ENGLISH:
             english_categories: Dict[str, List[MethodType]] = {
-                "TQ Methods": [CalculationType.TQ_ENGLISH]
+                "TQ Methods": [CalculationType.ENGLISH_TQ_STANDARD_VALUE]
             }
 
             # Add custom ciphers category if available
@@ -1857,6 +1834,23 @@ class CipherSelectionDialog(QDialog):
 
             # Set default category (only one for English)
             self._category_combo.setCurrentIndex(0)
+
+        elif language == LanguageType.ARABIC:
+            arabic_categories: Dict[str, List[MethodType]] = {
+                "Standard Abjad": [CalculationType.ARABIC_STANDARD_ABJAD]
+            }
+            # Add custom ciphers category if available
+            arabic_custom_ciphers = self.custom_service.get_ciphers(LanguageType.ARABIC)
+            if arabic_custom_ciphers:
+                arabic_categories["Custom Methods"] = cast(
+                    List[MethodType], arabic_custom_ciphers
+                )
+
+            self._method_categories = arabic_categories
+            for category in arabic_categories.keys():
+                self._category_combo.addItem(category)
+            if self._category_combo.count() > 0:
+                self._category_combo.setCurrentIndex(0)
 
     def _populate_methods(self) -> None:
         """Populate the methods list based on selected category."""
@@ -1918,49 +1912,201 @@ class CipherSelectionDialog(QDialog):
         Returns:
             A description of the method
         """
-        if method == CalculationType.MISPAR_HECHRACHI:
-                return "Standard value (Mispar Hechrachi). Each letter has its numerical value."
-        elif method == CalculationType.MISPAR_SIDURI:
-            return "Ordinal value (Mispar Siduri). Each letter is counted based on its position."
-        elif method == CalculationType.MISPAR_MESHUPACH:
-            return "Reversed values (Mispar Meshupach). Letters are assigned reversed values."
-        elif method == CalculationType.ALBAM:
-            return "AlBam cipher. First letter is exchanged with 12th, 2nd with 13th, etc."
-        elif method == CalculationType.ATBASH:
-            return "AtBash cipher. First letter is exchanged with last, 2nd with 2nd-to-last, etc."
-        elif method == CalculationType.MISPAR_GADOL:
-            return "Large value (Mispar Gadol). Final letters have values 500-900."
-        elif method == CalculationType.MISPAR_BONEH:
-            return "Building value (Mispar Boneh). Value of letters when spelled out."
-        elif method == CalculationType.MISPAR_KIDMI:
-            return "Triangular value (Mispar Kidmi). Sum of all letters up to this one."
-        elif method == CalculationType.MISPAR_PERATI:
-            return "Individual square (Mispar Perati). Square value of each letter."
-        elif method == CalculationType.MISPAR_SHEMI:
-            return "Full name value (Mispar Shemi). Value of the letter names."
-        elif method == CalculationType.MISPAR_MUSAFI:
-            return "Additive (Mispar Musafi). Standard value plus number of letters."
-        elif method == CalculationType.GREEK_ISOPSOPHY:
-            return "Greek standard value (Isopsophy). Traditional Greek letter values."
-        elif method == CalculationType.GREEK_ORDINAL:
-            return "Greek ordinal value. Each letter numbered by position in alphabet."
-        elif method == CalculationType.GREEK_SQUARED:
-            return "Greek squared value. Square of standard Greek letter values."
-        elif method == CalculationType.GREEK_REVERSAL:
-            return "Greek reversal cipher. Letter values are reversed (α=800, ω=1)."
-        elif method == CalculationType.GREEK_ALPHA_MU:
-            return "Greek Alpha-Mu cipher. Similar to Hebrew AlBam."
-        elif method == CalculationType.GREEK_ALPHA_OMEGA:
-            return "Greek Alpha-Omega cipher. Similar to Hebrew AtBash."
-        elif method == CalculationType.GREEK_BUILDING:
-            return "Greek building value. Cumulative value of letters as spelled out."
-        elif method == CalculationType.GREEK_HIDDEN:
-            return "Greek hidden value. Letter name value without the letter itself."
-        elif method == CalculationType.GREEK_FULL_NAME:
-            return "Greek full name value. Value of the full letter name."
-        elif method == CalculationType.GREEK_ADDITIVE:
-            return "Greek additive value. Standard value plus number of letters."
-        elif method == CalculationType.TQ_ENGLISH:
-            return "TQ English. English letters A=1, B=2, etc."
+        # Hebrew Standard & Ordinal
+        if method == CalculationType.HEBREW_STANDARD_VALUE:
+            return "Hebrew: Standard value (Mispar Hechrachi). Each letter has its numerical value."
+        elif method == CalculationType.HEBREW_ORDINAL_VALUE:
+            return "Hebrew: Ordinal value (Mispar Siduri). Each letter is counted based on its position."
+
+        # Hebrew Reduction Methods
+        elif method == CalculationType.HEBREW_SMALL_REDUCED_VALUE:  # Was MISPAR_KATAN
+            return "Hebrew: Small/Reduced Value (Mispar Katan). Reduces letter values to a single digit."
+        elif (
+            method == CalculationType.HEBREW_INTEGRAL_REDUCED_VALUE
+        ):  # Was MISPAR_MISPARI or conceptually MISPAR_KATAN_MISPARI
+            return "Hebrew: Integral Reduced Value (Mispar Mispari). Sums the digits of each letter's value."
+
+        # Hebrew Final Letters & Reversals
+        elif method == CalculationType.HEBREW_FINAL_LETTER_VALUES:  # Was MISPAR_GADOL
+            return "Hebrew: Final Letter Values (Mispar Sofit/Gadol). Final letters have values 500-900."
+        elif (
+            method == CalculationType.HEBREW_REVERSE_STANDARD_VALUES
+        ):  # Was MISPAR_MESHUPACH
+            return "Hebrew: Reverse Standard Values (Mispar Meshupach). Letter values are reversed (e.g., Alef=400)."
+
+        # Hebrew Substitutions
+        elif method == CalculationType.HEBREW_ALBAM_SUBSTITUTION:  # Was ALBAM
+            return "Hebrew: Albam cipher. First letter is exchanged with 12th, 2nd with 13th, etc."
+        elif method == CalculationType.HEBREW_ATBASH_SUBSTITUTION:  # Was ATBASH
+            return "Hebrew: Atbash cipher. First letter exchanged with last, second with second-to-last, etc."
+
+        # Hebrew Mathematical Operations
+        elif (
+            method == CalculationType.HEBREW_BUILDING_VALUE_CUMULATIVE
+        ):  # Was MISPAR_BONEH
+            return "Hebrew: Building Value (Mispar Bone'eh). Cumulative sum of letter values."
+        elif method == CalculationType.HEBREW_TRIANGULAR_VALUE:  # Was MISPAR_KIDMI
+            return "Hebrew: Triangular Value (Mispar Kidmi). Sum of values from Alef to the letter."
+        elif (
+            method == CalculationType.HEBREW_INDIVIDUAL_SQUARE_VALUE
+        ):  # Was MISPAR_PERATI
+            return "Hebrew: Individual Square Value (Mispar Perati/Bone'eh). Each letter's value is squared."
+        elif method == CalculationType.HEBREW_CUBED_VALUE:  # Was MISPAR_MESHULASH
+            return (
+                "Hebrew: Cubed Value (Mispar Meshulash). Each letter's value is cubed."
+            )
+
+        # Hebrew Full Spelling Methods
+        elif (
+            method == CalculationType.HEBREW_SUM_OF_LETTER_NAMES_STANDARD
+        ):  # Was MISPAR_SHEMI
+            return "Hebrew: Sum of Letter Names - Standard (Mispar Shemi). Sums values of spelled-out letter names."
+        elif method == CalculationType.HEBREW_SUM_OF_LETTER_NAMES_FINALS:
+            return "Hebrew: Sum of Letter Names - Finals (Mispar Shemi Sofit). Uses final values in name spellings."
+        elif method == CalculationType.HEBREW_PRODUCT_OF_LETTER_NAMES_STANDARD:
+            return "Hebrew: Product of Letter Names - Standard. Multiplies values of spelled-out letter names."
+        elif method == CalculationType.HEBREW_PRODUCT_OF_LETTER_NAMES_FINALS:
+            return "Hebrew: Product of Letter Names - Finals. Multiplies using final values in name spellings."
+        elif method == CalculationType.HEBREW_HIDDEN_VALUE_STANDARD:
+            return "Hebrew: Hidden Value - Standard (Mispar Ne'elam). Name value minus letter value."
+        elif method == CalculationType.HEBREW_HIDDEN_VALUE_FINALS:
+            return "Hebrew: Hidden Value - Finals (Mispar Ne'elam Sofit). Name (finals) value minus letter value."
+        elif method == CalculationType.HEBREW_FACE_VALUE_STANDARD:
+            return "Hebrew: Face Value - Standard (Mispar HaPanim). First letter name + rest standard."
+        elif method == CalculationType.HEBREW_FACE_VALUE_FINALS:
+            return "Hebrew: Face Value - Finals (Mispar HaPanim Sofit). First letter name (finals) + rest standard."
+        elif method == CalculationType.HEBREW_BACK_VALUE_STANDARD:
+            return "Hebrew: Back Value - Standard (Mispar HaAchor). Rest standard + last letter name."
+        elif method == CalculationType.HEBREW_BACK_VALUE_FINALS:
+            return "Hebrew: Back Value - Finals (Mispar HaAchor Sofit). Rest standard + last letter name (finals)."
+
+        # Hebrew Collective Methods
+        elif (
+            method == CalculationType.HEBREW_COLLECTIVE_VALUE_STANDARD_PLUS_LETTERS
+        ):  # Was MISPAR_MUSAFI
+            return "Hebrew: Collective Value (Mispar Kolel). Standard value plus number of letters."
+        elif method == CalculationType.HEBREW_SUM_OF_LETTER_NAMES_STANDARD_PLUS_LETTERS:
+            return "Hebrew: Name Collective - Standard (Mispar Shemi Kolel). Sum of names + letters."
+        elif method == CalculationType.HEBREW_SUM_OF_LETTER_NAMES_FINALS_PLUS_LETTERS:
+            return "Hebrew: Name Collective - Finals (Mispar Shemi Kolel Sofit). Sum of names (finals) + letters."
+        elif method == CalculationType.HEBREW_STANDARD_VALUE_PLUS_ONE:
+            return "Hebrew: Standard Value + 1 (Ragil plus Kolel). Standard value plus one."
+
+        # Greek Standard & Ordinal
+        elif method == CalculationType.GREEK_STANDARD_VALUE:  # Was GREEK_ISOPSOPHY
+            return "Greek: Standard Value (Isopsophy). Traditional Greek letter values."
+        elif method == CalculationType.GREEK_ORDINAL_VALUE:  # Was GREEK_ORDINAL
+            return "Greek: Ordinal Value. Each letter numbered by position in alphabet."
+
+        # Greek Mathematical Operations (Basic)
+        elif method == CalculationType.GREEK_SQUARE_VALUE:  # Was GREEK_SQUARED
+            return "Greek: Square Value. Square of standard Greek letter values."
+        elif method == CalculationType.GREEK_CUBED_VALUE:  # Was GREEK_KYVOS
+            return "Greek: Cubed Value (Kyvos). Cube of standard Greek letter values."
+        elif method == CalculationType.GREEK_TRIANGULAR_VALUE:  # Was GREEK_TRIANGULAR
+            return "Greek: Triangular Value. Triangular number of each letter's standard value."
+        elif (
+            method == CalculationType.GREEK_BUILDING_VALUE_CUMULATIVE
+        ):  # Was GREEK_BUILDING
+            return "Greek: Building Value. Cumulative value of letters as spelled out."
+
+        # Greek Substitutions & Advanced
+        elif (
+            method == CalculationType.GREEK_REVERSE_STANDARD_VALUES
+        ):  # Was GREEK_REVERSAL
+            return "Greek: Reverse Standard Values. Letter values are reversed (α=800, ω=1)."
+        elif method == CalculationType.GREEK_ALPHAMU_SUBSTITUTION:  # Was GREEK_ALPHA_MU
+            return "Greek: Alpha-Mu Substitution. First half of alphabet exchanged with second."
+        elif (
+            method == CalculationType.GREEK_ALPHAOMEGA_SUBSTITUTION
+        ):  # Was GREEK_ALPHA_OMEGA
+            return (
+                "Greek: Alpha-Omega Substitution (Values). Atbash-like value mapping."
+            )
+        elif method == CalculationType.GREEK_NEXT_LETTER_VALUE:  # Was GREEK_EPOMENOS
+            return "Greek: Next Letter Value (Epomenos). Value of the following letter."
+        elif (
+            method == CalculationType.GREEK_CYCLICAL_PERMUTATION_VALUE
+        ):  # Was GREEK_KYKLIKI
+            return "Greek: Cyclical Permutation. Text permuted (abc->bca) then valued."
+
+        # Greek Full Spelling & Name Values
+        elif (
+            method == CalculationType.GREEK_HIDDEN_LETTER_NAME_VALUE
+        ):  # Was GREEK_HIDDEN
+            return "Greek: Hidden Letter Name Value. Letter name value minus the letter itself."
+        elif method == CalculationType.GREEK_SUM_OF_LETTER_NAMES:  # Was GREEK_FULL_NAME
+            return "Greek: Sum of Letter Names. Value of the full letter name."
+
+        # Greek Collective
+        elif (
+            method == CalculationType.GREEK_COLLECTIVE_VALUE_STANDARD_PLUS_LETTERS
+        ):  # Was GREEK_ADDITIVE
+            return "Greek: Collective Value. Standard value plus number of letters."
+
+        # Greek - Additional Methods from Docs
+        elif method == CalculationType.GREEK_SMALL_REDUCED_VALUE:
+            return "Greek: Small Reduced Value. Reduces standard letter values to a single digit."
+        elif method == CalculationType.GREEK_DIGITAL_VALUE:
+            return "Greek: Digital Value. Sums digits of each letter's standard value."
+        elif method == CalculationType.GREEK_DIGITAL_ORDINAL_VALUE:
+            return "Greek: Digital Ordinal Value. Sums digits of each letter's ordinal value."
+        elif method == CalculationType.GREEK_ORDINAL_SQUARE_VALUE:
+            return (
+                "Greek: Ordinal Square Value. Each letter's ordinal value is squared."
+            )
+        elif method == CalculationType.GREEK_PRODUCT_OF_LETTER_NAMES:
+            return "Greek: Product of Letter Names. Multiplies values of spelled-out letter names."
+        elif method == CalculationType.GREEK_FACE_VALUE:
+            return "Greek: Face Value. First letter name value + rest standard values."
+        elif method == CalculationType.GREEK_BACK_VALUE:
+            return (
+                "Greek: Back Value. Standard values of rest + last letter name value."
+            )
+        elif method == CalculationType.GREEK_SUM_OF_LETTER_NAMES_PLUS_LETTERS:
+            return (
+                "Greek: Name Collective Value. Sum of letter names + number of letters."
+            )
+        elif method == CalculationType.GREEK_STANDARD_VALUE_PLUS_ONE:
+            return "Greek: Standard Value + 1. Standard value plus one."
+        elif method == CalculationType.GREEK_ALPHABET_REVERSAL_SUBSTITUTION:
+            return (
+                "Greek: Alphabet Reversal Substitution. True Atbash (α=ω letter swap)."
+            )
+        elif method == CalculationType.GREEK_PAIR_MATCHING_SUBSTITUTION:
+            return "Greek: Pair Matching Substitution (e.g. α=λ). Needs full cipher definition."
+
+        # English TQ Methods
+        elif method == CalculationType.ENGLISH_TQ_STANDARD_VALUE:  # Was TQ_ENGLISH
+            return (
+                "English: TQ Standard Value. Uses Trigrammaton Qabbalah letter values."
+            )
+        elif method == CalculationType.ENGLISH_TQ_REDUCED_VALUE:
+            return (
+                "English: TQ Reduced Value. Standard TQ sum reduced to a single digit."
+            )
+        elif method == CalculationType.ENGLISH_TQ_SQUARE_VALUE:
+            return (
+                "English: TQ Square Value. Each letter's TQ value squared, then summed."
+            )
+        elif method == CalculationType.ENGLISH_TQ_TRIANGULAR_VALUE:
+            return "English: TQ Triangular Value. Triangular number of each letter's TQ value."
+        elif method == CalculationType.ENGLISH_TQ_LETTER_POSITION_VALUE:
+            return "English: TQ Letter Position. TQ value multiplied by its position in the word."
+
+        # Coptic Methods
+        elif method == CalculationType.COPTIC_STANDARD_VALUE:
+            return "Coptic: Standard Value. Uses standard Coptic letter values."
+        elif method == CalculationType.COPTIC_REDUCED_VALUE:
+            return (
+                "Coptic: Reduced Value. Standard Coptic sum reduced to a single digit."
+            )
+
+        elif method == CalculationType.ARABIC_STANDARD_ABJAD:
+            return "Arabic: Standard Abjad (Hawwaz). Traditional Arabic letter values."
+
         else:
-            return "Custom calculation method."
+            # Fallback for any enums not explicitly handled (should not happen if all are covered)
+            # or if a non-enum somehow gets here.
+            name = method.name if hasattr(method, "name") else str(method)
+            return f"{name.replace('_', ' ').title()} - Custom or unclassified method."

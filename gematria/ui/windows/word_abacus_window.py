@@ -22,19 +22,28 @@ from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 from gematria.models.calculation_result import CalculationResult
 from gematria.ui.panels.word_abacus_panel import WordAbacusPanel
 
+# Import WindowManager to pass to the panel
+from shared.ui.window_management import WindowManager
+
 
 class WordAbacusWindow(QMainWindow):
     """Standalone window for Word Abacus calculations."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, window_manager: WindowManager, parent: Optional[QWidget] = None
+    ) -> None:
         """Initialize the Word Abacus window.
 
         Args:
+            window_manager: The application window manager.
             parent: Parent widget
         """
         super().__init__(parent)
         self.setWindowTitle("Gematria Word Abacus")
         self.setMinimumSize(800, 600)
+        self._window_manager = (
+            window_manager  # Store window_manager if needed, or pass directly
+        )
 
         # Set up central widget
         central_widget = QWidget()
@@ -45,7 +54,7 @@ class WordAbacusWindow(QMainWindow):
         layout.setContentsMargins(10, 10, 10, 10)
 
         # Create Word Abacus panel (includes the help button)
-        self.word_abacus_panel = WordAbacusPanel()
+        self.word_abacus_panel = WordAbacusPanel(window_manager=self._window_manager)
         layout.addWidget(self.word_abacus_panel)
 
         # Connect signals

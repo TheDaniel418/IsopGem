@@ -24,15 +24,13 @@ from gematria.ui.dialogs.gematria_help_dialog import GematriaHelpDialog
 from gematria.ui.dialogs.import_word_list_dialog import ImportWordListDialog
 from gematria.ui.dialogs.save_calculation_dialog import SaveCalculationDialog
 from gematria.ui.dialogs.tag_selection_dialog import TagSelectionDialog
-from gematria.ui.dialogs.word_abacus_window import WordAbacusWindow
 
 __all__ = [
-    "WordAbacusWindow",
-    "GematriaHelpDialog",
     "CreateTagDialog",
+    "CustomCipherDialog",
+    "EditTagsWindow",
+    "GematriaHelpDialog",
+    "ImportWordListDialog",
     "SaveCalculationDialog",
     "TagSelectionDialog",
-    "EditTagsWindow",
-    "CustomCipherDialog",
-    "ImportWordListDialog",
 ]

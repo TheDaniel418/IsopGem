@@ -489,26 +489,38 @@ class DocumentService:
             Text with page numbers removed
         """
         # Pattern 1: Standalone numbers at beginning or end of a line
-        text = re.sub(r'^\s*\d+\s*$', '', text, flags=re.MULTILINE)
-        text = re.sub(r'^\s*\d+\s*\n', '\n', text, flags=re.MULTILINE)
-        text = re.sub(r'\n\s*\d+\s*$', '\n', text, flags=re.MULTILINE)
+        text = re.sub(r"^\s*\d+\s*$", "", text, flags=re.MULTILINE)
+        text = re.sub(r"^\s*\d+\s*\n", "\n", text, flags=re.MULTILINE)
+        text = re.sub(r"\n\s*\d+\s*$", "\n", text, flags=re.MULTILINE)
 
         # Pattern 2: "Page X" or "Page X of Y" patterns
-        text = re.sub(r'^\s*Page\s+\d+(\s+of\s+\d+)?\s*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
-        text = re.sub(r'\n\s*Page\s+\d+(\s+of\s+\d+)?\s*\n', '\n', text, flags=re.MULTILINE | re.IGNORECASE)
+        text = re.sub(
+            r"^\s*Page\s+\d+(\s+of\s+\d+)?\s*$",
+            "",
+            text,
+            flags=re.MULTILINE | re.IGNORECASE,
+        )
+        text = re.sub(
+            r"\n\s*Page\s+\d+(\s+of\s+\d+)?\s*\n",
+            "\n",
+            text,
+            flags=re.MULTILINE | re.IGNORECASE,
+        )
 
         # Pattern 3: Roman numerals at line boundaries
         # Match i, ii, iii, iv, v, vi, vii, viii, ix, x, etc.
-        roman_pattern = r'^\s*[ivxlcdm]+\s*$'
-        text = re.sub(roman_pattern, '', text, flags=re.MULTILINE | re.IGNORECASE)
+        roman_pattern = r"^\s*[ivxlcdm]+\s*$"
+        text = re.sub(roman_pattern, "", text, flags=re.MULTILINE | re.IGNORECASE)
 
         # Replace single line breaks with double line breaks where page numbers were removed
         # This preserves the spacing in the original document
-        text = re.sub(r'\n\n\n+', '\n\n', text)
+        text = re.sub(r"\n\n\n+", "\n\n", text)
 
         return text
 
-    def _extract_text_from_pdf(self, document: Document, remove_page_numbers: bool = True) -> bool:
+    def _extract_text_from_pdf(
+        self, document: Document, remove_page_numbers: bool = True
+    ) -> bool:
         """Extract text from a PDF document.
 
         Args:
@@ -1228,9 +1240,48 @@ class DocumentService:
         Returns:
             List of documents in the category
         """
-        # Get documents from repository
-        documents = self.document_repository.get_by_category(category_id)
-        return documents
+        return self.document_repository.get_by_category(category_id)
+
+    def update_parsed_text(self, document_id: str, new_text: str) -> bool:
+        """Update the extracted plain text content of a document.
+
+        Args:
+            document_id: The ID of the document to update.
+            new_text: The new plain text content.
+
+        Returns:
+            True if the update was successful, False otherwise.
+        """
+        logger.debug(f"Attempting to update parsed text for document ID: {document_id}")
+        document = self.document_repository.get_by_id(document_id)
+
+        if not document:
+            logger.warning(
+                f"Document not found with ID: {document_id} for text update."
+            )
+            return False
+
+        document.extracted_text = new_text
+        document.last_modified_date = datetime.now()
+        # Potentially update word count if that's dynamically calculated or stored
+        # For now, just updating text and modification date.
+
+        try:
+            if self.document_repository.save(document):
+                logger.info(
+                    f"Successfully updated parsed text for document ID: {document_id}"
+                )
+                return True
+            else:
+                logger.error(
+                    f"Failed to save updated parsed text for document ID: {document_id} via repository."
+                )
+                return False
+        except Exception as e:
+            logger.error(
+                f"Exception while saving updated parsed text for document ID {document_id}: {e}"
+            )
+            return False
 
     def revert_greek_conversion(self, document_id: str) -> bool:
         """Revert a document that was incorrectly converted to Greek back to original text.

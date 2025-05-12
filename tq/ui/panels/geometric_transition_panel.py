@@ -21,9 +21,10 @@ Related files:
 """
 
 import math
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
-from PyQt6.QtCore import QPointF, QRectF, Qt
+from loguru import logger
+from PyQt6.QtCore import QPointF, QRectF, Qt, QTimer
 from PyQt6.QtGui import (
     QAction,
     QBrush,
@@ -128,6 +129,18 @@ class PolygonVisualizerWidget(QWidget):
             value: Value to assign to the vertex
         """
         self.vertex_values[vertex_index] = value
+        self.update()
+
+    def set_vertex_label(self, vertex_index: int, label: str):
+        """Set the label for a specific vertex.
+
+        Args:
+            vertex_index: Index of the vertex
+            label: Label to assign to the vertex
+        """
+        if not hasattr(self, "vertex_labels"):
+            self.vertex_labels = {}
+        self.vertex_labels[vertex_index] = label
         self.update()
 
     def paintEvent(self, event):
@@ -1825,6 +1838,46 @@ class GeometricTransitionPanel(QFrame):
             from loguru import logger
 
             logger.error(f"Error sending to polygon calculator: {e}")
+
+    def set_polygon_values(self, values: List[int], labels: List[str]) -> None:
+        """Set the polygon values and labels.
+
+        Args:
+            values: List of values for each vertex
+            labels: List of labels for each vertex
+        """
+        # Set the number of sides
+        self.sides_input.setValue(len(values))
+
+        # Wait for the UI to update after setting sides
+        QTimer.singleShot(100, lambda: self._set_values_and_calculate(values, labels))
+
+    def _set_values_and_calculate(self, values: List[int], labels: List[str]) -> None:
+        """Set the values and labels, then calculate transitions.
+
+        Args:
+            values: List of values for each vertex
+            labels: List of labels for each vertex
+        """
+        try:
+            # Set values in input fields
+            for i, value in enumerate(values):
+                if i in self.vertex_inputs:
+                    self.vertex_inputs[i].setText(str(value))
+
+            # Set values in visualizer
+            for i, value in enumerate(values):
+                self.polygon_visualizer.set_vertex_value(i, value)
+                self.polygon_visualizer.set_vertex_label(i, labels[i])
+
+            # Calculate transitions
+            self._calculate_transitions()
+
+            logger.debug(
+                f"Set polygon values and calculated transitions for {len(values)} vertices"
+            )
+        except Exception as e:
+            logger.error(f"Error setting polygon values: {e}")
 
 
 if __name__ == "__main__":

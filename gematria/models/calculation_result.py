@@ -21,12 +21,15 @@ Related files:
 - gematria/ui/panels/calculation_history_panel.py: Displays calculation results
 """
 
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from gematria.models.calculation_type import CalculationType
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -35,7 +38,7 @@ class CalculationResult:
 
     input_text: str
     calculation_type: Union[CalculationType, str]
-    result_value: int
+    result_value: Union[int, str]
     notes: Optional[str] = None
     timestamp: datetime = field(default_factory=datetime.now)
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -61,25 +64,20 @@ class CalculationResult:
         Returns:
             Dictionary representation of the calculation result
         """
-        # Handle calculation type (could be enum or string)
+        # Handle calculation type
         if isinstance(self.calculation_type, CalculationType):
-            calc_type_str = str(self.calculation_type.value)
+            calc_type_str = (
+                self.calculation_type.name
+            )  # Store the enum's programmatic name
         else:
+            # This handles cases where calculation_type is already a string (e.g., "CUSTOM_CIPHER")
             calc_type_str = str(self.calculation_type)
-
-        # Ensure result_value is an integer
-        result_value = 0
-        try:
-            result_value = int(self.result_value)
-        except (ValueError, TypeError):
-            # If conversion fails, use 0 as default
-            pass
 
         return {
             "id": self.id,
             "input_text": self.input_text,
             "calculation_type": calc_type_str,
-            "result_value": result_value,
+            "result_value": str(self.result_value),
             "notes": self.notes,
             "timestamp": self.timestamp.isoformat(),
             "tags": self.tags,
@@ -103,28 +101,113 @@ class CalculationResult:
         else:
             timestamp = datetime.now()
 
-        # Handle calculation type (convert to enum if possible)
-        calc_type_str = data.get("calculation_type", "MISPAR_HECHRACHI")
-        try:
-            calculation_type = CalculationType(calc_type_str)
-        except ValueError:
-            # If not a valid enum value, it must be a custom method name
-            calculation_type = calc_type_str
+        # Handle calculation type
+        calc_type_data = data.get("calculation_type")
+        calculation_type_to_assign: Union[CalculationType, str]
 
-        # Ensure result_value is an integer
-        result_value = data.get("result_value", 0)
-        if not isinstance(result_value, int):
+        if isinstance(calc_type_data, str):
             try:
-                result_value = int(result_value)
-            except (ValueError, TypeError):
-                result_value = 0
+                # Attempt to convert from enum member name string (e.g., "HEBREW_STANDARD_VALUE")
+                calculation_type_to_assign = CalculationType[calc_type_data]
+            except KeyError:
+                # Not a direct enum name. Check for old stringified tuple format.
+                if calc_type_data.startswith("(") and calc_type_data.endswith(")"):
+                    try:
+                        # Attempt to parse the first element of the stringified tuple,
+                        # which should be the display name.
+                        # Example: "('Hebrew Standard Value', 'Description', <Language.HEBREW: 'Hebrew'>)"
+                        # We want "Hebrew Standard Value"
+
+                        # Find the first quoted string within the parentheses
+                        first_quote_start = calc_type_data.find("'")
+                        if first_quote_start != -1:
+                            first_quote_end = calc_type_data.find(
+                                "'", first_quote_start + 1
+                            )
+                            if first_quote_end != -1:
+                                potential_display_name = calc_type_data[
+                                    first_quote_start + 1 : first_quote_end
+                                ]
+
+                                found_enum_member = None
+                                for member in CalculationType:
+                                    if member.value[0] == potential_display_name:
+                                        found_enum_member = member
+                                        break
+
+                                if found_enum_member:
+                                    calculation_type_to_assign = found_enum_member
+                                    logger.info(
+                                        f"Successfully converted old string tuple format '{calc_type_data}' to enum member {found_enum_member.name}"
+                                    )
+                                else:
+                                    logger.warning(
+                                        f"Could not find CalculationType member for display name '{potential_display_name}' "
+                                        f"extracted from string tuple '{calc_type_data}'. Treating as literal string."
+                                    )
+                                    calculation_type_to_assign = (
+                                        calc_type_data  # Fallback to original string
+                                    )
+                            else:  # No closing quote for the first element
+                                logger.warning(
+                                    f"Malformed string tuple (no closing quote for first element) for calc_type_data: '{calc_type_data}'. Treating as literal string."
+                                )
+                                calculation_type_to_assign = calc_type_data
+                        else:  # No opening quote found
+                            logger.warning(
+                                f"Malformed string tuple (no opening quote for first element) for calc_type_data: '{calc_type_data}'. Treating as literal string."
+                            )
+                            calculation_type_to_assign = calc_type_data
+                    except Exception as e:  # Broad exception for parsing issues
+                        logger.error(
+                            f"Error parsing string tuple format for calc_type_data: '{calc_type_data}'. Error: {e}. Treating as literal string."
+                        )
+                        calculation_type_to_assign = calc_type_data
+                elif (
+                    calc_type_data == "CUSTOM_CIPHER"
+                ):  # Handle specific string for custom ciphers
+                    calculation_type_to_assign = calc_type_data
+                else:
+                    # Could be an old custom method name string, or an old format (like "33").
+                    logger.warning(
+                        f"Could not convert string '{calc_type_data}' to a CalculationType enum member by name, "
+                        f"and it does not appear to be a recognized old format. Treating as literal string."
+                    )
+                    calculation_type_to_assign = calc_type_data
+        elif isinstance(calc_type_data, CalculationType):
+            # This case should ideally not happen if the database stores basic types like strings.
+            # But if it does, use it directly.
+            logger.debug(
+                f"calculation_type from DB is already a CalculationType instance: {calc_type_data}"
+            )
+            calculation_type_to_assign = calc_type_data
+        else:
+            # Fallback for None or other unexpected types from DB (e.g., int if old data)
+            logger.error(
+                f"Unexpected data type for calculation_type from DB: {type(calc_type_data)} with value '{calc_type_data}'. "
+                f"Defaulting to HEBREW_STANDARD_VALUE."
+            )
+            # Default to a known valid enum or a specific string indicating an error/unknown state.
+            calculation_type_to_assign = (
+                CalculationType.HEBREW_STANDARD_VALUE
+            )  # Or perhaps a dedicated "UNKNOWN_DB_TYPE" string
+
+        # result_value will now be stored as TEXT, so it will come as a string from DB
+        result_value_from_db = data.get("result_value")
+        if result_value_from_db is None:
+            logger.warning("result_value is None from DB, defaulting to '0'")
+            result_value_to_assign = "0"
+        else:
+            result_value_to_assign = str(
+                result_value_from_db
+            )  # Ensure it is a string for the model
 
         # Create instance
         return cls(
             id=data.get("id", str(uuid.uuid4())),
             input_text=data.get("input_text", ""),
-            calculation_type=calculation_type,
-            result_value=result_value,
+            calculation_type=calculation_type_to_assign,
+            result_value=result_value_to_assign,  # Assign the string value
             notes=data.get("notes"),
             timestamp=timestamp,
             tags=data.get("tags", []),

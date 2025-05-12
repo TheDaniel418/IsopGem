@@ -17,6 +17,8 @@ class LanguageType(str, Enum):
     HEBREW = "hebrew"
     GREEK = "greek"
     ENGLISH = "english"
+    COPTIC = "coptic"
+    ARABIC = "arabic"
 
 
 class CustomCipherConfig(BaseModel):

@@ -572,63 +572,75 @@ class DocumentBrowserPanel(Panel):
         else:
             # Try to convert to QGemDocument if it's not already
             try:
+                # Determine content and type for editor
+                doc_content = ""
+                is_html = False
+
+                if document.extracted_text:  # Prioritize edited plain text
+                    doc_content = document.extracted_text
+                    is_html = False  # extracted_text is plain
+                elif document.content and document.file_type == DocumentType.QTDOC:
+                    doc_content = document.content
+                    is_html = True
+                elif (
+                    document.content
+                ):  # For other types, assume plain text from original content field
+                    doc_content = document.content
+                    is_html = False
+                elif (
+                    document.file_path and document.file_path.exists()
+                ):  # Fallback to reading file directly
+                    try:
+                        # For specific types, try to read appropriately
+                        if document.file_type in [
+                            DocumentType.TXT,
+                            DocumentType.MD,
+                            DocumentType.QTDOC,
+                        ]:  # QTDOC here implies its original content might be HTML if not in .content
+                            with open(document.file_path, "r", encoding="utf-8") as f:
+                                doc_content = f.read()
+                            if (
+                                document.file_type == DocumentType.QTDOC
+                                or document.file_path.suffix.lower() == ".html"
+                            ):  # If QTDOC or .html, treat as HTML
+                                is_html = True
+                            else:
+                                is_html = False  # Default to plain for .txt, .md
+                        elif document.file_type == DocumentType.HTML:
+                            with open(document.file_path, "r", encoding="utf-8") as f:
+                                doc_content = f.read()
+                            is_html = True
+                        else:
+                            # For other binary types, direct reading might not be useful for the RTF editor
+                            # Consider showing a message or trying a plain text extraction if not already done
+                            # For now, if no extracted_text and no .content, direct file read is a last resort
+                            # and might not be ideal for binary formats like PDF/DOCX in a text editor.
+                            # This part of the fallback could be refined if direct display of non-text is needed.
+                            logger.warning(
+                                f"File type {document.file_type} not directly readable as text/html for editor, content might be missing or inappropriate."
+                            )
+                            doc_content = f"Content from file {document.file_path.name} (type: {document.file_type.value}) could not be directly displayed as text. Use external program or ensure text was extracted."
+                            is_html = False
+                    except Exception as e:
+                        logger.error(
+                            f"Error reading file {document.file_path} for editor: {e}"
+                        )
+                        doc_content = "Error loading content from file."
+                        is_html = False
+                else:
+                    doc_content = "Content not available."
+                    is_html = False
+
                 # Create a new QGemDocument from the existing document
                 from document_manager.models.qgem_document import QGemDocumentType
 
-                # Convert plain text to properly formatted HTML
-                plain_content = document.content or ""
-                html_content = ""
-                if plain_content:
-                    # Create proper HTML structure with paragraphs
-                    paragraphs = plain_content.split("\n\n")
-                    formatted_paragraphs = []
-                    for paragraph in paragraphs:
-                        if paragraph.strip():
-                            # Handle single newlines within paragraphs (convert to <br>)
-                            lines = paragraph.split("\n")
-                            formatted_paragraph = "<p>" + "<br>".join(lines) + "</p>"
-                            formatted_paragraphs.append(formatted_paragraph)
-
-                    html_content = f"""
-                    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
-                    <html>
-                    <head>
-                        <meta name="qrichtext" content="1" />
-                        <meta charset="utf-8" />
-                        <style type="text/css">
-                            p, li {{ white-space: pre-wrap; }}
-                        </style>
-                    </head>
-                    <body style="font-family:'Segoe UI'; font-size:10pt; font-weight:400;">
-                    {"".join(formatted_paragraphs)}
-                    </body>
-                    </html>
-                    """
-                else:
-                    # Create an empty HTML document
-                    html_content = """
-                    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
-                    <html>
-                    <head>
-                        <meta name="qrichtext" content="1" />
-                        <meta charset="utf-8" />
-                        <style type="text/css">
-                            p, li { white-space: pre-wrap; }
-                        </style>
-                    </head>
-                    <body style="font-family:'Segoe UI'; font-size:10pt; font-weight:400;">
-                    </body>
-                    </html>
-                    """
-
-                # Calculate word count
-                word_count = len(plain_content.split()) if plain_content else 0
+                word_count = len(doc_content.split()) if doc_content else 0
 
                 qgem_document = QGemDocument(
                     id=document.id,
                     name=document.name,
-                    content=plain_content,
-                    html_content=html_content,  # Use properly formatted HTML
+                    content=doc_content,
+                    html_content=doc_content,  # Use the determined content
                     creation_date=document.creation_date,
                     last_modified_date=document.last_modified_date,
                     file_path=document.file_path,

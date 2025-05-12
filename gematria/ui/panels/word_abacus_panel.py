@@ -4,14 +4,16 @@ This module provides a panel implementation of the Gematria Word Abacus
 for calculating gematria values.
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from loguru import logger
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
+    QProgressDialog,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -19,6 +21,9 @@ from PyQt6.QtWidgets import (
 )
 
 from gematria.models.calculation_result import CalculationResult
+
+# Import Language and CalculationType for batch processing
+from gematria.models.calculation_type import CalculationType, Language
 from gematria.services.calculation_database_service import CalculationDatabaseService
 from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.services.gematria_service import GematriaService
@@ -31,6 +36,18 @@ from gematria.ui.dialogs.import_word_list_dialog import ImportWordListDialog
 from gematria.ui.dialogs.save_calculation_dialog import SaveCalculationDialog
 from gematria.ui.widgets.word_abacus_widget import WordAbacusWidget
 
+# Import the repository for TagService
+from shared.repositories.sqlite_tag_repository import SQLiteTagRepository
+
+# Import TagService for handling tags during import
+from shared.services.tag_service import TagService
+
+# Import WindowManager for type hinting
+from shared.ui.window_management import WindowManager
+
+# Import TQAnalysisService
+from tq.services.tq_analysis_service import TQAnalysisService
+
 
 class WordAbacusPanel(QWidget):
     """Panel for Word Abacus calculations."""
@@ -38,10 +55,13 @@ class WordAbacusPanel(QWidget):
     # Signal emitted when a calculation is performed
     calculation_performed = pyqtSignal(CalculationResult)
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, window_manager: WindowManager, parent: Optional[QWidget] = None
+    ) -> None:
         """Initialize the word abacus panel.
 
         Args:
+            window_manager: The application window manager.
             parent: Parent widget
         """
         super().__init__(parent)
@@ -51,6 +71,12 @@ class WordAbacusPanel(QWidget):
         self._custom_cipher_service = CustomCipherService()
         self._history_service = HistoryService()
         self._db_service = CalculationDatabaseService()
+        # Instantiate the repository first
+        tag_repo = SQLiteTagRepository()
+        self._tag_service = TagService(tag_repository=tag_repo)
+        self.tq_analysis_service = TQAnalysisService(
+            window_manager=window_manager
+        )  # Pass window_manager
 
         # Track the current calculation
         self._current_calculation: Optional[CalculationResult] = None
@@ -60,6 +86,9 @@ class WordAbacusPanel(QWidget):
         self._custom_cipher_dialog: Optional[CustomCipherDialog] = None
         self._import_dialog: Optional[ImportWordListDialog] = None
         self._save_button: Optional[QPushButton] = None
+        self._send_to_quadset_button: Optional[
+            QPushButton
+        ] = None  # Add button attribute
 
         # Initialize UI
         self._init_ui()
@@ -86,6 +115,14 @@ class WordAbacusPanel(QWidget):
         self._save_button.setEnabled(False)  # Disabled until a calculation is performed
         self._save_button.clicked.connect(self._show_save_dialog)
         button_layout.addWidget(self._save_button)
+
+        # Send to Quadset Analysis button
+        self._send_to_quadset_button = QPushButton("Send to Quadset Analysis")
+        self._send_to_quadset_button.setEnabled(
+            False
+        )  # Disabled until a calculation is performed
+        self._send_to_quadset_button.clicked.connect(self._send_to_quadset_analysis)
+        button_layout.addWidget(self._send_to_quadset_button)
 
         # Custom cipher button
         custom_button = QPushButton("Custom Ciphers")
@@ -149,6 +186,10 @@ class WordAbacusPanel(QWidget):
         # Enable the save button
         if self._save_button:
             self._save_button.setEnabled(True)
+
+        # Enable the send to quadset button
+        if self._send_to_quadset_button:
+            self._send_to_quadset_button.setEnabled(True)
 
         # Re-emit the signal to notify parent components
         # This is needed for the MainPanel to switch to the history tab
@@ -269,32 +310,160 @@ class WordAbacusPanel(QWidget):
 
     def _show_import_dialog(self) -> None:
         """Show the import word list dialog."""
-        # Create the dialog if it doesn't exist yet
         if self._import_dialog is None:
             self._import_dialog = ImportWordListDialog(self)
-
-            # Connect the import complete signal to refresh the UI if needed
             self._import_dialog.import_complete.connect(self._on_import_complete)
 
-        # Show the dialog if it's not already visible
         if self._import_dialog and not self._import_dialog.isVisible():
             self._import_dialog.show()
-        # If it's already showing, bring it to the front
         elif self._import_dialog:
             self._import_dialog.raise_()
             self._import_dialog.activateWindow()
 
-    def _on_import_complete(self, count: int) -> None:
+    def _on_import_complete(
+        self, imported_items: List[dict], language: Language, count: int
+    ) -> None:
         """Handle completion of word list import.
 
         Args:
-            count: Number of words imported
+            imported_items: List of dictionaries, each with 'word', 'notes', 'tags'.
+            language: The language selected for the imported words.
+            count: The total number of words imported.
         """
-        # Log the import completion
-        logger.info(f"Imported {count} words/phrases")
+        if not imported_items:
+            QMessageBox.information(self, "Import Complete", "No items were imported.")
+            return
 
-        # You could refresh any relevant UI components here if needed
-        # For example, if there's a history component that should be updated
+        progress_dialog = QProgressDialog(
+            f"Calculating and saving {count} items...", "Cancel", 0, count, self
+        )
+        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        progress_dialog.setMinimumDuration(0)  # Show immediately
+        progress_dialog.setValue(0)
+        progress_dialog.show()
+
+        # Determine applicable calculation methods for the selected language
+        applicable_methods = CalculationType.get_types_for_language(language)
+        if not applicable_methods:
+            QMessageBox.warning(
+                self,
+                "No Methods",
+                f"No calculation methods found for language: {language.value}. Cannot process import.",
+            )
+            progress_dialog.close()
+            return
+
+        total_calculations = len(imported_items) * len(applicable_methods)
+        progress_dialog.setMaximum(total_calculations)
+        calculation_count = 0
+
+        for i, item_data in enumerate(imported_items):
+            word = item_data.get("word")
+            notes = item_data.get("notes")
+            tag_names = item_data.get("tags", [])  # Default to empty list
+
+            if not word:
+                logger.warning(
+                    f"Skipping item at index {i} due to missing 'word'. Data: {item_data}"
+                )
+                # Adjust progress for skipped word across all methods
+                calculation_count += len(applicable_methods)
+                progress_dialog.setValue(calculation_count)
+                continue
+
+            # Resolve tag names to tag IDs
+            tag_ids: List[str] = []
+            if tag_names:
+                for tag_name in tag_names:
+                    if not tag_name.strip():  # Skip empty tag names
+                        continue
+                    tag_obj = self._tag_service.get_tag_by_name(tag_name.strip())
+                    if tag_obj:
+                        tag_ids.append(tag_obj.id)
+                    else:
+                        try:
+                            new_tag = self._tag_service.create_tag(tag_name.strip())
+                            if new_tag:
+                                tag_ids.append(new_tag.id)
+                            else:
+                                logger.warning(
+                                    f"Failed to create tag: {tag_name.strip()}"
+                                )
+                        except Exception as e:
+                            logger.error(
+                                f"Error creating tag '{tag_name.strip()}': {e}"
+                            )
+
+            for calc_type in applicable_methods:
+                if progress_dialog.wasCanceled():
+                    logger.info("Import and calculation process canceled by user.")
+                    QMessageBox.information(
+                        self, "Canceled", "Import process was canceled."
+                    )
+                    return
+
+                try:
+                    logger.debug(
+                        f"Calculating {calc_type.name} for word: '{word}', notes: '{notes}', tags: {tag_ids}"
+                    )
+                    self._gematria_service.calculate_and_save(
+                        text=word,
+                        calculation_type=calc_type,
+                        notes=notes,
+                        tags=tag_ids,
+                        favorite=False,  # Default, or make this configurable from import?
+                    )
+                    # We could emit calculation_performed here if needed for each saved item
+                    # self.calculation_performed.emit(result_obj)
+                except Exception as e:
+                    logger.error(
+                        f"Error calculating/saving '{calc_type.name}' for '{word}': {e}"
+                    )
+                    # Optionally, inform user about specific errors but continue batch
+
+                calculation_count += 1
+                progress_dialog.setValue(calculation_count)
+
+            # Brief pause to allow UI to update, especially if many methods per word
+            # QApplication.processEvents() # Can be risky, use with caution
+
+        progress_dialog.setValue(total_calculations)
+        QMessageBox.information(
+            self,
+            "Import Complete",
+            f"Successfully processed and saved calculations for {len(imported_items)} words/phrases.",
+        )
+        logger.info("Import and batch calculation complete.")
+
+    def _send_to_quadset_analysis(self) -> None:
+        """Send the current calculation result to Quadset Analysis."""
+        if (
+            not self._current_calculation
+            or self._current_calculation.result_value is None
+        ):
+            QMessageBox.warning(
+                self,
+                "No Result",
+                "No calculation result available to send to Quadset Analysis.",
+            )
+            return
+
+        try:
+            value_to_send = int(self._current_calculation.result_value)
+            self.tq_analysis_service.open_quadset_analysis(number=value_to_send)
+            logger.info(f"Sent value {value_to_send} to Quadset Analysis.")
+        except ValueError:
+            QMessageBox.critical(
+                self,
+                "Invalid Value",
+                f"The result value '{self._current_calculation.result_value}' is not a valid integer for Quadset Analysis.",
+            )
+            logger.error(
+                f"Failed to send to Quadset Analysis: result value {self._current_calculation.result_value} is not an integer."
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not open Quadset Analysis: {e}")
+            logger.error(f"Error opening Quadset Analysis: {e}")
 
     def clear_history(self) -> None:
         """Clear the calculation history."""
@@ -303,6 +472,9 @@ class WordAbacusPanel(QWidget):
         # Disable the save button
         if self._save_button:
             self._save_button.setEnabled(False)
+        # Disable the send to quadset button
+        if self._send_to_quadset_button:
+            self._send_to_quadset_button.setEnabled(False)
         self._current_calculation = None
 
     def reset_calculator(self) -> None:
@@ -312,6 +484,9 @@ class WordAbacusPanel(QWidget):
         # Disable the save button
         if self._save_button:
             self._save_button.setEnabled(False)
+        # Disable the send to quadset button
+        if self._send_to_quadset_button:
+            self._send_to_quadset_button.setEnabled(False)
         self._current_calculation = None
 
     def closeEvent(self, event):

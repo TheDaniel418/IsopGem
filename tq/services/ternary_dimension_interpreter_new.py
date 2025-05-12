@@ -201,61 +201,61 @@ THIRD_BIGRAM_MEANINGS = {
 }
 
 # Hellenic Ternary Oracle: Hierophants (The Nine Primes)
-# Maps each prime ditrune to its Greek name, Greek spelling, mythic meaning, and core essence
+# Maps each prime ditrune to its Pattern Archetype name, Greek name, and description
 HIEROPHANTS = {
     "000000": {
-        "name": "Chaos",
-        "greek": "Χάος",
-        "mythic_meaning": "The primordial void from which all emerged",
-        "core_essence": "The absolute emptiness that contains all possibility; the unmanifest source",
-    },
-    "111111": {
-        "name": "Helios",
-        "greek": "Ἥλιος",
-        "mythic_meaning": "The all-seeing sun god, pure radiance",
-        "core_essence": "Unbroken dynamic force, continuous transformation, the power of pure action",
-    },
-    "222222": {
-        "name": "Chronos",
-        "greek": "Χρόνος",
-        "mythic_meaning": "Not Saturn, but personified time itself",
-        "core_essence": "Ultimate structure, perfect pattern, the absolute crystallization of order",
+        "name": "The Void",
+        "greek": "Κενόν (Kenon)",
+        "ternary": "000000",
+        "description": "The absolute emptiness that contains all possibility. The unmanifest source; pure potential before differentiation.",
     },
     "010101": {
-        "name": "Hermes",
-        "greek": "Ἑρμῆς",
-        "mythic_meaning": "Messenger between realms, divine trickster",
-        "core_essence": "Rhythmic movement between potential and manifestation; the power of transition",
+        "name": "The Oscillator",
+        "greek": "Παλμός (Palmos)",
+        "ternary": "010101",
+        "description": "Rhythmic movement between potential and manifestation. The power of transition; regular alternation between states.",
     },
     "020202": {
-        "name": "Hestia",
-        "greek": "Ἑστία",
-        "mythic_meaning": "Goddess of hearth and sacred space",
-        "core_essence": "Structured openness; the creation of containers for potential; sacred boundaries",
+        "name": "The Enclosure",
+        "greek": "Περίβολος (Peribolos)",
+        "ternary": "020202",
+        "description": "Structured openness, container for potential. Sacred boundaries; the creation of defined space for possibility.",
     },
     "101010": {
-        "name": "Dionysus",
-        "greek": "Διόνυσος",
-        "mythic_meaning": "God of ecstatic release and wild freedom",
-        "core_essence": "Dynamic liberation; action that creates new openings; transformative unbinding",
+        "name": "The Liberator",
+        "greek": "Ἐλευθερωτής (Eleutherotes)",
+        "ternary": "101010",
+        "description": "Dynamic liberation, transformative unbinding. Action that creates new openings; the breaking of limitations.",
+    },
+    "111111": {
+        "name": "The Dynamo",
+        "greek": "Δύναμις (Dynamis)",
+        "ternary": "111111",
+        "description": "Unbroken dynamic force, continuous transformation. The power of pure action; perpetual movement and change.",
     },
     "121212": {
-        "name": "Harmonia",
-        "greek": "Ἁρμονία",
-        "mythic_meaning": "Goddess of harmony and concord",
-        "core_essence": "Perfect alternation between expression and form; the cosmic dance of becoming",
+        "name": "The Weaver",
+        "greek": "Ὑφαντής (Hyphantes)",
+        "ternary": "121212",
+        "description": "Perfect alternation between expression and form. The cosmic dance of becoming; integration of different patterns.",
     },
     "202020": {
-        "name": "Gaia",
-        "greek": "Γαῖα",
-        "mythic_meaning": "The earth mother, foundation of life",
-        "core_essence": "Formed potential; structured matrix from which life emerges; generative container",
+        "name": "The Foundation",
+        "greek": "Θεμέλιον (Themelion)",
+        "ternary": "202020",
+        "description": "Formed potential, structured matrix of emergence. Generative container; the stable ground from which forms arise.",
     },
     "212121": {
-        "name": "Apollo",
-        "greek": "Ἀπόλλων",
-        "mythic_meaning": "God of light, music, and measured beauty",
-        "core_essence": "Structured dynamism; contained transformation; perfection through limitation",
+        "name": "The Harmonizer",
+        "greek": "Ἁρμοστής (Harmostes)",
+        "ternary": "212121",
+        "description": "Structured dynamism, contained transformation. Perfection through limitation; balanced expression of change.",
+    },
+    "222222": {
+        "name": "The Matrix",
+        "greek": "Πλέγμα (Plegma)",
+        "ternary": "222222",
+        "description": "Ultimate structure, perfect pattern. The absolute crystallization of order; complete structural integrity.",
     },
 }
 
@@ -319,6 +319,58 @@ ACOLYTE_TITLES = [
         "nature": "Brings the Hierophant's influence to fulfillment",
     },
 ]
+
+# Define the ACOLYTES dictionary with sample data
+# In a real implementation, this would contain all 72 Acolytes (8 per family × 9 families)
+ACOLYTES = {
+    # Family 0 (The Void) Acolytes
+    "0_1": {
+        "ternary": "000001",
+        "title": "Mystagogos of the Void",
+        "greek": "Μυσταγωγός του Κενόν",
+        "function": "The Initiator of Emptiness",
+        "family": 0,
+    },
+    "0_2": {
+        "ternary": "000010",
+        "title": "Daidouchos of the Void",
+        "greek": "Δᾳδοῦχος του Κενόν",
+        "function": "The Torch-Bearer of Emptiness",
+        "family": 0,
+    },
+    # Family 1 (The Dynamo) Acolytes
+    "1_1": {
+        "ternary": "111101",
+        "title": "Mystagogos of the Dynamo",
+        "greek": "Μυσταγωγός του Δύναμις",
+        "function": "The Initiator of Transformation",
+        "family": 1,
+    },
+    "1_2": {
+        "ternary": "111110",
+        "title": "Daidouchos of the Dynamo",
+        "greek": "Δᾳδοῦχος του Δύναμις",
+        "function": "The Torch-Bearer of Transformation",
+        "family": 1,
+    },
+    # Family 2 (The Matrix) Acolytes
+    "2_1": {
+        "ternary": "222201",
+        "title": "Mystagogos of the Matrix",
+        "greek": "Μυσταγωγός του Πλέγμα",
+        "function": "The Initiator of Structure",
+        "family": 2,
+    },
+    "2_2": {
+        "ternary": "222210",
+        "title": "Daidouchos of the Matrix",
+        "greek": "Δᾳδοῦχος του Πλέγμα",
+        "function": "The Torch-Bearer of Structure",
+        "family": 2,
+    },
+    # Add more Acolytes for each family as needed
+    # This is just a minimal set for the Temple Position Analyzer to work
+}
 
 # Refined meanings for each line (position 1-6) and element (0,1,2)
 REFINED_LINE_MEANINGS = {
@@ -795,6 +847,45 @@ LOWER_TRIGRAM_MEANINGS.update(
 )
 
 
+class TernaryDimensionInterpreter:
+    """
+    Interprets ternary values and provides information about their position in the Kamea system.
+    """
+
+    def __init__(self):
+        pass
+
+    def determine_family(self, ternary_value: str) -> int:
+        """Determine which family a ternary value belongs to.
+
+        Args:
+            ternary_value: The ternary value to check
+
+        Returns:
+            Family ID (0-8)
+        """
+        # Check if it's a Hierophant (Prime Ditrune)
+        for family_id, hierophant in HIEROPHANTS.items():
+            if ternary_value == hierophant["ternary"]:
+                return family_id
+
+        # For non-Hierophants, use a pattern matching approach
+        # This is a simplified implementation
+        # In a real implementation, this would use a more sophisticated algorithm
+
+        # For now, use the first digit as a simple heuristic
+        first_digit = int(ternary_value[0]) if ternary_value else 0
+        if first_digit == 0:
+            return 0  # The Void family
+        elif first_digit == 1:
+            return 1  # The Dynamo family
+        elif first_digit == 2:
+            return 2  # The Matrix family
+
+        # Default to family 0 if we can't determine
+        return 0
+
+
 class HexagramInterpreter:
     """
     Interprets 6-digit ternary hexagrams using the new structured model.
@@ -1132,22 +1223,25 @@ class HexagramInterpreter:
 
         # 3. Acolyte: Use get_acolyte_info
         acolyte = self.get_acolyte_info(ditrune)
-        # 4. Hierophant: Use get_hierophant_info (family prime)
-        family, _ = self.get_family_and_level(ditrune)
-        hierophant = self.get_hierophant_info(family * 3)
+        family, _ = self.get_family_and_level(ditrune)  # Ensure 'family' is defined
+        hierophant = self.get_hierophant_info(family * 3) if family else None
+        acolyte_title = acolyte.get("title", "") if acolyte else ""
+        hierophant_name = hierophant.get("name", "") if hierophant else ""
+
         # 5. Assemble full name
-        full_name = (
-            f"The {temple_type['name']} {element_desc} under "
-            f"{acolyte['title']} of {hierophant['name']}"
-        )
+        full_name = f"{acolyte_title} of {hierophant_name}"
         return {
-            "temple_type": temple_type["name"],
-            "temple_type_greek": temple_type["greek"],
+            "temple_type": temple_type["name"]
+            if isinstance(temple_type, dict)
+            else temple_type,
+            "temple_type_greek": temple_type.get("greek", "")
+            if isinstance(temple_type, dict)
+            else "",
             "element_descriptor": element_desc,
-            "acolyte_title": acolyte["title"] if acolyte else None,
-            "acolyte_greek": acolyte["greek"] if acolyte else None,
-            "hierophant_name": hierophant["name"] if hierophant else None,
-            "hierophant_greek": hierophant["greek"] if hierophant else None,
+            "acolyte_title": acolyte_title,
+            "acolyte_greek": acolyte.get("greek", "") if acolyte else "",
+            "hierophant_name": hierophant_name,
+            "hierophant_greek": hierophant.get("greek", "") if hierophant else "",
             "full_name": full_name,
         }
 

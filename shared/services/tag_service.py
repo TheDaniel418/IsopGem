@@ -18,7 +18,7 @@ Related files:
 """
 
 import uuid
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 
 from loguru import logger
 
@@ -28,36 +28,35 @@ from shared.repositories.tag_repository import TagRepository
 
 class TagService:
     """Service for managing tags in the application."""
-    
+
     def __init__(self, tag_repository: TagRepository):
         """
         Initialize the tag service.
-        
+
         Args:
             tag_repository: Repository for tag data access
         """
         self.tag_repository = tag_repository
-    
-    def create_tag(self, name: str, color: str, description: str = "") -> Optional[Tag]:
+
+    def create_tag(
+        self, name: str, color: str = "#3498db", description: str = ""
+    ) -> Optional[Tag]:
         """
         Create a new tag.
-        
+
         Args:
             name: Tag name
-            color: Tag color (hex format)
+            color: Tag color (hex format), defaults to blue (#3498db)
             description: Optional tag description
-            
+
         Returns:
             The created tag or None if creation failed
         """
         try:
             tag = Tag(
-                id=str(uuid.uuid4()),
-                name=name,
-                color=color,
-                description=description
+                id=str(uuid.uuid4()), name=name, color=color, description=description
             )
-            
+
             success = self.tag_repository.save_tag(tag)
             if success:
                 logger.debug(f"Created tag: {name} with ID {tag.id}")
@@ -68,14 +67,14 @@ class TagService:
         except Exception as e:
             logger.error(f"Error creating tag: {str(e)}")
             return None
-    
+
     def get_tag(self, tag_id: str) -> Optional[Tag]:
         """
         Get a tag by its ID.
-        
+
         Args:
             tag_id: The tag's unique identifier
-            
+
         Returns:
             The tag or None if not found
         """
@@ -84,11 +83,32 @@ class TagService:
         except Exception as e:
             logger.error(f"Error retrieving tag {tag_id}: {str(e)}")
             return None
-    
+
+    def get_tag_by_name(self, name: str) -> Optional[Tag]:
+        """
+        Get a tag by its name.
+
+        Args:
+            name: The tag name to search for
+
+        Returns:
+            The tag or None if not found
+        """
+        try:
+            # Get all tags and find the one with matching name
+            all_tags = self.get_all_tags()
+            for tag in all_tags:
+                if tag.name.lower() == name.lower():
+                    return tag
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving tag by name '{name}': {str(e)}")
+            return None
+
     def get_all_tags(self) -> List[Tag]:
         """
         Get all tags.
-        
+
         Returns:
             List of all tags
         """
@@ -97,14 +117,14 @@ class TagService:
         except Exception as e:
             logger.error(f"Error retrieving all tags: {str(e)}")
             return []
-    
+
     def update_tag(self, tag: Tag) -> bool:
         """
         Update an existing tag.
-        
+
         Args:
             tag: The tag to update
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -113,14 +133,14 @@ class TagService:
         except Exception as e:
             logger.error(f"Error updating tag {tag.id}: {str(e)}")
             return False
-    
+
     def delete_tag(self, tag_id: str) -> bool:
         """
         Delete a tag.
-        
+
         Args:
             tag_id: The tag's unique identifier
-            
+
         Returns:
             True if successful, False otherwise
         """
@@ -129,14 +149,14 @@ class TagService:
         except Exception as e:
             logger.error(f"Error deleting tag {tag_id}: {str(e)}")
             return False
-    
+
     def search_tags(self, query: str) -> List[Tag]:
         """
         Search for tags by name or description.
-        
+
         Args:
             query: Search query string
-            
+
         Returns:
             List of matching tags
         """
@@ -144,12 +164,13 @@ class TagService:
             # Simple case-insensitive search
             all_tags = self.get_all_tags()
             query = query.lower()
-            
+
             return [
-                tag for tag in all_tags 
-                if query in tag.name.lower() or 
-                   (tag.description and query in tag.description.lower())
+                tag
+                for tag in all_tags
+                if query in tag.name.lower()
+                or (tag.description and query in tag.description.lower())
             ]
         except Exception as e:
             logger.error(f"Error searching tags: {str(e)}")
-            return [] 
+            return []

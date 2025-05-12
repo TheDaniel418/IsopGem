@@ -6,13 +6,33 @@ for the polygonal numbers visualization in a single, organized interface.
 """
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon, QColor, QPainter, QPixmap
+from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QCheckBox, QGroupBox, QRadioButton, QSpinBox, QComboBox,
-    QSlider, QTabWidget, QFormLayout, QSizePolicy, QFrame,
-    QColorDialog, QInputDialog, QScrollArea, QDialog, QDialogButtonBox,
-    QLineEdit, QListWidget, QListWidgetItem, QTextEdit, QMessageBox
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QScrollArea,
+    QSizePolicy,
+    QSlider,
+    QSpinBox,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
 
 from geometry.models.saved_visualization import SavedVisualization, VisualizationManager
@@ -51,7 +71,9 @@ class UnifiedControlPanel(QWidget):
 
     # Define signals for group operations
     selectionGroupChanged = pyqtSignal(str)
-    groupOperationRequested = pyqtSignal(str, str, str, str)  # operation, group1, group2, result
+    groupOperationRequested = pyqtSignal(
+        str, str, str, str
+    )  # operation, group1, group2, result
 
     def __init__(self, parent=None):
         """Initialize the unified control panel.
@@ -133,11 +155,15 @@ class UnifiedControlPanel(QWidget):
         self.regular_radio = QRadioButton("Regular Polygonal Numbers")
         self.regular_radio.setChecked(True)
         self.regular_radio.toggled.connect(self._on_type_changed)
-        self.regular_radio.setToolTip("Regular polygonal numbers form shapes with dots on the perimeter")
+        self.regular_radio.setToolTip(
+            "Regular polygonal numbers form shapes with dots on the perimeter"
+        )
 
         self.centered_radio = QRadioButton("Centered Polygonal Numbers")
         self.centered_radio.toggled.connect(self._on_type_changed)
-        self.centered_radio.setToolTip("Centered polygonal numbers have a central dot with layers around it")
+        self.centered_radio.setToolTip(
+            "Centered polygonal numbers have a central dot with layers around it"
+        )
 
         type_layout.addWidget(self.regular_radio)
         type_layout.addWidget(self.centered_radio)
@@ -166,7 +192,7 @@ class UnifiedControlPanel(QWidget):
             11: "Hendecagonal",
             12: "Dodecagonal",
             15: "Pentadecagonal",
-            20: "Icosagonal"
+            20: "Icosagonal",
         }
 
         for sides, name in polygon_options.items():
@@ -288,14 +314,11 @@ class UnifiedControlPanel(QWidget):
         # Color scheme selection
         color_scheme_layout = QFormLayout()
         self.color_scheme_combo = QComboBox()
-        self.color_scheme_combo.addItems([
-            "Rainbow",
-            "Pastel",
-            "Monochrome",
-            "Custom"
-        ])
+        self.color_scheme_combo.addItems(["Rainbow", "Pastel", "Monochrome", "Custom"])
         self.color_scheme_combo.setToolTip("Select a color scheme for layers/gnomons")
-        self.color_scheme_combo.currentTextChanged.connect(self._on_color_scheme_changed)
+        self.color_scheme_combo.currentTextChanged.connect(
+            self._on_color_scheme_changed
+        )
         color_scheme_layout.addRow("Layer Colors:", self.color_scheme_combo)
         display_layout.addLayout(color_scheme_layout)
 
@@ -311,7 +334,9 @@ class UnifiedControlPanel(QWidget):
         self.dot_size_slider = QSlider(Qt.Orientation.Horizontal)
         self.dot_size_slider.setRange(2, 20)
         self.dot_size_slider.setValue(10)
-        self.dot_size_slider.valueChanged.connect(lambda value: self.dotSizeChanged.emit(float(value)))
+        self.dot_size_slider.valueChanged.connect(
+            lambda value: self.dotSizeChanged.emit(float(value))
+        )
         self.dot_size_slider.setToolTip("Adjust the size of dots")
         dot_size_layout.addRow("Dot Size:", self.dot_size_slider)
         size_layout.addLayout(dot_size_layout)
@@ -380,7 +405,9 @@ class UnifiedControlPanel(QWidget):
         self.pan_mode_radio = QRadioButton("Pan && Zoom")
         self.pan_mode_radio.setChecked(True)
         self.pan_mode_radio.toggled.connect(self._on_mode_changed)
-        self.pan_mode_radio.setToolTip("Navigate the visualization by panning and zooming")
+        self.pan_mode_radio.setToolTip(
+            "Navigate the visualization by panning and zooming"
+        )
 
         self.select_mode_radio = QRadioButton("Select Dots")
         self.select_mode_radio.toggled.connect(self._on_mode_changed)
@@ -433,7 +460,9 @@ class UnifiedControlPanel(QWidget):
 
         self.select_layer_button = QPushButton("Select Layer")
         self.select_layer_button.setToolTip("Select all dots in the specified layer")
-        self.select_layer_button.clicked.connect(lambda: self.selectLayerRequested.emit(self.layer_spin.value()))
+        self.select_layer_button.clicked.connect(
+            lambda: self.selectLayerRequested.emit(self.layer_spin.value())
+        )
         layer_layout.addWidget(self.select_layer_button)
 
         tools_layout.addLayout(layer_layout)
@@ -451,7 +480,9 @@ class UnifiedControlPanel(QWidget):
         self.show_connections_checkbox = QCheckBox("Show Connections")
         self.show_connections_checkbox.setChecked(False)  # Default to off
         self.show_connections_checkbox.toggled.connect(self.showConnectionsChanged.emit)
-        self.show_connections_checkbox.setToolTip("Show/hide connections between selected dots")
+        self.show_connections_checkbox.setToolTip(
+            "Show/hide connections between selected dots"
+        )
         conn_header_layout.addWidget(self.show_connections_checkbox)
 
         self.connection_info_label = QLabel("No connections")
@@ -468,7 +499,9 @@ class UnifiedControlPanel(QWidget):
         connection_buttons_layout.addWidget(self.connect_button)
 
         self.close_polygon_button = QPushButton("Close Polygon")
-        self.close_polygon_button.setToolTip("Connect the last dot to the first (Ctrl+C)")
+        self.close_polygon_button.setToolTip(
+            "Connect the last dot to the first (Ctrl+C)"
+        )
         self.close_polygon_button.clicked.connect(self.closePolygonRequested.emit)
         connection_buttons_layout.addWidget(self.close_polygon_button)
 
@@ -503,7 +536,9 @@ class UnifiedControlPanel(QWidget):
         # ===== STEP 1: INTRODUCTION =====
         # Add a header with step number
         step1_header = QLabel("<b>STEP 1: SELECT DOTS</b>")
-        step1_header.setStyleSheet("font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;")
+        step1_header.setStyleSheet(
+            "font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;"
+        )
         scroll_layout.addWidget(step1_header)
 
         # Introduction with workflow explanation
@@ -525,7 +560,9 @@ class UnifiedControlPanel(QWidget):
 
         # ===== STEP 2: GROUP MANAGEMENT =====
         step2_header = QLabel("<b>STEP 2: MANAGE GROUPS</b>")
-        step2_header.setStyleSheet("font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;")
+        step2_header.setStyleSheet(
+            "font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;"
+        )
         scroll_layout.addWidget(step2_header)
 
         # Current group management
@@ -557,13 +594,19 @@ class UnifiedControlPanel(QWidget):
 
         # Group status with dot count
         self.group_status_label = QLabel("Group 'Default': 0 dots")
-        self.group_status_label.setStyleSheet("font-size: 11pt; font-weight: bold; margin-top: 5px;")
+        self.group_status_label.setStyleSheet(
+            "font-size: 11pt; font-weight: bold; margin-top: 5px;"
+        )
         current_layout.addWidget(self.group_status_label)
 
         # Show only active group checkbox
         self.show_only_active_group_checkbox = QCheckBox("Show Only Active Group")
-        self.show_only_active_group_checkbox.setToolTip("When checked, only dots in the active group will be highlighted")
-        self.show_only_active_group_checkbox.toggled.connect(self._toggle_show_only_active_group)
+        self.show_only_active_group_checkbox.setToolTip(
+            "When checked, only dots in the active group will be highlighted"
+        )
+        self.show_only_active_group_checkbox.toggled.connect(
+            self._toggle_show_only_active_group
+        )
         current_layout.addWidget(self.show_only_active_group_checkbox)
 
         # Divider line
@@ -578,7 +621,9 @@ class UnifiedControlPanel(QWidget):
             "You can create new groups or modify existing ones"
         )
         action_explanation.setWordWrap(True)
-        action_explanation.setStyleSheet("color: #555; font-size: 9pt; margin-bottom: 5px;")
+        action_explanation.setStyleSheet(
+            "color: #555; font-size: 9pt; margin-bottom: 5px;"
+        )
         current_layout.addWidget(action_explanation)
 
         # Group action buttons
@@ -611,7 +656,9 @@ class UnifiedControlPanel(QWidget):
 
         # ===== STEP 3: GROUP OPERATIONS =====
         step3_header = QLabel("<b>STEP 3: COMBINE GROUPS (OPTIONAL)</b>")
-        step3_header.setStyleSheet("font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;")
+        step3_header.setStyleSheet(
+            "font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;"
+        )
         scroll_layout.addWidget(step3_header)
 
         # Group operations
@@ -628,12 +675,14 @@ class UnifiedControlPanel(QWidget):
         op_layout = QFormLayout()
 
         self.group_op_combo = QComboBox()
-        self.group_op_combo.addItems([
-            "Union (∪) - All dots from any group",
-            "Intersection (∩) - Only dots in all groups",
-            "Difference (-) - Dots in first group but not in others",
-            "Symmetric Difference (⊕) - Dots in an odd number of groups"
-        ])
+        self.group_op_combo.addItems(
+            [
+                "Union (∪) - All dots from any group",
+                "Intersection (∩) - Only dots in all groups",
+                "Difference (-) - Dots in first group but not in others",
+                "Symmetric Difference (⊕) - Dots in an odd number of groups",
+            ]
+        )
         self.group_op_combo.setToolTip("Select the set operation to perform")
         op_layout.addRow("Operation:", self.group_op_combo)
 
@@ -651,7 +700,9 @@ class UnifiedControlPanel(QWidget):
         self.groups_list = QListWidget()
         self.groups_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.groups_list.setMinimumHeight(100)
-        self.groups_list.setToolTip("Select multiple groups to operate on (Ctrl+click or Shift+click)")
+        self.groups_list.setToolTip(
+            "Select multiple groups to operate on (Ctrl+click or Shift+click)"
+        )
         groups_selection_layout.addWidget(self.groups_list)
 
         # Note about operations
@@ -666,7 +717,9 @@ class UnifiedControlPanel(QWidget):
         result_layout = QFormLayout()
         self.result_group_edit = QLineEdit()
         self.result_group_edit.setPlaceholderText("Auto-generated if left empty")
-        self.result_group_edit.setToolTip("Name for the result group (leave empty for auto-naming)")
+        self.result_group_edit.setToolTip(
+            "Name for the result group (leave empty for auto-naming)"
+        )
         result_layout.addRow("Result Group:", self.result_group_edit)
         groups_selection_layout.addLayout(result_layout)
 
@@ -706,7 +759,9 @@ class UnifiedControlPanel(QWidget):
 
         # ===== STEP 4: EXAMPLES =====
         step4_header = QLabel("<b>EXAMPLES & TIPS</b>")
-        step4_header.setStyleSheet("font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;")
+        step4_header.setStyleSheet(
+            "font-size: 12pt; color: #2c3e50; background-color: #ecf0f1; padding: 5px;"
+        )
         scroll_layout.addWidget(step4_header)
 
         # Examples box
@@ -718,11 +773,9 @@ class UnifiedControlPanel(QWidget):
             "1. Select dots for pattern A and save to 'Group A'<br>"
             "2. Select dots for pattern B and save to 'Group B'<br>"
             "3. Use Union to see all dots, or Intersection to see overlaps<br><br>"
-
             "<b>Find Unique Elements:</b><br>"
             "1. Create two groups with different selections<br>"
             "2. Use Difference (A - B) to see what's in A but not in B<br><br>"
-
             "<b>Build Complex Patterns:</b><br>"
             "1. Create groups for basic patterns<br>"
             "2. Combine them with operations to create complex patterns<br>"
@@ -755,7 +808,7 @@ class UnifiedControlPanel(QWidget):
 
         # Define colors
         color_a = QColor(70, 130, 180, 150)  # Steel blue, semi-transparent
-        color_b = QColor(220, 20, 60, 150)   # Crimson, semi-transparent
+        color_b = QColor(220, 20, 60, 150)  # Crimson, semi-transparent
         color_overlap = QColor(128, 0, 128, 200)  # Purple, more opaque
 
         # Draw the set operation diagrams
@@ -818,18 +871,22 @@ class UnifiedControlPanel(QWidget):
         # Preset selection
         preset_combo_layout = QFormLayout()
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems([
-            "Prime Numbers",
-            "Even Numbers",
-            "Odd Numbers",
-            "Divisible by N",
-            "Not Divisible by N",
-            "Fibonacci Sequence",
-            "Triangle Numbers",
-            "Square Numbers",
-            "Pentagonal Numbers"
-        ])
-        self.preset_combo.setToolTip("Select a number pattern to highlight dots with specific properties")
+        self.preset_combo.addItems(
+            [
+                "Prime Numbers",
+                "Even Numbers",
+                "Odd Numbers",
+                "Divisible by N",
+                "Not Divisible by N",
+                "Fibonacci Sequence",
+                "Triangle Numbers",
+                "Square Numbers",
+                "Pentagonal Numbers",
+            ]
+        )
+        self.preset_combo.setToolTip(
+            "Select a number pattern to highlight dots with specific properties"
+        )
         preset_combo_layout.addRow("Pattern:", self.preset_combo)
         presets_layout.addLayout(preset_combo_layout)
 
@@ -841,7 +898,9 @@ class UnifiedControlPanel(QWidget):
         self.divisible_by_spin = QSpinBox()
         self.divisible_by_spin.setRange(2, 20)
         self.divisible_by_spin.setValue(2)
-        self.divisible_by_spin.setToolTip("Select the divisor for divisibility patterns")
+        self.divisible_by_spin.setToolTip(
+            "Select the divisor for divisibility patterns"
+        )
         self.preset_params_layout.addRow("Divisor (N):", self.divisible_by_spin)
 
         # Parameter description label
@@ -856,11 +915,15 @@ class UnifiedControlPanel(QWidget):
         preset_button_layout = QHBoxLayout()
 
         self.create_preset_button = QPushButton("Select Pattern")
-        self.create_preset_button.setToolTip("Select dots that match the chosen number pattern")
+        self.create_preset_button.setToolTip(
+            "Select dots that match the chosen number pattern"
+        )
         preset_button_layout.addWidget(self.create_preset_button)
 
         self.save_pattern_group_button = QPushButton("Save as Group")
-        self.save_pattern_group_button.setToolTip("Save dots matching the pattern as a new group")
+        self.save_pattern_group_button.setToolTip(
+            "Save dots matching the pattern as a new group"
+        )
         preset_button_layout.addWidget(self.save_pattern_group_button)
 
         presets_layout.addLayout(preset_button_layout)
@@ -956,8 +1019,12 @@ class UnifiedControlPanel(QWidget):
         # Hide all parameter widgets by default
         for i in range(self.preset_params_layout.rowCount()):
             if i == 0:  # Keep the divisor parameter row
-                self.preset_params_layout.itemAt(i, QFormLayout.ItemRole.LabelRole).widget().setVisible(False)
-                self.preset_params_layout.itemAt(i, QFormLayout.ItemRole.FieldRole).widget().setVisible(False)
+                self.preset_params_layout.itemAt(
+                    i, QFormLayout.ItemRole.LabelRole
+                ).widget().setVisible(False)
+                self.preset_params_layout.itemAt(
+                    i, QFormLayout.ItemRole.FieldRole
+                ).widget().setVisible(False)
 
         # Show appropriate parameters and set description based on preset
         if preset_name == "Prime Numbers":
@@ -978,8 +1045,12 @@ class UnifiedControlPanel(QWidget):
 
         elif preset_name == "Divisible by N":
             # Show divisibility parameter
-            self.preset_params_layout.itemAt(0, QFormLayout.ItemRole.LabelRole).widget().setVisible(True)
-            self.preset_params_layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget().setVisible(True)
+            self.preset_params_layout.itemAt(
+                0, QFormLayout.ItemRole.LabelRole
+            ).widget().setVisible(True)
+            self.preset_params_layout.itemAt(
+                0, QFormLayout.ItemRole.FieldRole
+            ).widget().setVisible(True)
 
             self.param_description_label.setText(
                 f"Selects all numbers that are divisible by {self.divisible_by_spin.value()}. "
@@ -988,8 +1059,12 @@ class UnifiedControlPanel(QWidget):
 
         elif preset_name == "Not Divisible by N":
             # Show divisibility parameter
-            self.preset_params_layout.itemAt(0, QFormLayout.ItemRole.LabelRole).widget().setVisible(True)
-            self.preset_params_layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget().setVisible(True)
+            self.preset_params_layout.itemAt(
+                0, QFormLayout.ItemRole.LabelRole
+            ).widget().setVisible(True)
+            self.preset_params_layout.itemAt(
+                0, QFormLayout.ItemRole.FieldRole
+            ).widget().setVisible(True)
 
             self.param_description_label.setText(
                 f"Selects all numbers that are NOT divisible by {self.divisible_by_spin.value()}. "
@@ -1068,11 +1143,11 @@ class UnifiedControlPanel(QWidget):
 
         elif preset_name == "Divisible by N":
             preset_type = "divisible"
-            params['n'] = self.divisible_by_spin.value()
+            params["n"] = self.divisible_by_spin.value()
 
         elif preset_name == "Not Divisible by N":
             preset_type = "not_divisible"
-            params['n'] = self.divisible_by_spin.value()
+            params["n"] = self.divisible_by_spin.value()
 
         elif preset_name == "Fibonacci Sequence":
             preset_type = "fibonacci"
@@ -1094,7 +1169,9 @@ class UnifiedControlPanel(QWidget):
 
                 if result:
                     # Apply the selection to the visualization
-                    viz.select_dots_by_indices(result, not add)  # Replace unless 'add' is True
+                    viz.select_dots_by_indices(
+                        result, not add
+                    )  # Replace unless 'add' is True
 
                     # Update the result label
                     action = "Added" if add else "Selected"
@@ -1102,9 +1179,12 @@ class UnifiedControlPanel(QWidget):
                         f"{action} {len(result)} dots matching the '{preset_name}' pattern"
                     )
                 else:
-                    self.preset_result_label.setText(f"No dots match the '{preset_name}' pattern")
+                    self.preset_result_label.setText(
+                        f"No dots match the '{preset_name}' pattern"
+                    )
             except Exception as e:
                 import logging
+
                 logging.getLogger(__name__).error(f"Error applying preset: {e}")
                 self.preset_result_label.setText(f"Error: {str(e)}")
         else:
@@ -1136,13 +1216,13 @@ class UnifiedControlPanel(QWidget):
 
         elif preset_name == "Divisible by N":
             preset_type = "divisible"
-            params['n'] = self.divisible_by_spin.value()
+            params["n"] = self.divisible_by_spin.value()
             # Update the preset name to include the divisor
             preset_name = f"Divisible by {self.divisible_by_spin.value()}"
 
         elif preset_name == "Not Divisible by N":
             preset_type = "not_divisible"
-            params['n'] = self.divisible_by_spin.value()
+            params["n"] = self.divisible_by_spin.value()
             # Update the preset name to include the divisor
             preset_name = f"Not Divisible by {self.divisible_by_spin.value()}"
 
@@ -1165,7 +1245,9 @@ class UnifiedControlPanel(QWidget):
                 result = viz.create_preset_selection(preset_type, params)
 
                 if not result:
-                    self.preset_result_label.setText(f"No dots match the '{preset_name}' pattern")
+                    self.preset_result_label.setText(
+                        f"No dots match the '{preset_name}' pattern"
+                    )
                     return
 
                 # Generate a unique group name based on the pattern
@@ -1204,6 +1286,7 @@ class UnifiedControlPanel(QWidget):
 
             except Exception as e:
                 import logging
+
                 logging.getLogger(__name__).error(f"Error saving pattern as group: {e}")
                 self.preset_result_label.setText(f"Error: {str(e)}")
         else:
@@ -1315,12 +1398,19 @@ class UnifiedControlPanel(QWidget):
             print(f"Group contents: {viz.selection_groups[group_name]}")
 
             # Update the UI
-            self.group_status_label.setText(f"Group '{group_name}': {len(viz.selection_groups[group_name])} dots")
+            self.group_status_label.setText(
+                f"Group '{group_name}': {len(viz.selection_groups[group_name])} dots"
+            )
 
             # If "Show Only Active Group" is checked, update the visualization
             # This ensures the correct group is highlighted
-            if hasattr(self, 'show_only_active_group_checkbox') and self.show_only_active_group_checkbox.isChecked():
-                print(f"Updating visualization for 'Show Only Active Group' with active group: {group_name}")
+            if (
+                hasattr(self, "show_only_active_group_checkbox")
+                and self.show_only_active_group_checkbox.isChecked()
+            ):
+                print(
+                    f"Updating visualization for 'Show Only Active Group' with active group: {group_name}"
+                )
                 viz.update()
             else:
                 # Update the visualization normally
@@ -1338,7 +1428,8 @@ class UnifiedControlPanel(QWidget):
     def _add_selection_group(self):
         """Add a new selection group."""
         group_name, ok = QInputDialog.getText(
-            self, "New Selection Group", "Enter group name:")
+            self, "New Selection Group", "Enter group name:"
+        )
 
         if ok and group_name:
             # Check if the group already exists
@@ -1472,7 +1563,10 @@ class UnifiedControlPanel(QWidget):
         layout.addWidget(color_group)
 
         # Buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)
@@ -1491,7 +1585,9 @@ class UnifiedControlPanel(QWidget):
 
             is_save_mode = save_radio.isChecked()
 
-            print(f"Got result: group={group_name}, mode={'save' if is_save_mode else 'add'}")
+            print(
+                f"Got result: group={group_name}, mode={'save' if is_save_mode else 'add'}"
+            )
 
             if not group_name:
                 return
@@ -1530,8 +1626,12 @@ class UnifiedControlPanel(QWidget):
             # No need to save groups to disk anymore, they're managed in memory
 
             # Update the UI
-            self.op_result_label.setText(f"{action_text} {len(selected_dots)} dots to group '{group_name}'")
-            self.group_status_label.setText(f"Group '{group_name}': {len(viz.selection_groups[group_name])} dots")
+            self.op_result_label.setText(
+                f"{action_text} {len(selected_dots)} dots to group '{group_name}'"
+            )
+            self.group_status_label.setText(
+                f"Group '{group_name}': {len(viz.selection_groups[group_name])} dots"
+            )
 
             # Always sync the combo boxes to ensure they're up to date
             self._sync_group_comboboxes()
@@ -1612,7 +1712,7 @@ class UnifiedControlPanel(QWidget):
         self.group_combo.clear()
 
         # Also clear the groups list if it exists
-        if hasattr(self, 'groups_list'):
+        if hasattr(self, "groups_list"):
             self.groups_list.clear()
 
         # Add all groups to the combo box and list
@@ -1620,7 +1720,7 @@ class UnifiedControlPanel(QWidget):
             self.group_combo.addItem(group)
 
             # Add to the groups list if it exists
-            if hasattr(self, 'groups_list'):
+            if hasattr(self, "groups_list"):
                 self.groups_list.addItem(group)
 
         # Set the current group in the visualization
@@ -1652,7 +1752,7 @@ class UnifiedControlPanel(QWidget):
         self.group_combo.clear()
 
         # Also clear the groups list if it exists
-        if hasattr(self, 'groups_list'):
+        if hasattr(self, "groups_list"):
             self.groups_list.clear()
 
         # Add all groups to the combo box and list
@@ -1660,7 +1760,7 @@ class UnifiedControlPanel(QWidget):
             self.group_combo.addItem(group)
 
             # Add to the groups list if it exists
-            if hasattr(self, 'groups_list'):
+            if hasattr(self, "groups_list"):
                 self.groups_list.addItem(group)
 
         # Debug output
@@ -1682,7 +1782,9 @@ class UnifiedControlPanel(QWidget):
         current_color = viz.get_group_color(current_group)
 
         # Open color dialog
-        color = QColorDialog.getColor(current_color, self, f"Select Color for '{current_group}'")
+        color = QColorDialog.getColor(
+            current_color, self, f"Select Color for '{current_group}'"
+        )
 
         # If a valid color was chosen
         if color.isValid():
@@ -1725,13 +1827,17 @@ class UnifiedControlPanel(QWidget):
 
         # Validate
         if len(selected_groups) < 2:
-            self.op_result_label.setText("Please select at least two groups for the operation")
+            self.op_result_label.setText(
+                "Please select at least two groups for the operation"
+            )
             return
 
         # For difference operation, warn if more than 2 groups are selected
         if operation == "difference" and len(selected_groups) > 2:
             # Just a note, not an error - we'll proceed with the operation
-            print(f"Note: Difference operation with {len(selected_groups)} groups: {selected_groups[0]} minus all others")
+            print(
+                f"Note: Difference operation with {len(selected_groups)} groups: {selected_groups[0]} minus all others"
+            )
 
         # Perform the operation
         viz.perform_group_operation(operation, selected_groups, result_group)
@@ -1761,10 +1867,10 @@ class UnifiedControlPanel(QWidget):
 
         # Create a readable description of the operation
         op_symbol = {
-            'union': '∪',
-            'intersection': '∩',
-            'difference': '−',
-            'symmetric_difference': '⊕'
+            "union": "∪",
+            "intersection": "∩",
+            "difference": "−",
+            "symmetric_difference": "⊕",
         }.get(operation, operation)
 
         # Format the group list for display
@@ -1780,9 +1886,9 @@ class UnifiedControlPanel(QWidget):
 
         # Update group status if result group is the current group
         if result_group == self.group_combo.currentText():
-            self.group_status_label.setText(f"Group '{result_group}': {result_count} dots")
-
-
+            self.group_status_label.setText(
+                f"Group '{result_group}': {result_count} dots"
+            )
 
     def update_status(self, status_text):
         """Update the status bar.
@@ -1818,7 +1924,9 @@ class UnifiedControlPanel(QWidget):
         # Get the visualization
         viz = self.get_visualization()
         if not viz:
-            print("Error: Cannot access visualization in _toggle_show_only_active_group")
+            print(
+                "Error: Cannot access visualization in _toggle_show_only_active_group"
+            )
             return
 
         # Set the flag in the visualization
@@ -1840,10 +1948,7 @@ class UnifiedControlPanel(QWidget):
 
         # Ask for the group name
         group_name, ok = QInputDialog.getText(
-            self,
-            "New Group",
-            "Enter name for new group:",
-            text="New Group"
+            self, "New Group", "Enter name for new group:", text="New Group"
         )
 
         if not ok or not group_name:
@@ -1853,12 +1958,13 @@ class UnifiedControlPanel(QWidget):
         if group_name in viz.selection_groups:
             # Ask if they want to replace it
             from PyQt6.QtWidgets import QMessageBox
+
             reply = QMessageBox.question(
                 self,
                 "Group Exists",
                 f"Group '{group_name}' already exists. Replace it?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
+                QMessageBox.StandardButton.No,
             )
 
             if reply == QMessageBox.StandardButton.No:
@@ -1990,7 +2096,9 @@ class UnifiedControlPanel(QWidget):
         # Get the name and description
         name = self.viz_name_edit.text()
         if not name:
-            QMessageBox.warning(self, "Save Visualization", "Please enter a name for the visualization")
+            QMessageBox.warning(
+                self, "Save Visualization", "Please enter a name for the visualization"
+            )
             return
 
         description = self.viz_desc_edit.toPlainText()
@@ -2001,20 +2109,27 @@ class UnifiedControlPanel(QWidget):
             description=description,
             viz_type="centered" if viz.calculator.is_centered else "regular",
             sides=viz.calculator.sides,
-            index=viz.calculator.index
+            index=viz.calculator.index,
         )
 
         # Copy groups and colors
         saved_viz.groups = viz.selection_groups.copy()
         saved_viz.colors = viz.group_colors.copy()
 
+        # Copy connections
+        saved_viz.connections = viz.connections.copy()
+
         # Save it
         manager = VisualizationManager()
         if manager.save_visualization(saved_viz):
-            QMessageBox.information(self, "Save Visualization", f"Visualization '{name}' saved successfully")
+            QMessageBox.information(
+                self, "Save Visualization", f"Visualization '{name}' saved successfully"
+            )
             self._populate_visualization_list()
         else:
-            QMessageBox.warning(self, "Save Visualization", "Failed to save visualization")
+            QMessageBox.warning(
+                self, "Save Visualization", "Failed to save visualization"
+            )
 
     def _populate_visualization_list(self):
         """Populate the visualization list."""
@@ -2024,7 +2139,9 @@ class UnifiedControlPanel(QWidget):
         visualizations = manager.get_all_visualizations()
 
         for viz_id, viz_info in visualizations.items():
-            item = QListWidgetItem(f"{viz_info['name']} ({viz_info['type']}, {viz_info['sides']}, {viz_info['index']})")
+            item = QListWidgetItem(
+                f"{viz_info['name']} ({viz_info['type']}, {viz_info['sides']}, {viz_info['index']})"
+            )
             item.setData(Qt.ItemDataRole.UserRole, viz_id)
             self.viz_list.addItem(item)
 
@@ -2037,7 +2154,9 @@ class UnifiedControlPanel(QWidget):
         """Load the selected visualization."""
         selected_items = self.viz_list.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "Load Visualization", "Please select a visualization to load")
+            QMessageBox.warning(
+                self, "Load Visualization", "Please select a visualization to load"
+            )
             return
 
         viz_id = selected_items[0].data(Qt.ItemDataRole.UserRole)
@@ -2047,7 +2166,9 @@ class UnifiedControlPanel(QWidget):
         saved_viz = manager.load_visualization(viz_id)
 
         if not saved_viz:
-            QMessageBox.warning(self, "Load Visualization", "Failed to load visualization")
+            QMessageBox.warning(
+                self, "Load Visualization", "Failed to load visualization"
+            )
             return
 
         # Get the visualization
@@ -2065,6 +2186,48 @@ class UnifiedControlPanel(QWidget):
         viz.selection_groups = saved_viz.groups.copy()
         viz.group_colors = saved_viz.colors.copy()
 
+        # Load connections
+        if hasattr(saved_viz, "connections") and saved_viz.connections:
+            # Clear existing connections
+            viz.connections = []
+
+            # Import the Connection class
+            from geometry.ui.widgets.polygonal_numbers_visualization import Connection
+
+            # Convert saved connection data to Connection objects
+            for conn_data in saved_viz.connections:
+                # Create a QColor from the color data
+                color_data = conn_data.get(
+                    "color", {"r": 100, "g": 100, "b": 255, "a": 150}
+                )
+                color = QColor(
+                    color_data.get("r", 100),
+                    color_data.get("g", 100),
+                    color_data.get("b", 255),
+                    color_data.get("a", 150),
+                )
+
+                # Get the style as a Qt.PenStyle enum value
+                style_int = conn_data.get("style", 1)  # Default to solid line
+                # Handle both direct enum values and integer values
+                try:
+                    style = Qt.PenStyle(style_int)
+                except (TypeError, ValueError):
+                    # If conversion fails, default to solid line
+                    style = Qt.PenStyle.SolidLine
+
+                # Create a new Connection object
+                connection = Connection(
+                    conn_data["dot1"],
+                    conn_data["dot2"],
+                    color,
+                    conn_data.get("width", 2),
+                    style,
+                )
+
+                # Add to the visualization's connections
+                viz.connections.append(connection)
+
         # Update the UI
         self._update_visualization_info()
         self._sync_group_comboboxes()
@@ -2072,13 +2235,19 @@ class UnifiedControlPanel(QWidget):
         # Update the visualization
         viz.update()
 
-        QMessageBox.information(self, "Load Visualization", f"Visualization '{saved_viz.name}' loaded successfully")
+        QMessageBox.information(
+            self,
+            "Load Visualization",
+            f"Visualization '{saved_viz.name}' loaded successfully",
+        )
 
     def _delete_selected_visualization(self):
         """Delete the selected visualization."""
         selected_items = self.viz_list.selectedItems()
         if not selected_items:
-            QMessageBox.warning(self, "Delete Visualization", "Please select a visualization to delete")
+            QMessageBox.warning(
+                self, "Delete Visualization", "Please select a visualization to delete"
+            )
             return
 
         viz_id = selected_items[0].data(Qt.ItemDataRole.UserRole)
@@ -2090,7 +2259,7 @@ class UnifiedControlPanel(QWidget):
             "Delete Visualization",
             f"Are you sure you want to delete '{viz_name}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.No,
         )
 
         if reply != QMessageBox.StandardButton.Yes:
@@ -2099,10 +2268,16 @@ class UnifiedControlPanel(QWidget):
         # Delete the visualization
         manager = VisualizationManager()
         if manager.delete_visualization(viz_id):
-            QMessageBox.information(self, "Delete Visualization", f"Visualization '{viz_name}' deleted successfully")
+            QMessageBox.information(
+                self,
+                "Delete Visualization",
+                f"Visualization '{viz_name}' deleted successfully",
+            )
             self._populate_visualization_list()
         else:
-            QMessageBox.warning(self, "Delete Visualization", "Failed to delete visualization")
+            QMessageBox.warning(
+                self, "Delete Visualization", "Failed to delete visualization"
+            )
 
     def _update_visualization_info(self):
         """Update the visualization info display."""
@@ -2110,12 +2285,14 @@ class UnifiedControlPanel(QWidget):
         if not viz:
             return
 
-        self.viz_type_label.setText(f"Type: {'Centered' if viz.calculator.is_centered else 'Regular'}")
+        self.viz_type_label.setText(
+            f"Type: {'Centered' if viz.calculator.is_centered else 'Regular'}"
+        )
         self.viz_sides_label.setText(f"Sides: {viz.calculator.sides}")
         self.viz_index_label.setText(f"Index: {viz.calculator.index}")
 
         # Update the visualization info when it's first shown
-        if hasattr(self, 'viz_name_edit'):
+        if hasattr(self, "viz_name_edit"):
             # Set a default name based on the current configuration
             polygon_name = viz.calculator.get_polygonal_name()
             value = viz.calculator.calculate_value()
@@ -2135,7 +2312,9 @@ class UnifiedControlPanel(QWidget):
             print("No parent panel")
             return None
 
-        if hasattr(self.panel, 'interactive') and hasattr(self.panel.interactive, 'visualization'):
+        if hasattr(self.panel, "interactive") and hasattr(
+            self.panel.interactive, "visualization"
+        ):
             return self.panel.interactive.visualization
 
         return None

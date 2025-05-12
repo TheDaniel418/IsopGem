@@ -19,9 +19,7 @@ from PyQt6.QtWidgets import QLabel, QMainWindow, QTabWidget, QVBoxLayout, QWidge
 from astrology.ui.widgets.kamea_calendar.calendar_visualization_widget import (
     CalendarVisualizationWidget,
 )
-from astrology.ui.widgets.kamea_calendar.conrune_pair_widget import (
-    ConrunePairWidget,
-)
+from astrology.ui.widgets.kamea_calendar.conrune_pair_widget import ConrunePairWidget
 
 
 class KameaCalendarWindow(QMainWindow):
