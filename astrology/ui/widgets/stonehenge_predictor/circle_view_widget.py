@@ -8,10 +8,18 @@ Dependencies: PyQt6
 """
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 from PyQt6.QtCore import QPointF, QRectF, QSize, Qt
-from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QRadialGradient, QPainterPath
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QRadialGradient,
+)
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
 from astrology.models.stonehenge_circle_config import NUM_HOLES
@@ -41,8 +49,12 @@ class CircleViewWidget(QWidget):
         }
         self._hole_positions_cache = []
         self._azimuth_offset_deg = 0.0  # Orientation of Hole 0 from North
-        self._gc_azimuth_for_drawing: Optional[float] = None  # Explicit GC azimuth for line drawing
-        self._gc_zodiac_label: Optional[str] = None  # Zodiac sign and degree for Galactic Center
+        self._gc_azimuth_for_drawing: Optional[
+            float
+        ] = None  # Explicit GC azimuth for line drawing
+        self._gc_zodiac_label: Optional[
+            str
+        ] = None  # Zodiac sign and degree for Galactic Center
 
         # Add zodiac data for all holes
         self._display_zodiac_degrees = True  # Flag to control visibility
@@ -67,8 +79,24 @@ class CircleViewWidget(QWidget):
 
         # For maintaining aspect ratio
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
+
         # REMOVED: Cardinal point attributes have been removed as we're using a heptagon now
+
+        # Add zoom and pan controls
+        self._zoom_factor = 1.0
+        self._min_zoom = 0.5
+        self._max_zoom = 5.0
+        self._zoom_step = 0.1
+
+        # Pan/drag variables
+        self._pan_offset_x = 0.0
+        self._pan_offset_y = 0.0
+        self._is_panning = False
+        self._last_pan_pos = QPointF(0, 0)
+
+        # Enable mouse tracking and make the widget focusable
+        self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.FocusPolicy.WheelFocus)
 
     def resizeEvent(self, event):
         """Handle widget resize events to maintain proper shape size and position."""
@@ -87,14 +115,18 @@ class CircleViewWidget(QWidget):
 
     def set_orientation(self, azimuth_deg: float = 0.0):
         """
-        Sets the orientation of the heptagon so that Hole 0 points to the given azimuth.
+        Stores the Galactic Center azimuth for reference but maintains a fixed heptagon orientation.
+        The heptagon remains in its default orientation, with the GC line aligned to the y-axis.
+
         Args:
-            azimuth_deg (float): The azimuth (in degrees) to which Hole 0 should point. 0 = north, 90 = east, etc.
+            azimuth_deg (float): The azimuth is stored for reference but doesn't affect visual orientation.
         """
-        self._azimuth_offset_deg = azimuth_deg % 360
-        self._gc_azimuth_for_drawing = azimuth_deg  # Store it for drawing the GC line
-        self._hole_positions_cache = []  # Clear cache so positions are recalculated
-        # Calculate zodiacal positions when orientation changes
+        # We don't change the orientation of the heptagon, but we store the azimuth
+        # for reference and drawing the GC line along the y-axis
+        self._azimuth_offset_deg = 0  # Fixed value - no rotation allowed
+        self._gc_azimuth_for_drawing = azimuth_deg  # Store only for drawing reference
+        self._hole_positions_cache = []  # Clear cache to force recalculation
+        # Update zodiacal positions
         self._calculate_hole_zodiac_positions()
         self.update()
 
@@ -140,103 +172,126 @@ class CircleViewWidget(QWidget):
     # - set_cardinal_point_azimuths: Set azimuths for solstices/equinoxes
     # - set_cardinal_point_zodiac_labels: Set zodiac labels for cardinal points
 
-    def _calculate_geometry(
-        self, width: int, height: int
-    ) -> tuple[QPointF, float, float]:
+    def _calculate_geometry(self, center):
         """
-        Calculates the center, radius, and hole radius based on widget size.
+        Calculates the radius and hole radius based on widget size.
         Ensures the heptagon fits entirely within the visible area regardless of window size.
+
+        Args:
+            center (QPointF): The center point of the drawing
+
+        Returns:
+            tuple: (radius, hole_radius)
         """
         # Calculate the maximum possible radius that will fit in the widget
         padding = 40  # Increased padding to ensure labels fit
-        size = min(width, height) - 2 * padding
+        size = min(self.width(), self.height()) - 2 * padding
 
         # Ensure we don't try to draw a negative-sized shape
         if size <= 0:
-            size = max(200, min(width, height) - 20)
+            size = max(200, min(self.width(), self.height()) - 20)
 
         radius = size / 2
-
-        # Center the heptagon precisely in the widget
-        center = QPointF(width / 2, height / 2)
 
         # Adjust hole radius proportionally to the heptagon size
         hole_radius = max(3.0, radius / 40) + 3.0
 
-        return center, radius, hole_radius
+        return radius, hole_radius
 
-    def _calculate_heptagon_points(self, center: QPointF, radius: float) -> List[QPointF]:
+    def _calculate_heptagon_points(
+        self, center: QPointF, radius: float
+    ) -> List[QPointF]:
         """
-        Calculate the vertices of the heptagon.
-        Position each vertex to be between hole positions, so each side has exactly 8 holes.
+        Calculate the vertices of the heptagon with a fixed orientation.
+        Places a flat edge at the bottom of the heptagon, with hole 28 at the center
+        of that edge, aligned with the vertical y-axis.
         """
         points = []
-        
-        # With 56 holes total and 7 sides, we need 8 holes per side
-        # For 7 vertices, we'll place them between holes at positions 0, 8, 16, 24, 32, 40, 48
-        holes_per_side = NUM_HOLES // self._num_sides  # Should be 8
-        
-        # Apply the azimuth offset to rotate the heptagon
-        az_offset_rad = math.radians(self._azimuth_offset_deg)
-        
-        for i in range(self._num_sides):
-            # Calculate the position halfway between the holes at the corners
-            # For example, vertex 0 should be between hole 55 and hole 0 (or hole 7 and hole 8)
-            hole_index = i * holes_per_side
-            angle_before = ((hole_index - 0.5) / NUM_HOLES) * 2 * math.pi - (math.pi / 2) + az_offset_rad
-            
+
+        # For a regular polygon with a flat bottom edge, we need to start at the bottom-right vertex
+        # and move counterclockwise
+        num_sides = self._num_sides
+
+        # Start angle is directly at the bottom of the circle (270 degrees)
+        # and then adjusted to the right end of the flat bottom edge
+        angle_per_side = 360.0 / num_sides
+        start_angle = (
+            270 - angle_per_side / 2
+        )  # Bottom-right vertex of the flat bottom edge
+
+        for i in range(num_sides):
+            # Calculate angle, moving counterclockwise
+            angle_rad = math.radians(start_angle + i * angle_per_side)
+
             # Calculate point position
-            x = center.x() + radius * math.cos(angle_before)
-            y = center.y() + radius * math.sin(angle_before)
+            x = center.x() + radius * math.cos(angle_rad)
+            y = center.y() + radius * math.sin(angle_rad)
             points.append(QPointF(x, y))
-            
+
         return points
 
     def _calculate_hole_positions(self, center: QPointF, radius: float):
         """
         Pre-calculates and caches the QPointF for each of the 56 hole centers.
-        Holes are distributed along the edges of the heptagon with 8 holes per side.
+        Ensures that hole 28 (index 27) is positioned at the bottom center of the heptagon,
+        aligned with the vertical y-axis.
         """
-        if not self._hole_positions_cache or len(self._hole_positions_cache) != NUM_HOLES:
+        if (
+            not self._hole_positions_cache
+            or len(self._hole_positions_cache) != NUM_HOLES
+        ):
             self._hole_positions_cache = []
-            
+
             # Get the heptagon vertices
             heptagon_points = self._calculate_heptagon_points(center, radius)
-            
-            # We want 8 holes per side of the heptagon
-            holes_per_side = NUM_HOLES // self._num_sides  # Should be 8
-            
-            # Keep track of the holes we've placed
-            holes_placed = 0
-            
-            # Distribute holes along the sides of the heptagon
+
+            # We want 8 holes per side of the heptagon (56/7 = 8)
+            holes_per_side = NUM_HOLES // self._num_sides
+
+            # For hole 28 (index 27) to be at the bottom center, it should be at the
+            # middle of the bottom edge (side 0 in our heptagon construction)
+            # The bottom edge contains indices 0 to 7, with the middle being at index 4
+            # So hole 28 (index 27) should be at position 4 on side 0
+            # Therefore: first_hole_of_bottom_edge = 28 - 4 = 24
+            first_hole_of_bottom_edge = 24
+
+            # Temporary storage for all hole positions
+            temp_positions = [None] * NUM_HOLES
+
+            # Place holes on each side of the heptagon
             for side_index in range(self._num_sides):
-                # Get the start and end vertices of this side
+                # Get the vertices for this side
                 start_vertex = heptagon_points[side_index]
                 end_vertex = heptagon_points[(side_index + 1) % self._num_sides]
-                
+
                 # Place 8 holes evenly along this side
                 for i in range(holes_per_side):
                     # Calculate position along this side (0 to 1)
-                    t = i / holes_per_side
-                    
+                    t = (
+                        i + 0.5
+                    ) / holes_per_side  # Add 0.5 to center holes between vertices
+
                     # Calculate the coordinates of the hole
                     x = start_vertex.x() + t * (end_vertex.x() - start_vertex.x())
                     y = start_vertex.y() + t * (end_vertex.y() - start_vertex.y())
-                    
-                    # Add the hole position
-                    self._hole_positions_cache.append(QPointF(x, y))
-                    holes_placed += 1
-            
-            # Ensure we've placed all 56 holes
-            assert holes_placed == NUM_HOLES, f"Expected {NUM_HOLES} holes, placed {holes_placed}"
-                
+
+                    # Calculate which hole number goes at this position
+                    hole_index = (
+                        first_hole_of_bottom_edge + (side_index * holes_per_side) + i
+                    ) % NUM_HOLES
+
+                    # Store position for this hole
+                    temp_positions[hole_index] = QPointF(x, y)
+
+            # Set the cache to our calculated positions
+            self._hole_positions_cache = temp_positions
+
         return self._hole_positions_cache
 
     def _calculate_hole_zodiac_positions(self):
         """
         Calculate zodiacal positions for all holes based on GC orientation.
-        Assumes Hole 0 is aligned with the Galactic Center.
+        Assumes the Galactic Center is positioned between holes 28 and 29.
         """
         # Only proceed if we have the Galactic Center zodiac position
         if not self._gc_zodiac_label:
@@ -255,21 +310,22 @@ class CircleViewWidget(QWidget):
                 gc_sign_index = self._zodiac_signs.index("Sagittarius")
                 gc_degree = 26.0  # Traditional GC position
 
-            # Starting from hole 0 (GC), calculate degrees for each hole
             # Each hole represents 360/56 = ~6.43 degrees of the zodiac
             degrees_per_hole = 360 / NUM_HOLES
+            # The half_hole_offset is applied directly in the calculation below (27.5 instead of 27)
 
             # Initialize dictionary to hold zodiacal position for each hole
             self._hole_zodiac_positions = {}
 
             # Calculate starting absolute degree (0-360 scale)
-            # GC at hole 0, so hole 0 = GC position in absolute degrees
+            # GC is between holes 28 and 29, so we need to adjust by half_hole_offset
             gc_absolute_degree = (gc_sign_index * 30) + gc_degree
 
             for hole_num in range(NUM_HOLES):
-                # Calculate offset from the GC hole (counterclockwise)
-                # Since holes are arranged counterclockwise, we need to go backwards in the zodiac
-                offset_degrees = hole_num * degrees_per_hole
+                # Calculate offset from the GC position (between holes 28 and 29)
+                # The midpoint between holes 28-29 is at 27.5, so we use that as reference
+                offset_holes = (hole_num - 27.5) % NUM_HOLES
+                offset_degrees = offset_holes * degrees_per_hole
 
                 # Calculate the absolute degree (0-360) for this hole
                 # We subtract because we're going counterclockwise from GC position
@@ -300,22 +356,40 @@ class CircleViewWidget(QWidget):
         """
         Handles the painting of the widget.
         Draws the Aubrey Holes on a heptagon, and markers.
+        Applies zoom and pan transformations to the drawing.
         """
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        center, radius, hole_rad = self._calculate_geometry(self.width(), self.height())
-        if radius <= 0:
+        # Calculate the center and radius based on the widget size
+        widget_center = QPointF(self.width() / 2, self.height() / 2)
+
+        # Calculate base geometry
+        base_radius, hole_rad = self._calculate_geometry(widget_center)
+        if base_radius <= 0:
+            painter.end()
             return
 
-        # Draw a dot at the calculated center
-        painter.setPen(QPen(QColor("lime"), 5))
+        # Save the original state
+        painter.save()
+
+        # Apply pan and zoom transformations centered on the widget center
+        painter.translate(widget_center)
+        painter.scale(self._zoom_factor, self._zoom_factor)
+        painter.translate(
+            self._pan_offset_x / self._zoom_factor,
+            self._pan_offset_y / self._zoom_factor,
+        )
+        painter.translate(-widget_center.x(), -widget_center.y())
+
+        # Draw a dot at the center
+        painter.setPen(QPen(QColor("lime"), 5 / self._zoom_factor))
         painter.setBrush(QBrush(QColor("lime")))
-        painter.drawEllipse(center, 3, 3)
-        
+        painter.drawEllipse(widget_center, 3 / self._zoom_factor, 3 / self._zoom_factor)
+
         # Calculate heptagon points and hole positions
-        heptagon_points = self._calculate_heptagon_points(center, radius)
-        hole_coords = self._calculate_hole_positions(center, radius)
+        heptagon_points = self._calculate_heptagon_points(widget_center, base_radius)
+        hole_coords = self._calculate_hole_positions(widget_center, base_radius)
 
         # 1. Draw the heptagon with a gradient background and more prominent edges
         # First create a polygon to fill
@@ -324,53 +398,66 @@ class CircleViewWidget(QWidget):
         for i in range(1, len(heptagon_points)):
             polygon_path.lineTo(heptagon_points[i])
         polygon_path.closeSubpath()
-        
+
         # Fill with gradient
-        background_gradient = QRadialGradient(center, radius)
-        background_gradient.setColorAt(0, QColor(30, 30, 45))  # Slightly lighter center
-        background_gradient.setColorAt(1, QColor(15, 15, 30))  # Darker edges
+        background_gradient = QRadialGradient(widget_center, base_radius)
+        background_gradient.setColorAt(0, QColor(115, 115, 255))  # Lighter blue center
+        background_gradient.setColorAt(
+            1, QColor(97, 97, 248)
+        )  # The specified RGB color (97,97,248)
         painter.setBrush(QBrush(background_gradient))
         painter.setPen(Qt.PenStyle.NoPen)  # No pen for the fill
         painter.drawPath(polygon_path)
-        
+
         # Draw the edges with a glowing effect
-        edge_pen = QPen(QColor(80, 80, 120), 2.5)
+        edge_pen = QPen(
+            QColor(150, 150, 255), 2.5 / self._zoom_factor
+        )  # Lighter blue for the edge
         painter.setPen(edge_pen)
         painter.drawPolygon(heptagon_points)
-        
+
         # Also draw a subtle outer glow
-        glow_pen = QPen(QColor(100, 100, 160, 40), 5)
+        glow_pen = QPen(
+            QColor(130, 130, 255, 60), 5 / self._zoom_factor
+        )  # Matching blue glow
         painter.setPen(glow_pen)
         painter.drawPolygon(heptagon_points)
 
         # Draw center alignment marker
-        painter.setPen(QPen(QColor(80, 80, 100), 1, Qt.PenStyle.DashLine))
-        painter.drawLine(
-            QPointF(center.x() - radius, center.y()),
-            QPointF(center.x() + radius, center.y()),
+        painter.setPen(
+            QPen(QColor(80, 80, 100), 1 / self._zoom_factor, Qt.PenStyle.DashLine)
         )
         painter.drawLine(
-            QPointF(center.x(), center.y() - radius),
-            QPointF(center.x(), center.y() + radius),
+            QPointF(widget_center.x() - base_radius, widget_center.y()),
+            QPointF(widget_center.x() + base_radius, widget_center.y()),
+        )
+        painter.drawLine(
+            QPointF(widget_center.x(), widget_center.y() - base_radius),
+            QPointF(widget_center.x(), widget_center.y() + base_radius),
         )
 
         # 2. Draw the 56 Aubrey Holes and their numbers
-        hole_font = QFont("Arial", max(6, int(hole_rad * 1.2)))
-        number_font = QFont("Arial", max(6, int(hole_rad * 1.0)), QFont.Weight.Bold)
+        # Adjust font sizes based on zoom
+        number_font = QFont(
+            "Arial",
+            int(max(6 / self._zoom_factor, int(hole_rad * 1.0))),
+            QFont.Weight.Bold,
+        )
+
         for i, pos_qpoint in enumerate(hole_coords):
             # Draw hole with gradient for 3D effect
             gradient = QRadialGradient(pos_qpoint, hole_rad)
             gradient.setColorAt(0, QColor(150, 150, 150))  # Lighter center
             gradient.setColorAt(1, QColor(100, 100, 100))  # Darker edge
 
-            painter.setPen(QPen(QColor(40, 40, 40), 1.5))
+            painter.setPen(QPen(QColor(40, 40, 40), 1.5 / self._zoom_factor))
             painter.setBrush(QBrush(gradient))
             painter.drawEllipse(pos_qpoint, hole_rad, hole_rad)
 
             # Draw hole numbers (smaller font, always visible)
             painter.setPen(QColor("white"))
             painter.setFont(number_font)
-            text = str(i)
+            text = str(i + 1)  # Add 1 to display as 1-56 instead of 0-55
             text_rect = painter.boundingRect(
                 int(pos_qpoint.x() - hole_rad),
                 int(pos_qpoint.y() - hole_rad),
@@ -383,157 +470,127 @@ class CircleViewWidget(QWidget):
 
         # Draw Galactic Center Line and Label - align to the middle of a side
         if self._gc_azimuth_for_drawing is not None:
-            self._draw_galactic_center(painter, center, radius, heptagon_points)
+            self._draw_galactic_center(
+                painter, widget_center, base_radius, heptagon_points
+            )
 
         # Draw the Markers with zodiac labels
-        self._draw_markers(painter, center, radius, hole_coords, hole_rad)
+        self._draw_markers(painter, widget_center, base_radius, hole_coords, hole_rad)
+
+        # Restore original state
+        painter.restore()
+
+        # Draw zoom level indicator
+        self._draw_zoom_indicator(painter)
 
         painter.end()
 
     def _draw_galactic_center(self, painter, center, radius, heptagon_points):
         """
-        Draw the Galactic Center line aligned to the middle of a heptagon side.
+        Draw the Galactic Center line as the midpoint between holes 28 and 29,
+        aligned with the vertical y-axis.
         """
         gc_color = QColor("gold")
         gc_label_text = "GC"
-        gc_label_font = QFont("Arial", 10, QFont.Weight.Bold)
-        zodiac_label_font = QFont("Arial", 8, QFont.Weight.Normal)
-        label_offset_from_edge = 15
-
-        # Find the side closest to the GC azimuth
-        closest_side_index = 0
-        min_angle_diff = 360.0
-        
-        # The azimuth angle needs to be converted to the heptagon's coordinate system
-        gc_angle_rad = math.radians(90.0 - self._gc_azimuth_for_drawing)
-        
-        for i in range(self._num_sides):
-            # Calculate the middle point of the side
-            start_point = heptagon_points[i]
-            end_point = heptagon_points[(i + 1) % self._num_sides]
-            
-            # Find middle of this side
-            mid_x = (start_point.x() + end_point.x()) / 2
-            mid_y = (start_point.y() + end_point.y()) / 2
-            
-            # Calculate angle of midpoint from center
-            side_angle = math.atan2(mid_y - center.y(), mid_x - center.x())
-            
-            # Calculate angle difference (in radians)
-            angle_diff = abs(side_angle - gc_angle_rad)
-            while angle_diff > math.pi:
-                angle_diff = 2 * math.pi - angle_diff
-                
-            # If this is closer to the GC angle than previous best, update
-            if angle_diff < min_angle_diff:
-                min_angle_diff = angle_diff
-                closest_side_index = i
-        
-        # Get the middle point of the closest side
-        start_point = heptagon_points[closest_side_index]
-        end_point = heptagon_points[(closest_side_index + 1) % self._num_sides]
-        
-        mid_x = (start_point.x() + end_point.x()) / 2
-        mid_y = (start_point.y() + end_point.y()) / 2
-        
-        # Draw line from center to middle of the side with glowing effect
-        # Main line
-        painter.setPen(QPen(gc_color, 3, Qt.PenStyle.SolidLine))
-        painter.drawLine(center, QPointF(mid_x, mid_y))
-        
-        # Glow effect
-        glow_pen = QPen(QColor(255, 215, 0, 60), 8)  # Transparent gold for glow
-        painter.setPen(glow_pen)
-        painter.drawLine(center, QPointF(mid_x, mid_y))
-        
-        # Calculate position for label - slightly outside the heptagon side
-        # Calculate vector from center to midpoint
-        dx = mid_x - center.x()
-        dy = mid_y - center.y()
-        
-        # Normalize the vector
-        length = math.sqrt(dx*dx + dy*dy)
-        if length > 0:
-            dx /= length
-            dy /= length
-            
-        # Position the label a bit outside the heptagon side
-        label_x = mid_x + dx * label_offset_from_edge
-        label_y = mid_y + dy * label_offset_from_edge
-        
-        # Calculate angle for text rotation
-        text_angle = math.atan2(dy, dx) * 180 / math.pi
-        
-        # Save painter state
-        painter.save()
-        painter.translate(label_x, label_y)
-        
-        # Adjust rotation so text is legible (not upside down)
-        if 90 < text_angle < 270:
-            text_angle += 180  # Flip text to be readable
-        
-        painter.rotate(text_angle)
-        
-        # Draw GC label with background
-        painter.setFont(gc_label_font)
-        gc_text_width = painter.fontMetrics().horizontalAdvance(gc_label_text)
-        gc_text_height = painter.fontMetrics().height()
-        
-        # Background for GC label
-        gc_bg_rect = QRectF(
-            -gc_text_width/2 - 5,
-            -gc_text_height/2 - 2,
-            gc_text_width + 10,
-            gc_text_height + 4
+        gc_label_font = QFont(
+            "Arial", int(max(10 / self._zoom_factor, 6)), QFont.Weight.Bold
         )
-        painter.setBrush(QBrush(QColor(40, 40, 40, 180)))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawRoundedRect(gc_bg_rect, 4, 4)
-        
-        # Draw GC text
-        painter.setPen(gc_color)
-        painter.drawText(QPointF(-gc_text_width/2, gc_text_height/2 - 2), gc_label_text)
-        
-        # Draw zodiac label if available
-        if self._gc_zodiac_label:
-            painter.setFont(zodiac_label_font)
-            zodiac_text_width = painter.fontMetrics().horizontalAdvance(self._gc_zodiac_label)
-            
-            # Background for zodiac label
-            zodiac_bg_rect = QRectF(
-                -zodiac_text_width/2 - 5,
-                gc_text_height/2 + 2,
-                zodiac_text_width + 10,
-                gc_text_height
+        zodiac_label_font = QFont(
+            "Arial", int(max(8 / self._zoom_factor, 5)), QFont.Weight.Normal
+        )
+        label_offset = 20 / self._zoom_factor  # Adjust offset with zoom
+
+        # Get hole positions
+        hole_coords = self._calculate_hole_positions(center, radius)
+
+        # Check if we have enough holes
+        if len(hole_coords) > 28:
+            # Draw line from center along y-axis
+            # Use negative y value to point UPWARD instead of downward
+            y_axis_vector = QPointF(0, -radius * 1.2)  # Point ABOVE center along y-axis
+            painter.setPen(QPen(gc_color, 3 / self._zoom_factor, Qt.PenStyle.SolidLine))
+            painter.drawLine(center, center + y_axis_vector)
+
+            # Draw glow effect for the line
+            glow_pen = QPen(QColor(255, 215, 0, 60), 8 / self._zoom_factor)
+            painter.setPen(glow_pen)
+            painter.drawLine(center, center + y_axis_vector)
+
+            # Calculate position for GC label
+            # Place the GC label at the end of the line (now at the top)
+            label_x = center.x()  # Centered on x-axis
+            label_y = (
+                center.y() - radius * 1.2 - label_offset
+            )  # ABOVE the end of the line
+
+            # Draw GC label with background
+            painter.setFont(gc_label_font)
+            gc_text_width = painter.fontMetrics().horizontalAdvance(gc_label_text)
+            gc_text_height = painter.fontMetrics().height()
+
+            # Background for GC label
+            gc_bg_rect = QRectF(
+                label_x - gc_text_width / 2 - 5,
+                label_y - gc_text_height - 2,
+                gc_text_width + 10,
+                gc_text_height + 4,
             )
             painter.setBrush(QBrush(QColor(40, 40, 40, 180)))
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(zodiac_bg_rect, 4, 4)
-            
-            # Draw zodiac text
+            painter.drawRoundedRect(
+                gc_bg_rect, 4 / self._zoom_factor, 4 / self._zoom_factor
+            )
+
+            # Draw GC text
             painter.setPen(gc_color)
-            painter.drawText(QPointF(-zodiac_text_width/2, gc_text_height*1.5), self._gc_zodiac_label)
-        
-        # Restore painter state
-        painter.restore()
+            painter.drawText(
+                QPointF(label_x - gc_text_width / 2, label_y - 2), gc_label_text
+            )
+
+            # Draw zodiac label if available
+            if self._gc_zodiac_label:
+                painter.setFont(zodiac_label_font)
+                zodiac_text_width = painter.fontMetrics().horizontalAdvance(
+                    self._gc_zodiac_label
+                )
+
+                # Background for zodiac label
+                zodiac_bg_rect = QRectF(
+                    label_x - zodiac_text_width / 2 - 5,
+                    label_y - gc_text_height - 15,  # Position above the GC label
+                    zodiac_text_width + 10,
+                    gc_text_height,
+                )
+                painter.setBrush(QBrush(QColor(40, 40, 40, 180)))
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.drawRoundedRect(
+                    zodiac_bg_rect, 4 / self._zoom_factor, 4 / self._zoom_factor
+                )
+
+                # Draw zodiac text
+                painter.setPen(gc_color)
+                painter.drawText(
+                    QPointF(
+                        label_x - zodiac_text_width / 2, label_y - gc_text_height - 5
+                    ),
+                    self._gc_zodiac_label,
+                )
 
     def _draw_markers(self, painter, center, radius, hole_coords, hole_rad):
         """Draw the markers with their zodiac labels radiating outward."""
         marker_radius = hole_rad * 1.8  # Markers slightly larger than holes
         marker_font = QFont(
-            "Arial", max(7, int(marker_radius * 0.8)), QFont.Weight.Bold
+            "Arial",
+            int(max(7 / self._zoom_factor, int(marker_radius * 0.8))),
+            QFont.Weight.Bold,
         )
-        zodiac_font = QFont("Arial", 9)
+        zodiac_font = QFont("Arial", int(max(9 / self._zoom_factor, 6)))
 
         # First, draw zodiacal positions for all holes if enabled
         if self._display_zodiac_degrees and self._hole_zodiac_positions:
             # Use a smaller font for all hole labels to avoid overlap
-            small_zodiac_font = QFont("Arial", 7)
+            small_zodiac_font = QFont("Arial", int(max(7 / self._zoom_factor, 5)))
             painter.setFont(small_zodiac_font)
-
-            # Get the heptagon points to determine which side each hole is on
-            heptagon_points = self._calculate_heptagon_points(center, radius)
-            holes_per_side = NUM_HOLES // self._num_sides  # Should be 8
 
             for hole_num, position in self._hole_zodiac_positions.items():
                 if hole_num in self._marker_positions.values():
@@ -543,62 +600,53 @@ class CircleViewWidget(QWidget):
                 # Use the exact hole position from the pre-calculated coordinates
                 hole_point = hole_coords[hole_num]
 
-                # Determine which side of the heptagon this hole is on
-                side_index = hole_num // holes_per_side
+                # Calculate vector from center to hole point (for outward direction)
+                dx = hole_point.x() - center.x()
+                dy = hole_point.y() - center.y()
 
-                # Get the start and end vertices of this side
-                start_vertex = heptagon_points[side_index]
-                end_vertex = heptagon_points[(side_index + 1) % self._num_sides]
-
-                # Calculate the normal vector to this side (perpendicular outward)
-                side_dx = end_vertex.x() - start_vertex.x()
-                side_dy = end_vertex.y() - start_vertex.y()
-                
-                # Rotate 90 degrees to get normal vector (outward facing)
-                normal_dx = -side_dy
-                normal_dy = side_dx
-                
-                # Normalize the normal vector
-                length = math.sqrt(normal_dx*normal_dx + normal_dy*normal_dy)
+                # Normalize the vector
+                length = math.sqrt(dx * dx + dy * dy)
                 if length > 0:
-                    normal_dx /= length
-                    normal_dy /= length
+                    dx /= length
+                    dy /= length
 
-                # Position label outward from the hole along the normal vector
-                label_distance = radius * 0.15  # Adjust to control label distance
-                label_x = hole_point.x() + normal_dx * label_distance
-                label_y = hole_point.y() + normal_dy * label_distance
+                # Position label OUTSIDE from the hole along this vector
+                # Use fixed distance for consistency
+                label_x = hole_point.x() + dx * 50
+                label_y = hole_point.y() + dy * 50
 
                 # Draw a connecting line from hole to label
                 line_color = QColor(150, 150, 150, 80)  # More transparent line
-                painter.setPen(QPen(line_color, 0.5, Qt.PenStyle.DotLine))
+                painter.setPen(
+                    QPen(line_color, 0.5 / self._zoom_factor, Qt.PenStyle.DotLine)
+                )
                 painter.drawLine(hole_point, QPointF(label_x, label_y))
 
                 # Draw a small background for zodiac text
                 text_width = painter.fontMetrics().horizontalAdvance(position)
                 text_height = painter.fontMetrics().height()
 
-                # Calculate angle for text alignment (perpendicular to side)
-                text_angle = math.atan2(normal_dy, normal_dx) * 180 / math.pi
+                # Calculate angle for text alignment (using the center-to-hole vector)
+                text_angle = math.atan2(dy, dx) * 180 / math.pi
 
                 # Show all hole labels with rotated text background
                 text_bg = QColor(20, 20, 40, 150)  # More transparent background
                 painter.setPen(Qt.PenStyle.NoPen)
                 painter.setBrush(QBrush(text_bg))
-                
+
                 # Draw text background
                 painter.save()  # Save current painter state
                 painter.translate(label_x, label_y)
-                
+
                 # Adjust rotation so text is legible (not upside down)
                 if 90 < text_angle < 270:
                     text_angle += 180  # Flip text to be readable
-                
+
                 painter.rotate(text_angle)
                 painter.drawRoundedRect(
                     QRectF(
-                        -text_width/2 - 3,
-                        -text_height/2 - 1,
+                        -text_width / 2 - 3,
+                        -text_height / 2 - 1,
                         text_width + 6,
                         text_height + 2,
                     ),
@@ -608,13 +656,17 @@ class CircleViewWidget(QWidget):
 
                 # Draw the text
                 painter.setPen(QColor(200, 200, 220))
-                painter.drawText(QPointF(-text_width/2, text_height/2 - 3), position)
+                painter.drawText(
+                    QPointF(-text_width / 2, text_height / 2 - 3), position
+                )
 
                 # Draw the hole number
-                hole_num_text = f"{hole_num}"
+                hole_num_text = f"{hole_num + 1}"  # Add 1 to display as 1-56
                 painter.setPen(QColor(150, 150, 170))
-                painter.drawText(QPointF(-text_width/2 - 15, text_height/2 - 3), hole_num_text)
-                
+                painter.drawText(
+                    QPointF(-text_width / 2 - 15, text_height / 2 - 3), hole_num_text
+                )
+
                 painter.restore()  # Restore painter state
 
         # Now draw markers and their zodiacal labels with improved orientation
@@ -647,7 +699,9 @@ class CircleViewWidget(QWidget):
                 marker_gradient.setColorAt(1, base_color)
 
                 painter.setBrush(QBrush(marker_gradient))
-                painter.setPen(QPen(QColor("black"), 1.5))  # Thicker border for markers
+                painter.setPen(
+                    QPen(QColor("black"), 1.5 / self._zoom_factor)
+                )  # Thicker border for markers
                 painter.drawEllipse(marker_qpoint, marker_radius, marker_radius)
 
                 # Draw marker name (e.g., S, M) in the center of the marker
@@ -674,36 +728,25 @@ class CircleViewWidget(QWidget):
                     zodiac_position = self._hole_zodiac_positions[hole_num]
 
                 if zodiac_position:
-                    # Determine which side of the heptagon this marker is on
-                    side_index = hole_num // holes_per_side
-                    
-                    # Get the start and end vertices of this side
-                    heptagon_points = self._calculate_heptagon_points(center, radius)
-                    start_vertex = heptagon_points[side_index]
-                    end_vertex = heptagon_points[(side_index + 1) % self._num_sides]
-                    
-                    # Calculate normal vector to this side (perpendicular outward)
-                    side_dx = end_vertex.x() - start_vertex.x()
-                    side_dy = end_vertex.y() - start_vertex.y()
-                    
-                    # Rotate 90 degrees to get normal vector (outward facing)
-                    normal_dx = -side_dy
-                    normal_dy = side_dx
-                    
-                    # Normalize the normal vector
-                    length = math.sqrt(normal_dx*normal_dx + normal_dy*normal_dy)
+                    # Calculate vector from center to marker for outward direction
+                    vector_x = marker_qpoint.x() - center.x()
+                    vector_y = marker_qpoint.y() - center.y()
+
+                    # Normalize the vector
+                    length = math.sqrt(vector_x * vector_x + vector_y * vector_y)
                     if length > 0:
-                        normal_dx /= length
-                        normal_dy /= length
-                    
-                    # Position label outward from marker using the normal vector
-                    offset_distance = marker_radius * 3.0  # Further out for markers
-                    label_x = marker_qpoint.x() + normal_dx * offset_distance
-                    label_y = marker_qpoint.y() + normal_dy * offset_distance
-                    
-                    # Calculate angle for text alignment (perpendicular to side)
-                    text_angle = math.atan2(normal_dy, normal_dx) * 180 / math.pi
-                    
+                        vector_x /= length
+                        vector_y /= length
+
+                    # Position label FAR OUTSIDE from marker using the vector
+                    # Adjust offset with zoom factor
+                    offset_distance = 65
+                    label_x = marker_qpoint.x() + vector_x * offset_distance
+                    label_y = marker_qpoint.y() + vector_y * offset_distance
+
+                    # Calculate angle for text alignment (using the center-to-marker vector)
+                    text_angle = math.atan2(vector_y, vector_x) * 180 / math.pi
+
                     # Create background for better readability
                     painter.setFont(zodiac_font)
                     text_metrics = painter.fontMetrics()
@@ -713,17 +756,17 @@ class CircleViewWidget(QWidget):
                     # Save painter state before rotating
                     painter.save()
                     painter.translate(label_x, label_y)
-                    
+
                     # Adjust rotation so text is legible (not upside down)
                     if 90 < text_angle < 270:
                         text_angle += 180  # Flip text to be readable
-                    
+
                     painter.rotate(text_angle)
-                    
+
                     # Draw text background
                     bg_rect = QRectF(
-                        -text_width/2 - 5,
-                        -text_height/2 - 2,
+                        -text_width / 2 - 5,
+                        -text_height / 2 - 2,
                         text_width + 10,
                         text_height + 4,
                     )
@@ -736,12 +779,134 @@ class CircleViewWidget(QWidget):
                     painter.setPen(
                         QColor(base_color).lighter(180)
                     )  # Brighter text for visibility
-                    painter.drawText(QPointF(-text_width/2, text_height/2 - 2), zodiac_position)
-                    
+                    painter.drawText(
+                        QPointF(-text_width / 2, text_height / 2 - 2), zodiac_position
+                    )
+
                     # Restore painter state
                     painter.restore()
             else:
                 print(f"Warning: Marker '{name}' has invalid position {hole_num}.")
+
+    def wheelEvent(self, event):
+        """Handle mouse wheel events for zooming."""
+        delta = event.angleDelta().y()
+
+        # Calculate zoom center (mouse position)
+        zoom_point = event.position()
+
+        # Determine zoom direction
+        zoom_direction = 1 if delta > 0 else -1
+
+        # Store old zoom for calculation
+        old_zoom = self._zoom_factor
+
+        # Calculate new zoom factor with bounds
+        self._zoom_factor += zoom_direction * self._zoom_step
+        self._zoom_factor = max(self._min_zoom, min(self._max_zoom, self._zoom_factor))
+
+        # Only proceed if zoom actually changed
+        if old_zoom != self._zoom_factor:
+            # Get widget center
+            widget_center_x = self.width() / 2
+            widget_center_y = self.height() / 2
+
+            # Calculate how far the mouse is from center in the view coordinates
+            dx = (zoom_point.x() - widget_center_x) / old_zoom
+            dy = (zoom_point.y() - widget_center_y) / old_zoom
+
+            # Adjust pan offset to keep the point under mouse in the same relative position
+            scale_change = self._zoom_factor / old_zoom
+            new_dx = dx * scale_change
+            new_dy = dy * scale_change
+
+            # Update pan offset to compensate for the zoom change
+            self._pan_offset_x += (dx - new_dx) * self._zoom_factor
+            self._pan_offset_y += (dy - new_dy) * self._zoom_factor
+
+            # Force a repaint
+            self.update()
+
+    def mousePressEvent(self, event):
+        """Handle mouse press events for panning."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._is_panning = True
+            self._last_pan_pos = event.position()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move events for panning."""
+        if self._is_panning:
+            current_pos = event.position()
+            dx = current_pos.x() - self._last_pan_pos.x()
+            dy = current_pos.y() - self._last_pan_pos.y()
+
+            self._pan_offset_x += dx
+            self._pan_offset_y += dy
+
+            self._last_pan_pos = current_pos
+            self.update()
+
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release events for panning."""
+        if event.button() == Qt.MouseButton.LeftButton and self._is_panning:
+            self._is_panning = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def mouseDoubleClickEvent(self, event):
+        """Handle double-click events for resetting zoom and pan."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._zoom_factor = 1.0
+            self._pan_offset_x = 0.0
+            self._pan_offset_y = 0.0
+            self.update()
+            # Emit a custom signal or log message about view reset
+            print("View reset to default (zoom: 1.0x, pan: 0,0)")
+
+    def _draw_zoom_indicator(self, painter):
+        """Draw a zoom level indicator in the bottom-right corner."""
+        zoom_text = f"Zoom: {self._zoom_factor:.1f}x"
+
+        # Use a fixed font size regardless of zoom
+        font = QFont("Arial", 10)
+        painter.setFont(font)
+
+        # Calculate text dimensions
+        text_rect = painter.fontMetrics().boundingRect(zoom_text)
+        text_width = text_rect.width() + 20
+        text_height = text_rect.height() + 10
+
+        # Position in bottom-right corner with padding
+        padding = 10
+        x = self.width() - text_width - padding
+        y = self.height() - text_height - padding
+
+        # Draw background
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor(0, 0, 0, 150)))
+        painter.drawRoundedRect(x, y, text_width, text_height, 5, 5)
+
+        # Draw text
+        painter.setPen(QColor(255, 255, 255))
+        painter.drawText(x + 10, y + text_height - 5, zoom_text)
+
+        # Draw reset hint
+        hint_text = "Double-click to reset view"
+        hint_rect = painter.fontMetrics().boundingRect(hint_text)
+        hint_width = hint_rect.width() + 20
+        hint_height = hint_rect.height() + 10
+
+        hint_x = self.width() - hint_width - padding
+        hint_y = y - hint_height - 5
+
+        # Draw background for hint
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor(0, 0, 0, 100)))
+        painter.drawRoundedRect(hint_x, hint_y, hint_width, hint_height, 5, 5)
+
+        # Draw hint text
+        painter.setPen(QColor(200, 200, 200))
+        painter.drawText(hint_x + 10, hint_y + hint_height - 5, hint_text)
 
 
 # Example usage for testing this widget directly
@@ -773,8 +938,6 @@ if __name__ == "__main__":
     circle_view.set_orientation(45)  # Test with an offset orientation for Hole 0
 
     window.setGeometry(100, 100, 500, 500)
-    window.setWindowTitle(
-        "Stonehenge Heptagon View Test"
-    )
+    window.setWindowTitle("Stonehenge Heptagon View Test")
     window.show()
     sys.exit(app.exec())
