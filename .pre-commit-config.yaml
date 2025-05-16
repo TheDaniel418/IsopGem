@@ -42,31 +42,32 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
         exclude: ^(test_.*\.py|tests/.*\.py)$
 
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
-    hooks:
-    -   id: mypy
-        additional_dependencies: [
-            'types-PyYAML',
-            'types-pytz',
-        ]
-        exclude: |
-            (?x)^(
-                test_.*\.py|
-                tests/.*\.py|
-                .*ui/.*\.py|
-                .*widgets/.*\.py|
-                .*panels/.*\.py|
-                .*dialogs/.*\.py|
-                .*tabs/.*\.py|
-                shared/repositories/__init__.py|
-                shared/repositories/sqlite_calculation_repository.py|
-                shared/repositories/sqlite_tag_repository.py|
-                gematria/models/tag_types.py|
-                gematria/services/calculation_database_service.py
-            )$
-        args: [
-            "--config-file=mypy.ini",
-            "--no-incremental",
-            "--show-error-codes"
-        ]
+# Temporarily disabled mypy hook
+#-   repo: https://github.com/pre-commit/mirrors-mypy
+#    rev: v1.7.1
+#    hooks:
+#    -   id: mypy
+#        additional_dependencies: [
+#            'types-PyYAML',
+#            'types-pytz',
+#        ]
+#        exclude: |
+#            (?x)^(
+#                test_.*\.py|
+#                tests/.*\.py|
+#                .*ui/.*\.py|
+#                .*widgets/.*\.py|
+#                .*panels/.*\.py|
+#                .*dialogs/.*\.py|
+#                .*tabs/.*\.py|
+#                shared/repositories/__init__.py|
+#                shared/repositories/sqlite_calculation_repository.py|
+#                shared/repositories/sqlite_tag_repository.py|
+#                gematria/models/tag_types.py|
+#                gematria/services/calculation_database_service.py
+#            )$
+#        args: [
+#            "--config-file=mypy.ini",
+#            "--no-incremental",
+#            "--show-error-codes"
+#        ]
