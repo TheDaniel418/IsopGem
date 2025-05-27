@@ -21,7 +21,7 @@ import shutil
 from datetime import datetime
 from glob import glob
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import fitz  # PyMuPDF
 from docx import Document as DocxDocument
@@ -298,13 +298,6 @@ class DocumentService:
             return None
 
         try:
-            # Get document type from extension
-            try:
-                document_type = DocumentType.from_extension(file_path.suffix)
-            except ValueError:
-                logger.error(f"Unsupported file type: {file_path.suffix}")
-                return None
-
             # Create document object with metadata
             document = Document.from_file(file_path)
 
@@ -715,8 +708,95 @@ class DocumentService:
             document.metadata["extraction_error"] = str(e)
             return False
 
+    def _detect_file_encoding(self, file_path: Path) -> str:
+        """Detect the encoding of a text file using multiple methods.
+
+        Args:
+            file_path: Path to the text file
+
+        Returns:
+            Detected encoding name
+        """
+        import chardet
+
+        # Read a sample of the file for detection
+        with open(file_path, "rb") as file:
+            raw_data = file.read(10000)  # Read first 10KB for detection
+
+        # Use chardet for automatic detection
+        detection_result = chardet.detect(raw_data)
+        detected_encoding = detection_result.get("encoding", "utf-8")
+        confidence = detection_result.get("confidence", 0.0)
+
+        logger.info(
+            f"Detected encoding: {detected_encoding} (confidence: {confidence:.2f})"
+        )
+
+        # If confidence is low, try common encodings for Word/LibreOffice files
+        if confidence < 0.7:
+            common_encodings = [
+                "windows-1252",  # Common for Windows Word files
+                "iso-8859-1",  # Latin-1, common for older files
+                "cp1252",  # Windows Western European
+                "utf-8-sig",  # UTF-8 with BOM
+                "utf-16",  # UTF-16 with BOM
+                "utf-16le",  # UTF-16 Little Endian
+                "utf-16be",  # UTF-16 Big Endian
+            ]
+
+            for encoding in common_encodings:
+                try:
+                    with open(file_path, "r", encoding=encoding) as test_file:
+                        test_file.read(1000)  # Try to read a portion
+                    logger.info(f"Successfully validated encoding: {encoding}")
+                    return encoding
+                except (UnicodeDecodeError, UnicodeError):
+                    continue
+
+        return detected_encoding or "utf-8"
+
+    def _convert_file_to_utf8(self, file_path: Path, source_encoding: str) -> bool:
+        """Convert a text file from source encoding to UTF-8.
+
+        Args:
+            file_path: Path to the text file
+            source_encoding: Source encoding of the file
+
+        Returns:
+            True if conversion was successful, False otherwise
+        """
+        try:
+            # Create backup file path
+            backup_path = file_path.with_suffix(file_path.suffix + ".backup")
+
+            # Read file with source encoding
+            with open(
+                file_path, "r", encoding=source_encoding, errors="replace"
+            ) as source_file:
+                content = source_file.read()
+
+            # Create backup of original file
+            import shutil
+
+            shutil.copy2(file_path, backup_path)
+
+            # Write file with UTF-8 encoding
+            with open(file_path, "w", encoding="utf-8") as target_file:
+                target_file.write(content)
+
+            logger.info(
+                f"Successfully converted {file_path} from {source_encoding} to UTF-8"
+            )
+            logger.info(f"Backup created at {backup_path}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Error converting file {file_path} to UTF-8: {e}")
+            return False
+
     def _extract_text_from_txt(self, document: Document) -> bool:
-        """Extract text from a TXT document.
+        """Extract text from a TXT document with robust encoding detection and conversion.
 
         Args:
             document: TXT document
@@ -725,11 +805,95 @@ class DocumentService:
             True if successful, False otherwise
         """
         try:
-            with open(document.file_path, "r", encoding="utf-8") as file:
-                text = file.read()
+            file_path = Path(document.file_path)
+            text = None
+            encoding_used = None
+            was_converted_to_utf8 = False
+
+            # First, try to read as UTF-8
+            try:
+                with open(file_path, "r", encoding="utf-8") as file:
+                    text = file.read()
+                encoding_used = "utf-8"
+                logger.info(f"Successfully read {file_path} as UTF-8")
+
+            except UnicodeDecodeError as e:
+                logger.warning(f"UTF-8 decode failed for {file_path}: {e}")
+
+                # Detect the actual encoding
+                detected_encoding = self._detect_file_encoding(file_path)
+                logger.info(
+                    f"Attempting to read with detected encoding: {detected_encoding}"
+                )
+
+                try:
+                    # Try reading with detected encoding
+                    with open(
+                        file_path, "r", encoding=detected_encoding, errors="replace"
+                    ) as file:
+                        text = file.read()
+                    encoding_used = detected_encoding
+
+                    # Ask user if they want to convert the file to UTF-8
+                    logger.info(
+                        f"Successfully read {file_path} with encoding {detected_encoding}"
+                    )
+
+                    # Automatically convert to UTF-8 for future compatibility
+                    if detected_encoding.lower() != "utf-8":
+                        logger.info(
+                            f"Converting {file_path} to UTF-8 for future compatibility"
+                        )
+                        was_converted_to_utf8 = self._convert_file_to_utf8(
+                            file_path, detected_encoding
+                        )
+
+                except UnicodeDecodeError:
+                    # If detected encoding fails, try common encodings with error handling
+                    fallback_encodings = [
+                        "windows-1252",
+                        "iso-8859-1",
+                        "cp1252",
+                        "latin1",
+                        "ascii",
+                    ]
+
+                    for fallback_encoding in fallback_encodings:
+                        try:
+                            with open(
+                                file_path,
+                                "r",
+                                encoding=fallback_encoding,
+                                errors="replace",
+                            ) as file:
+                                text = file.read()
+                            encoding_used = fallback_encoding
+                            logger.warning(
+                                f"Used fallback encoding {fallback_encoding} for {file_path}"
+                            )
+
+                            # Convert to UTF-8
+                            was_converted_to_utf8 = self._convert_file_to_utf8(
+                                file_path, fallback_encoding
+                            )
+                            break
+
+                        except UnicodeDecodeError:
+                            continue
+
+                    if text is None:
+                        # Last resort: read as binary and decode with errors='replace'
+                        with open(file_path, "rb") as file:
+                            raw_data = file.read()
+                        text = raw_data.decode("utf-8", errors="replace")
+                        encoding_used = "utf-8 (with errors replaced)"
+                        logger.warning(f"Used error replacement for {file_path}")
+
+            if text is None:
+                raise Exception("Could not read file with any encoding")
 
             # Convert potential Symbol font Greek text
-            text, was_converted = self._convert_symbol_to_greek(text)
+            text, was_symbol_converted = self._convert_symbol_to_greek(text)
 
             # Update document with text content
             document.content = text
@@ -737,11 +901,15 @@ class DocumentService:
             document.page_count = 1  # Plain text files don't have pages
             document.metadata["word_count"] = len(text.split())
             document.metadata["page_count"] = 1
+            document.metadata["original_encoding"] = encoding_used
+            document.metadata["converted_to_utf8"] = was_converted_to_utf8
+            document.metadata["symbol_conversion"] = was_symbol_converted
 
             # Save updated document
             self.document_repository.save(document)
 
-            return was_converted
+            return True
+
         except Exception as e:
             logger.error(f"Error extracting TXT text: {e}")
             return False
@@ -1032,7 +1200,7 @@ class DocumentService:
 
     def list_documents(self) -> List[Document]:
         """List all documents from the repository.
-        
+
         This is an alias for get_all_documents() to maintain compatibility
         with different parts of the application.
 
@@ -1424,3 +1592,98 @@ class DocumentService:
         else:
             logger.error(f"Failed to update document {document.id}")
             return False
+
+    def bulk_convert_text_files_to_utf8(
+        self,
+        directory_path: Union[str, Path],
+        file_patterns: Optional[List[str]] = None,
+        recursive: bool = True,
+    ) -> Dict[str, Any]:
+        """Convert multiple text files in a directory to UTF-8 encoding.
+
+        Args:
+            directory_path: Directory containing text files to convert
+            file_patterns: List of file patterns to match (e.g., ['*.txt', '*.text'])
+            recursive: Whether to search subdirectories
+
+        Returns:
+            Dictionary with conversion results and statistics
+        """
+        directory_path = Path(directory_path)
+
+        if file_patterns is None:
+            file_patterns = ["*.txt", "*.text", "*.asc"]
+
+        results = {
+            "total_files": 0,
+            "converted_files": 0,
+            "already_utf8": 0,
+            "failed_conversions": 0,
+            "conversion_details": [],
+            "errors": [],
+        }
+
+        try:
+            # Find all matching text files
+            text_files = []
+            for pattern in file_patterns:
+                if recursive:
+                    text_files.extend(directory_path.rglob(pattern))
+                else:
+                    text_files.extend(directory_path.glob(pattern))
+
+            results["total_files"] = len(text_files)
+            logger.info(f"Found {len(text_files)} text files to process")
+
+            for file_path in text_files:
+                try:
+                    # Detect current encoding
+                    detected_encoding = self._detect_file_encoding(file_path)
+
+                    file_result = {
+                        "file_path": str(file_path),
+                        "original_encoding": detected_encoding,
+                        "status": "unknown",
+                    }
+
+                    # Check if already UTF-8
+                    if detected_encoding.lower() in ["utf-8", "ascii"]:
+                        file_result["status"] = "already_utf8"
+                        results["already_utf8"] += 1
+                        logger.info(f"File {file_path} is already UTF-8 compatible")
+                    else:
+                        # Convert to UTF-8
+                        if self._convert_file_to_utf8(file_path, detected_encoding):
+                            file_result["status"] = "converted"
+                            file_result["converted_to"] = "utf-8"
+                            results["converted_files"] += 1
+                            logger.info(
+                                f"Successfully converted {file_path} from {detected_encoding} to UTF-8"
+                            )
+                        else:
+                            file_result["status"] = "failed"
+                            results["failed_conversions"] += 1
+                            logger.error(f"Failed to convert {file_path}")
+
+                    results["conversion_details"].append(file_result)
+
+                except Exception as e:
+                    error_msg = f"Error processing {file_path}: {e}"
+                    results["errors"].append(error_msg)
+                    results["failed_conversions"] += 1
+                    logger.error(error_msg)
+
+            # Log summary
+            logger.info("Bulk conversion complete:")
+            logger.info(f"  Total files: {results['total_files']}")
+            logger.info(f"  Converted: {results['converted_files']}")
+            logger.info(f"  Already UTF-8: {results['already_utf8']}")
+            logger.info(f"  Failed: {results['failed_conversions']}")
+
+            return results
+
+        except Exception as e:
+            error_msg = f"Error during bulk conversion: {e}"
+            results["errors"].append(error_msg)
+            logger.error(error_msg)
+            return results
