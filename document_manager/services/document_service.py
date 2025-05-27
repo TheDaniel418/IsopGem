@@ -29,6 +29,7 @@ from loguru import logger
 
 from document_manager.models.document import Document, DocumentType
 from document_manager.repositories.document_repository import DocumentRepository
+from shared.ui.utils.font_manager import get_font_manager
 
 
 class DocumentService:

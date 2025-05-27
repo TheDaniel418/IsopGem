@@ -24,7 +24,6 @@ from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
-    QLabel,
     QPushButton,
     QSplitter,
     QTabWidget,
@@ -38,6 +37,7 @@ from PyQt6.QtWidgets import (
 from document_manager.services.category_service import CategoryService
 from document_manager.services.document_service import DocumentService
 from shared.ui.components.message_box import MessageBox
+from shared.ui.widgets.unicode_text_widget import UnicodeLabel, UnicodeTextEdit
 
 
 class DocumentViewerDialog(QDialog):
@@ -81,7 +81,7 @@ class DocumentViewerDialog(QDialog):
         # Document title
         title_layout = QHBoxLayout()
 
-        title_label = QLabel(
+        title_label = UnicodeLabel(
             self.document.name if self.document else "Document Not Found"
         )
         title_font = QFont()
@@ -108,7 +108,7 @@ class DocumentViewerDialog(QDialog):
         metadata_widget = QWidget()
         metadata_layout = QVBoxLayout(metadata_widget)
 
-        metadata_label = QLabel("Document Metadata")
+        metadata_label = UnicodeLabel("Document Metadata")
         metadata_label.setStyleSheet("font-weight: bold")
         metadata_layout.addWidget(metadata_label)
 
@@ -123,7 +123,7 @@ class DocumentViewerDialog(QDialog):
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
 
-        content_label = QLabel("Content")
+        content_label = UnicodeLabel("Content")
         content_label.setStyleSheet("font-weight: bold")
         content_layout.addWidget(content_label)
 
@@ -131,7 +131,7 @@ class DocumentViewerDialog(QDialog):
         self.content_tabs = QTabWidget()
 
         # Text content tab
-        self.text_content = QTextEdit()
+        self.text_content = UnicodeTextEdit()
         self.text_content.setReadOnly(True)
         self.text_content.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
         self.content_tabs.addTab(self.text_content, "Text")

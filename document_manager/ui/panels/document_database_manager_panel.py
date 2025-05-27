@@ -14,16 +14,13 @@ Dependencies:
 - document_manager.services.category_service: For category operations
 """
 
-import os
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import List
 
 from loguru import logger
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QColor, QIcon
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -36,7 +33,6 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -45,6 +41,7 @@ from document_manager.models.document import Document, DocumentType
 from document_manager.services.category_service import CategoryService
 from document_manager.services.document_service import DocumentService
 from shared.ui.components.message_box import MessageBox
+from shared.ui.widgets.unicode_text_widget import UnicodeTextEdit
 
 
 class DocumentDatabaseManagerPanel(QWidget):
@@ -171,22 +168,12 @@ class DocumentDatabaseManagerPanel(QWidget):
         self.document_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
-        self.document_table.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-        self.document_table.setEditTriggers(
-            QTableWidget.EditTrigger.NoEditTriggers
-        )
+        self.document_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.document_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.document_table.setAlternatingRowColors(True)
-        self.document_table.setContextMenuPolicy(
-            Qt.ContextMenuPolicy.CustomContextMenu
-        )
-        self.document_table.customContextMenuRequested.connect(
-            self._show_context_menu
-        )
-        self.document_table.itemSelectionChanged.connect(
-            self._on_selection_changed
-        )
+        self.document_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.document_table.customContextMenuRequested.connect(self._show_context_menu)
+        self.document_table.itemSelectionChanged.connect(self._on_selection_changed)
         self.document_table.doubleClicked.connect(self._on_document_double_clicked)
         left_layout.addWidget(self.document_table)
 
@@ -240,7 +227,9 @@ class DocumentDatabaseManagerPanel(QWidget):
         path_layout = QHBoxLayout()
         path_label = QLabel("Path:")
         self.doc_path_label = QLabel()
-        self.doc_path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.doc_path_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         path_layout.addWidget(path_label)
         path_layout.addWidget(self.doc_path_label)
         metadata_layout.addLayout(path_layout)
@@ -266,7 +255,7 @@ class DocumentDatabaseManagerPanel(QWidget):
         right_layout.addWidget(content_label)
 
         # Content preview
-        self.content_preview = QTextEdit()
+        self.content_preview = UnicodeTextEdit()
         self.content_preview.setReadOnly(True)
         right_layout.addWidget(self.content_preview)
 
@@ -384,8 +373,10 @@ class DocumentDatabaseManagerPanel(QWidget):
                         continue
                 elif date_filter == "month":
                     # Check if same month and year
-                    if (document.last_modified_date.month != now.month or
-                            document.last_modified_date.year != now.year):
+                    if (
+                        document.last_modified_date.month != now.month
+                        or document.last_modified_date.year != now.year
+                    ):
                         continue
                 elif date_filter == "year":
                     # Check if same year
@@ -559,9 +550,7 @@ class DocumentDatabaseManagerPanel(QWidget):
 
         # Check if original file exists
         if not document.file_path.exists():
-            MessageBox.error(
-                self, "Error", "Original document file not found."
-            )
+            MessageBox.error(self, "Error", "Original document file not found.")
             return
 
         # Ask for destination
@@ -582,15 +571,14 @@ class DocumentDatabaseManagerPanel(QWidget):
         try:
             # Copy file to destination
             import shutil
+
             shutil.copy2(document.file_path, destination)
             MessageBox.information(
                 self, "Success", f"Document exported to {destination}"
             )
         except Exception as e:
             logger.error(f"Error exporting document: {e}")
-            MessageBox.error(
-                self, "Error", f"Failed to export document: {str(e)}"
-            )
+            MessageBox.error(self, "Error", f"Failed to export document: {str(e)}")
 
     def _delete_document(self, document_id: str = None):
         """Delete document from the database.
@@ -626,13 +614,9 @@ class DocumentDatabaseManagerPanel(QWidget):
         if self.document_service.delete_document(document_id):
             # Refresh document list
             self._refresh()
-            MessageBox.information(
-                self, "Success", "Document deleted successfully."
-            )
+            MessageBox.information(self, "Success", "Document deleted successfully.")
         else:
-            MessageBox.error(
-                self, "Error", "Failed to delete document."
-            )
+            MessageBox.error(self, "Error", "Failed to delete document.")
 
     def _refresh(self):
         """Refresh document list and categories."""

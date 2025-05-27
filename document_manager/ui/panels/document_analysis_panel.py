@@ -36,7 +36,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSpinBox,
     QSplitter,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -48,6 +47,7 @@ from gematria.models.calculation_type import CalculationType
 from gematria.services.gematria_service import GematriaService
 from shared.ui.components.message_box import MessageBox
 from shared.ui.widgets.panel import Panel
+from shared.ui.widgets.unicode_text_widget import UnicodeTextEdit
 
 # Import the TQ analysis service for sending numbers to Quadset Analysis
 try:
@@ -351,7 +351,7 @@ class DocumentAnalysisPanel(Panel):
         self.content_layout.setContentsMargins(5, 5, 5, 5)
         self.content_layout.setSpacing(5)
 
-        self.doc_content_display = QTextEdit()
+        self.doc_content_display = UnicodeTextEdit()
         self.doc_content_display.setReadOnly(False)  # Ensure it's editable
         self.doc_content_display.setAcceptRichText(False)  # Prefer plain text
         self.doc_content_display.textChanged.connect(self._handle_content_modification)
