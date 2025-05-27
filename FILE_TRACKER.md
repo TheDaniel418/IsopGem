@@ -77,6 +77,20 @@ This directory contains additional UI components for the astrology pillar.
 #### Key Files
 - `zodiac_conrune_division_panel.py`: PyQt6 panel for visualizing Zodiac and Kamea/Conrune divisions. Displays the factors of 360 and 364, and is designed for future graphical enhancements such as wheel visualizations, using the ZodiacConruneDivisionService for data.
 
+### /astrology/ui/widgets
+This directory contains reusable widget components for the astrology functionality.
+
+#### Key Files
+- `date_selector.py`: Custom date selector widget that supports ancient dates, including BCE dates. Overcomes the 1753 limitation of QDateEdit by using separate components for year, month, and day, with a BCE toggle.
+
+### /astrology/ui/dialogs
+This directory contains dialog components for the astrology functionality.
+
+#### Key Files
+- `ephemeris_date_dialog.py`: Original dialog for selecting dates for ephemeris calculations, limited by QDateEdit's 1753 restriction.
+- `ancient_date_dialog.py`: Enhanced dialog that uses the custom AncientDateSelector widget, supporting dates before 1753 including BCE dates.
+- `location_search_window.py`: Dialog for searching locations.
+
 ### /document_manager/ui/panels
 This directory contains additional UI components for the document manager.
 
@@ -117,3 +131,13 @@ This directory contains widgets for visualizing and interacting with the Kamea C
 - `calendar_visualization_widget.py`: Provides a circular calendar visualization that displays relationships between calendar days and Kamea mathematics
 - `conrune_pair_widget.py`: Widget for displaying and exploring the conrune pairs that form the mathematical foundation of the Kamea Calendar
 - `__init__.py`: Exports the kamea calendar widgets
+
+### astrology/ui/widgets/stonehenge_predictor
+This directory contains widgets for the Stonehenge Predictor functionality.
+
+#### Key Files
+- `circle_view_widget.py`: Widget for visualizing the Stonehenge Aubrey Holes circle and markers
+- `controls_panel_widget.py`: Panel with controls for the Stonehenge simulation
+- `eclipse_catalog_widget.py`: Widget for browsing the eclipse catalog
+- `eclipse_log_view_widget.py`: Widget for displaying log messages from the simulation
+- `stonehenge_predictor_window.py`: Main window for the Stonehenge Predictor functionality

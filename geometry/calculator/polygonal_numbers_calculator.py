@@ -704,8 +704,8 @@ class PolygonalNumbersCalculator:
 
             return (x, y)
 
-        def _calculate_star_inner_vertices(self, outer_vertices, skip):
-            """Calculate the inner vertices of a star polygon.
+    def _calculate_star_inner_vertices(self, outer_vertices, skip):
+        """Calculate the inner vertices of a star polygon.
 
             Args:
                 outer_vertices: List of (x, y) outer vertex coordinates
@@ -713,397 +713,397 @@ class PolygonalNumbersCalculator:
 
             Returns:
                 List of (x, y) coordinates for inner vertices
-            """
-            inner_vertices = []
-            n = len(outer_vertices)
+        """
+        inner_vertices = []
+        n = len(outer_vertices)
 
-            # For each pair of non-adjacent star lines
-            for i in range(n):
-                i_next = (i + skip) % n
-                line1 = (outer_vertices[i], outer_vertices[i_next])
+        # For each pair of non-adjacent star lines
+        for i in range(n):
+            i_next = (i + skip) % n
+            line1 = (outer_vertices[i], outer_vertices[i_next])
 
-                # Check intersection with next star line
-                j = (i + 1) % n
-                j_next = (j + skip) % n
-                line2 = (outer_vertices[j], outer_vertices[j_next])
+            # Check intersection with next star line
+            j = (i + 1) % n
+            j_next = (j + skip) % n
+            line2 = (outer_vertices[j], outer_vertices[j_next])
 
-                # Calculate intersection
-                intersection = self._line_intersection(line1[0], line1[1], line2[0], line2[1])
+            # Calculate intersection
+            intersection = self._line_intersection(line1[0], line1[1], line2[0], line2[1])
 
-                if intersection:
-                    # Add to list if it's a new intersection point
-                    is_new = True
-                    for existing in inner_vertices:
-                        if (abs(existing[0] - intersection[0]) < 1e-6 and
-                            abs(existing[1] - intersection[1]) < 1e-6):
-                            is_new = False
-                            break
+            if intersection:
+                # Add to list if it's a new intersection point
+                is_new = True
+                for existing in inner_vertices:
+                    if (abs(existing[0] - intersection[0]) < 1e-6 and
+                        abs(existing[1] - intersection[1]) < 1e-6):
+                        is_new = False
+                        break
 
-                    if is_new:
-                        # Check if point is inside the star (not an outer extension)
-                        # This can be done by checking distance from center
-                        center_dist = math.sqrt(intersection[0]**2 + intersection[1]**2)
-                        vertex_dist = math.sqrt(outer_vertices[0][0]**2 + outer_vertices[0][1]**2)
+                if is_new:
+                    # Check if point is inside the star (not an outer extension)
+                    # This can be done by checking distance from center
+                    center_dist = math.sqrt(intersection[0]**2 + intersection[1]**2)
+                    vertex_dist = math.sqrt(outer_vertices[0][0]**2 + outer_vertices[0][1]**2)
 
-                        if center_dist < vertex_dist * 0.95:
-                            inner_vertices.append(intersection)
+                    if center_dist < vertex_dist * 0.95:
+                        inner_vertices.append(intersection)
 
-            return inner_vertices
+        return inner_vertices
 
-        def _line_intersection(self, p1, p2, p3, p4):
-            """Calculate the intersection point of two line segments.
+    def _line_intersection(self, p1, p2, p3, p4):
+        """Calculate the intersection point of two lines.
 
-            Args:
-                p1, p2: First line segment endpoints (x1, y1), (x2, y2)
-                p3, p4: Second line segment endpoints (x3, y3), (x4, y4)
+        Args:
+            p1, p2: First line endpoints
+            p3, p4: Second line endpoints
 
-            Returns:
-                tuple: (x, y) coordinates of intersection point, or None if no intersection
-            """
-            # Line 1 represented as a1x + b1y = c1
-            a1 = p2[1] - p1[1]
-            b1 = p1[0] - p2[0]
-            c1 = a1 * p1[0] + b1 * p1[1]
+        Returns:
+            tuple: (x, y) coordinates of intersection point, or None if no intersection
+        """
+        # Line 1 represented as a1x + b1y = c1
+        a1 = p2[1] - p1[1]
+        b1 = p1[0] - p2[0]
+        c1 = a1 * p1[0] + b1 * p1[1]
 
-            # Line 2 represented as a2x + b2y = c2
-            a2 = p4[1] - p3[1]
-            b2 = p3[0] - p4[0]
-            c2 = a2 * p3[0] + b2 * p3[1]
+        # Line 2 represented as a2x + b2y = c2
+        a2 = p4[1] - p3[1]
+        b2 = p3[0] - p4[0]
+        c2 = a2 * p3[0] + b2 * p3[1]
 
-            # Determinant
-            determinant = a1 * b2 - a2 * b1
+        # Determinant
+        determinant = a1 * b2 - a2 * b1
 
-            if determinant == 0:
-                # Lines are parallel
-                return None
-            else:
-                # Calculate intersection point
-                x = (b2 * c1 - b1 * c2) / determinant
-                y = (a1 * c2 - a2 * c1) / determinant
+        if determinant == 0:
+            # Lines are parallel
+            return None
+        else:
+            # Calculate intersection point
+            x = (b2 * c1 - b1 * c2) / determinant
+            y = (a1 * c2 - a2 * c1) / determinant
 
-                return (x, y)
+            return (x, y)
 
-        def _get_star_skip(self, num_points):
-            """Get the optimal skip value for drawing a star with the given number of points.
+    def _get_star_skip(self, num_points):
+        """Get the optimal skip value for drawing a star with the given number of points.
 
-            Args:
-                num_points: The number of points in the star
+        Args:
+            num_points: The number of points in the star
 
-            Returns:
-                int: The skip value to use when connecting points
-            """
-            # Standard skip values for common polygons
-            if num_points == 5:
-                return 2  # Classic pentagram
-            elif num_points == 6:
-                return 2  # Hexagram
-            elif num_points == 7:
-                return 3  # Heptagram
-            elif num_points == 8:
-                return 3  # Octagram
-            elif num_points == 9:
-                return 4  # Nonagram
-            elif num_points == 10:
-                return 3  # Decagram
-            elif num_points == 11:
-                return 5  # Hendecagram
-            elif num_points == 12:
-                return 5  # Dodecagram
+        Returns:
+            int: The skip value to use when connecting points
+        """
+        # Standard skip values for common polygons
+        if num_points == 5:
+            return 2  # Classic pentagram
+        elif num_points == 6:
+            return 2  # Hexagram
+        elif num_points == 7:
+            return 3  # Heptagram
+        elif num_points == 8:
+            return 3  # Octagram
+        elif num_points == 9:
+            return 4  # Nonagram
+        elif num_points == 10:
+            return 3  # Decagram
+        elif num_points == 11:
+            return 5  # Hendecagram
+        elif num_points == 12:
+            return 5  # Dodecagram
 
-            # For other numbers, use a formula that generally works well
-            skip = num_points // 2
-            if skip % 2 == 0 and num_points % 2 == 0:
-                skip = skip - 1
+        # For other numbers, use a formula that generally works well
+        skip = num_points // 2
+        if skip % 2 == 0 and num_points % 2 == 0:
+            skip = skip - 1
 
-            return skip
+        return skip
 
-        def _find_connected_inner_vertices(self, outer_vertex, inner_vertices):
-            """Find the inner vertices connected to a specific outer vertex.
+    def _find_connected_inner_vertices(self, outer_vertex, inner_vertices):
+        """Find the inner vertices connected to a specific outer vertex.
 
-            Args:
-                outer_vertex: The outer vertex (x, y)
-                inner_vertices: List of inner vertices (x, y)
+        Args:
+            outer_vertex: The outer vertex (x, y)
+            inner_vertices: List of inner vertices (x, y)
 
-            Returns:
-                List of (x, y) coordinates for connected inner vertices
-            """
-            # Get coordinates of the outer vertex
-            outer_x, outer_y = outer_vertex
+        Returns:
+            List of (x, y) coordinates for connected inner vertices
+        """
+        # Get coordinates of the outer vertex
+        outer_x, outer_y = outer_vertex
 
-            # Calculate distances from outer vertex to each inner vertex
-            distances = []
-            for inner_vertex in inner_vertices:
-                inner_x, inner_y = inner_vertex
-                dist = math.sqrt((outer_x - inner_x)**2 + (outer_y - inner_y)**2)
-                distances.append((dist, inner_vertex))
+        # Calculate distances from outer vertex to each inner vertex
+        distances = []
+        for inner_vertex in inner_vertices:
+            inner_x, inner_y = inner_vertex
+            dist = math.sqrt((outer_x - inner_x)**2 + (outer_y - inner_y)**2)
+            distances.append((dist, inner_vertex))
 
-            # Sort by distance
-            distances.sort(key=lambda x: x[0])
+        # Sort by distance
+        distances.sort(key=lambda x: x[0])
 
-            # Return the two closest inner vertices
-            connected = []
-            if len(distances) >= 2:
-                connected = [vertex for _, vertex in distances[:2]]
+        # Return the two closest inner vertices
+        connected = []
+        if len(distances) >= 2:
+            connected = [vertex for _, vertex in distances[:2]]
 
-            return connected
+        return connected
 
-        def _calculate_star_skip(self, sides):
-            """Calculate the optimal skip value for a star with given number of sides.
+    def _calculate_star_skip(self, sides):
+        """Calculate the optimal skip value for a star with given number of sides.
 
-            Args:
-                sides: Number of sides
+        Args:
+            sides: Number of sides
 
-            Returns:
-                int: Skip value for star pattern
-            """
-            # Standard skip values for common polygons
-            if sides == 5:
-                return 2  # Classic pentagram
-            elif sides == 6:
-                return 2  # Hexagram
-            elif sides == 7:
-                return 3  # Heptagram
-            elif sides == 8:
-                return 3  # Octagram
-            elif sides == 9:
-                return 4  # Nonagram
-            elif sides == 10:
-                return 3  # Decagram
-            elif sides == 11:
-                return 5  # Hendecagram
-            elif sides == 12:
-                return 5  # Dodecagram
+        Returns:
+            int: Skip value for star pattern
+        """
+        # Standard skip values for common polygons
+        if sides == 5:
+            return 2  # Classic pentagram
+        elif sides == 6:
+            return 2  # Hexagram
+        elif sides == 7:
+            return 3  # Heptagram
+        elif sides == 8:
+            return 3  # Octagram
+        elif sides == 9:
+            return 4  # Nonagram
+        elif sides == 10:
+            return 3  # Decagram
+        elif sides == 11:
+            return 5  # Hendecagram
+        elif sides == 12:
+            return 5  # Dodecagram
 
-            # For other numbers, use a formula that generally works well
-            skip = sides // 2
-            if skip % 2 == 0 and sides % 2 == 0:
-                skip = skip - 1
+        # For other numbers, use a formula that generally works well
+        skip = sides // 2
+        if skip % 2 == 0 and sides % 2 == 0:
+            skip = skip - 1
 
-            return skip
+        return skip
 
-        def calculate_star_polygon(self, index: int) -> Dict[str, Any]:
-            """Calculate a star polygon figure.
+    def calculate_star_polygon(self, index: int) -> Dict[str, Any]:
+        """Calculate a star polygon figure.
 
-            Args:
-                index: The index of the polygonal number (how many layers to show)
+        Args:
+            index: The index of the polygonal number (how many layers to show)
 
-            Returns:
-                Dict containing coordinate data for the star polygon
-            """
-            # For a star polygon, we need to:
-            # 1. Create the basic star shape with outer and inner vertices
-            # 2. Add dots along both sides of each star point based on the index
+        Returns:
+            Dict containing coordinate data for the star polygon
+        """
+        # For a star polygon, we need to:
+        # 1. Create the basic star shape with outer and inner vertices
+        # 2. Add dots along both sides of each star point based on the index
 
-            # Initialize collections for coordinates
-            all_coords = []
-            layers_data = []
+        # Initialize collections for coordinates
+        all_coords = []
+        layers_data = []
 
-            # Add center point
-            center = (0, 0, 0, 1)
-            all_coords.append(center)
+        # Add center point
+        center = (0, 0, 0, 1)
+        all_coords.append(center)
 
-            # Calculate the skip value for this star
-            skip = self._calculate_star_skip(self.sides)
+        # Calculate the skip value for this star
+        skip = self._calculate_star_skip(self.sides)
 
-            # For each layer (1 to index), add star points
-            for layer in range(1, index + 1):
-                layer_coords = []
+        # For each layer (1 to index), add star points
+        for layer in range(1, index + 1):
+            layer_coords = []
 
-                # Calculate outer vertices of the star
-                outer_vertices = []
-                for i in range(self.sides):
-                    angle = 2 * math.pi * i / self.sides
-                    x = layer * math.cos(angle)
-                    y = layer * math.sin(angle)
-                    dot_number = len(all_coords) + 1
-                    vertex = (x, y, layer, dot_number)
-                    outer_vertices.append(vertex)
-                    layer_coords.append(vertex)
-                    all_coords.append(vertex)
-
-                # Calculate inner vertices (intersections)
-                inner_vertices = self._calculate_star_inner_vertices(layer, skip)
-                inner_vertex_coords = []
-
-                # Add inner vertices to coordinates
-                for x, y in inner_vertices:
-                    dot_number = len(all_coords) + 1
-                    # Inner vertices are at a lower layer
-                    vertex = (x, y, layer - 0.5, dot_number)
-                    inner_vertex_coords.append(vertex)
-                    layer_coords.append(vertex)
-                    all_coords.append(vertex)
-
-                # For indices greater than 2, add dots along both sides of each star point
-                if index > 2:
-                    # The number of dots to add on each side of a point depends on the index
-                    dots_per_side = layer - 1
-
-                    # For each point in the star, connect outer vertex to its two adjacent inner vertices
-                    for i in range(self.sides):
-                        # Get the outer vertex (tip of the star point)
-                        outer_vertex = outer_vertices[i]
-                        outer_x, outer_y = outer_vertex[0], outer_vertex[1]
-
-                        # Find the two inner vertices connected to this outer vertex
-                        connected_inner_vertices = self._find_connected_inner_vertices(
-                            outer_vertex, inner_vertices, layer
-                        )
-
-                        # Add dots along each side of the point
-                        if connected_inner_vertices and len(connected_inner_vertices) >= 2:
-                            # First side
-                            inner_x1, inner_y1 = connected_inner_vertices[0]
-                            for j in range(1, dots_per_side + 1):
-                                t = j / (dots_per_side + 1)
-                                x = outer_x + t * (inner_x1 - outer_x)
-                                y = outer_y + t * (inner_y1 - outer_y)
-                                dot_number = len(all_coords) + 1
-                                dot = (x, y, layer, dot_number)
-                                layer_coords.append(dot)
-                                all_coords.append(dot)
-
-                            # Second side
-                            inner_x2, inner_y2 = connected_inner_vertices[1]
-                            for j in range(1, dots_per_side + 1):
-                                t = j / (dots_per_side + 1)
-                                x = outer_x + t * (inner_x2 - outer_x)
-                                y = outer_y + t * (inner_y2 - outer_y)
-                                dot_number = len(all_coords) + 1
-                                dot = (x, y, layer, dot_number)
-                                layer_coords.append(dot)
-                                all_coords.append(dot)
-
-                # Add this layer's data
-                layers_data.append({
-                    'layer': layer,
-                    'outer_vertices': outer_vertices,
-                    'inner_vertices': inner_vertex_coords
-                })
-
-            # Return the complete structure
-            return {
-                'all': all_coords,
-                'center': center,
-                'layers': layers_data
-            }
-
-        def _calculate_star_inner_vertices(self, layer, skip):
-            """Calculate the inner vertices (intersection points) of a star.
-
-            Args:
-                layer: The current layer
-                skip: The skip value for the star pattern
-
-            Returns:
-                List of (x, y) coordinates for inner vertices
-            """
-            # Calculate the outer vertices
+            # Calculate outer vertices of the star
             outer_vertices = []
             for i in range(self.sides):
                 angle = 2 * math.pi * i / self.sides
                 x = layer * math.cos(angle)
                 y = layer * math.sin(angle)
-                outer_vertices.append((x, y))
+                dot_number = len(all_coords) + 1
+                vertex = (x, y, layer, dot_number)
+                outer_vertices.append(vertex)
+                layer_coords.append(vertex)
+                all_coords.append(vertex)
 
-            # Calculate intersections
-            intersections = []
-            for i in range(self.sides):
-                # Get the line from this vertex to the skipped vertex
-                i_next = (i + skip) % self.sides
-                line1 = (outer_vertices[i], outer_vertices[i_next])
+            # Calculate inner vertices (intersections)
+            inner_vertices = self._calculate_star_inner_vertices(layer, skip)
+            inner_vertex_coords = []
 
-                # Get the next line
-                j = (i + 1) % self.sides
-                j_next = (j + skip) % self.sides
-                line2 = (outer_vertices[j], outer_vertices[j_next])
+            # Add inner vertices to coordinates
+            for x, y in inner_vertices:
+                dot_number = len(all_coords) + 1
+                # Inner vertices are at a lower layer
+                vertex = (x, y, layer - 0.5, dot_number)
+                inner_vertex_coords.append(vertex)
+                layer_coords.append(vertex)
+                all_coords.append(vertex)
 
-                # Find intersection
-                intersection = self._line_intersection(line1[0], line1[1], line2[0], line2[1])
+            # For indices greater than 2, add dots along both sides of each star point
+            if index > 2:
+                # The number of dots to add on each side of a point depends on the index
+                dots_per_side = layer - 1
 
-                if intersection:
-                    # Check if this is a new intersection
-                    is_new = True
-                    for existing in intersections:
-                        if (abs(existing[0] - intersection[0]) < 1e-6 and
-                            abs(existing[1] - intersection[1]) < 1e-6):
-                            is_new = False
-                            break
+                # For each point in the star, connect outer vertex to its two adjacent inner vertices
+                for i in range(self.sides):
+                    # Get the outer vertex (tip of the star point)
+                    outer_vertex = outer_vertices[i]
+                    outer_x, outer_y = outer_vertex[0], outer_vertex[1]
 
-                    if is_new:
-                        intersections.append(intersection)
+                    # Find the two inner vertices connected to this outer vertex
+                    connected_inner_vertices = self._find_connected_inner_vertices(
+                        outer_vertex, inner_vertices, layer
+                    )
 
-            return intersections
+                    # Add dots along each side of the point
+                    if connected_inner_vertices and len(connected_inner_vertices) >= 2:
+                        # First side
+                        inner_x1, inner_y1 = connected_inner_vertices[0]
+                        for j in range(1, dots_per_side + 1):
+                            t = j / (dots_per_side + 1)
+                            x = outer_x + t * (inner_x1 - outer_x)
+                            y = outer_y + t * (inner_y1 - outer_y)
+                            dot_number = len(all_coords) + 1
+                            dot = (x, y, layer, dot_number)
+                            layer_coords.append(dot)
+                            all_coords.append(dot)
 
-        def _line_intersection(self, p1, p2, p3, p4):
-            """Calculate the intersection of two lines.
+                        # Second side
+                        inner_x2, inner_y2 = connected_inner_vertices[1]
+                        for j in range(1, dots_per_side + 1):
+                            t = j / (dots_per_side + 1)
+                            x = outer_x + t * (inner_x2 - outer_x)
+                            y = outer_y + t * (inner_y2 - outer_y)
+                            dot_number = len(all_coords) + 1
+                            dot = (x, y, layer, dot_number)
+                            layer_coords.append(dot)
+                            all_coords.append(dot)
 
-            Args:
-                p1, p2: First line endpoints
-                p3, p4: Second line endpoints
+            # Add this layer's data
+            layers_data.append({
+                'layer': layer,
+                'outer_vertices': outer_vertices,
+                'inner_vertices': inner_vertex_coords
+            })
 
-            Returns:
-                (x, y) coordinates of intersection or None
-            """
-            # Line 1 represented as a1x + b1y = c1
-            a1 = p2[1] - p1[1]
-            b1 = p1[0] - p2[0]
-            c1 = a1 * p1[0] + b1 * p1[1]
+        # Return the complete structure
+        return {
+            'all': all_coords,
+            'center': center,
+            'layers': layers_data
+        }
 
-            # Line 2 represented as a2x + b2y = c2
-            a2 = p4[1] - p3[1]
-            b2 = p3[0] - p4[0]
-            c2 = a2 * p3[0] + b2 * p3[1]
+    def _calculate_star_inner_vertices(self, layer, skip):
+        """Calculate the inner vertices (intersection points) of a star.
 
-            # Determinant
-            determinant = a1 * b2 - a2 * b1
+        Args:
+            layer: The current layer
+            skip: The skip value for the star pattern
 
-            if determinant == 0:
-                # Lines are parallel
-                return None
-            else:
-                # Calculate intersection point
-                x = (b2 * c1 - b1 * c2) / determinant
-                y = (a1 * c2 - a2 * c1) / determinant
+        Returns:
+            List of (x, y) coordinates for inner vertices
+        """
+        # Calculate the outer vertices
+        outer_vertices = []
+        for i in range(self.sides):
+            angle = 2 * math.pi * i / self.sides
+            x = layer * math.cos(angle)
+            y = layer * math.sin(angle)
+            outer_vertices.append((x, y))
 
-                # Check if the point is inside the star
-                center_dist = math.sqrt(x*x + y*y)
-                outer_dist = math.sqrt(p1[0]*p1[0] + p1[1]*p1[1])
+        # Calculate intersections
+        intersections = []
+        for i in range(self.sides):
+            # Get the line from this vertex to the skipped vertex
+            i_next = (i + skip) % self.sides
+            line1 = (outer_vertices[i], outer_vertices[i_next])
 
-                if center_dist < outer_dist:
-                    return (x, y)
-                return None
+            # Get the next line
+            j = (i + 1) % self.sides
+            j_next = (j + skip) % self.sides
+            line2 = (outer_vertices[j], outer_vertices[j_next])
 
-        def _find_connected_inner_vertices(self, outer_vertex, inner_vertices, layer):
-            """Find the inner vertices connected to a specific outer vertex.
+            # Find intersection
+            intersection = self._line_intersection(line1[0], line1[1], line2[0], line2[1])
 
-            Args:
-                outer_vertex: The outer vertex (x, y, layer, number)
-                inner_vertices: List of inner vertices (x, y)
-                layer: Current layer
+            if intersection:
+                # Check if this is a new intersection
+                is_new = True
+                for existing in intersections:
+                    if (abs(existing[0] - intersection[0]) < 1e-6 and
+                        abs(existing[1] - intersection[1]) < 1e-6):
+                        is_new = False
+                        break
 
-            Returns:
-                List of (x, y) coordinates for connected inner vertices
-            """
-            outer_x, outer_y = outer_vertex[0], outer_vertex[1]
+                if is_new:
+                    intersections.append(intersection)
 
-            # Calculate distances from the outer vertex to each inner vertex
-            distances = []
-            for inner_x, inner_y in inner_vertices:
-                dist = math.sqrt((outer_x - inner_x)**2 + (outer_y - inner_y)**2)
-                distances.append((dist, (inner_x, inner_y)))
+        return intersections
 
-            # Sort by distance
-            distances.sort()
+    def _line_intersection(self, p1, p2, p3, p4):
+        """Calculate the intersection of two lines.
 
-            # The two closest inner vertices are the ones connected to this outer vertex
-            connected = []
-            for dist, vertex in distances[:2]:
-                # Verify the distance is reasonable (should be less than the layer distance)
-                if dist < layer * 1.5:
-                    connected.append(vertex)
+        Args:
+            p1, p2: First line endpoints
+            p3, p4: Second line endpoints
 
-            return connected
+        Returns:
+            (x, y) coordinates of intersection or None
+        """
+        # Line 1 represented as a1x + b1y = c1
+        a1 = p2[1] - p1[1]
+        b1 = p1[0] - p2[0]
+        c1 = a1 * p1[0] + b1 * p1[1]
+
+        # Line 2 represented as a2x + b2y = c2
+        a2 = p4[1] - p3[1]
+        b2 = p3[0] - p4[0]
+        c2 = a2 * p3[0] + b2 * p3[1]
+
+        # Determinant
+        determinant = a1 * b2 - a2 * b1
+
+        if determinant == 0:
+            # Lines are parallel
+            return None
+        else:
+            # Calculate intersection point
+            x = (b2 * c1 - b1 * c2) / determinant
+            y = (a1 * c2 - a2 * c1) / determinant
+
+            # Check if the point is inside the star
+            center_dist = math.sqrt(x*x + y*y)
+            outer_dist = math.sqrt(p1[0]*p1[0] + p1[1]*p1[1])
+
+            if center_dist < outer_dist:
+                return (x, y)
+            return None
+
+    def _find_connected_inner_vertices(self, outer_vertex, inner_vertices, layer):
+        """Find the inner vertices connected to a specific outer vertex.
+
+        Args:
+            outer_vertex: The outer vertex (x, y, layer, number)
+            inner_vertices: List of inner vertices (x, y)
+            layer: Current layer
+
+        Returns:
+            List of (x, y) coordinates for connected inner vertices
+        """
+        outer_x, outer_y = outer_vertex[0], outer_vertex[1]
+
+        # Calculate distances from the outer vertex to each inner vertex
+        distances = []
+        for inner_x, inner_y in inner_vertices:
+            dist = math.sqrt((outer_x - inner_x)**2 + (outer_y - inner_y)**2)
+            distances.append((dist, (inner_x, inner_y)))
+
+        # Sort by distance
+        distances.sort()
+
+        # The two closest inner vertices are the ones connected to this outer vertex
+        connected = []
+        for dist, vertex in distances[:2]:
+            # Verify the distance is reasonable (should be less than the layer distance)
+            if dist < layer * 1.5:
+                connected.append(vertex)
+
+        return connected
 
     def _add_partial_polygon_layer(self, coordinates: List[Tuple[float, float, int, int]],
                                   layer: int, dots_to_add: int) -> None:

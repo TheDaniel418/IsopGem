@@ -7,15 +7,17 @@ Last Modified: 2024-07-29
 Dependencies: None
 """
 
+
 class Marker:
     """
     Represents a single marker (Sun, Moon, Node) in the Stonehenge simulation.
 
     Attributes:
         name (str): The name of the marker (e.g., 'S', 'M', 'N', 'N_prime').
-        current_position (int): The current position of the marker on the 
+        current_position (int): The current position of the marker on the
                                 56-hole circle (indexed 0-55).
     """
+
     def __init__(self, name: str, initial_position: int):
         """
         Initializes a new Marker.
@@ -23,13 +25,13 @@ class Marker:
         Args:
             name (str): The name of the marker.
             initial_position (int): The starting position of the marker (0-55).
-        
+
         Raises:
             ValueError: If initial_position is outside the valid range of 0-55.
         """
         if not 0 <= initial_position < 56:
             raise ValueError("Initial position must be between 0 and 55.")
-            
+
         self.name: str = name
         self.current_position: int = initial_position
 
@@ -53,12 +55,15 @@ class Marker:
                               If False (default), moves anticlockwise (increasing position index).
         """
         if clockwise:
-            self.current_position = (self.current_position - steps + num_holes) % num_holes
+            self.current_position = (
+                self.current_position - steps + num_holes
+            ) % num_holes
         else:
             self.current_position = (self.current_position + steps) % num_holes
 
+
 # Example Usage (can be removed or moved to a test file):
-if __name__ == '__main__':
+if __name__ == "__main__":
     sun_marker = Marker(name="S", initial_position=0)
     print(sun_marker)
     sun_marker.move(steps=2)
@@ -73,4 +78,4 @@ if __name__ == '__main__':
     try:
         invalid_marker = Marker(name="Invalid", initial_position=60)
     except ValueError as e:
-        print(f"Error creating marker: {e}") 
+        print(f"Error creating marker: {e}")

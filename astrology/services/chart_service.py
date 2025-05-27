@@ -69,6 +69,7 @@ class ChartService(Generic[T]):
         house_system: HouseSystem = HouseSystem.PLACIDUS,
         birth_time_known: bool = True,
         perspective_type: str = "Apparent Geocentric",
+        timezone_str: Optional[str] = None,
     ) -> NatalChart:
         """Create a natal chart.
 
@@ -81,6 +82,7 @@ class ChartService(Generic[T]):
             house_system: House system to use
             birth_time_known: Whether the birth time is known
             perspective_type: Perspective type to use
+            timezone_str: Timezone string (e.g., 'UTC', 'America/New_York')
 
         Returns:
             The created natal chart
@@ -102,14 +104,17 @@ class ChartService(Generic[T]):
             house_system, "P"
         )  # Default to Placidus
 
-        # Get the timezone string
-        try:
-            import tzlocal
-            timezone_str = str(tzlocal.get_localzone())
-            logger.debug(f"Using timezone {timezone_str} for chart creation")
-        except Exception as e:
-            timezone_str = "UTC"
-            logger.warning(f"Error getting local timezone, using UTC: {e}")
+        # Get the timezone string if not provided
+        if not timezone_str:
+            try:
+                import tzlocal
+                timezone_str = str(tzlocal.get_localzone())
+                logger.debug(f"Using local timezone {timezone_str} for chart creation")
+            except Exception as e:
+                timezone_str = "UTC"
+                logger.warning(f"Error getting local timezone, using UTC: {e}")
+        else:
+            logger.debug(f"Using provided timezone {timezone_str} for chart creation")
 
         # Use kerykeion service to create the chart
         chart = self.kerykeion_service.create_natal_chart(
@@ -164,6 +169,7 @@ class ChartService(Generic[T]):
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
         location_name: Optional[str] = None,
+        timezone_str: Optional[str] = None,
     ) -> TransitChart:
         """Create a transit chart.
 
@@ -174,6 +180,7 @@ class ChartService(Generic[T]):
             latitude: Latitude for the transit (defaults to reference chart)
             longitude: Longitude for the transit (defaults to reference chart)
             location_name: Name of the location (defaults to reference chart)
+            timezone_str: Timezone string (e.g., 'UTC', 'America/New_York')
 
         Returns:
             The created transit chart
@@ -205,13 +212,17 @@ class ChartService(Generic[T]):
             reference_chart=reference_chart,
         )
 
-        # Get the timezone string
-        try:
-            import tzlocal
-
-            timezone_str = str(tzlocal.get_localzone())
-        except Exception:
-            timezone_str = "UTC"
+        # Get the timezone string if not provided
+        if not timezone_str:
+            try:
+                import tzlocal
+                timezone_str = str(tzlocal.get_localzone())
+                logger.debug(f"Using local timezone {timezone_str} for transit chart creation")
+            except Exception as e:
+                timezone_str = "UTC"
+                logger.warning(f"Error getting local timezone for transit chart, using UTC: {e}")
+        else:
+            logger.debug(f"Using provided timezone {timezone_str} for transit chart creation")
 
         # Map house system to kerykeion code
         house_system_codes = {

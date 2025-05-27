@@ -6,7 +6,7 @@ This module provides a panel for visualizing and calculating properties of neste
 import math
 
 from PyQt6.QtCore import QLineF, QPointF, Qt
-from PyQt6.QtGui import QColor, QPainter, QPen, QPolygonF
+from PyQt6.QtGui import QBrush, QColor, QPainter, QPen, QPolygonF, QAction
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -14,8 +14,13 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QGridLayout,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
+    QMenu,
+    QMessageBox,
+    QPushButton,
     QScrollArea,
+    QSpinBox,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -23,6 +28,13 @@ from PyQt6.QtWidgets import (
 
 from geometry.calculator.nested_heptagons_calculator import NestedHeptagonsCalculator
 from geometry.services.polygon_service import PolygonService
+
+# Check if TQ module is available
+try:
+    from tq.services import tq_analysis_service
+    TQ_AVAILABLE = True
+except ImportError:
+    TQ_AVAILABLE = False
 
 
 class NestedHeptagonsVisualization(QWidget):
@@ -682,12 +694,12 @@ class NestedHeptagonsPanel(QWidget):
         self.outer_edge_spin.setRange(0.01, 1e9)  # Adjusted range to match inputs
         self.outer_edge_spin.setValue(self.calculator.calculate_outer_edge_length())
         self.outer_edge_spin.setSingleStep(1.0)
-        # Connect to new handler if this is also an input, otherwise setReadOnly(True)
         self.outer_edge_spin.editingFinished.connect(
             lambda: self._handle_input_change(
                 "outer_edge", self.outer_edge_spin.value()
             )
         )
+        self.value_labels["Outer Edge Length"] = self.outer_edge_spin
         outer_layout.addRow("Edge Length:", self.outer_edge_spin)
 
         # Perimeter
@@ -756,6 +768,7 @@ class NestedHeptagonsPanel(QWidget):
                 "outer_inradius", self.outer_inradius_spin.value()
             )
         )
+        self.value_labels["Outer Inradius"] = self.outer_inradius_spin
         outer_layout.addRow("Inradius:", self.outer_inradius_spin)
 
         # Circumradius
@@ -770,6 +783,7 @@ class NestedHeptagonsPanel(QWidget):
                 "outer_circumradius", self.outer_circumradius_spin.value()
             )
         )
+        self.value_labels["Outer Circumradius"] = self.outer_circumradius_spin
         outer_layout.addRow("Circumradius:", self.outer_circumradius_spin)
 
         # Incircle circumference
@@ -818,12 +832,12 @@ class NestedHeptagonsPanel(QWidget):
         self.middle_edge_spin.setRange(0.01, 1e9)  # Adjusted range
         self.middle_edge_spin.setValue(self.calculator.calculate_middle_edge_length())
         self.middle_edge_spin.setSingleStep(1.0)
-        # Connect to new handler if this is also an input
         self.middle_edge_spin.editingFinished.connect(
             lambda: self._handle_input_change(
                 "middle_edge", self.middle_edge_spin.value()
             )
         )
+        self.value_labels["Middle Edge Length"] = self.middle_edge_spin
         middle_layout.addRow("Edge Length:", self.middle_edge_spin)
 
         # Perimeter
@@ -894,6 +908,7 @@ class NestedHeptagonsPanel(QWidget):
                 "middle_inradius", self.middle_inradius_spin.value()
             )
         )
+        self.value_labels["Middle Inradius"] = self.middle_inradius_spin
         middle_layout.addRow("Inradius:", self.middle_inradius_spin)
 
         # Circumradius
@@ -908,6 +923,7 @@ class NestedHeptagonsPanel(QWidget):
                 "middle_circumradius", self.middle_circumradius_spin.value()
             )
         )
+        self.value_labels["Middle Circumradius"] = self.middle_circumradius_spin
         middle_layout.addRow("Circumradius:", self.middle_circumradius_spin)
 
         # Incircle circumference
@@ -956,12 +972,12 @@ class NestedHeptagonsPanel(QWidget):
         self.inner_edge_spin.setRange(0.01, 1e9)  # Adjusted range
         self.inner_edge_spin.setValue(self.calculator.calculate_inner_edge_length())
         self.inner_edge_spin.setSingleStep(1.0)
-        # Connect to new handler if this is also an input
         self.inner_edge_spin.editingFinished.connect(
             lambda: self._handle_input_change(
                 "inner_edge", self.inner_edge_spin.value()
             )
         )
+        self.value_labels["Inner Edge Length"] = self.inner_edge_spin
         inner_layout.addRow("Edge Length:", self.inner_edge_spin)
 
         # Perimeter
@@ -1030,6 +1046,7 @@ class NestedHeptagonsPanel(QWidget):
                 "inner_inradius", self.inner_inradius_spin.value()
             )
         )
+        self.value_labels["Inner Inradius"] = self.inner_inradius_spin
         inner_layout.addRow("Inradius:", self.inner_inradius_spin)
 
         # Circumradius
@@ -1044,6 +1061,7 @@ class NestedHeptagonsPanel(QWidget):
                 "inner_circumradius", self.inner_circumradius_spin.value()
             )
         )
+        self.value_labels["Inner Circumradius"] = self.inner_circumradius_spin
         inner_layout.addRow("Circumradius:", self.inner_circumradius_spin)
 
         # Incircle circumference
@@ -1099,6 +1117,13 @@ class NestedHeptagonsPanel(QWidget):
         # Add panels to main layout
         main_layout.addWidget(scroll_area_main_controls, 1)  # Use renamed scroll area
         main_layout.addWidget(right_panel, 2)
+
+        # Add context menu support to all value spinboxes and labels
+        for field, widget in self.value_labels.items():
+            widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            widget.customContextMenuRequested.connect(
+                lambda pos, w=widget, f=field: self._show_context_menu(pos, w, f)
+            )
 
     def _update_visualization(self) -> None:
         """Update the visualization based on checkbox states."""
@@ -1338,6 +1363,59 @@ class NestedHeptagonsPanel(QWidget):
             # Restore original signal blocking states
             for spinbox, was_blocked in original_block_states.items():
                 spinbox.blockSignals(was_blocked)
+
+    def _show_context_menu(self, pos, widget, field_name):
+        """Show a context menu for a value widget."""
+        menu = QMenu(self)
+        value = self._get_widget_value(widget)
+        if value is None:
+            return
+        rounded_value = round(value)
+        if TQ_AVAILABLE:
+            tq_action = QAction(
+                f"Send {field_name} value ({rounded_value}) to Quadset Analysis", self
+            )
+            tq_action.triggered.connect(
+                lambda: self._send_to_quadset_analysis(rounded_value)
+            )
+            menu.addAction(tq_action)
+        menu.exec(widget.mapToGlobal(pos))
+
+    def _get_widget_value(self, widget):
+        """Get the numeric value from a widget."""
+        try:
+            if isinstance(widget, QDoubleSpinBox) or isinstance(widget, QSpinBox):
+                return widget.value()
+            elif isinstance(widget, QLabel):
+                text = widget.text()
+                numeric_text = "".join(c for c in text if c.isdigit() or c == ".")
+                if numeric_text:
+                    return float(numeric_text)
+            return None
+        except (ValueError, TypeError):
+            return None
+
+    def _send_to_quadset_analysis(self, value):
+        """Send a value to the TQ Quadset Analysis tool."""
+        if not TQ_AVAILABLE:
+            QMessageBox.warning(
+                self,
+                "Feature Unavailable",
+                "The TQ module is not available in this installation.",
+            )
+            return
+        try:
+            analysis_service = tq_analysis_service.get_instance()
+            panel = analysis_service.open_quadset_analysis(value)
+            parent = panel.window()
+            if parent and hasattr(parent, "ensure_on_top"):
+                parent.ensure_on_top()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred while opening Quadset Analysis: {str(e)}",
+            )
 
     def _get_field_value(self, field_name: str) -> float:
         """Get the value for a specific field.

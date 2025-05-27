@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QTextCharFormat, QTextListFormat
+from PyQt6.QtGui import QFont, QTextCharFormat, QTextListFormat, QAction
 from PyQt6.QtWidgets import (
     QColorDialog,
     QComboBox,
@@ -51,6 +51,16 @@ class FormatToolBar(QToolBar):
             None
         """
         super().__init__(parent)
+        
+        # Configure toolbar for proper overflow handling
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        self.setMovable(False)  # Prevent moving to avoid layout issues
+        
+        # Enable overflow menu - this is crucial for the arrow to work
+        self.setFloatable(False)
+        
+        # Set a reasonable icon size
+        self.setIconSize(self.iconSize())
 
         # Setup timer for throttling updates - disabled by default
         self.update_timer = QTimer(self)
@@ -275,7 +285,14 @@ class FormatToolBar(QToolBar):
         # Font family
         self.font_family = QFontComboBox()
         self.font_family.setToolTip("Font Family")
+        self.font_family.setMaximumWidth(200)  # Prevent it from taking too much space
         self.font_family.currentFontChanged.connect(self.font_family_changed)
+        
+        # Create action for font family to enable overflow handling
+        font_family_action = QAction("Font Family", self)
+        font_family_action.setToolTip("Font Family")
+        self.addAction(font_family_action)
+        self.widgetForAction(font_family_action).hide()  # Hide the default widget
         self.addWidget(self.font_family)
 
         # Font size
@@ -283,6 +300,7 @@ class FormatToolBar(QToolBar):
         self.font_size.setToolTip("Font Size")
         self.font_size.setEditable(True)
         self.font_size.setMinimumWidth(50)
+        self.font_size.setMaximumWidth(80)  # Prevent it from taking too much space
         self.font_size.addItems(
             [
                 str(size)
@@ -307,52 +325,83 @@ class FormatToolBar(QToolBar):
             ]
         )
         self.font_size.currentTextChanged.connect(self.font_size_changed)
+        
+        # Create action for font size to enable overflow handling
+        font_size_action = QAction("Font Size", self)
+        font_size_action.setToolTip("Font Size")
+        self.addAction(font_size_action)
+        self.widgetForAction(font_size_action).hide()  # Hide the default widget
         self.addWidget(self.font_size)
 
         self.addSeparator()
 
-        # Bold
-        self.bold_btn = QToolButton()
-        self.bold_btn.setText("B")
-        self.bold_btn.setToolTip("Bold (Ctrl+B)")
-        font = QFont()
-        font.setBold(True)
-        self.bold_btn.setFont(font)
-        self.bold_btn.setCheckable(True)
-        self.bold_btn.clicked.connect(self.toggle_bold)
-        self.addWidget(self.bold_btn)
+        # Bold - use QAction for proper overflow support
+        self.bold_action = QAction("Bold", self)
+        self.bold_action.setToolTip("Bold (Ctrl+B)")
+        self.bold_action.setCheckable(True)
+        # Make shortcut context-specific to avoid conflicts between multiple RTF editors
+        self.bold_action.setShortcut("Ctrl+B")
+        self.bold_action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.bold_action.triggered.connect(self.toggle_bold)
+        self.addAction(self.bold_action)
+        
+        # Get the button and style it
+        self.bold_btn = self.widgetForAction(self.bold_action)
+        if isinstance(self.bold_btn, QToolButton):
+            self.bold_btn.setText("B")
+            font = QFont()
+            font.setBold(True)
+            self.bold_btn.setFont(font)
 
-        # Italic
-        self.italic_btn = QToolButton()
-        self.italic_btn.setText("I")
-        self.italic_btn.setToolTip("Italic (Ctrl+I)")
-        font = QFont()
-        font.setItalic(True)
-        self.italic_btn.setFont(font)
-        self.italic_btn.setCheckable(True)
-        self.italic_btn.clicked.connect(self.toggle_italic)
-        self.addWidget(self.italic_btn)
+        # Italic - use QAction for proper overflow support
+        self.italic_action = QAction("Italic", self)
+        self.italic_action.setToolTip("Italic (Ctrl+I)")
+        self.italic_action.setCheckable(True)
+        # Make shortcut context-specific to avoid conflicts between multiple RTF editors
+        self.italic_action.setShortcut("Ctrl+I")
+        self.italic_action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.italic_action.triggered.connect(self.toggle_italic)
+        self.addAction(self.italic_action)
+        
+        # Get the button and style it
+        self.italic_btn = self.widgetForAction(self.italic_action)
+        if isinstance(self.italic_btn, QToolButton):
+            self.italic_btn.setText("I")
+            font = QFont()
+            font.setItalic(True)
+            self.italic_btn.setFont(font)
 
-        # Underline
-        self.underline_btn = QToolButton()
-        self.underline_btn.setText("U")
-        self.underline_btn.setToolTip("Underline (Ctrl+U)")
-        font = QFont()
-        font.setUnderline(True)
-        self.underline_btn.setFont(font)
-        self.underline_btn.setCheckable(True)
-        self.underline_btn.clicked.connect(self.toggle_underline)
-        self.addWidget(self.underline_btn)
+        # Underline - use QAction for proper overflow support
+        self.underline_action = QAction("Underline", self)
+        self.underline_action.setToolTip("Underline (Ctrl+U)")
+        self.underline_action.setCheckable(True)
+        # Make shortcut context-specific to avoid conflicts between multiple RTF editors
+        self.underline_action.setShortcut("Ctrl+U")
+        self.underline_action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.underline_action.triggered.connect(self.toggle_underline)
+        self.addAction(self.underline_action)
+        
+        # Get the button and style it
+        self.underline_btn = self.widgetForAction(self.underline_action)
+        if isinstance(self.underline_btn, QToolButton):
+            self.underline_btn.setText("U")
+            font = QFont()
+            font.setUnderline(True)
+            self.underline_btn.setFont(font)
 
         self.addSeparator()
 
-        # Text color
-        self.color_btn = QToolButton()
-        self.color_btn.setText("A")
-        self.color_btn.setToolTip("Text Color")
-        self.color_btn.setStyleSheet("color: red;")
-        self.color_btn.clicked.connect(self.show_color_dialog)
-        self.addWidget(self.color_btn)
+        # Text color - use QAction for proper overflow support
+        self.color_action = QAction("Text Color", self)
+        self.color_action.setToolTip("Text Color")
+        self.color_action.triggered.connect(self.show_color_dialog)
+        self.addAction(self.color_action)
+        
+        # Get the button and style it
+        self.color_btn = self.widgetForAction(self.color_action)
+        if isinstance(self.color_btn, QToolButton):
+            self.color_btn.setText("A")
+            self.color_btn.setStyleSheet("color: red;")
 
         self.addSeparator()
 
@@ -402,8 +451,15 @@ class FormatToolBar(QToolBar):
         # Paragraph style dropdown
         self.style_combo = QComboBox()
         self.style_combo.setToolTip("Paragraph Style")
+        self.style_combo.setMaximumWidth(120)  # Prevent it from taking too much space
         self.style_combo.addItems(["Normal", "Heading 1", "Heading 2", "Heading 3"])
         self.style_combo.currentTextChanged.connect(self.style_changed)
+        
+        # Create action for style combo to enable overflow handling
+        style_action = QAction("Paragraph Style", self)
+        style_action.setToolTip("Paragraph Style")
+        self.addAction(style_action)
+        self.widgetForAction(style_action).hide()  # Hide the default widget
         self.addWidget(self.style_combo)
 
         self.addSeparator()
@@ -411,69 +467,100 @@ class FormatToolBar(QToolBar):
         # Line spacing
         self.line_spacing = QComboBox()
         self.line_spacing.setToolTip("Line Spacing")
+        self.line_spacing.setMaximumWidth(80)  # Prevent it from taking too much space
         self.line_spacing.addItems(["1.0", "1.15", "1.5", "2.0"])
         self.line_spacing.currentTextChanged.connect(self.line_spacing_changed)
+        
+        # Create action for line spacing to enable overflow handling
+        spacing_action = QAction("Line Spacing", self)
+        spacing_action.setToolTip("Line Spacing")
+        self.addAction(spacing_action)
+        self.widgetForAction(spacing_action).hide()  # Hide the default widget
         self.addWidget(self.line_spacing)
 
     def setup_list_controls(self):
         """Set up list formatting controls."""
         self.addSeparator()
 
-        # Bullet list
-        self.bullet_btn = QToolButton()
-        self.bullet_btn.setText("•")
-        self.bullet_btn.setToolTip("Bullet List")
-        self.bullet_btn.setCheckable(True)
-        self.bullet_btn.clicked.connect(self.toggle_bullet_list)
-        self.addWidget(self.bullet_btn)
+        # Bullet list - use QAction for proper overflow support
+        self.bullet_action = QAction("Bullet List", self)
+        self.bullet_action.setToolTip("Bullet List")
+        self.bullet_action.setCheckable(True)
+        self.bullet_action.triggered.connect(self.toggle_bullet_list)
+        self.addAction(self.bullet_action)
+        
+        # Get the button and style it
+        self.bullet_btn = self.widgetForAction(self.bullet_action)
+        if isinstance(self.bullet_btn, QToolButton):
+            self.bullet_btn.setText("•")
 
-        # Numbered list
-        self.number_btn = QToolButton()
-        self.number_btn.setText("1.")
-        self.number_btn.setToolTip("Numbered List")
-        self.number_btn.setCheckable(True)
-        self.number_btn.clicked.connect(self.toggle_numbered_list)
-        self.addWidget(self.number_btn)
+        # Numbered list - use QAction for proper overflow support
+        self.number_action = QAction("Numbered List", self)
+        self.number_action.setToolTip("Numbered List")
+        self.number_action.setCheckable(True)
+        self.number_action.triggered.connect(self.toggle_numbered_list)
+        self.addAction(self.number_action)
+        
+        # Get the button and style it
+        self.number_btn = self.widgetForAction(self.number_action)
+        if isinstance(self.number_btn, QToolButton):
+            self.number_btn.setText("1.")
 
     def setup_alignment_controls(self):
         """Set up text alignment controls."""
         self.addSeparator()
 
-        # Left align
-        self.align_left = QToolButton()
-        self.align_left.setText("⫷")
-        self.align_left.setToolTip("Align Left")
-        self.align_left.clicked.connect(
+        # Left align - use QAction for proper overflow support
+        self.align_left_action = QAction("Align Left", self)
+        self.align_left_action.setToolTip("Align Left")
+        self.align_left_action.triggered.connect(
             lambda: self.set_alignment(Qt.AlignmentFlag.AlignLeft)
         )
-        self.addWidget(self.align_left)
+        self.addAction(self.align_left_action)
+        
+        # Get the button and style it
+        self.align_left = self.widgetForAction(self.align_left_action)
+        if isinstance(self.align_left, QToolButton):
+            self.align_left.setText("⫷")
 
-        # Center align
-        self.align_center = QToolButton()
-        self.align_center.setText("⫼")
-        self.align_center.setToolTip("Align Center")
-        self.align_center.clicked.connect(
+        # Center align - use QAction for proper overflow support
+        self.align_center_action = QAction("Align Center", self)
+        self.align_center_action.setToolTip("Align Center")
+        self.align_center_action.triggered.connect(
             lambda: self.set_alignment(Qt.AlignmentFlag.AlignCenter)
         )
-        self.addWidget(self.align_center)
+        self.addAction(self.align_center_action)
+        
+        # Get the button and style it
+        self.align_center = self.widgetForAction(self.align_center_action)
+        if isinstance(self.align_center, QToolButton):
+            self.align_center.setText("⫼")
 
-        # Right align
-        self.align_right = QToolButton()
-        self.align_right.setText("⫸")
-        self.align_right.setToolTip("Align Right")
-        self.align_right.clicked.connect(
+        # Right align - use QAction for proper overflow support
+        self.align_right_action = QAction("Align Right", self)
+        self.align_right_action.setToolTip("Align Right")
+        self.align_right_action.triggered.connect(
             lambda: self.set_alignment(Qt.AlignmentFlag.AlignRight)
         )
-        self.addWidget(self.align_right)
+        self.addAction(self.align_right_action)
+        
+        # Get the button and style it
+        self.align_right = self.widgetForAction(self.align_right_action)
+        if isinstance(self.align_right, QToolButton):
+            self.align_right.setText("⫸")
 
-        # Justify
-        self.align_justify = QToolButton()
-        self.align_justify.setText("☰")
-        self.align_justify.setToolTip("Justify")
-        self.align_justify.clicked.connect(
+        # Justify - use QAction for proper overflow support
+        self.justify_action = QAction("Justify", self)
+        self.justify_action.setToolTip("Justify")
+        self.justify_action.triggered.connect(
             lambda: self.set_alignment(Qt.AlignmentFlag.AlignJustify)
         )
-        self.addWidget(self.align_justify)
+        self.addAction(self.justify_action)
+        
+        # Get the button and style it
+        self.justify = self.widgetForAction(self.justify_action)
+        if isinstance(self.justify, QToolButton):
+            self.justify.setText("⫿")
 
     def setup_spacing_controls(self):
         """Set up paragraph spacing controls."""
@@ -484,7 +571,14 @@ class FormatToolBar(QToolBar):
         self.indent_spin.setToolTip("Paragraph Indent")
         self.indent_spin.setRange(0, 100)
         self.indent_spin.setSuffix(" px")
+        self.indent_spin.setMaximumWidth(80)  # Prevent it from taking too much space
         self.indent_spin.valueChanged.connect(self.indent_changed)
+        
+        # Create action for indent spin to enable overflow handling
+        indent_action = QAction("Paragraph Indent", self)
+        indent_action.setToolTip("Paragraph Indent")
+        self.addAction(indent_action)
+        self.widgetForAction(indent_action).hide()  # Hide the default widget
         self.addWidget(self.indent_spin)
 
         # Spacing controls
@@ -492,7 +586,14 @@ class FormatToolBar(QToolBar):
         self.spacing_spin.setToolTip("Paragraph Spacing")
         self.spacing_spin.setRange(0, 100)
         self.spacing_spin.setSuffix(" px")
+        self.spacing_spin.setMaximumWidth(80)  # Prevent it from taking too much space
         self.spacing_spin.valueChanged.connect(self.spacing_changed)
+        
+        # Create action for spacing spin to enable overflow handling
+        spacing_action = QAction("Paragraph Spacing", self)
+        spacing_action.setToolTip("Paragraph Spacing")
+        self.addAction(spacing_action)
+        self.widgetForAction(spacing_action).hide()  # Hide the default widget
         self.addWidget(self.spacing_spin)
 
     def style_changed(self, style):

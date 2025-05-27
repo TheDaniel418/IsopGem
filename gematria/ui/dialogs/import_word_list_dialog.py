@@ -48,6 +48,10 @@ except ImportError:
     ODFPY_AVAILABLE = False
     logger.warning("odfpy library not found. ODS file import will be disabled.")
 
+# Import tag-related components
+from gematria.services.calculation_database_service import CalculationDatabaseService
+from gematria.ui.dialogs.create_tag_dialog import CreateTagDialog
+
 
 class ImportWordListDialog(QDialog):
     """Dialog for importing word lists into the Word List Abacus."""
@@ -67,6 +71,13 @@ class ImportWordListDialog(QDialog):
         self.setMinimumSize(600, 500)
         self._word_list = []
         self._selected_language: Language = Language.HEBREW  # Default language
+        
+        # Initialize database service for tag operations
+        self._db_service = CalculationDatabaseService()
+        
+        # Track missing tags found during import
+        self._missing_tags = set()
+        self._tag_creation_pending = False
 
         self._init_ui()
 
@@ -717,6 +728,11 @@ class ImportWordListDialog(QDialog):
             QMessageBox.warning(self, "Empty List", "No words to import.")
             return
 
+        # Validate tags before proceeding with import
+        if not self._validate_tags_in_import_data(final_items_to_import):
+            logger.info("Import cancelled due to tag validation")
+            return
+
         word_count = len(final_items_to_import)
         self.import_complete.emit(
             final_items_to_import, self._selected_language, word_count
@@ -754,6 +770,203 @@ class ImportWordListDialog(QDialog):
             )
             # Default to a known language or handle error
             self._selected_language = Language.HEBREW  # Or some other safe default
+
+    def _validate_tags_in_import_data(self, import_data: List[Dict]) -> bool:
+        """Validate that all tags in the import data exist in the database.
+        
+        Args:
+            import_data: List of dictionaries containing import data
+            
+        Returns:
+            True if all tags exist or user chooses to continue, False to cancel import
+        """
+        # Get all existing tags from database
+        existing_tags = self._db_service.get_all_tags()
+        existing_tag_names = {tag.name.lower() for tag in existing_tags}
+        
+        # Find all unique tag names in import data
+        all_import_tags = set()
+        for item in import_data:
+            tags = item.get("tags", [])
+            if tags:
+                for tag_name in tags:
+                    if tag_name and tag_name.strip():
+                        all_import_tags.add(tag_name.strip())
+        
+        # Find missing tags
+        self._missing_tags = {tag for tag in all_import_tags 
+                             if tag.lower() not in existing_tag_names}
+        
+        if not self._missing_tags:
+            return True  # All tags exist
+            
+        # Show missing tags dialog
+        return self._handle_missing_tags()
+    
+    def _handle_missing_tags(self) -> bool:
+        """Handle missing tags by offering to create them or continue without.
+        
+        Returns:
+            True to continue import, False to cancel
+        """
+        missing_tags_list = sorted(list(self._missing_tags))
+        
+        # Create dialog to show missing tags
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Missing Tags Detected")
+        dialog.setMinimumSize(400, 300)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Header message
+        header = QLabel("The following tags were found in your import data but do not exist in the database:")
+        header.setWordWrap(True)
+        layout.addWidget(header)
+        
+        # List of missing tags
+        tags_text = QTextEdit()
+        tags_text.setPlainText("\n".join(missing_tags_list))
+        tags_text.setReadOnly(True)
+        tags_text.setMaximumHeight(150)
+        layout.addWidget(tags_text)
+        
+        # Options message
+        options_label = QLabel("Choose how to proceed:")
+        options_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
+        layout.addWidget(options_label)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        create_all_btn = QPushButton("Create All Missing Tags")
+        create_all_btn.clicked.connect(lambda: self._create_all_missing_tags(dialog))
+        button_layout.addWidget(create_all_btn)
+        
+        create_selective_btn = QPushButton("Create Tags Selectively")
+        create_selective_btn.clicked.connect(lambda: self._create_tags_selectively(dialog))
+        button_layout.addWidget(create_selective_btn)
+        
+        continue_btn = QPushButton("Continue Without Tags")
+        continue_btn.clicked.connect(lambda: dialog.accept())
+        button_layout.addWidget(continue_btn)
+        
+        cancel_btn = QPushButton("Cancel Import")
+        cancel_btn.clicked.connect(lambda: dialog.reject())
+        button_layout.addWidget(cancel_btn)
+        
+        layout.addLayout(button_layout)
+        
+        result = dialog.exec()
+        return result == QDialog.DialogCode.Accepted
+    
+    def _create_all_missing_tags(self, parent_dialog: QDialog) -> None:
+        """Create all missing tags with default settings.
+        
+        Args:
+            parent_dialog: Parent dialog to close after creation
+        """
+        created_count = 0
+        failed_tags = []
+        
+        for tag_name in self._missing_tags:
+            try:
+                tag = self._db_service.create_tag(name=tag_name)
+                if tag:
+                    created_count += 1
+                    logger.info(f"Created tag: {tag_name}")
+                else:
+                    failed_tags.append(tag_name)
+            except Exception as e:
+                logger.error(f"Failed to create tag '{tag_name}': {e}")
+                failed_tags.append(tag_name)
+        
+        # Show result message
+        if failed_tags:
+            QMessageBox.warning(
+                parent_dialog,
+                "Partial Success",
+                f"Created {created_count} tags successfully.\n"
+                f"Failed to create: {', '.join(failed_tags)}"
+            )
+        else:
+            QMessageBox.information(
+                parent_dialog,
+                "Success",
+                f"Successfully created all {created_count} missing tags."
+            )
+        
+        parent_dialog.accept()
+    
+    def _create_tags_selectively(self, parent_dialog: QDialog) -> None:
+        """Allow user to create tags selectively.
+        
+        Args:
+            parent_dialog: Parent dialog to manage
+        """
+        parent_dialog.hide()  # Hide the missing tags dialog temporarily
+        
+        remaining_tags = list(self._missing_tags)
+        created_tags = []
+        
+        for tag_name in remaining_tags:
+            # Ask user if they want to create this specific tag
+            reply = QMessageBox.question(
+                self,
+                "Create Tag",
+                f"Do you want to create the tag '{tag_name}'?\n\n"
+                f"You can customize its properties in the creation dialog.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Yes
+            )
+            
+            if reply == QMessageBox.StandardButton.Cancel:
+                # User cancelled the process
+                parent_dialog.reject()
+                return
+            elif reply == QMessageBox.StandardButton.Yes:
+                # Show create tag dialog
+                if self._show_create_tag_dialog(tag_name):
+                    created_tags.append(tag_name)
+        
+        # Show summary
+        if created_tags:
+            QMessageBox.information(
+                self,
+                "Tags Created",
+                f"Successfully created {len(created_tags)} tags:\n" + 
+                "\n".join(created_tags)
+            )
+        
+        parent_dialog.accept()
+    
+    def _show_create_tag_dialog(self, tag_name: str) -> bool:
+        """Show the create tag dialog with pre-filled name.
+        
+        Args:
+            tag_name: Name to pre-fill in the dialog
+            
+        Returns:
+            True if tag was created successfully
+        """
+        dialog = CreateTagDialog(self)
+        
+        # Pre-fill the tag name
+        dialog.name_edit.setText(tag_name)
+        
+        # Connect to handle successful creation
+        tag_created = False
+        
+        def on_tag_created(tag):
+            nonlocal tag_created
+            tag_created = True
+            logger.info(f"Created tag via dialog: {tag.name}")
+        
+        dialog.tag_created.connect(on_tag_created)
+        
+        # Show dialog
+        result = dialog.exec()
+        
+        return result == QDialog.DialogCode.Accepted and tag_created
 
 
 # Example usage (for testing the dialog independently)

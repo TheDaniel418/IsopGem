@@ -28,6 +28,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSpinBox,
+    QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QTableWidget,
@@ -45,105 +46,143 @@ from gematria.ui.widgets.calculation_detail_widget import CalculationDetailWidge
 from shared.ui.window_management import WindowManager
 
 
+class NumericTableWidgetItem(QTableWidgetItem):
+    """Custom QTableWidgetItem that sorts numerically."""
+    
+    def __init__(self, value: int):
+        super().__init__(str(value))
+        self.numeric_value = value
+    
+    def __lt__(self, other):
+        """Override less than operator for proper numeric sorting."""
+        if isinstance(other, NumericTableWidgetItem):
+            return self.numeric_value < other.numeric_value
+        return super().__lt__(other)
+
+
 class TagItemDelegate(QStyledItemDelegate):
-    """Custom delegate for rendering tags in a table cell."""
+    """Custom delegate for displaying tags with colors in the search results table."""
 
     def __init__(self, parent=None):
-        """Initialize the delegate.
-
-        Args:
-            parent: The parent widget
-        """
         super().__init__(parent)
 
-    def paint(
-        self, painter: QPainter, option: QStyleOptionViewItem, index: Any
-    ) -> None:
-        """Paint the tags with custom styling.
-
-        Args:
-            painter: The painter to use
-            option: The style options
-            index: The model index
-        """
+    def paint(self, painter, option, index):
+        """Custom paint method to display tags with colored backgrounds."""
         # Get the tag data from the model
         tag_data = index.data(Qt.ItemDataRole.UserRole)
-
-        if not tag_data or not isinstance(tag_data, list) or len(tag_data) == 0:
-            # Fall back to standard rendering if there are no tags
+        
+        if not tag_data:
+            # No tags - just paint empty cell
             super().paint(painter, option, index)
             return
 
-        # Draw the background
+        # Set up the painter
         painter.save()
-        painter.fillRect(option.rect, option.palette.base())
+        
+        # Fill the background
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        else:
+            painter.fillRect(option.rect, option.palette.base())
 
-        # Start from the left side of the cell with a small margin
-        x_pos = option.rect.left() + 4
-        y_pos = option.rect.top() + 2
-
-        # Draw each tag as a colored rectangle with text
-        for tag in tag_data:
-            if not tag or not isinstance(tag, dict):
-                continue
-
-            tag_name = tag.get("name", "")
-            tag_color = tag.get("color", "#cccccc")
-
-            if not tag_name:
-                continue
-
-            # Calculate the width of the tag text
-            text_width = painter.fontMetrics().horizontalAdvance(tag_name) + 8
-
-            # Create a rounded rectangle for the tag
-            tag_rect = QRect(x_pos, y_pos, text_width, option.rect.height() - 4)
-
-            # Don't draw if it won't fit in the visible area
-            if tag_rect.right() > option.rect.right() - 4:
-                # Draw ellipsis if more tags exist but don't fit
-                painter.drawText(
-                    option.rect.right() - 12,
-                    y_pos + painter.fontMetrics().height(),
-                    "...",
-                )
-                break
-
-            # Draw the tag background
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QBrush(QColor(tag_color)))
-            painter.drawRoundedRect(tag_rect, 3, 3)
-
-            # Draw the tag text in white or black depending on the background color
-            color = QColor(tag_color)
-            # Use white text for dark backgrounds, black for light backgrounds
-            if color.lightness() < 128:
-                painter.setPen(QPen(QColor("white")))
-            else:
-                painter.setPen(QPen(QColor("black")))
-
-            painter.drawText(tag_rect, Qt.AlignmentFlag.AlignCenter, tag_name)
-
-            # Move x position for the next tag
-            x_pos += text_width + 4
+        # Calculate layout for tags
+        rect = option.rect
+        margin = 2
+        tag_height = rect.height() - (2 * margin)
+        tag_spacing = 4
+        current_x = rect.x() + margin
+        
+        # Set up font
+        font = painter.font()
+        font.setPointSize(max(8, font.pointSize() - 1))  # Slightly smaller font
+        painter.setFont(font)
+        
+        # Draw each tag
+        for i, tag in enumerate(tag_data):
+            if current_x >= rect.right() - margin:
+                break  # No more space
+                
+            tag_name = tag.get('name', 'Unknown')
+            tag_color = tag.get('color', '#cccccc')
+            
+            # Calculate tag width
+            text_width = painter.fontMetrics().horizontalAdvance(tag_name)
+            tag_width = text_width + 8  # Add padding
+            
+            # Check if tag fits
+            if current_x + tag_width > rect.right() - margin:
+                if i == 0:
+                    # First tag doesn't fit, truncate it
+                    available_width = rect.right() - current_x - margin - 20  # Leave space for "..."
+                    if available_width > 20:
+                        truncated_name = painter.fontMetrics().elidedText(
+                            tag_name, Qt.TextElideMode.ElideRight, available_width
+                        )
+                        tag_width = painter.fontMetrics().horizontalAdvance(truncated_name) + 8
+                        tag_name = truncated_name
+                    else:
+                        break
+                else:
+                    # Show "..." for additional tags
+                    painter.setPen(QColor('#666666'))
+                    painter.drawText(
+                        current_x, rect.y() + margin,
+                        rect.right() - current_x - margin, tag_height,
+                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                        "..."
+                    )
+                    break
+            
+            # Draw tag background
+            tag_rect = QRect(current_x, rect.y() + margin, tag_width, tag_height)
+            
+            # Parse color and create brush
+            try:
+                color = QColor(tag_color)
+                # Make color slightly transparent for better readability
+                color.setAlpha(200)
+                painter.fillRect(tag_rect, color)
+                
+                # Draw border
+                border_color = QColor(tag_color)
+                border_color.setAlpha(255)
+                painter.setPen(QPen(border_color, 1))
+                painter.drawRect(tag_rect)
+                
+            except Exception:
+                # Fallback to gray if color parsing fails
+                painter.fillRect(tag_rect, QColor('#e0e0e0'))
+                painter.setPen(QPen(QColor('#cccccc'), 1))
+                painter.drawRect(tag_rect)
+            
+            # Draw tag text
+            # Choose text color based on background brightness
+            try:
+                bg_color = QColor(tag_color)
+                # Calculate luminance to determine if we need dark or light text
+                luminance = (0.299 * bg_color.red() + 0.587 * bg_color.green() + 0.114 * bg_color.blue()) / 255
+                text_color = QColor('#000000') if luminance > 0.5 else QColor('#ffffff')
+            except Exception:
+                text_color = QColor('#000000')
+                
+            painter.setPen(text_color)
+            painter.drawText(
+                tag_rect,
+                Qt.AlignmentFlag.AlignCenter,
+                tag_name
+            )
+            
+            # Move to next position
+            current_x += tag_width + tag_spacing
 
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: Any) -> QSize:
-        """Calculate the size hint for the cell.
-
-        Args:
-            option: The style options
-            index: The model index
-
-        Returns:
-            The suggested size for the cell
-        """
-        # Get the standard size hint
+    def sizeHint(self, option, index):
+        """Return the size hint for the item."""
+        # Make rows a bit taller to accommodate tag display
         size = super().sizeHint(option, index)
-
-        # Make it a bit taller to accommodate the tags
-        return QSize(size.width(), size.height() + 4)
+        size.setHeight(max(size.height(), 28))  # Minimum height of 28px
+        return size
 
 
 class SearchPanel(QWidget):
@@ -243,22 +282,6 @@ class SearchPanel(QWidget):
         self.exact_text_match = QCheckBox("Exact match")
         left_layout.addRow("", self.exact_text_match)
 
-        # Value search
-        value_layout = QHBoxLayout()
-        self.value_min = QSpinBox()
-        self.value_min.setRange(0, 999999)
-        self.value_min.setSpecialValueText("Min")
-
-        self.value_max = QSpinBox()
-        self.value_max.setRange(0, 999999)
-        self.value_max.setSpecialValueText("Max")
-
-        value_layout.addWidget(self.value_min)
-        value_layout.addWidget(QLabel("-"))
-        value_layout.addWidget(self.value_max)
-
-        left_layout.addRow("Value range:", value_layout)
-
         # Exact value - Changed from QSpinBox to QLineEdit with numeric validation
         self.exact_value = QLineEdit()
         self.exact_value.setPlaceholderText("Enter exact value...")
@@ -288,8 +311,18 @@ class SearchPanel(QWidget):
         self.favorites_only = QCheckBox("Favorites only")
         right_layout.addRow("", self.favorites_only)
 
+        # Tags filter with dropdown
+        tags_layout = QHBoxLayout()
         self.has_tags = QCheckBox("Has tags")
-        right_layout.addRow("", self.has_tags)
+        self.has_tags.stateChanged.connect(self._on_has_tags_changed)
+        tags_layout.addWidget(self.has_tags)
+        
+        self.tag_combo = QComboBox()
+        self.tag_combo.setEnabled(False)  # Initially disabled
+        self.tag_combo.setMinimumWidth(150)
+        tags_layout.addWidget(self.tag_combo)
+        
+        right_layout.addRow("", tags_layout)
 
         self.has_notes = QCheckBox("Has notes")
         right_layout.addRow("", self.has_notes)
@@ -317,36 +350,34 @@ class SearchPanel(QWidget):
         layout.addLayout(button_layout)
 
         # Results table
-        self.results_table = QTableWidget(0, 5)
-        self.results_table.setHorizontalHeaderLabels(
-            ["Text", "Value", "Method", "Tags", "★"]
-        )
-        self.results_table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch
-        )
-        self.results_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.results_table.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.results_table.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.results_table.horizontalHeader().setSectionResizeMode(
-            4, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.results_table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
+        self.results_table = QTableWidget()
+        self.results_table.setColumnCount(5)
+        self.results_table.setHorizontalHeaderLabels(["Text", "Value", "Method", "Tags", "★"])
+        
+        # Set column widths for better display
+        header = self.results_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)  # Text column stretches
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Value column
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Method column
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Tags column - fixed width
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Favorite column
+        
+        # Set specific width for Tags column to ensure tag names are visible
+        self.results_table.setColumnWidth(3, 200)  # Tags column - 200px width
+        
+        # Enable sorting
+        self.results_table.setSortingEnabled(True)
+        
+        # Set up the tag delegate for the Tags column (column 3)
+        tag_delegate = TagItemDelegate(self.results_table)
+        self.results_table.setItemDelegateForColumn(3, tag_delegate)
+
+        # Configure table behavior
+        self.results_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.results_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.results_table.itemSelectionChanged.connect(self._on_result_selected)
         # Connect double-click to view details in a separate window
         self.results_table.itemDoubleClicked.connect(self._open_detail_window)
-
-        # Set the tag item delegate for the Tags column
-        self.tag_delegate = TagItemDelegate(self.results_table)
-        self.results_table.setItemDelegateForColumn(3, self.tag_delegate)
 
         # Make the rows a bit taller to accommodate the tags
         self.results_table.verticalHeader().setDefaultSectionSize(30)
@@ -355,6 +386,9 @@ class SearchPanel(QWidget):
 
         # Initialize method combo
         self._update_method_combo()
+        
+        # Initialize tag combo
+        self._update_tag_combo()
 
     def _update_method_combo(self) -> None:
         """Update the method combo box based on the selected language."""
@@ -425,11 +459,6 @@ class SearchPanel(QWidget):
             except ValueError:
                 # If text is not a valid integer, ignore it
                 pass
-        else:
-            if self.value_min.value() > 0:
-                criteria["result_value_min"] = self.value_min.value()
-            if self.value_max.value() > 0:
-                criteria["result_value_max"] = self.value_max.value()
 
         # Language/Method filter
         language_idx = self.language_combo.currentIndex()
@@ -469,7 +498,15 @@ class SearchPanel(QWidget):
             criteria["favorite"] = True
 
         if self.has_tags.isChecked():
-            criteria["has_tags"] = True
+            # Check if a specific tag is selected
+            tag_idx = self.tag_combo.currentIndex()
+            if tag_idx > 0:  # Not "Any Tag"
+                tag_id = self.tag_combo.currentData()
+                if tag_id:
+                    criteria["tag_id"] = tag_id
+            else:
+                # Just check for any tags
+                criteria["has_tags"] = True
 
         if self.has_notes.isChecked():
             criteria["has_notes"] = True
@@ -484,13 +521,13 @@ class SearchPanel(QWidget):
         """Clear all search fields."""
         self.text_search.clear()
         self.exact_text_match.setChecked(False)
-        self.value_min.setValue(0)
-        self.value_max.setValue(0)
-        self.exact_value.clear()  # Changed from setValue(0) to clear()
+        self.exact_value.clear()
         self.language_combo.setCurrentIndex(0)
         self.method_combo.setCurrentIndex(0)
         self.favorites_only.setChecked(False)
         self.has_tags.setChecked(False)
+        self.tag_combo.setCurrentIndex(0)
+        self.tag_combo.setEnabled(False)
         self.has_notes.setChecked(False)
 
         # Clear results
@@ -503,10 +540,15 @@ class SearchPanel(QWidget):
         Args:
             results: List of calculation results to display
         """
+        # Temporarily disable sorting while populating the table to avoid performance issues
+        self.results_table.setSortingEnabled(False)
+        
         self.results_table.setRowCount(0)
         self.selected_calculation = None
 
         if not results:
+            # Re-enable sorting even if no results
+            self.results_table.setSortingEnabled(True)
             return
 
         self.results_table.setRowCount(len(results))
@@ -517,13 +559,17 @@ class SearchPanel(QWidget):
             text_item.setData(Qt.ItemDataRole.UserRole, result)
             self.results_table.setItem(i, 0, text_item)
 
-            # Value column
-            value_item = QTableWidgetItem(str(result.result_value))
+            # Value column - Set up for proper numerical sorting
+            value_item = NumericTableWidgetItem(result.result_value)
+            value_item.setData(Qt.ItemDataRole.UserRole, result.result_value)
+            value_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             self.results_table.setItem(i, 1, value_item)
 
-            # Method column
+            # Method column - Set up for proper text sorting
             method_name = self._get_method_name(result)
             method_item = QTableWidgetItem(method_name)
+            # Store the method name for sorting (already a string, so it will sort alphabetically)
+            method_item.setData(Qt.ItemDataRole.UserRole + 1, method_name)
             self.results_table.setItem(i, 2, method_item)
 
             # Tags column
@@ -557,7 +603,12 @@ class SearchPanel(QWidget):
             # Favorite column
             favorite_item = QTableWidgetItem("★" if result.favorite else "")
             favorite_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            # Store a sortable value for favorites (1 for favorite, 0 for not favorite)
+            favorite_item.setData(Qt.ItemDataRole.UserRole + 1, 1 if result.favorite else 0)
             self.results_table.setItem(i, 4, favorite_item)
+        
+        # Re-enable sorting after populating the table
+        self.results_table.setSortingEnabled(True)
 
     def _get_method_name(self, calculation: CalculationResult) -> str:
         """Get the display name for a calculation method.
@@ -693,3 +744,28 @@ class SearchPanel(QWidget):
 
         # Set the window title
         detail_widget.setWindowTitle(window_title)
+
+    def _on_has_tags_changed(self) -> None:
+        """Handle changes in the 'Has tags' checkbox."""
+        if self.has_tags.isChecked():
+            self.tag_combo.setEnabled(True)
+        else:
+            self.tag_combo.setEnabled(False)
+
+    def _update_tag_combo(self) -> None:
+        """Update the tag combo box with available tags."""
+        self.tag_combo.clear()
+        self.tag_combo.addItem("Any Tag")
+        
+        try:
+            # Get all available tags from the database
+            all_tags = self.calculation_db_service.get_all_tags()
+            
+            # Add each tag to the combo box
+            for tag in all_tags:
+                self.tag_combo.addItem(tag.name, tag.id)
+                
+        except Exception as e:
+            logger.error(f"Error loading tags for combo box: {e}")
+            # Add a fallback option if tags can't be loaded
+            self.tag_combo.addItem("Error loading tags")

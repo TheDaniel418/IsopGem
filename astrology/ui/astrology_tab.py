@@ -4,6 +4,7 @@ This module provides the main tab for the Astrology pillar.
 """
 
 import random
+from typing import Optional
 
 from loguru import logger
 from PyQt6.QtCore import QPointF, Qt, QTimer
@@ -19,6 +20,9 @@ from PyQt6.QtWidgets import (
 
 from astrology.ui.dialogs.birth_chart_window import BirthChartWindow
 from astrology.ui.windows.kamea_calendar_window import KameaCalendarWindow
+from astrology.ui.widgets.stonehenge_predictor.adyton_window import AdytonWindow
+from astrology.ui.widgets.stonehenge_predictor.stonehenge_predictor_window import StonehengePredictorWindow
+from astrology.services.stonehenge_simulation_service import StonehengeSimulationService
 from shared.ui.window_management import TabManager, WindowManager
 
 
@@ -47,6 +51,15 @@ class AstrologyTab(QWidget):
         self.timer.start(
             100
         )  # Update every 100ms (reduced from 50ms for better performance)
+
+        # Instance to hold the StonehengePredictorWindow
+        self.stonehenge_window_instance: Optional[StonehengePredictorWindow] = None
+        # Instance to hold the AdytonWindow
+        self.adyton_window_instance: Optional[AdytonWindow] = None
+        
+        # Placeholder for simulation service access
+        # This needs proper implementation based on service management (e.g., ServiceLocator)
+        self._simulation_service_instance: Optional[StonehengeSimulationService] = None
 
         # Initialize UI
         self._init_ui()
@@ -132,6 +145,70 @@ class AstrologyTab(QWidget):
         self.window_manager.open_window("kamea_cosmic_calendar", calendar_window)
         logger.info("Opened Kamea Cosmic Calendar window")
 
+    def _open_stonehenge_predictor(self):
+        """Open the Stonehenge Eclipse Predictor window."""
+        # Create the Stonehenge Predictor window
+        if self.stonehenge_window_instance is None or not self.stonehenge_window_instance.isVisible():
+            logger.info("Creating new StonehengePredictorWindow instance.")
+            self.stonehenge_window_instance = StonehengePredictorWindow()
+            # Open it in a window using a unique key
+            self.window_manager.open_window("stonehenge_eclipse_predictor", self.stonehenge_window_instance)
+        else:
+            logger.info("StonehengePredictorWindow already exists, bringing to front.")
+            self.stonehenge_window_instance.show()
+            self.stonehenge_window_instance.activateWindow()
+            self.stonehenge_window_instance.raise_()
+        
+        logger.info("Opened or focused Stonehenge Eclipse Predictor window")
+
+    def _get_simulation_service(self) -> Optional[StonehengeSimulationService]:
+        """
+        Retrieves or initializes the StonehengeSimulationService for the Adyton.
+        This service instance is separate and independent from any used by other 
+        components like the Circle of 56 predictor.
+        """
+        if self._simulation_service_instance is None:
+            try:
+                logger.info("AstrologyTab: Creating a new, dedicated StonehengeSimulationService instance for Adyton.")
+                self._simulation_service_instance = StonehengeSimulationService()
+
+            except Exception as e:
+                logger.error(f"AstrologyTab: Failed to create dedicated StonehengeSimulationService for Adyton: {e}")
+                return None
+        return self._simulation_service_instance
+
+    def _launch_adyton_view(self):
+        """Launch the Adyton 3D viewer directly."""
+        sim_service = self._get_simulation_service()
+        if not sim_service:
+            logger.error("Cannot launch Adyton: StonehengeSimulationService not available.")
+            return
+
+        if self.adyton_window_instance is None or not self.adyton_window_instance.isVisible():
+            logger.info("Creating and showing new AdytonWindow instance.")
+            self.adyton_window_instance = AdytonWindow(None) # Create as top-level
+            # Use window_manager to open it, ensuring it's tracked (optional, but good practice)
+            # The key "adyton_of_the_seven" should be unique.
+            self.window_manager.open_window(
+                "adyton_of_the_seven", 
+                self.adyton_window_instance
+            )
+        else:
+            logger.info("AdytonWindow already exists, bringing to front.")
+            self.adyton_window_instance.show()
+            self.adyton_window_instance.activateWindow()
+            self.adyton_window_instance.raise_()
+        
+        if self.adyton_window_instance and self.adyton_window_instance.isVisible():
+            try:
+                marker_positions = sim_service.get_current_marker_positions()
+                self.adyton_window_instance.update_marker_positions(marker_positions)
+                logger.info("Adyton viewer launched/focused and updated with marker positions.")
+            except Exception as e:
+                logger.error(f"Error updating Adyton with marker positions: {e}")
+        else:
+            logger.error("Failed to open or focus Adyton window.")
+
     def _init_ui(self) -> None:
         """Initialize the UI components."""
         # Main layout for the tab
@@ -174,6 +251,18 @@ class AstrologyTab(QWidget):
         cosmic_calendar_btn.setToolTip("Visualize the Kamea Cosmic Calendar")
         cosmic_calendar_btn.clicked.connect(self._open_cosmic_calendar)
         button_layout.addWidget(cosmic_calendar_btn)
+
+        # Stonehenge Predictor button
+        stonehenge_predictor_btn = QPushButton("Circle of 56")
+        stonehenge_predictor_btn.setToolTip("Open the Stonehenge Eclipse Predictor")
+        stonehenge_predictor_btn.clicked.connect(self._open_stonehenge_predictor)
+        button_layout.addWidget(stonehenge_predictor_btn)
+
+        # Adyton button
+        adyton_btn = QPushButton("Adyton")
+        adyton_btn.setToolTip("Open the 3D Adyton of the Seven visualization")
+        adyton_btn.clicked.connect(self._launch_adyton_view)
+        button_layout.addWidget(adyton_btn)
 
         # Add stretch to push buttons to the left
         button_layout.addStretch()

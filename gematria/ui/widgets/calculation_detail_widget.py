@@ -16,7 +16,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -26,6 +25,7 @@ from gematria.models.calculation_type import get_calculation_type_name
 from gematria.services.calculation_database_service import CalculationDatabaseService
 from gematria.services.custom_cipher_service import CustomCipherService
 from gematria.ui.dialogs.edit_tags_window import EditTagsWindow
+from shared.ui.widgets.rtf_editor.rich_text_editor_widget import RichTextEditorWidget
 
 # Import the TQ analysis service for sending numbers to Quadset Analysis
 try:
@@ -110,8 +110,13 @@ class CalculationDetailWidget(QWidget):
 
         # Notes area
         notes_label = QLabel("Notes:")
-        self.notes_edit = QTextEdit()
-        self.notes_edit.setPlaceholderText("Enter notes about this calculation...")
+        self.notes_edit = RichTextEditorWidget(
+            parent=self,
+            show_menubar=False,  # No menu bar in widget
+            show_statusbar=True,  # Show status bar for word count
+            compact_mode=True    # Use compact mode for widget
+        )
+        self.notes_edit.get_text_edit().setPlaceholderText("Enter notes about this calculation using rich text formatting...")
         right_layout.addWidget(notes_label)
         right_layout.addWidget(self.notes_edit)
 
@@ -194,7 +199,14 @@ class CalculationDetailWidget(QWidget):
         self.favorite_checkbox.setChecked(self.calculation.favorite)
 
         # Notes
-        self.notes_edit.setText(self.calculation.notes or "")
+        if self.calculation.notes:
+            # Check if notes contain HTML formatting
+            if '<' in self.calculation.notes and '>' in self.calculation.notes:
+                self.notes_edit.set_html(self.calculation.notes)
+            else:
+                self.notes_edit.set_plain_text(self.calculation.notes)
+        else:
+            self.notes_edit.set_plain_text("")
 
         # Tags
         tag_names = self.calculation_db_service.get_calculation_tag_names(
@@ -241,7 +253,13 @@ class CalculationDetailWidget(QWidget):
         if not self.calculation:
             return
 
-        notes = self.notes_edit.toPlainText()
+        # Get notes content - prefer HTML if there's formatting, otherwise plain text
+        if self.notes_edit.is_modified() or self.notes_edit.get_html() != self.notes_edit.get_plain_text():
+            # There's rich formatting, save as HTML
+            notes = self.notes_edit.get_html()
+        else:
+            # No special formatting, save as plain text
+            notes = self.notes_edit.get_plain_text()
 
         # Update calculation
         self.calculation.notes = notes
@@ -252,6 +270,12 @@ class CalculationDetailWidget(QWidget):
         else:
             # Fallback method if update_notes doesn't exist
             self.calculation_db_service.save_calculation(self.calculation)
+
+        # Mark the editor as unmodified since we just saved
+        self.notes_edit.set_modified(False)
+        
+        # Show success message
+        QMessageBox.information(self, "Success", "Notes saved successfully")
 
         # Emit signal that calculation was updated
         self.calculation_updated.emit(self.calculation)

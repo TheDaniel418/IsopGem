@@ -4,20 +4,22 @@ Purpose: Provides a detailed view of saved calculation results with editing capa
 This file is part of the gematria pillar and serves as a UI component.
 It is responsible for displaying detailed information about a calculation result,
 including its input text, result value, calculation method, notes, and tags.
-It allows users to edit notes, manage tags, and toggle favorite status.
+It allows users to edit notes with rich text formatting, manage tags, and toggle favorite status.
 
 Key components:
-- CalculationDetailsDialog: Dialog for displaying and editing calculation details
+- CalculationDetailsDialog: Dialog for displaying and editing calculation details with enhanced RTF editor
 
 Dependencies:
 - PyQt6: For building the graphical user interface
 - gematria.models: For working with calculation data
 - gematria.services: For data access and persistence
 - shared.services: For service access
+- shared.ui.widgets.rtf_editor: For enhanced rich text editing capabilities
 
 Related files:
 - gematria/ui/panels/calculation_history_panel.py: Panel that shows this dialog
 - gematria/services/calculation_database_service.py: Service for data operations
+- shared/ui/widgets/rtf_editor/rich_text_editor_widget.py: Enhanced RTF editor
 """
 
 
@@ -31,7 +33,6 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -41,10 +42,11 @@ from gematria.services.calculation_database_service import CalculationDatabaseSe
 from gematria.ui.dialogs.tag_selection_dialog import TagSelectionDialog
 from shared.services.service_locator import ServiceLocator
 from shared.services.tag_service import TagService
+from shared.ui.widgets.rtf_editor.rich_text_editor_widget import RichTextEditorWidget
 
 
 class CalculationDetailsDialog(QDialog):
-    """Dialog for displaying and editing calculation details."""
+    """Dialog for displaying and editing calculation details with enhanced RTF editor."""
 
     # Signal emitted when a calculation is updated
     calculationUpdated = pyqtSignal()
@@ -83,7 +85,7 @@ class CalculationDetailsDialog(QDialog):
         self._init_ui()
 
         # Set window properties
-        self.resize(600, 500)
+        self.resize(800, 700)  # Increased size to accommodate RTF editor
         self.setModal(True)
 
     def _init_ui(self):
@@ -156,6 +158,7 @@ class CalculationDetailsDialog(QDialog):
         tags_scroll = QScrollArea()
         tags_scroll.setWidgetResizable(True)
         tags_scroll.setWidget(self.tags_container)
+        tags_scroll.setMaximumHeight(120)  # Limit height to save space for RTF editor
         tags_layout.addWidget(tags_scroll)
 
         # Add buttons for tag management
@@ -168,15 +171,35 @@ class CalculationDetailsDialog(QDialog):
         tags_layout.addLayout(tags_button_layout)
         layout.addWidget(tags_group)
 
-        # Notes section
+        # Enhanced Notes section with RTF editor
         notes_group = QGroupBox("Notes")
         notes_layout = QVBoxLayout(notes_group)
 
-        self.notes_edit = QTextEdit()
-        self.notes_edit.setPlaceholderText("Add notes about this calculation...")
+        # Create the enhanced RTF editor widget
+        self.notes_editor = RichTextEditorWidget(
+            parent=self,
+            show_menubar=False,  # No menu bar in dialog
+            show_statusbar=True,  # Show status bar for word count, etc.
+            compact_mode=False   # Full featured mode
+        )
+        
+        # Set placeholder text
+        self.notes_editor.get_text_edit().setPlaceholderText(
+            "Add detailed notes about this calculation using rich text formatting, tables, images, and more..."
+        )
+        
+        # Load existing notes if available
         if self.calculation.notes:
-            self.notes_edit.setText(self.calculation.notes)
-        notes_layout.addWidget(self.notes_edit)
+            # Check if notes contain HTML formatting
+            if '<' in self.calculation.notes and '>' in self.calculation.notes:
+                self.notes_editor.set_html(self.calculation.notes)
+            else:
+                self.notes_editor.set_plain_text(self.calculation.notes)
+        
+        # Set minimum height for the editor
+        self.notes_editor.setMinimumHeight(300)
+        
+        notes_layout.addWidget(self.notes_editor)
 
         # Save notes button
         save_notes_button = QPushButton("Save Notes")
@@ -297,14 +320,21 @@ class CalculationDetailsDialog(QDialog):
 
     def _on_save_notes(self):
         """Handle save notes button click."""
-        # Get notes text
-        notes = self.notes_edit.toPlainText()
+        # Get notes content - prefer HTML if there's formatting, otherwise plain text
+        if self.notes_editor.is_modified() or self.notes_editor.get_html() != self.notes_editor.get_plain_text():
+            # There's rich formatting, save as HTML
+            notes = self.notes_editor.get_html()
+        else:
+            # No special formatting, save as plain text
+            notes = self.notes_editor.get_plain_text()
 
         # Update calculation
         self.calculation.notes = notes
         success = self.calculation_service.save_calculation(self.calculation)
 
         if success:
+            # Mark the editor as unmodified since we just saved
+            self.notes_editor.set_modified(False)
             QMessageBox.information(self, "Success", "Notes saved successfully")
             self.calculationUpdated.emit()
         else:

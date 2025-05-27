@@ -419,10 +419,18 @@ class CalculationDatabaseService:
                 - input_text: Text to search for in the input (exact match)
                 - input_text_like: Text pattern to search for in the input (partial match)
                 - result_value: Value to search for
-                - tags: List of tag IDs to require
+                - result_value_min: Minimum value (inclusive)
+                - result_value_max: Maximum value (inclusive)
                 - calculation_type: Standard calculation method to filter by
                 - custom_method_name: Custom cipher method name to filter by
-                - favorites_only: True to only return favorites
+                - language: Filter by language (Language enum)
+                - favorite: True to only return favorites
+                - has_tags: True to only return calculations with tags
+                - has_notes: True to only return calculations with notes
+                - tag_id: Specific tag ID to match
+                - created_after: datetime for results created after this date
+                - created_before: datetime for results created before this date
+                - limit: Maximum number of results to return
 
         Returns:
             List of matching calculations
@@ -430,94 +438,9 @@ class CalculationDatabaseService:
         # Log the search criteria for debugging
         logger.debug(f"Searching calculations with criteria: {criteria}")
 
-        # Build a complex query by combining different search functions
-        results = self.get_all_calculations()
-
-        # Apply filters one by one
-        if "input_text" in criteria and criteria["input_text"]:
-            # Exact match (case-insensitive)
-            search_text = criteria["input_text"].lower()
-            results = [
-                calc
-                for calc in results
-                if search_text == calc.input_text.lower()
-            ]
-        elif "input_text_like" in criteria and criteria["input_text_like"]:
-            # Partial match (case-insensitive)
-            search_text = criteria["input_text_like"].lower()
-            # Remove the % wildcards if present (they're added by the UI)
-            if search_text.startswith("%"):
-                search_text = search_text[1:]
-            if search_text.endswith("%"):
-                search_text = search_text[:-1]
-
-            results = [
-                calc
-                for calc in results
-                if search_text in calc.input_text.lower()
-            ]
-
-        if "result_value" in criteria and criteria["result_value"] is not None:
-            results = [
-                calc
-                for calc in results
-                if calc.result_value == criteria["result_value"]
-            ]
-
-        if "tags" in criteria and criteria["tags"]:
-            results = [
-                calc
-                for calc in results
-                if any(tag_id in calc.tags for tag_id in criteria["tags"])
-            ]
-
-        # Handle method filtering (standard calculation types)
-        if "calculation_type" in criteria and criteria["calculation_type"]:
-            results = [
-                calc
-                for calc in results
-                if str(calc.calculation_type) == str(criteria["calculation_type"])
-            ]
-
-        # Handle custom cipher method filtering
-        if "custom_method_name" in criteria and criteria["custom_method_name"]:
-            # Log the custom method name we're searching for
-            logger.debug(
-                f"Filtering by custom method name: {criteria['custom_method_name']}"
-            )
-
-            filtered_results = []
-            for calc in results:
-                # Check if this is a custom cipher calculation
-                if hasattr(calc, "custom_method_name") and calc.custom_method_name:
-                    # Log for debugging
-                    logger.debug(
-                        f"Comparing with calculation: {calc.input_text}, method: {calc.custom_method_name}"
-                    )
-
-                    # Log the actual values for debugging
-                    logger.debug(
-                        f"Comparing search term '{criteria['custom_method_name']}' with database value '{calc.custom_method_name}'"
-                    )
-
-                    # Check if the custom method name matches (handle both with and without 'Custom: ' prefix)
-                    search_term = criteria["custom_method_name"]
-                    db_value = calc.custom_method_name
-
-                    # Remove 'Custom: ' prefix if present in either value for comparison
-                    if search_term.startswith("Custom: "):
-                        search_term = search_term[8:]
-                    if db_value.startswith("Custom: "):
-                        db_value = db_value[8:]
-
-                    if search_term == db_value:
-                        filtered_results.append(calc)
-
-            # Update results with filtered list
-            results = filtered_results
-
-        if "favorites_only" in criteria and criteria["favorites_only"]:
-            results = [calc for calc in results if calc.favorite]
+        # Use the repository's search method which handles all the complex filtering
+        # including the language filter at the database level
+        results = self.calculation_repo.search_calculations(criteria)
 
         # Log the number of results found
         logger.debug(f"Search found {len(results)} matching calculations")

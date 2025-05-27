@@ -608,6 +608,18 @@ class GematriaTab(QWidget):
         search_btn.clicked.connect(lambda: self._open_search_panel())
         button_layout.addWidget(search_btn)
 
+        # Number Dictionary button
+        number_dict_btn = QPushButton("Number Dictionary")
+        number_dict_btn.setToolTip("Open Number Dictionary for exploring numbers and taking notes")
+        number_dict_btn.clicked.connect(lambda: self._open_number_dictionary())
+        button_layout.addWidget(number_dict_btn)
+
+        # Search Notes button
+        search_notes_btn = QPushButton("Search Notes")
+        search_notes_btn.setToolTip("Search through Number Dictionary notes")
+        search_notes_btn.clicked.connect(lambda: self._open_number_dictionary_search())
+        button_layout.addWidget(search_notes_btn)
+
         # Add stretch to push buttons to the left
         button_layout.addStretch()
 
@@ -910,3 +922,63 @@ class GematriaTab(QWidget):
             window.set_exact_value(value)
         window.raise_()
         window.activateWindow()
+
+    def _open_number_dictionary(self) -> None:
+        """Open the Number Dictionary window."""
+        from gematria.ui.windows.number_dictionary_window import NumberDictionaryWindow
+
+        # Create a new window instance
+        window = NumberDictionaryWindow()
+
+        # Use open_multi_window to allow multiple instances
+        self.window_manager.open_multi_window(
+            "number_dictionary", 
+            window, 
+            "Number Dictionary",
+            size=(1000, 700)
+        )
+            
+        logger.debug("Opened Number Dictionary window")
+
+    def open_number_dictionary_with_number(self, number: int) -> None:
+        """Open the Number Dictionary window with a specific number.
+        
+        This method can be called from other parts of the application
+        to open the Number Dictionary and navigate to a specific number.
+        
+        Args:
+            number: The number to display in the Number Dictionary
+        """
+        from gematria.ui.windows.number_dictionary_window import NumberDictionaryWindow
+
+        # Create a new window instance with the specific number
+        window = NumberDictionaryWindow(initial_number=number)
+
+        # Use open_multi_window to allow multiple instances
+        self.window_manager.open_multi_window(
+            "number_dictionary", 
+            window, 
+            f"Number Dictionary - {number}",
+            size=(1000, 700)
+        )
+            
+        logger.debug(f"Opened Number Dictionary window with number {number}")
+
+    def _open_number_dictionary_search(self) -> None:
+        """Open the Number Dictionary search window."""
+        from gematria.ui.windows.number_dictionary_search_window import NumberDictionarySearchWindow
+
+        # Create a new window instance
+        window = NumberDictionarySearchWindow()
+
+        # Connect the signal to open numbers in the dictionary
+        window.open_number_requested.connect(self.open_number_dictionary_with_number)
+
+        # Open the window through the window manager with a unique ID
+        window_id = "number_dictionary_search_window"
+        self.window_manager.open_window(window_id, window)
+
+        # Show the window and bring it to front
+        window.show()
+        window.raise_()
+        logger.debug("Opened Number Dictionary search window")

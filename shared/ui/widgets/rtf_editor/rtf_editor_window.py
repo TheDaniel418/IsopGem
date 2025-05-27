@@ -124,7 +124,6 @@ class RTFEditorWindow(QMainWindow):
 
         # Connect document manager signals
         self.document_manager.status_updated.connect(self.show_status_message)
-        self.document_manager.recovery_available.connect(self.handle_recovery_files)
         self.document_manager.auto_save_completed.connect(self.on_auto_save_completed)
 
         # Install event filter on the text editor's viewport
@@ -1262,66 +1261,13 @@ class RTFEditorWindow(QMainWindow):
 
         return mime_type
 
-    def handle_recovery_files(self, recovery_files):
-        """Handle available recovery files.
-
-        Shows a dialog asking the user if they want to recover from auto-saved files.
-
-        Args:
-            recovery_files (list): List of Path objects pointing to recovery files
-
-        Returns:
-            None
-        """
-        if not recovery_files:
-            return
-
-        # Ask user if they want to recover
-        response = QMessageBox.question(
-            self,
-            "Document Recovery",
-            f"Found {len(recovery_files)} auto-saved document(s) from a previous session.\n\n"
-            "Would you like to recover the most recent one?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes,
-        )
-
-        if response == QMessageBox.StandardButton.Yes:
-            # Recover the most recent file (first in the list)
-            self.document_manager.recover_document(recovery_files[0])
-
-            # Show a message about other recovery files if there are more
-            if len(recovery_files) > 1:
-                QMessageBox.information(
-                    self,
-                    "Additional Recovery Files",
-                    f"There are {len(recovery_files) - 1} additional recovery files available.\n\n"
-                    "You can access them from the File menu if needed.",
-                )
-
-                # TODO: Add a menu item to access other recovery files
-
     def on_auto_save_completed(self):
-        """Handle auto-save completion.
-
-        Updates the status bar with a temporary message.
-
-        Returns:
-            None
-        """
-        # Show a temporary status message
-        self.statusBar().showMessage("Auto-save completed", 3000)  # Show for 3 seconds
+        """Handle completion of auto-save operation."""
+        self.show_status_message("Auto-saved")
 
     def show_status_message(self, message):
-        """Show a message in the status bar.
-
-        Args:
-            message (str): The message to display
-
-        Returns:
-            None
-        """
-        self.statusBar().showMessage(message, 5000)  # Show for 5 seconds
+        """Show a message on the status bar."""
+        self.status_bar.showMessage(message, 3000)  # Show for 3 seconds
 
     def show_recovery_dialog(self):
         """Show the recovery dialog.
@@ -1406,21 +1352,14 @@ class RTFEditorWindow(QMainWindow):
             self.document_manager.recover_document(recovery_file)
 
     def setup_exception_handling(self):
-        """Set up global exception handling for the application.
-
-        Installs a custom exception hook to catch unhandled exceptions,
-        create error reports, and attempt recovery.
-
-        Returns:
-            None
-        """
+        """Set up custom exception handling for the application."""
         import sys
 
         from shared.ui.widgets.rtf_editor.utils.recovery_utils import (
             create_error_report,
         )
 
-        # Store the original exception hook
+        # Store the original excepthook
         original_excepthook = sys.excepthook
 
         def custom_excepthook(exc_type, exc_value, exc_traceback):

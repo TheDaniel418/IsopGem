@@ -1,13 +1,15 @@
 """
-Defines the main window for the Stonehenge Eclipse Predictor simulation.
+Defines the main window for the Stonehenge Eclipse Predictor simulation
+and the Adyton of the Seven visualization.
 
-This window will house the visualization of the Aubrey Holes, marker movements,
-controls for the simulation, and a log for predicted eclipses.
+This window houses the visualization of the Aubrey Holes, marker movements,
+controls for the simulation, and a log for predicted eclipses. It also provides
+access to the 3D Adyton visualization which represents the pillars of the seven.
 
 Author: IsopGemini
 Created: 2024-07-29
-Last Modified: 2024-08-08
-Dependencies: PyQt6
+Last Modified: 2024-08-12
+Dependencies: PyQt6, PyOpenGL (for 3D visualization)
 """
 
 import webbrowser  # Added for opening URLs
@@ -53,6 +55,7 @@ from astrology.ui.widgets.stonehenge_predictor.eclipse_log_view_widget import (
 from astrology.ui.widgets.stonehenge_predictor.hole_reference_widget import (
     HoleReferenceWidget,
 )
+from astrology.ui.widgets.stonehenge_predictor.adyton_window import AdytonWindow
 
 # Assuming your window management might need a specific base or registration
 # For now, a standard QMainWindow
@@ -81,8 +84,11 @@ class StonehengePredictorWindow(QMainWindow):
 
         self._initialize_gregorian_start_date_tracker()  # Call the new method
         self.placeholder_label = None  # Initialize placeholder_label for safety
-        self.current_latitude = None  # New attribute
-        self.current_longitude = None  # New attribute
+        
+        # Set default location to Luxor, Egypt
+        self.current_latitude = 25.6872  # Luxor, Egypt latitude
+        self.current_longitude = 32.6396  # Luxor, Egypt longitude
+        self.default_location_name = "Luxor, Egypt"
 
         self.ephemeris_service = EphemerisService()
         self.simulation_service = StonehengeSimulationService(proximity_threshold=1)
@@ -103,6 +109,9 @@ class StonehengePredictorWindow(QMainWindow):
 
         self._init_simulation_and_ui()
         self._connect_signals()
+        
+        # Set default epoch to Dec 21, 2020 and apply orientation
+        self._apply_default_epoch()
 
     def _init_simulation_and_ui(self):
         """Initialize the simulation and user interface components with a tabbed layout."""
@@ -156,14 +165,49 @@ class StonehengePredictorWindow(QMainWindow):
         self.show_zodiac_checkbox = QCheckBox("Show Zodiacal Degrees")
         self.show_zodiac_checkbox.setChecked(True)  # Default to showing zodiac degrees
         self.show_zodiac_checkbox.toggled.connect(self._toggle_zodiac_degrees)
+        
+        # Add toggle for showing/hiding Node markers
+        self.show_nodes_checkbox = QCheckBox("Show Nodes")
+        self.show_nodes_checkbox.setChecked(True)  # Default to showing nodes
+        self.show_nodes_checkbox.toggled.connect(self._toggle_nodes_visibility)
+        
+        # Add toggle for showing/hiding Sun/Moon markers
+        self.show_sun_moon_checkbox = QCheckBox("Show Sun/Moon")
+        self.show_sun_moon_checkbox.setChecked(True)  # Default to showing Sun/Moon
+        self.show_sun_moon_checkbox.toggled.connect(self._toggle_sun_moon_visibility)
 
         # Add a button to update GC alignment
         self.update_gc_button = QPushButton("Update GC & Zodiac Alignment")
         self.update_gc_button.clicked.connect(self._handle_update_gc_alignment)
+        
+        # Add zoom control buttons
+        self.zoom_in_button = QPushButton("Zoom In")
+        self.zoom_in_button.setToolTip("Zoom in (or use mouse wheel)")
+        self.zoom_in_button.clicked.connect(self._handle_zoom_in)
+        
+        self.zoom_out_button = QPushButton("Zoom Out")
+        self.zoom_out_button.setToolTip("Zoom out (or use mouse wheel)")
+        self.zoom_out_button.clicked.connect(self._handle_zoom_out)
+        
+        self.reset_view_button = QPushButton("Reset View")
+        self.reset_view_button.setToolTip("Reset zoom and pan (or double-click)")
+        self.reset_view_button.clicked.connect(self._handle_reset_view)
+        
+        # Add button to launch 3D Adyton view - REMOVED FROM HERE
+        # self.open_3d_view_button = QPushButton("Open 3D Adyton View")
+        # self.open_3d_view_button.setStyleSheet("background-color: #4b6eaf; color: white;")
+        # self.open_3d_view_button.setToolTip("Open the 3D visualization of the Adyton of the Seven")
+        # self.open_3d_view_button.clicked.connect(self.launch_adyton_viewer) # Changed from _handle_open_3d_view
 
         zodiac_control_layout.addWidget(self.show_zodiac_checkbox)
+        zodiac_control_layout.addWidget(self.show_nodes_checkbox)
+        zodiac_control_layout.addWidget(self.show_sun_moon_checkbox)
         zodiac_control_layout.addWidget(self.update_gc_button)
+        # zodiac_control_layout.addWidget(self.open_3d_view_button) # REMOVED FROM HERE
         zodiac_control_layout.addStretch(1)
+        zodiac_control_layout.addWidget(self.zoom_out_button)
+        zodiac_control_layout.addWidget(self.reset_view_button)
+        zodiac_control_layout.addWidget(self.zoom_in_button)
 
         circle_layout.addLayout(zodiac_control_layout)
 
@@ -178,6 +222,15 @@ class StonehengePredictorWindow(QMainWindow):
         status_layout.addWidget(status_label)
         status_layout.addWidget(self.position_status, 1)
         circle_layout.addLayout(status_layout)
+        
+        # Add interaction hints
+        interaction_layout = QHBoxLayout()
+        interaction_label = QLabel(
+            "<i>Interactions: Use mouse wheel to zoom, drag to pan, double-click to reset view</i>"
+        )
+        interaction_label.setStyleSheet("color: #666666; font-size: 10px;")
+        interaction_layout.addWidget(interaction_label)
+        circle_layout.addLayout(interaction_layout)
 
         self.tab_widget.addTab(circle_tab, "Circle View")
 
@@ -259,6 +312,16 @@ class StonehengePredictorWindow(QMainWindow):
             # Update the hole reference widget with marker positions
             if hasattr(self, "hole_reference_widget"):
                 self.hole_reference_widget.update_marker_positions(current_positions)
+                
+            # Update 3D view if Adyton window is open
+            if hasattr(self, "adyton_window") and self.adyton_window is not None:
+                if not self.adyton_window.isVisible():
+                    # Clean up reference if window was closed
+                    self.adyton_window = None
+                else:
+                    # This part is for marker positions in 3D (if ever implemented directly)
+                    # self.adyton_window.update_marker_positions(current_positions)
+                    pass # Pass if no other action needed when Adyton window is visible here
 
         # Reset the position status display
         if hasattr(self, "position_status"):
@@ -737,7 +800,7 @@ class StonehengePredictorWindow(QMainWindow):
     def _handle_set_gc_epoch_and_cardinals(self):
         """
         Handles the request to set the circle orientation based on the Galactic Center
-        and display cardinal direction lines for a user-selected epoch date.
+        for a user-selected epoch date.
         """
         if self.current_latitude is None or self.current_longitude is None:
             self.eclipse_log_view.add_log_message(
@@ -765,6 +828,8 @@ class StonehengePredictorWindow(QMainWindow):
                 epoch_qdate, float(self.current_latitude), float(self.current_longitude)
             )
 
+            # We still get the cardinal points for logging, but we won't set them on the circle view
+            # since we're now using a heptagon without cardinal point display
             cardinal_azimuths = self.ephemeris_service.get_cardinal_point_azimuths_for_date_and_location(
                 epoch_qdate, float(self.current_latitude), float(self.current_longitude)
             )
@@ -779,7 +844,7 @@ class StonehengePredictorWindow(QMainWindow):
 
                     # Update the position status with GC position
                     self.position_status.setText(
-                        f"Galactic Center: {gc_zodiac} (Hole 0) - All holes are labeled with their zodiacal degrees"
+                        f"Galactic Center: {gc_zodiac} (Hole 28) - All holes are labeled with their zodiacal degrees"
                     )
 
                     # Also update the hole reference table with zodiacal positions
@@ -799,70 +864,38 @@ class StonehengePredictorWindow(QMainWindow):
                 # Display GC information with zodiac position
                 if zodiac_data and "GC" in zodiac_data:
                     self.eclipse_log_view.add_log_message(
-                        f"Circle Hole 0 oriented to Galactic Center azimuth: {zodiac_data['GC']['azimuth']} ({zodiac_data['GC']['zodiac']}) for epoch {epoch_qdate.toString('yyyy-MM-dd')}."
+                        f"Heptagon Hole 0 oriented to Galactic Center azimuth: {zodiac_data['GC']['azimuth']} ({zodiac_data['GC']['zodiac']}) for epoch {epoch_qdate.toString('yyyy-MM-dd')}."
                     )
                 else:
                     self.eclipse_log_view.add_log_message(
-                        f"Circle Hole 0 oriented to Galactic Center azimuth: {gc_azimuth:.2f}° for epoch {epoch_qdate.toString('yyyy-MM-dd')}."
+                        f"Heptagon Hole 0 oriented to Galactic Center azimuth: {gc_azimuth:.2f}° for epoch {epoch_qdate.toString('yyyy-MM-dd')}."
                     )
             else:
                 self.eclipse_log_view.add_log_message(
                     "<b><font color='red'>Error:</font></b> Could not determine Galactic Center azimuth. Check console."
                 )
 
-            if cardinal_azimuths:
-                self.circle_view.set_cardinal_point_azimuths(cardinal_azimuths)
+            # Log information about cardinal points for reference only
+            if cardinal_azimuths and zodiac_data:
+                log_parts = [
+                    f"Cardinal point data for reference (epoch {epoch_qdate.toString('yyyy-MM-dd')}):"
+                ]
 
-                # Set zodiac labels for cardinal points in the circle view
-                if zodiac_data:
-                    cardinal_zodiac_labels = {}
-                    for key in ["VE", "SS", "AE", "WS"]:
-                        if key in zodiac_data:
-                            cardinal_zodiac_labels[f"{key}_az"] = zodiac_data[key][
-                                "zodiac"
-                            ]
+                # Map the short codes to full names for better readability
+                name_map = {
+                    "VE": "Vernal Equinox",
+                    "SS": "Summer Solstice",
+                    "AE": "Autumnal Equinox",
+                    "WS": "Winter Solstice",
+                }
 
-                    if cardinal_zodiac_labels:
-                        self.circle_view.set_cardinal_point_zodiac_labels(
-                            cardinal_zodiac_labels
+                for key in ["VE", "SS", "AE", "WS"]:
+                    if key in zodiac_data:
+                        log_parts.append(
+                            f"  {name_map[key]}: {zodiac_data[key]['azimuth']} ({zodiac_data[key]['zodiac']})"
                         )
 
-                # Display cardinal points with zodiac positions
-                if zodiac_data:
-                    log_parts = [
-                        f"Cardinal points displayed for epoch {epoch_qdate.toString('yyyy-MM-dd')}:"
-                    ]
-
-                    # Map the short codes to full names for better readability
-                    name_map = {
-                        "VE": "Vernal Equinox",
-                        "SS": "Summer Solstice",
-                        "AE": "Autumnal Equinox",
-                        "WS": "Winter Solstice",
-                    }
-
-                    for key in ["VE", "SS", "AE", "WS"]:
-                        if key in zodiac_data:
-                            log_parts.append(
-                                f"  {name_map[key]}: {zodiac_data[key]['azimuth']} ({zodiac_data[key]['zodiac']})"
-                            )
-
-                    self.eclipse_log_view.add_log_message("<br>".join(log_parts))
-                else:
-                    # Fallback to old display format if zodiac data not available
-                    log_parts = [
-                        f"Cardinal points displayed for epoch {epoch_qdate.toString('yyyy-MM-dd')}:"
-                    ]
-                    for key, val in cardinal_azimuths.items():
-                        if key.endswith("_az"):  # Only show azimuth values
-                            log_parts.append(
-                                f"  {key.replace('_az', '').upper()}: {val:.2f}°"
-                            )
-                    self.eclipse_log_view.add_log_message("<br>".join(log_parts))
-            else:
-                self.eclipse_log_view.add_log_message(
-                    "<b><font color='red'>Error:</font></b> Could not determine cardinal point azimuths. Check console."
-                )
+                self.eclipse_log_view.add_log_message("<br>".join(log_parts))
         else:
             self.eclipse_log_view.add_log_message(
                 "Galactic Center epoch selection cancelled."
@@ -989,20 +1022,8 @@ class StonehengePredictorWindow(QMainWindow):
                     f"Circle Hole 0 oriented to Galactic Center azimuth: {gc_azimuth:.2f}° for epoch {q_date.toString('yyyy-MM-dd')}."
                 )
 
-        if cardinal_azimuths:
-            self.circle_view.set_cardinal_point_azimuths(cardinal_azimuths)
-
-            # Set zodiac labels for cardinal points in the circle view
-            if zodiac_data:
-                cardinal_zodiac_labels = {}
-                for key in ["VE", "SS", "AE", "WS"]:
-                    if key in zodiac_data:
-                        cardinal_zodiac_labels[f"{key}_az"] = zodiac_data[key]["zodiac"]
-
-                if cardinal_zodiac_labels:
-                    self.circle_view.set_cardinal_point_zodiac_labels(
-                        cardinal_zodiac_labels
-                    )
+        # Display cardinal points in log but don't attempt to set them on the view
+        # These methods have been removed since we're using a heptagon view now
 
             # Display cardinal points with zodiac positions
             if zodiac_data:
@@ -1252,14 +1273,126 @@ class StonehengePredictorWindow(QMainWindow):
         # Update the circle view if needed
         self.circle_view.update()
 
+    def _handle_zoom_in(self):
+        """Handle zoom in button click."""
+        if hasattr(self.circle_view, "_zoom_factor"):
+            current_zoom = self.circle_view._zoom_factor
+            new_zoom = min(current_zoom + 0.2, self.circle_view._max_zoom)
+            self.circle_view._zoom_factor = new_zoom
+            self.circle_view.update()
+            self.eclipse_log_view.add_log_message(f"Zoomed in to {new_zoom:.1f}x")
+            
+    def _handle_zoom_out(self):
+        """Handle zoom out button click."""
+        if hasattr(self.circle_view, "_zoom_factor"):
+            current_zoom = self.circle_view._zoom_factor
+            new_zoom = max(current_zoom - 0.2, self.circle_view._min_zoom)
+            self.circle_view._zoom_factor = new_zoom
+            self.circle_view.update()
+            self.eclipse_log_view.add_log_message(f"Zoomed out to {new_zoom:.1f}x")
+            
+    def _handle_reset_view(self):
+        """Handle reset view button click."""
+        if hasattr(self.circle_view, "_zoom_factor"):
+            self.circle_view._zoom_factor = 1.0
+            self.circle_view._pan_offset_x = 0.0
+            self.circle_view._pan_offset_y = 0.0
+            self.circle_view.update()
+            self.eclipse_log_view.add_log_message("View reset to default")
+    
     def _toggle_zodiac_degrees(self, checked: bool):
         """Toggle the display of zodiacal degrees on the circle view."""
         self.circle_view.toggle_zodiac_degrees_display(checked)
 
+    def _toggle_nodes_visibility(self, checked: bool):
+        """Toggle the visibility of Node markers (N and N') on the circle view."""
+        self.circle_view.toggle_nodes_visibility(checked)
+        
+    def _toggle_sun_moon_visibility(self, checked: bool):
+        """Toggle the visibility of Sun and Moon markers (S and M) on the circle view."""
+        self.circle_view.toggle_sun_moon_visibility(checked)
+        
     def _handle_update_gc_alignment(self):
         """Update the Galactic Center alignment and zodiac display."""
         # This is just a shortcut to the existing GC epoch orientation function
         self._handle_set_gc_epoch_and_cardinals()
+
+    def _apply_default_epoch(self):
+        """
+        Apply the default epoch (Dec 21, 2020) and update orientation
+        with the default location (Luxor, Egypt).
+        """
+        # Create a QDate for December 21, 2020
+        default_epoch = QDate(2020, 12, 21)
+        
+        # Only proceed if we have location set
+        if self.current_latitude is not None and self.current_longitude is not None:
+            # Log that we're using the default configuration
+            self.eclipse_log_view.add_log_message(
+                f"Setting default epoch to {default_epoch.toString('yyyy-MM-dd')} "
+                f"with location {self.default_location_name} "
+                f"({self.current_latitude:.4f}, {self.current_longitude:.4f})"
+            )
+            
+            # Get zodiac information along with azimuths using the ephemeris service
+            zodiac_data = self.ephemeris_service.get_cardinal_points_with_zodiac(
+                default_epoch, 
+                float(self.current_latitude), 
+                float(self.current_longitude)
+            )
+
+            # Get the raw values for circle view
+            gc_azimuth = self.ephemeris_service.get_galactic_center_azimuth_for_date_and_location(
+                default_epoch, 
+                float(self.current_latitude), 
+                float(self.current_longitude)
+            )
+            
+            # Get cardinal points for logging only
+            cardinal_azimuths = self.ephemeris_service.get_cardinal_point_azimuths_for_date_and_location(
+                default_epoch, 
+                float(self.current_latitude), 
+                float(self.current_longitude)
+            )
+
+            if gc_azimuth is not None:
+                self.circle_view.set_orientation(gc_azimuth)
+
+                # Set Galactic Center zodiac label for visual display
+                if zodiac_data and "GC" in zodiac_data:
+                    gc_zodiac = zodiac_data["GC"]["zodiac"]
+                    self.circle_view.set_galactic_center_zodiac(gc_zodiac)
+
+                    # Update the position status with GC position
+                    self.position_status.setText(
+                        f"Galactic Center: {gc_zodiac} (Hole 28) - All holes are labeled with their zodiacal degrees"
+                    )
+
+                    # Also update the hole reference table with zodiacal positions
+                    if hasattr(self.circle_view, "_hole_zodiac_positions"):
+                        self.hole_reference_widget.update_zodiacal_positions(
+                            self.circle_view._hole_zodiac_positions
+                        )
+
+                        # Also update marker positions in the table
+                        marker_positions = (
+                            self.simulation_service.get_current_marker_positions()
+                        )
+                        self.hole_reference_widget.update_marker_positions(
+                            marker_positions
+                        )
+
+                # Display GC information with zodiac position
+                if zodiac_data and "GC" in zodiac_data:
+                    self.eclipse_log_view.add_log_message(
+                        f"Heptagon Hole 28 oriented to Galactic Center azimuth: {zodiac_data['GC']['azimuth']} ({zodiac_data['GC']['zodiac']}) "
+                        f"for default epoch {default_epoch.toString('yyyy-MM-dd')}."
+                    )
+                else:
+                    self.eclipse_log_view.add_log_message(
+                        f"Heptagon Hole 28 oriented to Galactic Center azimuth: {gc_azimuth:.2f}° "
+                        f"for default epoch {default_epoch.toString('yyyy-MM-dd')}."
+                    )
 
 
 # To allow running this file directly for testing the window (optional)

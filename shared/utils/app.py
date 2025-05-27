@@ -231,6 +231,21 @@ class MainWindow(QMainWindow):
 
         logger.info("Initializing Document Manager pillar")
 
+        # Register document services in the ServiceLocator
+        from document_manager.repositories.concordance_repository import ConcordanceRepository
+        from document_manager.services.concordance_service import ConcordanceService
+        from document_manager.services.document_service import DocumentService
+        from shared.services.service_locator import ServiceLocator
+
+        # Create service instances
+        document_service = DocumentService()
+        concordance_repository = ConcordanceRepository()
+        concordance_service = ConcordanceService(concordance_repository, document_service)
+
+        # Register services
+        ServiceLocator.register(DocumentService, document_service)
+        ServiceLocator.register(ConcordanceService, concordance_service)
+
         # Import the DocumentTab class
         from document_manager.ui.document_tab import DocumentTab
 

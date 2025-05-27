@@ -14,4 +14,4 @@ NUM_HOLES: int = 56
 # For example, if we had specific hole numbers for solstices or equinoxes
 # as part of the core model (distinct from ephemeris calculations):
 # SOLSTICE_HOLE_SUMMER: int = 0 # Example, actual value TBD by research/model
-# EQUINOX_HOLE_SPRING: int = 14 # Example 
+# EQUINOX_HOLE_SPRING: int = 14 # Example

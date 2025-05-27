@@ -32,6 +32,54 @@ class KerykeionService:
     def __init__(self):
         """Initialize the kerykeion service."""
         logger.debug("KerykeionService initialized")
+        
+        # Configure SwissEphemeris path
+        try:
+            import swisseph as swe
+            import sys
+            import os
+            
+            # Try to find the path of the swisseph ephemeris files
+            # First check if they're in the kerykeion package
+            kerykeion_path = None
+            for path in sys.path:
+                possible_path = os.path.join(path, 'kerykeion', 'sweph')
+                if os.path.exists(possible_path):
+                    kerykeion_path = possible_path
+                    break
+            
+            if kerykeion_path:
+                logger.debug(f"Setting SwissEph path to: {kerykeion_path}")
+                swe.set_ephe_path(kerykeion_path)
+                
+                # Verify if the files exist
+                files_to_check = ['seas_12.se1', 'semo_12.se1', 'sepl_12.se1']
+                missing_files = [f for f in files_to_check if not os.path.exists(os.path.join(kerykeion_path, f))]
+                
+                if missing_files:
+                    logger.warning(f"Missing SwissEph files in {kerykeion_path}: {', '.join(missing_files)}")
+                    
+                    # Try to find them in the current directory
+                    current_dir_path = os.path.abspath(os.path.dirname(__file__))
+                    project_root = os.path.abspath(os.path.join(current_dir_path, '..', '..'))
+                    sweph_dirs = [
+                        os.path.join(project_root, 'sweph'),
+                        os.path.join(project_root, 'data', 'sweph'),
+                        os.path.join(project_root, 'assets', 'sweph')
+                    ]
+                    
+                    for sweph_dir in sweph_dirs:
+                        if os.path.exists(sweph_dir) and any(os.path.exists(os.path.join(sweph_dir, f)) for f in files_to_check):
+                            logger.debug(f"Found alternative SwissEph path: {sweph_dir}")
+                            swe.set_ephe_path(sweph_dir)
+                            break
+                        
+                    # If still not found, try to download them (in future implementation)
+                    logger.warning("Consider downloading Swiss Ephemeris files if chart generation fails")
+            else:
+                logger.warning("Could not find kerykeion sweph path. Chart generation might fail.")
+        except Exception as e:
+            logger.error(f"Error configuring SwissEph path: {e}", exc_info=True)
 
     def create_natal_chart(
         self,

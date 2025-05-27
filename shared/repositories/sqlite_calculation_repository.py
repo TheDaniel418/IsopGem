@@ -508,6 +508,7 @@ class SQLiteCalculationRepository:
                 - result_value_max: Maximum value (inclusive)
                 - calculation_type: Specific calculation method
                 - custom_method_name: Custom calculation method name
+                - language: Filter by language (Language enum)
                 - favorite: True to find only favorites
                 - has_tags: True to find only results with tags
                 - has_notes: True to find only results with notes
@@ -567,6 +568,18 @@ class SQLiteCalculationRepository:
         if "custom_method_name" in criteria:
             where_clauses.append("c.custom_method_name = ?")
             params.append(criteria["custom_method_name"])
+
+        # Language filtering - filter by calculation types that belong to the specified language
+        if "language" in criteria:
+            from gematria.models.calculation_type import CalculationType, Language
+            
+            target_language = criteria["language"]
+            if isinstance(target_language, Language):
+                # Since calculation types are stored as tuple strings, we need to check if the language
+                # appears in the stored string representation
+                language_str = f"<Language.{target_language.name}: '{target_language.value}'>"
+                where_clauses.append("c.calculation_type LIKE ?")
+                params.append(f"%{language_str}%")
 
         if criteria.get("favorite"):
             where_clauses.append("c.favorite = 1")

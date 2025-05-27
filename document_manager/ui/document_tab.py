@@ -145,6 +145,12 @@ class DocumentTab(QWidget):
         db_manager_btn.clicked.connect(self._open_document_database_manager)
         button_layout.addWidget(db_manager_btn)
 
+        # KWIC Concordance button
+        concordance_btn = QPushButton("KWIC Concordance")
+        concordance_btn.setToolTip("Create and manage Key Word In Context concordances")
+        concordance_btn.clicked.connect(self._open_kwic_concordance)
+        button_layout.addWidget(concordance_btn)
+
         # Help button (right-aligned)
         help_btn = QPushButton("Help")
         help_btn.setToolTip("Show Document Manager help")
@@ -421,3 +427,18 @@ class DocumentTab(QWidget):
         panel.setWindowTitle("Document Database Utility")
 
         logger.debug("Opened Document Database Utility window")
+
+    def _open_kwic_concordance(self) -> None:
+        """Open the KWIC Concordance window."""
+        from document_manager.ui.panels.concordance_panel import ConcordancePanel
+
+        # Create the panel
+        panel = ConcordancePanel()
+
+        # Create and open the KWIC concordance window
+        self.window_manager.open_window("kwic_concordance", panel)
+
+        # Set the window title
+        panel.setWindowTitle("KWIC Concordance")
+
+        logger.debug("Opened KWIC Concordance window")

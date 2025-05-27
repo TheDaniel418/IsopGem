@@ -9,6 +9,7 @@ from document_manager.ui.panels.document_browser_panel import DocumentBrowserPan
 from document_manager.ui.panels.document_database_manager_panel import DocumentDatabaseManagerPanel
 from document_manager.ui.panels.document_database_utility_panel import DocumentDatabaseUtilityPanel
 from document_manager.ui.panels.document_manager_panel import DocumentManagerPanel
+from document_manager.ui.panels.concordance_panel import ConcordancePanel
 
 __all__ = [
     "DocumentBrowserPanel",
@@ -16,4 +17,5 @@ __all__ = [
     "DocumentManagerPanel",
     "DocumentDatabaseManagerPanel",
     "DocumentDatabaseUtilityPanel",
+    "ConcordancePanel",
 ]

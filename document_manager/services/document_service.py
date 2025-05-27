@@ -1023,12 +1023,23 @@ class DocumentService:
         return md5.hexdigest()
 
     def get_all_documents(self) -> List[Document]:
-        """Get all documents.
+        """Get all documents from the repository.
 
         Returns:
             List of all documents
         """
         return self.document_repository.get_all()
+
+    def list_documents(self) -> List[Document]:
+        """List all documents from the repository.
+        
+        This is an alias for get_all_documents() to maintain compatibility
+        with different parts of the application.
+
+        Returns:
+            List of all documents
+        """
+        return self.get_all_documents()
 
     def _validate_document(self, document: Document) -> Tuple[bool, Optional[str]]:
         """Validate document before saving to database.

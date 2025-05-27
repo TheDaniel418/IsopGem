@@ -5,6 +5,7 @@ This module provides the main tab for the Geometry pillar.
 
 import math
 import random
+from typing import Optional
 
 from loguru import logger
 from PyQt6.QtCore import QRectF, Qt, QTimer
@@ -413,14 +414,44 @@ class GeometryTab(QWidget):
         button_layout.setContentsMargins(5, 5, 5, 5)
         button_layout.setSpacing(5)
 
-        # Sacred Geometry button removed
+        # Sacred Geometry button
+        sacred_geometry_btn = QPushButton("Sacred Geometry")
+        sacred_geometry_btn.setToolTip("Open Sacred Geometry Tools")
+        sacred_geometry_btn.clicked.connect(self._open_sacred_geometry)
+        button_layout.addWidget(sacred_geometry_btn)
 
         # Regular Polygon Calculator button
         regular_polygon_btn = QPushButton("Regular Polygon")
         regular_polygon_btn.setToolTip("Open Regular Polygon Calculator")
         regular_polygon_btn.clicked.connect(self._open_regular_polygon)
         button_layout.addWidget(regular_polygon_btn)
-
+        
+        # The Vault of Hestia button
+        vault_of_hestia_btn = QPushButton("The Vault of Hestia")
+        vault_of_hestia_btn.setToolTip("Explore the Vault of Hestia geometric design")
+        vault_of_hestia_btn.clicked.connect(self._open_vault_of_hestia)
+        button_layout.addWidget(vault_of_hestia_btn)
+        
+        # Platonic Solids button
+        platonic_btn = QPushButton("Platonic Solids")
+        platonic_btn.setToolTip("Open Platonic Solids Calculator")
+        platonic_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #673AB7;
+                color: white;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #5E35B1;
+            }
+            """
+        )
+        platonic_btn.clicked.connect(self._open_platonic_solids)
+        button_layout.addWidget(platonic_btn)
+        
         # Golden Mean button
         golden_mean_btn = QPushButton("Golden Mean")
         golden_mean_btn.setToolTip("Explore the Golden Mean and its manifestations")
@@ -440,13 +471,7 @@ class GeometryTab(QWidget):
             """
         )
         button_layout.addWidget(golden_mean_btn)
-
-        # The Vault of Hestia button
-        vault_of_hestia_btn = QPushButton("The Vault of Hestia")
-        vault_of_hestia_btn.setToolTip("Explore the Vault of Hestia geometric design")
-        vault_of_hestia_btn.clicked.connect(self._open_vault_of_hestia)
-        button_layout.addWidget(vault_of_hestia_btn)
-
+        
         # Golden Trisection button
         golden_trisection_btn = QPushButton("Golden Trisection")
         golden_trisection_btn.setToolTip(
@@ -468,7 +493,7 @@ class GeometryTab(QWidget):
             """
         )
         button_layout.addWidget(golden_trisection_btn)
-
+        
         # Nested Heptagons button
         nested_heptagons_btn = QPushButton("Nested Heptagons")
         nested_heptagons_btn.setToolTip(
@@ -490,405 +515,189 @@ class GeometryTab(QWidget):
             """
         )
         button_layout.addWidget(nested_heptagons_btn)
-
+        
         # Polygonal Numbers button
         polygonal_numbers_btn = QPushButton("Polygonal Numbers")
-        polygonal_numbers_btn.setToolTip(
-            "Visualize polygonal and centered polygonal numbers"
-        )
-        polygonal_numbers_btn.clicked.connect(self._open_polygonal_numbers)
-        polygonal_numbers_btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #2196F3;
-                color: white;
-                font-weight: bold;
-                padding: 5px 10px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #1976D2;
-            }
-            """
-        )
+        polygonal_numbers_btn.setToolTip("Open Polygonal Numbers Tool")
+        polygonal_numbers_btn.clicked.connect(lambda: self._open_polygonal_numbers(3))
         button_layout.addWidget(polygonal_numbers_btn)
-
-        # Platonic Solids button
-        platonic_btn = QPushButton("Platonic Solids")
-        platonic_btn.setToolTip("Open Platonic Solids Calculator")
-        platonic_btn.setStyleSheet(
+        
+        # Advanced Scientific Calculator button
+        scientific_calc_btn = QPushButton("Scientific Calculator")
+        scientific_calc_btn.setToolTip("Open Advanced Scientific Calculator")
+        scientific_calc_btn.clicked.connect(self._open_scientific_calculator)
+        scientific_calc_btn.setStyleSheet(
             """
             QPushButton {
-                background-color: #673AB7;
+                background-color: #3F51B5;
                 color: white;
                 font-weight: bold;
                 padding: 5px 10px;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #5E35B1;
+                background-color: #303F9F;
             }
             """
         )
-        platonic_btn.clicked.connect(self._open_platonic_solids)
-        button_layout.addWidget(platonic_btn)
-
+        button_layout.addWidget(scientific_calc_btn)
+        
         # Add stretch to push buttons to the left
         button_layout.addStretch()
-
-        # Help button (right-aligned)
-        help_btn = QPushButton("Help")
-        help_btn.setToolTip("Show Geometry help")
-        help_btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                font-weight: bold;
-                padding: 5px 10px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-        """
-        )
-        # help_btn.clicked.connect(self._show_help)
-        button_layout.addWidget(help_btn)
-
-        # Add button bar to content layout
+        
         content_layout.addWidget(button_bar)
-
-        # Create card for welcome content
-        welcome_card = QFrame()
-        welcome_card.setObjectName("welcomeCard")
-        welcome_card.setStyleSheet(
-            """
-            #welcomeCard {
-                background-color: rgba(255, 255, 255, 0.9);
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-                padding: 15px;
-                margin: 20px 40px;
-                min-width: 500px;
-                max-width: 800px;
-                min-height: 200px;
-            }
-        """
-        )
-        welcome_layout = QVBoxLayout(welcome_card)
-        welcome_layout.setContentsMargins(15, 15, 15, 15)
-        welcome_layout.setSpacing(10)
-
-        # Title and welcome message with enhanced styling
-        title = QLabel("Geometry")
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #009688;")
-
-        welcome = QLabel(
-            "Welcome to the Geometry pillar. Here you can explore sacred geometry, "
-            "mathematical ratios, and visual patterns found throughout nature."
-        )
-        welcome.setWordWrap(True)
-        welcome.setStyleSheet("font-size: 14px; color: #555;")
-        welcome.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Description with more details
-        description = QLabel(
-            "Sacred geometry is the geometry used in the planning and construction of "
-            "religious structures, sacred spaces, and significant art. It ascribes symbolic and "
-            "sacred meanings to certain geometric shapes and proportions."
-        )
-        description.setWordWrap(True)
-        description.setStyleSheet("font-size: 12px; color: #777; margin-top: 10px;")
-        description.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Add content to welcome card
-        welcome_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
-        welcome_layout.addWidget(welcome)
-        welcome_layout.addWidget(description)
-
-        # Add welcome card to content layout
-        content_layout.addWidget(welcome_card, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        # Add Harmonia image below welcome card
-        harmonia_container = QFrame()
-        harmonia_container.setObjectName("harmoniaImageContainer")
-        harmonia_container.setStyleSheet(
-            """
-            #harmoniaImageContainer {
-                background-color: rgba(255, 255, 255, 0.7);
-                border-radius: 8px;
-                margin: 10px 40px 20px 40px;
-                padding: 10px;
-            }
-        """
-        )
-        harmonia_layout = QVBoxLayout(harmonia_container)
-
-        # Create image label
-        harmonia_image_label = QLabel()
-        harmonia_pixmap = QPixmap("assets/tab_images/harmonia.png")
-
-        if not harmonia_pixmap.isNull():
-            # Scale the image to a reasonable size while maintaining aspect ratio
-            scaled_pixmap = harmonia_pixmap.scaled(
-                400,
-                400,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            harmonia_image_label.setPixmap(scaled_pixmap)
-            harmonia_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            # Add caption
-            caption = QLabel(
-                "Harmonia - Greek goddess of harmony, concord and geometric proportion"
-            )
-            caption.setStyleSheet(
-                "font-size: 12px; color: #009688; font-style: italic;"
-            )
-            caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            harmonia_layout.addWidget(
-                harmonia_image_label, alignment=Qt.AlignmentFlag.AlignCenter
-            )
-            harmonia_layout.addWidget(caption, alignment=Qt.AlignmentFlag.AlignCenter)
-
-            # Add the image container to the content layout
-            content_layout.addWidget(
-                harmonia_container, alignment=Qt.AlignmentFlag.AlignCenter
-            )
-        else:
-            logger.error(
-                "Failed to load Harmonia image from assets/tab_images/harmonia.png"
-            )
-
-        content_layout.addStretch()
-
-        # Add content container to stacked layout
+        
+        # Add the shape panel or content here (currently empty as we just have background)
+        content_layout.addStretch(1)
+        
+        # Add content to stack
         stack_layout.addWidget(content_container)
-
-        # Add the shape canvas to the stacked widget
+        
+        # Add the canvas on top of everything
         self.shape_canvas.setParent(self.stacked_widget)
         self.shape_canvas.resize(self.stacked_widget.size())
-
-        # Stack the canvas above the content
-        self.shape_canvas.stackUnder(content_container)
-
-        # Set attributes for shape canvas
-        self.shape_canvas.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
-        logger.debug(
-            "ShapeCanvas created with visibility: " + str(self.shape_canvas.isVisible())
-        )
-
-        # Debug the layout
-        logger.debug("Using regular layout with overlay canvas")
-
-        # Raise the canvas to be on top of everything else after a delay
-        QTimer.singleShot(1000, self._ensure_canvas_on_top)
-
-    # Sacred Geometry Explorer method removed
-
+        self.shape_canvas.raise_()  # Ensure it's on top
+        
     def _open_regular_polygon(self) -> None:
-        """Open the Regular Polygon Calculator window."""
-        logger.debug("Opening Regular Polygon Calculator")
-
-        # Import here to avoid circular imports
-        import uuid
-
+        """Open the Regular Polygon Calculator in a new window."""
         from geometry.ui.panels.regular_polygon_panel import RegularPolygonPanel
+        
+        # Create the panel
+        panel = RegularPolygonPanel()
+        
+        # Create and open the window with the panel
+        self.window_manager.open_window("regular_polygon_calculator", panel)
+        
+        # Set window title
+        panel.setWindowTitle("Regular Polygon Calculator")
+        
+        logger.debug("Opened Regular Polygon Calculator window")
+    
+    def _open_scientific_calculator(self) -> None:
+        """Open the Advanced Scientific Calculator in a new window."""
+        import uuid
+        from geometry.ui.windows.advanced_scientific_calculator_window import AdvancedScientificCalculatorWindow
+        
+        # Generate a unique window ID
+        window_id = f"scientific_calculator_{uuid.uuid4().hex[:8]}"
+        
+        # Create the calculator window instance with the unique ID
+        calculator_window = AdvancedScientificCalculatorWindow(window_id)
+        
+        # Open the window using the window manager
+        self.window_manager.open_window(window_id, calculator_window)
+        
+        # Set the window title
+        calculator_window.setWindowTitle("Advanced Scientific Calculator")
+        
+        logger.debug(f"Opened Advanced Scientific Calculator window with ID {window_id}")
+    
+    def _open_polygonal_numbers(self, number: Optional[int] = None) -> None:
+        """Open the Polygonal Numbers panel.
+        
+        Optionally focuses on a specific number if provided.
 
-        # Generate a unique instance ID for multi-window support
-        instance_id = f"regular_polygon_{uuid.uuid4().hex[:8]}"
-
-        # Create a window for the calculator
-        window = self.window_manager.create_auxiliary_window(
-            instance_id, "Regular Polygon Calculator"
-        )
-
-        # Create the calculator panel
-        calculator_panel = RegularPolygonPanel()
-
-        # Set the panel as the window content
-        window.set_content(calculator_panel)
-
-        # Configure and show the window
-        window.setMinimumSize(900, 600)
-        window.show()
-
-        logger.debug(
-            f"Opened Regular Polygon Calculator with instance ID: {instance_id}"
-        )
-
-    def _open_platonic_solids(self) -> None:
-        """Open the Platonic Solids Calculator window."""
-        logger.debug("Opening Platonic Solids Calculator")
-
-        # Import here to avoid circular imports
+        Args:
+            number: Optional number to initialize the panel with.
+        """
+        # Import the panel class locally to avoid circular dependencies if necessary
+        from geometry.ui.panels.polygonal_numbers_panel import PolygonalNumbersPanel
         import uuid
 
-        from geometry.ui.windows.platonic_solid_window import PlatonicSolidWindow
+        # Define a unique ID prefix for this type of window
+        window_prefix = "polygonal_numbers"
+        
+        # Generate a unique ID for this specific instance
+        # This allows multiple instances if needed, though likely only one is desired
+        window_id = f"{window_prefix}_{uuid.uuid4().hex[:8]}"
 
-        # Generate a unique instance ID for multi-window support
-        instance_id = f"platonic_solid_{uuid.uuid4().hex[:8]}"
+        # Check if the window manager is available
+        if self.window_manager:
+            logger.info(f"Requesting to open polygonal numbers panel with ID: {window_id}")
+            
+            # Create the panel instance
+            panel = PolygonalNumbersPanel()
+            
+            # Open the window using the WindowManager
+            # The second argument is the content widget for the AuxiliaryWindow
+            aux_window = self.window_manager.open_window(
+                window_id,  # First argument: window_id
+                panel       # Second argument: content widget (the panel itself)
+            )
+            
+            # Set the title on the returned AuxiliaryWindow object
+            if aux_window:
+                aux_window.setWindowTitle("Polygonal Numbers Visualization")
+                # Ensure it's shown, as open_window might just create/return if already exists
+                aux_window.show()
+                aux_window.raise_() # Bring to front
+                aux_window.activateWindow() # Ensure it gets focus
+                logger.debug(f"Opened and configured {panel.windowTitle()} window with ID {window_id}")
+            else:
+                logger.error(f"Window manager did not return a window for ID: {window_id}")
 
-        # Create the Platonic Solids window
-        window = PlatonicSolidWindow(instance_id, self)
+        else:
+            logger.error("Window manager not available, cannot open polygonal numbers panel")
 
-        # Register the window with the window manager
-        self.window_manager._auxiliary_windows[instance_id] = window
-
-        # Configure and show the window
-        self.window_manager.configure_window(window)
-        window.setMinimumSize(900, 600)
-        window.show()
-
-        logger.debug(
-            f"Opened Platonic Solids Calculator with instance ID: {instance_id}"
-        )
+    def _open_sacred_geometry(self) -> None:
+        """Open the Sacred Geometry tools panel.
+        
+        Note: This is a stub method that will be implemented when 
+        the Sacred Geometry panel is created.
+        """
+        # Will be implemented when the Sacred Geometry tools are developed
+        logger.debug("Sacred Geometry button clicked - functionality coming soon")
 
     def _open_vault_of_hestia(self) -> None:
-        """Open the Vault of Hestia Explorer window."""
-        logger.debug("Opening Vault of Hestia Explorer")
-        import uuid
-
+        """Open the Vault of Hestia exploration panel."""
         from geometry.ui.panels.vault_of_hestia_panel import VaultOfHestiaPanel
-
-        instance_id = f"vault_of_hestia_{uuid.uuid4().hex[:8]}"
-        window = self.window_manager.create_auxiliary_window(
-            instance_id, "Vault of Hestia Explorer"
-        )
+        
         panel = VaultOfHestiaPanel()
-        window.set_content(panel)
-        window.setMinimumSize(900, 600)
-        window.show()
-        logger.debug(f"Opened Vault of Hestia Explorer with instance ID: {instance_id}")
+        window_id = "vault_of_hestia"
+        self.window_manager.open_window(window_id, panel)
+        panel.setWindowTitle("The Vault of Hestia")
+        logger.debug(f"Opened {panel.windowTitle()} window with ID {window_id}")
 
-    def _open_polygonal_numbers(self) -> None:
-        """Open the Polygonal Numbers Visualization window."""
-        logger.debug("Opening Polygonal Numbers Visualization")
-
-        # Import here to avoid circular imports
+    def _open_platonic_solids(self) -> None:
+        """Open the Platonic Solids Calculator Window."""
+        from geometry.ui.windows.platonic_solid_window import PlatonicSolidWindow
         import uuid
 
-        from geometry.ui.panels.polygonal_numbers_panel import PolygonalNumbersPanel
-
-        # Generate a unique instance ID for multi-window support
-        instance_id = f"polygonal_numbers_{uuid.uuid4().hex[:8]}"
-
-        # Create a window for the visualization
-        window = self.window_manager.create_auxiliary_window(
-            instance_id, "Polygonal Numbers Visualization"
-        )
-
-        # Create the panel
-        panel = PolygonalNumbersPanel()
-
-        # Set the panel as the window content
-        window.set_content(panel)
-
-        # Configure and show the window
-        window.setMinimumSize(900, 600)
-        window.show()
-
-        logger.debug(
-            f"Opened Polygonal Numbers Visualization with instance ID: {instance_id}"
-        )
+        window_id = f"platonic_solids_{uuid.uuid4().hex[:8]}"
+        window = PlatonicSolidWindow(window_id)
+        self.window_manager.open_window(window_id, window)
+        window.setWindowTitle("Platonic Solids Calculator")
+        logger.debug(f"Opened {window.windowTitle()} window with ID {window_id}")
 
     def _open_golden_mean(self) -> None:
-        """Open the Golden Mean Explorer window."""
-        logger.debug("Opening Golden Mean Explorer")
-
-        # Import here to avoid circular imports
+        """Open the Golden Mean exploration panel."""
+        from geometry.ui.panels.golden_mean_panel import GoldenMeanPanel
         import uuid
 
-        from geometry.ui.panels.golden_mean_panel import GoldenMeanPanel
-
-        # Generate a unique instance ID for multi-window support
-        instance_id = f"golden_mean_{uuid.uuid4().hex[:8]}"
-
-        # Create a window for the calculator
-        window = self.window_manager.create_auxiliary_window(
-            instance_id, "Golden Mean Explorer"
-        )
-
-        # Create the Golden Mean panel
-        golden_mean_panel = GoldenMeanPanel()
-
-        # Set the panel as the window content
-        window.set_content(golden_mean_panel)
-
-        # Configure and show the window
-        window.setMinimumSize(900, 700)
-        window.setWindowIcon(
-            QIcon(str(self.resources_path / "geometry" / "golden_ratio.png"))
-        )
-        window.show()
-
-        logger.debug(f"Opened Golden Mean Explorer with instance ID: {instance_id}")
+        panel = GoldenMeanPanel()
+        window_id = f"golden_mean_{uuid.uuid4().hex[:8]}"
+        self.window_manager.open_window(window_id, panel)
+        panel.setWindowTitle("Golden Mean Explorer")
+        logger.debug(f"Opened {panel.windowTitle()} window with ID {window_id}")
 
     def _open_golden_trisection(self) -> None:
-        """Open the Golden Trisection Explorer window."""
-        logger.debug("Opening Golden Trisection Explorer")
-
-        # Import here to avoid circular imports
+        """Open the Golden Trisection exploration panel."""
+        from geometry.ui.panels.golden_trisection_panel import GoldenTrisectionPanel
         import uuid
 
-        from geometry.ui.panels.golden_trisection_panel import GoldenTrisectionPanel
-
-        # Generate a unique instance ID for multi-window support
-        instance_id = f"golden_trisection_{uuid.uuid4().hex[:8]}"
-
-        # Create a window for the calculator
-        window = self.window_manager.create_auxiliary_window(
-            instance_id, "Golden Trisection Explorer"
-        )
-
-        # Create the Golden Trisection panel
-        golden_trisection_panel = GoldenTrisectionPanel()
-
-        # Set the panel as the window content
-        window.set_content(golden_trisection_panel)
-
-        # Configure and show the window
-        window.setMinimumSize(900, 700)
-        window.setWindowIcon(
-            QIcon(str(self.resources_path / "geometry" / "golden_ratio.png"))
-        )
-        window.show()
-
-        logger.debug(
-            f"Opened Golden Trisection Explorer with instance ID: {instance_id}"
-        )
+        panel = GoldenTrisectionPanel()
+        window_id = f"golden_trisection_{uuid.uuid4().hex[:8]}"
+        self.window_manager.open_window(window_id, panel)
+        panel.setWindowTitle("Golden Trisection Explorer")
+        logger.debug(f"Opened {panel.windowTitle()} window with ID {window_id}")
 
     def _open_nested_heptagons(self) -> None:
-        """Open the Nested Heptagons Calculator window."""
-        logger.debug("Opening Nested Heptagons Calculator")
-
-        # Import here to avoid circular imports
+        """Open the Nested Heptagons exploration panel."""
+        from geometry.ui.panels.nested_heptagons_panel import NestedHeptagonsPanel
         import uuid
 
-        from geometry.ui.panels.nested_heptagons_panel import NestedHeptagonsPanel
-
-        # Generate a unique instance ID for multi-window support
-        instance_id = f"nested_heptagons_{uuid.uuid4().hex[:8]}"
-
-        # Create a window for the calculator
-        window = self.window_manager.create_auxiliary_window(
-            instance_id, "Nested Heptagons Calculator"
-        )
-
-        # Create the Nested Heptagons panel
-        nested_heptagons_panel = NestedHeptagonsPanel()
-
-        # Set the panel as the window content
-        window.set_content(nested_heptagons_panel)
-
-        # Configure and show the window
-        window.setMinimumSize(900, 700)
-        window.show()
-
-        logger.debug(
-            f"Opened Nested Heptagons Calculator with instance ID: {instance_id}"
-        )
+        panel = NestedHeptagonsPanel()
+        window_id = f"nested_heptagons_{uuid.uuid4().hex[:8]}"
+        self.window_manager.open_window(window_id, panel)
+        panel.setWindowTitle("Nested Heptagons Explorer")
+        logger.debug(f"Opened {panel.windowTitle()} window with ID {window_id}")

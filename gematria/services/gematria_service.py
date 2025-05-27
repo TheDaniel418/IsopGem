@@ -456,7 +456,7 @@ class GematriaService:
             "נ": {"name": "נון"},
             "ס": {"name": "סמך"},
             "ע": {"name": "עין"},
-            "פ": {"name": "פא"},  # Docs had פה, but פא is more common for 81
+            "פ": {"name": "פה"},  # Docs had פה, but פא is more common for 81
             "צ": {"name": "צדי"},
             "ק": {"name": "קוף"},
             "ר": {"name": "ריש"},
